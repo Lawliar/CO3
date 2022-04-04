@@ -40,7 +40,7 @@ Runtime::Runtime(Module &M) {
   auto *ptrT = IRB.getInt8PtrTy();
   auto *int8T = IRB.getInt8Ty();
   auto *voidT = IRB.getVoidTy();
-  auto *symIDT = IRB.getInt32Ty();
+  symIDT = IRB.getInt32Ty();
 
 
   buildInteger = import(M, "_sym_build_integer", voidT, IRB.getInt64Ty(), int8T, symIDT);
@@ -60,8 +60,7 @@ Runtime::Runtime(Module &M) {
                            IRB.getInt1Ty(), IRB.getInt1Ty(),symIDT);
   buildFloatToFloat =
       import(M, "_sym_build_float_to_float", voidT, symIDT, IRB.getInt1Ty(),symIDT);
-  buildBitsToFloat =
-      import(M, "_sym_build_bits_to_float", voidT, symIDT, IRB.getInt1Ty(),symIDT);
+  buildBitsToFloat = import(M, "_sym_build_bits_to_float", voidT, symIDT, IRB.getInt1Ty(),symIDT);
   buildFloatToBits = import(M, "_sym_build_float_to_bits", voidT, symIDT,symIDT);
   buildFloatToSignedInt =
       import(M, "_sym_build_float_to_signed_integer", voidT, symIDT, int8T,symIDT);
@@ -75,10 +74,9 @@ Runtime::Runtime(Module &M) {
   pushPathConstraint = import(M, "_sym_push_path_constraint", voidT, symIDT,
                               IRB.getInt1Ty(), intPtrType);
 
-  setParameterExpression =
-      import(M, "_sym_set_parameter_expression", voidT, int8T, symIDT);
-  getParameterExpression =
-      import(M, "_sym_get_parameter_expression", symIDT, int8T);
+  setParameterExpression = import(M, "_sym_set_parameter_expression", voidT, int8T, symIDT);
+  //get the symIDT from the global memory on the MCU.
+  getParameterExpression = import(M, "_sym_get_parameter_expression", symIDT, int8T);
   setReturnExpression = import(M, "_sym_set_return_expression", voidT, symIDT);
   getReturnExpression = import(M, "_sym_get_return_expression", symIDT);
 

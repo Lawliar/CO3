@@ -199,6 +199,21 @@ public:
     return (exprIt != symbolicExpressions.end()) ? exprIt->second : nullptr;
   }
 
+  unsigned getSymID(llvm::Value *V) {
+      auto exprIt = symbolicIDs.find(V);
+      return (exprIt != symbolicIDs.end()) ? exprIt->second : 0;
+  }
+
+  unsigned addSymID(llvm::Value * V){
+      unsigned ret;
+      auto it = symbolicIDs.find(V);
+      assert(it == symbolicIDs.end());
+      symbolicIDs[V] = availableSymID;
+      ret = availableSymID;
+      availableSymID++;
+      return ret;
+  }
+
   llvm::Value *getSymbolicExpressionOrNull(llvm::Value *V) {
     auto *expr = getSymbolicExpression(V);
     if (expr == nullptr)
@@ -317,6 +332,9 @@ public:
   /// finalizePHINodes invalidates it. We may want to pass the map around
   /// explicitly.
   llvm::ValueMap<llvm::Value *, llvm::Value *> symbolicExpressions;
+  unsigned availableSymID = 1;
+  /// Maps symbolic value to its IDs
+  llvm::ValueMap<llvm::Value *, unsigned> symbolicIDs;
 
   /// A record of all PHI nodes in this function.
   ///

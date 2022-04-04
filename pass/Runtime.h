@@ -27,6 +27,7 @@
 /// Runtime functions
 struct Runtime {
   Runtime(llvm::Module &M);
+  llvm::IntegerType* symIDT;
 
   SymFnT buildInteger{};
   SymFnT buildInteger128{};
