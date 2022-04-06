@@ -27,58 +27,59 @@ using namespace llvm;
 
 void Symbolizer::symbolizeFunctionArguments(Function &F) {
   // The main function doesn't receive symbolic arguments.
-  if (F.getName() == "main")
-    return;
+    if (F.getName() == "main")
+        return;
 
-  IRBuilder<> IRB(F.getEntryBlock().getFirstNonPHI());
+    IRBuilder<> IRB(F.getEntryBlock().getFirstNonPHI());
 
-  for (auto &arg : F.args()) {
-    if (!arg.user_empty())
-      symbolicExpressions[&arg] = IRB.CreateCall(runtime.getParameterExpression,
-                                                 IRB.getInt8(arg.getArgNo()));
-  }
+    for (auto &arg : F.args()) {
+        if (!arg.user_empty()){
+            auto * symcall  = IRB.CreateCall(runtime.getParameterExpression,
+                                             IRB.getInt8(arg.getArgNo()));
+            symbolicExpressions[&arg] = symcall;
+            assignSymID(symcall,symcall);// the id of this sym call is not known until run-time.
+        }
+    }
 }
 
 void Symbolizer::insertBasicBlockNotification(llvm::BasicBlock &B) {
-  IRBuilder<> IRB(&*B.getFirstInsertionPt());
-  llvm::ConstantInt * valueToInsert = getTargetPreferredInt(&B);
-  IRB.CreateCall(runtime.notifyBasicBlock,valueToInsert);
+    IRBuilder<> IRB(&*B.getFirstInsertionPt());
+    llvm::ConstantInt * valueToInsert = getTargetPreferredInt(&B);
+    IRB.CreateCall(runtime.notifyBasicBlock,valueToInsert);
 }
 
 void Symbolizer::finalizePHINodes() {
-  SmallPtrSet<PHINode *, 32> nodesToErase;
+    SmallPtrSet<PHINode *, 32> nodesToErase;
 
-  for (auto *phi : phiNodes) {
-    auto symbolicPHI = cast<PHINode>(symbolicExpressions[phi]);
+    for (auto *phi : phiNodes) {
+        auto symPhi = getSymbolicExpression(phi);
+        auto symbolicPHI = cast<PHINode>(symPhi);
 
-    // A PHI node that receives only compile-time constants can be replaced by
-    // a null expression.
-    if (std::all_of(phi->op_begin(), phi->op_end(), [this](Value *input) {
-          return (getSymbolicExpression(input) == nullptr);
+        // A PHI node that receives only compile-time constants can be replaced by
+        // a null expression.
+        if (std::all_of(phi->op_begin(), phi->op_end(), [this](Value *input) {
+            return (getSymbolicExpression(input) == nullptr);
         })) {
-      nodesToErase.insert(symbolicPHI);
-      continue;
+            nodesToErase.insert(symbolicPHI);
+            continue;
+        }
+
+        for (unsigned incoming = 0, totalIncoming = phi->getNumIncomingValues();
+            incoming < totalIncoming; incoming++) {
+            symbolicPHI->setIncomingValue(incoming,getSymbolicExpressionOrNull(phi->getIncomingValue(incoming)));
+        }
     }
 
-    for (unsigned incoming = 0, totalIncoming = phi->getNumIncomingValues();
-         incoming < totalIncoming; incoming++) {
-      symbolicPHI->setIncomingValue(
-          incoming,
-          getSymbolicExpressionOrNull(phi->getIncomingValue(incoming)));
+    for (auto *symbolicPHI : nodesToErase) {
+        symbolicPHI->replaceAllUsesWith(ConstantPointerNull::get(cast<PointerType>(symbolicPHI->getType())));
+        symbolicPHI->eraseFromParent();
     }
-  }
 
-  for (auto *symbolicPHI : nodesToErase) {
-    symbolicPHI->replaceAllUsesWith(
-        ConstantPointerNull::get(cast<PointerType>(symbolicPHI->getType())));
-    symbolicPHI->eraseFromParent();
-  }
-
-  // Replacing all uses has fixed uses of the symbolic PHI nodes in existing
-  // code, but the nodes may still be referenced via symbolicExpressions. We
-  // therefore invalidate symbolicExpressions, meaning that it cannot be used
-  // after this point.
-  symbolicExpressions.clear();
+    // Replacing all uses has fixed uses of the symbolic PHI nodes in existing
+    // code, but the nodes may still be referenced via symbolicExpressions. We
+    // therefore invalidate symbolicExpressions, meaning that it cannot be used
+    // after this point.
+    symbolicExpressions.clear();
 }
 
 void Symbolizer::shortCircuitExpressionUses() {
@@ -408,8 +409,11 @@ void Symbolizer::visitReturnInst(ReturnInst &I) {
   // create the call directly without registering it for short-circuit
   // processing.
   IRBuilder<> IRB(&I);
+  auto returnSymExpr = getSymbolicExpressionOrNull(I.getReturnValue());
+  Value* returnSymID = nullptr;
+
   IRB.CreateCall(runtime.setReturnExpression,
-                 getSymbolicExpressionOrNull(I.getReturnValue()));
+                 returnSymID);
 }
 
 void Symbolizer::visitBranchInst(BranchInst &I) {
@@ -458,43 +462,52 @@ void Symbolizer::visitAllocaInst(AllocaInst & /*unused*/) {
 }
 
 void Symbolizer::visitLoadInst(LoadInst &I) {
-  IRBuilder<> IRB(&I);
+    IRBuilder<> IRB(&I);
 
-  auto *addr = I.getPointerOperand();
-  tryAlternative(IRB, addr);
+    auto *addr = I.getPointerOperand();
+    tryAlternative(IRB, addr);
 
-  auto *dataType = I.getType();
-  auto *data = IRB.CreateCall(
+    auto *dataType = I.getType();
+    auto readMemSymID = getNextID();
+    auto *data = IRB.CreateCall(
       runtime.readMemory,
       {IRB.CreatePtrToInt(addr, intPtrType),
        ConstantInt::get(intPtrType, dataLayout.getTypeStoreSize(dataType)),
-       ConstantInt::get(IRB.getInt8Ty(), isLittleEndian(dataType) ? 1 : 0)});
+       ConstantInt::get(IRB.getInt8Ty(), isLittleEndian(dataType) ? 1 : 0),
+       readMemSymID});
+    assignSymID(data,readMemSymID);
 
-  if (dataType->isFloatingPointTy()) {
-    data = IRB.CreateCall(runtime.buildBitsToFloat,
-                          {data, IRB.getInt1(dataType->isDoubleTy())});
-  }
+    if (dataType->isFloatingPointTy()) {
+        auto bitToFloatSymID = getNextID();
+        data = IRB.CreateCall(runtime.buildBitsToFloat,
+                          {readMemSymID, IRB.getInt1(dataType->isDoubleTy()),bitToFloatSymID});
+        assignSymID(data,bitToFloatSymID );
+    }
 
-  symbolicExpressions[&I] = data;
+    symbolicExpressions[&I] = data;
 }
 
 void Symbolizer::visitStoreInst(StoreInst &I) {
-  IRBuilder<> IRB(&I);
+    IRBuilder<> IRB(&I);
 
-  tryAlternative(IRB, I.getPointerOperand());
+    tryAlternative(IRB, I.getPointerOperand());
 
-  auto *data = getSymbolicExpressionOrNull(I.getValueOperand());
-  auto *dataType = I.getValueOperand()->getType();
-  if (dataType->isFloatingPointTy()) {
-    data = IRB.CreateCall(runtime.buildFloatToBits, data);
-  }
+    auto *data = getSymbolicExpressionOrNull(I.getValueOperand());
+    Value * dataSymID = getSymIDOrZero(data);
+    auto *dataType = I.getValueOperand()->getType();
+    if (dataType->isFloatingPointTy()) {
+        auto newSymID = getNextID();
+        data = IRB.CreateCall(runtime.buildFloatToBits, {dataSymID,newSymID});
+        assignSymID(cast<CallInst>(data) , newSymID);
+        dataSymID = newSymID;
+    }
 
-  IRB.CreateCall(
-      runtime.writeMemory,
-      {IRB.CreatePtrToInt(I.getPointerOperand(), intPtrType),
-       ConstantInt::get(intPtrType, dataLayout.getTypeStoreSize(dataType)),
-       data,
-       ConstantInt::get(IRB.getInt8Ty(), dataLayout.isLittleEndian() ? 1 : 0)});
+    IRB.CreateCall(
+        runtime.writeMemory,
+        {IRB.CreatePtrToInt(I.getPointerOperand(), intPtrType),
+         ConstantInt::get(intPtrType, dataLayout.getTypeStoreSize(dataType)),
+         dataSymID,
+         ConstantInt::get(IRB.getInt8Ty(), dataLayout.isLittleEndian() ? 1 : 0)});
 }
 
 void Symbolizer::visitGetElementPtrInst(GetElementPtrInst &I) {
@@ -779,32 +792,39 @@ void Symbolizer::visitExtractValueInst(ExtractValueInst &I) {
 }
 
 void Symbolizer::visitSwitchInst(SwitchInst &I) {
-  // Switch compares a value against a set of integer constants; duplicate
-  // constants are not allowed
-  // (https://llvm.org/docs/LangRef.html#switch-instruction).
+    // Switch compares a value against a set of integer constants; duplicate
+    // constants are not allowed
+    // (https://llvm.org/docs/LangRef.html#switch-instruction).
 
-  IRBuilder<> IRB(&I);
-  auto *condition = I.getCondition();
-  auto *conditionExpr = getSymbolicExpression(condition);
-  if (conditionExpr == nullptr)
-    return;
+    IRBuilder<> IRB(&I);
+    auto *condition = I.getCondition();
+    auto *conditionExpr = getSymbolicExpression(condition);
+    if (conditionExpr == nullptr)
+        return;
+    auto conditionSymID = getSymID(cast<CallInst>(conditionExpr));
+    assert(conditionSymID != nullptr);
 
-  // Build a check whether we have a symbolic condition, to be used later.
-  auto *haveSymbolicCondition = IRB.CreateICmpNE(
-      conditionExpr, ConstantPointerNull::get(IRB.getInt8PtrTy()));
-  auto *constraintBlock = SplitBlockAndInsertIfThen(haveSymbolicCondition, &I,
-                                                    /* unreachable */ false);
+    // Build a check whether we have a symbolic condition, to be used later.
+    auto *haveSymbolicCondition = IRB.CreateICmpNE(conditionExpr, ConstantPointerNull::get(IRB.getInt8PtrTy()));
+    auto *constraintBlock = SplitBlockAndInsertIfThen(haveSymbolicCondition, &I,/* unreachable */ false);
 
-  // In the constraint block, we push one path constraint per case.
-  IRB.SetInsertPoint(constraintBlock);
-  for (auto &caseHandle : I.cases()) {
-    auto *caseTaken = IRB.CreateICmpEQ(condition, caseHandle.getCaseValue());
-    auto *caseConstraint = IRB.CreateCall(
+    // In the constraint block, we push one path constraint per case.
+    IRB.SetInsertPoint(constraintBlock);
+    for (auto &caseHandle : I.cases()) {
+        auto *caseTaken = IRB.CreateICmpEQ(condition, caseHandle.getCaseValue());
+        auto caseValueExpr = createValueExpression(caseHandle.getCaseValue(), IRB);
+        auto caseValueSymID = getSymID(caseValueExpr);
+        assert(caseValueSymID != nullptr);
+
+        auto caseConstraintSymID = getNextID();
+        auto *caseConstraint = IRB.CreateCall(
         runtime.comparisonHandlers[CmpInst::ICMP_EQ],
-        {conditionExpr, createValueExpression(caseHandle.getCaseValue(), IRB)});
-    IRB.CreateCall(runtime.pushPathConstraint,
-                   {caseConstraint, caseTaken, getTargetPreferredInt(&I)});
-  }
+        {conditionSymID, caseValueSymID,caseConstraintSymID});
+        assignSymID(caseConstraint,caseConstraintSymID);
+
+        IRB.CreateCall(runtime.pushPathConstraint,
+                   {caseConstraintSymID, caseTaken, getTargetPreferredInt(&I)});
+    }
 }
 
 void Symbolizer::visitUnreachableInst(UnreachableInst & /*unused*/) {
@@ -822,105 +842,154 @@ void Symbolizer::visitInstruction(Instruction &I) {
 }
 
 CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
-  auto *valueType = V->getType();
-
-  if (isa<ConstantPointerNull>(V)) {
-    return IRB.CreateCall(runtime.buildNullPointer, {});
-  }
-
-  if (valueType->isIntegerTy()) {
-    auto bits = valueType->getPrimitiveSizeInBits();
-    if (bits == 1) {
-      // Special case: LLVM uses the type i1 to represent Boolean values, but
-      // for Z3 we have to create expressions of a separate sort.
-      return IRB.CreateCall(runtime.buildBool, {V});
-    } else if (bits <= 64) {
-      return IRB.CreateCall(runtime.buildInteger,
-                            {IRB.CreateZExtOrBitCast(V, IRB.getInt64Ty()),
-                             IRB.getInt8(valueType->getPrimitiveSizeInBits())});
-    } else {
-      // Anything up to the maximum supported 128 bits. Those integers are a bit
-      // tricky because the symbolic backends don't support them per se. We have
-      // a special function in the run-time library that handles them, usually
-      // by assembling expressions from smaller chunks.
-      return IRB.CreateCall(
-          runtime.buildInteger128,
-          {IRB.CreateTrunc(IRB.CreateLShr(V, ConstantInt::get(valueType, 64)),
-                           IRB.getInt64Ty()),
-           IRB.CreateTrunc(V, IRB.getInt64Ty())});
+    auto *valueType = V->getType();
+    CallInst* ret = nullptr;
+    if (isa<ConstantPointerNull>(V)) {
+        ret = IRB.CreateCall(runtime.buildNullPointer, {});
+        assignSymID(ret,getNextID());
+        return ret;
     }
-  }
 
-  if (valueType->isFloatingPointTy()) {
-    return IRB.CreateCall(runtime.buildFloat,
-                          {IRB.CreateFPCast(V, IRB.getDoubleTy()),
-                           IRB.getInt1(valueType->isDoubleTy())});
-  }
+    if (valueType->isIntegerTy()) {
+        auto bits = valueType->getPrimitiveSizeInBits();
+        if (bits == 1) {
+            // Special case: LLVM uses the type i1 to represent Boolean values, but
+            // for Z3 we have to create expressions of a separate sort.
+            auto symid = getNextID();
+            ret = IRB.CreateCall(runtime.buildBool, {V,symid});
+            assignSymID(ret,symid);
+            return ret;
+        } else if (bits <= 64) {
+            auto symid = getNextID();
+            ret = IRB.CreateCall(runtime.buildInteger,
+                                 {IRB.CreateZExtOrBitCast(V, IRB.getInt64Ty()),
+                                  IRB.getInt8(valueType->getPrimitiveSizeInBits()),symid});
+            assignSymID(ret,symid);
+            return ret;
+        } else {
+            // Anything up to the maximum supported 128 bits. Those integers are a bit
+            // tricky because the symbolic backends don't support them per se. We have
+            // a special function in the run-time library that handles them, usually
+            // by assembling expressions from smaller chunks.
+            auto symid = getNextID();
+            ret = IRB.CreateCall(
+                    runtime.buildInteger128,
+                    {
+                            IRB.CreateTrunc(IRB.CreateLShr(V, ConstantInt::get(valueType, 64)),IRB.getInt64Ty()),
+                            IRB.CreateTrunc(V, IRB.getInt64Ty()),
+                            symid});
+            assignSymID(ret,symid);
+            return ret;
+        }
+    }
 
-  if (valueType->isPointerTy()) {
-    return IRB.CreateCall(
-        runtime.buildInteger,
-        {IRB.CreatePtrToInt(V, IRB.getInt64Ty()), IRB.getInt8(ptrBits)});
-  }
+    if (valueType->isFloatingPointTy()) {
+        auto symid = getNextID();
+        ret = IRB.CreateCall(runtime.buildFloat,
+                             {IRB.CreateFPCast(V, IRB.getDoubleTy()),
+                              IRB.getInt1(valueType->isDoubleTy()),symid});
+        assignSymID(ret, symid);
+        return ret;
+    }
 
-  if (valueType->isStructTy()) {
-    // In unoptimized code we may see structures in SSA registers. What we
-    // want is a single bit-vector expression describing their contents, but
-    // unfortunately we can't take the address of a register. We fix the
-    // problem with a hack: we write the register to memory and initialize the
-    // expression from there.
-    //
-    // An alternative would be to change the representation of structures in
-    // SSA registers to "shadow structures" that contain one expression per
-    // member. However, this would put an additional burden on the handling of
-    // cast instructions, because expressions would have to be converted
-    // between different representations according to the type.
+    if (valueType->isPointerTy()) {
+        auto symid = getNextID();
+        ret = IRB.CreateCall(
+                runtime.buildInteger,
+                {IRB.CreatePtrToInt(V, IRB.getInt64Ty()), IRB.getInt8(ptrBits),symid});
+        assignSymID(ret,symid);
+        return ret;
+    }
 
-    auto *memory = IRB.CreateAlloca(V->getType());
-    IRB.CreateStore(V, memory);
-    return IRB.CreateCall(
-        runtime.readMemory,
-        {IRB.CreatePtrToInt(memory, intPtrType),
-         ConstantInt::get(intPtrType,
-                          dataLayout.getTypeStoreSize(V->getType())),
-         IRB.getInt8(0)});
-  }
+    if (valueType->isStructTy()) {
+        // In unoptimized code we may see structures in SSA registers. What we
+        // want is a single bit-vector expression describing their contents, but
+        // unfortunately we can't take the address of a register. We fix the
+        // problem with a hack: we write the register to memory and initialize the
+        // expression from there.
+        //
+        // An alternative would be to change the representation of structures in
+        // SSA registers to "shadow structures" that contain one expression per
+        // member. However, this would put an additional burden on the handling of
+        // cast instructions, because expressions would have to be converted
+        // between different representations according to the type.
 
-  llvm_unreachable("Unhandled type for constant expression");
+        auto *memory = IRB.CreateAlloca(V->getType());
+        IRB.CreateStore(V, memory);
+        auto symid = getNextID();
+        ret = IRB.CreateCall(runtime.readMemory,{IRB.CreatePtrToInt(memory, intPtrType), ConstantInt::get(intPtrType,dataLayout.getTypeStoreSize(V->getType())),IRB.getInt8(0),symid});
+        assignSymID(ret,symid);
+        return ret;
+    }
+    llvm_unreachable("Unhandled type for constant expression");
 }
 
 Symbolizer::SymbolicComputation
 Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
                                   ArrayRef<std::pair<Value *, bool>> args) {
-  std::vector<Value *> functionArgs;
-  for (const auto &[arg, symbolic] : args) {
-    functionArgs.push_back(symbolic ? getSymbolicExpressionOrNull(arg) : arg);
-  }
-  auto *call = IRB.CreateCall(function, functionArgs);
+    std::vector<Value *> functionArgs;
+    unsigned numParas = function.getFunctionType()->getNumParams();
+    bool needNewID = true;
+    if(numParas == args.size()){
+        needNewID = false;
+    }else if (numParas == (args.size() + 1)){
+        // this means, the value that is previously returned, now it's passed into the function as a parameter.
+        needNewID = true;
+    }else{
+        llvm_unreachable("too many arguments");
+    }
 
-  std::vector<Input> inputs;
-  for (unsigned i = 0; i < args.size(); i++) {
-    const auto &[arg, symbolic] = args[i];
-    if (symbolic)
-      inputs.push_back({arg, i, call});
-  }
+    for (const auto &[arg, symbolic] : args) {
+        Value * para = nullptr;
+        if(symbolic){
+            auto paraSymExpr = getSymbolicExpressionOrNull(arg);
+            Value* paraSymID = getSymIDOrZero(paraSymExpr);
+            para = paraSymID;
+        }else{
+            para = arg;
+        }
+        functionArgs.push_back(para);
+    }
 
-  return SymbolicComputation(call, call, inputs);
+    llvm::ConstantInt* newSymID = nullptr;
+    if(needNewID){
+        newSymID = getNextID();
+        functionArgs.push_back(newSymID);
+    }
+    auto *call = IRB.CreateCall(function, functionArgs);
+    if(needNewID){
+        assignSymID(call,newSymID);
+    }
+
+    std::vector<Input> inputs;
+    for (unsigned i = 0; i < args.size(); i++) {
+        const auto &[arg, symbolic] = args[i];
+        if (symbolic)
+            inputs.push_back({arg, i, call});
+    }
+
+    return SymbolicComputation(call, call, inputs);
 }
 
 void Symbolizer::tryAlternative(IRBuilder<> &IRB, Value *V) {
-  auto *destExpr = getSymbolicExpression(V);
-  if (destExpr != nullptr) {
-    auto *concreteDestExpr = createValueExpression(V, IRB);
-    auto *destAssertion =
-        IRB.CreateCall(runtime.comparisonHandlers[CmpInst::ICMP_EQ],
-                       {destExpr, concreteDestExpr});
-    auto *pushAssertion = IRB.CreateCall(
-        runtime.pushPathConstraint,
-        {destAssertion, IRB.getInt1(true), getTargetPreferredInt(V)});
-    registerSymbolicComputation(SymbolicComputation(
+    auto *destExpr = getSymbolicExpression(V);
+    if (destExpr != nullptr) {
+        auto destSymId = getSymID(cast<CallInst>(destExpr));
+        assert(destSymId != nullptr);
+        auto *concreteDestExpr = createValueExpression(V, IRB);
+        auto concreteDestSymId = getSymID(concreteDestExpr);
+        assert(concreteDestSymId != nullptr);
+
+        auto destAssertSymID = getNextID();
+        auto *destAssertion = IRB.CreateCall(runtime.comparisonHandlers[CmpInst::ICMP_EQ],
+                       {destSymId, concreteDestSymId,destAssertSymID});
+        assignSymID(destAssertion,destAssertSymID);
+        // no need to assign a symid for push constraint, as long as all its symbolic operands are there
+        auto *pushAssertion = IRB.CreateCall(runtime.pushPathConstraint,
+        {destAssertSymID, IRB.getInt1(true), getTargetPreferredInt(V)});
+        registerSymbolicComputation(SymbolicComputation(
         concreteDestExpr, pushAssertion, {{V, 0, destAssertion}}));
-  }
+    }
 }
 
 uint64_t Symbolizer::aggregateMemberOffset(Type *aggregateType,

@@ -71,6 +71,7 @@ Runtime::Runtime(Module &M) {
   buildBoolOr = import(M, "_sym_build_bool_or", voidT, symIDT, symIDT,symIDT);
   buildBoolXor = import(M, "_sym_build_bool_xor", voidT, symIDT, symIDT,symIDT);
   buildBoolToBits = import(M, "_sym_build_bool_to_bits", voidT, symIDT, int8T,symIDT);
+
   pushPathConstraint = import(M, "_sym_push_path_constraint", voidT, symIDT,
                               IRB.getInt1Ty(), intPtrType);
 
@@ -148,8 +149,7 @@ Runtime::Runtime(Module &M) {
   writeMemory = import(M, "_sym_write_memory", voidT, intPtrType, intPtrType, symIDT, int8T);
   buildInsert =
       import(M, "_sym_build_insert", symIDT, symIDT, symIDT, IRB.getInt64Ty(), int8T);
-  buildExtract = import(M, "_sym_build_extract", symIDT, symIDT, IRB.getInt64Ty(),
-                        IRB.getInt64Ty(), int8T);
+  buildExtract = import(M, "_sym_build_extract", symIDT, symIDT, IRB.getInt64Ty(), IRB.getInt64Ty(), int8T);
 
   notifyCall = import(M, "_sym_notify_call", voidT, intPtrType);
   notifyRet = import(M, "_sym_notify_ret", voidT, intPtrType);

@@ -22,6 +22,7 @@
 #include <llvm/Support/raw_ostream.h>
 #include <optional>
 
+
 #include "Runtime.h"
 class Symbolizer : public llvm::InstVisitor<Symbolizer> {
 public:
@@ -190,37 +191,46 @@ public:
     }
   };
 
-  /// Create an expression that represents the concrete value.
-  llvm::CallInst *createValueExpression(llvm::Value *V, llvm::IRBuilder<> &IRB);
+    /// Create an expression that represents the concrete value.
+    llvm::CallInst *createValueExpression(llvm::Value *V, llvm::IRBuilder<> &IRB);
 
-  /// Get the (already created) symbolic expression for a value.
-  llvm::Value *getSymbolicExpression(llvm::Value *V) {
-    auto exprIt = symbolicExpressions.find(V);
-    return (exprIt != symbolicExpressions.end()) ? exprIt->second : nullptr;
-  }
+    /// Get the (already created) symbolic expression for a value.
+    llvm::Value *getSymbolicExpression(llvm::Value *V) {
+        auto exprIt = symbolicExpressions.find(V);
+        return (exprIt != symbolicExpressions.end()) ? exprIt->second : nullptr;
+    }
 
-  unsigned getSymID(llvm::Value *V) {
-      auto exprIt = symbolicIDs.find(V);
-      return (exprIt != symbolicIDs.end()) ? exprIt->second : 0;
-  }
+    llvm::Value* getSymID(llvm::CallInst *V) {
+        auto exprIt = symbolicIDs.find(V);
+        return (exprIt != symbolicIDs.end()) ? exprIt->second : nullptr;
+    }
+    llvm::Value* getSymIDOrZero(llvm::Value* V){
+        llvm::Value * returnSymID = nullptr;
+        if(llvm::isa<llvm::ConstantPointerNull>(V)){
+            returnSymID = llvm::ConstantInt::get(runtime.symIDT,0);
+        }else{
+            returnSymID = getSymID(llvm::cast<llvm::CallInst>(V));
+            assert(returnSymID != nullptr);
+        }
+    }
+    llvm::ConstantInt* getNextID(){
+        unsigned id;
+        id = availableSymID;
+        availableSymID++;
+        return llvm::ConstantInt::get(runtime.symIDT, id);
+    }
+    void assignSymID(llvm::CallInst * symcall, llvm::Value* ID){
+        auto exprIt = symbolicIDs.find(symcall);
+        assert(exprIt == symbolicIDs.end());
+        symbolicIDs[symcall] = ID;
+    }
 
-  unsigned addSymID(llvm::Value * V){
-      unsigned ret;
-      auto it = symbolicIDs.find(V);
-      assert(it == symbolicIDs.end());
-      symbolicIDs[V] = availableSymID;
-      ret = availableSymID;
-      availableSymID++;
-      return ret;
-  }
-
-  llvm::Value *getSymbolicExpressionOrNull(llvm::Value *V) {
-    auto *expr = getSymbolicExpression(V);
-    if (expr == nullptr)
-      return llvm::ConstantPointerNull::get(
-          llvm::IntegerType::getInt8PtrTy(V->getContext()));
-    return expr;
-  }
+    llvm::Value *getSymbolicExpressionOrNull(llvm::Value *V) {
+        auto *expr = getSymbolicExpression(V);
+        if (expr == nullptr)
+            return llvm::ConstantPointerNull::get( llvm::IntegerType::getInt8PtrTy(V->getContext()));
+        return expr;
+    }
 
   bool isLittleEndian(llvm::Type *type) {
     return (!type->isAggregateType() && dataLayout.isLittleEndian());
@@ -334,7 +344,8 @@ public:
   llvm::ValueMap<llvm::Value *, llvm::Value *> symbolicExpressions;
   unsigned availableSymID = 1;
   /// Maps symbolic value to its IDs
-  llvm::ValueMap<llvm::Value *, unsigned> symbolicIDs;
+  llvm::ValueMap<llvm::CallInst *, llvm::Value *> symbolicIDs;
+  ///
 
   /// A record of all PHI nodes in this function.
   ///
