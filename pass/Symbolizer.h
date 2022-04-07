@@ -212,7 +212,9 @@ public:
             returnSymID = getSymID(llvm::cast<llvm::CallInst>(V));
             assert(returnSymID != nullptr);
         }
+        return returnSymID;
     }
+    unsigned availableSymID = 1;
     llvm::ConstantInt* getNextID(){
         unsigned id;
         id = availableSymID;
@@ -342,7 +344,6 @@ public:
   /// finalizePHINodes invalidates it. We may want to pass the map around
   /// explicitly.
   llvm::ValueMap<llvm::Value *, llvm::Value *> symbolicExpressions;
-  unsigned availableSymID = 1;
   /// Maps symbolic value to its IDs
   llvm::ValueMap<llvm::CallInst *, llvm::Value *> symbolicIDs;
   ///

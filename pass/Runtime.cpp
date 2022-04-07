@@ -40,6 +40,7 @@ Runtime::Runtime(Module &M) {
   auto *ptrT = IRB.getInt8PtrTy();
   auto *int8T = IRB.getInt8Ty();
   auto *voidT = IRB.getVoidTy();
+  auto *booleanT = IRB.getInt1Ty();
   symIDT = IRB.getInt32Ty();
 
 
@@ -48,7 +49,9 @@ Runtime::Runtime(Module &M) {
                            IRB.getInt64Ty(), symIDT);
   buildFloat =
       import(M, "_sym_build_float", voidT, IRB.getDoubleTy(), IRB.getInt1Ty(), symIDT);
-  buildNullPointer = import(M, "_sym_build_null_pointer", voidT,symIDT);
+  buildNullPointer = import(M, "_sym_build_null_pointer", booleanT,symIDT);
+
+  concreteCheck = import(M, "_sym_concrete_check",booleanT,symIDT);
   buildTrue = import(M, "_sym_build_true", voidT,symIDT);
   buildFalse = import(M, "_sym_build_false", voidT,symIDT);
   buildBool = import(M, "_sym_build_bool", voidT, IRB.getInt1Ty(),symIDT);

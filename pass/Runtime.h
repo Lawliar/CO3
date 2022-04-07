@@ -28,11 +28,12 @@
 struct Runtime {
   Runtime(llvm::Module &M);
   llvm::IntegerType* symIDT;
-
+  llvm::IntegerType* booleanT;
   SymFnT buildInteger{};
   SymFnT buildInteger128{};
   SymFnT buildFloat{};
   SymFnT buildNullPointer{};
+  SymFnT concreteCheck{};
   SymFnT buildTrue{};
   SymFnT buildFalse{};
   SymFnT buildBool{};

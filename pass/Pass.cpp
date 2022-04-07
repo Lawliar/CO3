@@ -60,8 +60,7 @@ bool SymbolizePass::runOnFunction(Function &F) {
   auto functionName = F.getName();
   if (functionName == kSymCtorName)
     return false;
-  llvm::errs() << "Symbolizing function ";
-  llvm::errs().write_escaped(functionName) << '\n';
+  llvm::errs() << "Symbolizing function " << functionName << '\n';
 
   SmallVector<Instruction *, 0> allInstructions;
   allInstructions.reserve(F.getInstructionCount());
@@ -78,8 +77,9 @@ bool SymbolizePass::runOnFunction(Function &F) {
     errs() << "handling:"<<*instPtr<<'\n';
     symbolizer.visit(instPtr);
   }
+  //errs()<<F<<'\n';
   symbolizer.finalizePHINodes();
-  symbolizer.shortCircuitExpressionUses();
+  //symbolizer.shortCircuitExpressionUses();
 
   assert(!verifyFunction(F, &errs()) &&
          "SymbolizePass produced invalid bitcode");

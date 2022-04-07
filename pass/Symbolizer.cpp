@@ -66,7 +66,9 @@ void Symbolizer::finalizePHINodes() {
 
         for (unsigned incoming = 0, totalIncoming = phi->getNumIncomingValues();
             incoming < totalIncoming; incoming++) {
-            symbolicPHI->setIncomingValue(incoming,getSymbolicExpressionOrNull(phi->getIncomingValue(incoming)));
+            auto symExpr = getSymbolicExpressionOrNull(phi->getIncomingValue(incoming));
+            auto symID = getSymIDOrZero(symExpr);
+            symbolicPHI->setIncomingValue(incoming,symID);
         }
     }
 
@@ -83,99 +85,99 @@ void Symbolizer::finalizePHINodes() {
 }
 
 void Symbolizer::shortCircuitExpressionUses() {
-  for (auto &symbolicComputation : expressionUses) {
-    assert(!symbolicComputation.inputs.empty() &&
-           "Symbolic computation has no inputs");
+    for (auto &symbolicComputation : expressionUses) {
+        assert(!symbolicComputation.inputs.empty() && "Symbolic computation has no inputs");
+        IRBuilder<> IRB(symbolicComputation.firstInstruction);
 
-    IRBuilder<> IRB(symbolicComputation.firstInstruction);
+        // Build the check whether any input expression is non-null (i.e., there
+        // is a symbolic input).
+        //auto *nullExpression = ConstantPointerNull::get(IRB.getInt8PtrTy());
+        auto *zeroSymID = ConstantInt::get(runtime.symIDT,0);
+        std::vector<Value *> nullChecks;
+        for (const auto &input : symbolicComputation.inputs) {
+            auto symOperand = input.getSymbolicOperand();
+            nullChecks.push_back(
+                IRB.CreateCall(runtime.concreteCheck,symOperand));
+        }
+        auto *allConcrete = nullChecks[0];
+        for (unsigned argIndex = 1; argIndex < nullChecks.size(); argIndex++) {
+            allConcrete = IRB.CreateAnd(allConcrete, nullChecks[argIndex]);
+        }
 
-    // Build the check whether any input expression is non-null (i.e., there
-    // is a symbolic input).
-    auto *nullExpression = ConstantPointerNull::get(IRB.getInt8PtrTy());
-    std::vector<Value *> nullChecks;
-    for (const auto &input : symbolicComputation.inputs) {
-      nullChecks.push_back(
-          IRB.CreateICmpEQ(nullExpression, input.getSymbolicOperand()));
-    }
-    auto *allConcrete = nullChecks[0];
-    for (unsigned argIndex = 1; argIndex < nullChecks.size(); argIndex++) {
-      allConcrete = IRB.CreateAnd(allConcrete, nullChecks[argIndex]);
-    }
-
-    // The main branch: if we don't enter here, we can short-circuit the
-    // symbolic computation. Otherwise, we need to check all input expressions
-    // and create an output expression.
-    auto *head = symbolicComputation.firstInstruction->getParent();
-    auto *slowPath = SplitBlock(head, symbolicComputation.firstInstruction);
-    auto *tail = SplitBlock(slowPath,
+        // The main branch: if we don't enter here, we can short-circuit the
+        // symbolic computation. Otherwise, we need to check all input expressions
+        // and create an output expression.
+        auto *head = symbolicComputation.firstInstruction->getParent();
+        auto *slowPath = SplitBlock(head, symbolicComputation.firstInstruction);
+        auto *tail = SplitBlock(slowPath,
                             symbolicComputation.lastInstruction->getNextNode());
-    ReplaceInstWithInst(head->getTerminator(),
+        ReplaceInstWithInst(head->getTerminator(),
                         BranchInst::Create(tail, slowPath, allConcrete));
 
-    // In the slow case, we need to check each input expression for null
-    // (i.e., the input is concrete) and create an expression from the
-    // concrete value if necessary.
-    auto numUnknownConcreteness = std::count_if(
+        // In the slow case, we need to check each input expression for null
+        // (i.e., the input is concrete) and create an expression from the
+        // concrete value if necessary.
+        auto numUnknownConcreteness = std::count_if(
         symbolicComputation.inputs.begin(), symbolicComputation.inputs.end(),
         [&](const Input &input) {
-          return (input.getSymbolicOperand() != nullExpression);
+            return (input.getSymbolicOperand() != zeroSymID);
         });
-    for (unsigned argIndex = 0; argIndex < symbolicComputation.inputs.size();
-         argIndex++) {
-      auto &argument = symbolicComputation.inputs[argIndex];
-      auto *originalArgExpression = argument.getSymbolicOperand();
-      auto *argCheckBlock = symbolicComputation.firstInstruction->getParent();
+        errs()<<"firstInstruction:"<<*symbolicComputation.firstInstruction<<'\n';
+        errs()<<"lastInstruction:"<<*symbolicComputation.lastInstruction<<'\n';
+        for (unsigned argIndex = 0; argIndex < symbolicComputation.inputs.size();argIndex++) {
+            auto &argument = symbolicComputation.inputs[argIndex];
+            auto *originalArgExpression = argument.getSymbolicOperand();
+            auto *argCheckBlock = symbolicComputation.firstInstruction->getParent();
 
-      // We only need a run-time check for concreteness if the argument isn't
-      // known to be concrete at compile time already. However, there is one
-      // exception: if the computation only has a single argument of unknown
-      // concreteness, then we know that it must be symbolic since we ended up
-      // in the slow path. Therefore, we can skip expression generation in
-      // that case.
-      bool needRuntimeCheck = originalArgExpression != nullExpression;
-      if (needRuntimeCheck && (numUnknownConcreteness == 1))
-        continue;
+            // We only need a run-time check for concreteness if the argument isn't
+            // known to be concrete at compile time already. However, there is one
+            // exception: if the computation only has a single argument of unknown
+            // concreteness, then we know that it must be symbolic since we ended up
+            // in the slow path. Therefore, we can skip expression generation in
+            // that case.
+            bool needRuntimeCheck = originalArgExpression !=  zeroSymID;
+            if (needRuntimeCheck && (numUnknownConcreteness == 1))
+                continue;
+            if (needRuntimeCheck) {
+                auto *argExpressionBlock = SplitBlockAndInsertIfThen(
+                nullChecks[argIndex], symbolicComputation.firstInstruction,
+                /* unreachable */ false);
+                IRB.SetInsertPoint(argExpressionBlock);
+            } else {
+                IRB.SetInsertPoint(symbolicComputation.firstInstruction);
+            }
 
-      if (needRuntimeCheck) {
-        auto *argExpressionBlock = SplitBlockAndInsertIfThen(
-            nullChecks[argIndex], symbolicComputation.firstInstruction,
-            /* unreachable */ false);
-        IRB.SetInsertPoint(argExpressionBlock);
-      } else {
-        IRB.SetInsertPoint(symbolicComputation.firstInstruction);
-      }
+            auto *newArgExpression = createValueExpression(argument.concreteValue, IRB);
 
-      auto *newArgExpression =
-          createValueExpression(argument.concreteValue, IRB);
+            Value *finalArgExpression;
+            if (needRuntimeCheck) {
+                IRB.SetInsertPoint(symbolicComputation.firstInstruction);
+                auto *argPHI = IRB.CreatePHI(runtime.symIDT, 2);
+                argPHI->addIncoming(originalArgExpression, argCheckBlock);
 
-      Value *finalArgExpression;
-      if (needRuntimeCheck) {
-        IRB.SetInsertPoint(symbolicComputation.firstInstruction);
-        auto *argPHI = IRB.CreatePHI(IRB.getInt8PtrTy(), 2);
-        argPHI->addIncoming(originalArgExpression, argCheckBlock);
-        argPHI->addIncoming(newArgExpression, newArgExpression->getParent());
-        finalArgExpression = argPHI;
-      } else {
-        finalArgExpression = newArgExpression;
-      }
+                auto newArgSymID = getSymID(newArgExpression);
+                assert(newArgSymID != nullptr);
+                argPHI->addIncoming(newArgSymID, newArgExpression->getParent());
+                finalArgExpression = argPHI;
+            } else {
+                finalArgExpression = newArgExpression;
+            }
 
-      argument.replaceOperand(finalArgExpression);
+            argument.replaceOperand(finalArgExpression);
+            errs()<<*symbolicComputation.firstInstruction->getFunction();
+            __asm__("nop");
+        }
+
+        // Finally, the overall result (if the computation produces one) is null if we've taken the fast path
+        //                            and the symbolic expression computed above if short-circuiting wasn't possible.
+        if (!symbolicComputation.lastInstruction->use_empty()) {
+            IRB.SetInsertPoint(&tail->front());
+            auto *finalExpression = IRB.CreatePHI(IRB.getInt8PtrTy(), 2);
+            symbolicComputation.lastInstruction->replaceAllUsesWith(finalExpression);
+            finalExpression->addIncoming(ConstantPointerNull::get(IRB.getInt8PtrTy()),head);
+            finalExpression->addIncoming(symbolicComputation.lastInstruction,symbolicComputation.lastInstruction->getParent());
+        }
     }
-
-    // Finally, the overall result (if the computation produces one) is null
-    // if we've taken the fast path and the symbolic expression computed above
-    // if short-circuiting wasn't possible.
-    if (!symbolicComputation.lastInstruction->use_empty()) {
-      IRB.SetInsertPoint(&tail->front());
-      auto *finalExpression = IRB.CreatePHI(IRB.getInt8PtrTy(), 2);
-      symbolicComputation.lastInstruction->replaceAllUsesWith(finalExpression);
-      finalExpression->addIncoming(ConstantPointerNull::get(IRB.getInt8PtrTy()),
-                                   head);
-      finalExpression->addIncoming(
-          symbolicComputation.lastInstruction,
-          symbolicComputation.lastInstruction->getParent());
-    }
-  }
 }
 
 void Symbolizer::handleIntrinsicCall(CallBase &I) {
@@ -304,41 +306,43 @@ void Symbolizer::handleInlineAssembly(CallInst &I) {
 }
 
 void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
-  auto *callee = I.getCalledFunction();
-  if (callee != nullptr && callee->isIntrinsic()) {
-    handleIntrinsicCall(I);
-    return;
-  }
-  if(callee != nullptr){
-      errs() << "callbase:"<< I <<"\ncallee name:"<< callee->getName()<<'\n';
-  }
-  IRBuilder<> IRB(returnPoint);
-  IRB.CreateCall(runtime.notifyRet, getTargetPreferredInt(&I));
-  IRB.SetInsertPoint(&I);
-  IRB.CreateCall(runtime.notifyCall, getTargetPreferredInt(&I));
+    auto *callee = I.getCalledFunction();
+    if (callee != nullptr && callee->isIntrinsic()) {
+        handleIntrinsicCall(I);
+        return;
+    }
+    IRBuilder<> IRB(returnPoint);
+    IRB.CreateCall(runtime.notifyRet, getTargetPreferredInt(&I));
+    IRB.SetInsertPoint(&I);
+    IRB.CreateCall(runtime.notifyCall, getTargetPreferredInt(&I));
 
-  if (callee == nullptr)
-    tryAlternative(IRB, I.getCalledOperand());
+    if (callee == nullptr)
+        tryAlternative(IRB, I.getCalledOperand());
 
-  for (Use &arg : I.args())
-    IRB.CreateCall(runtime.setParameterExpression,
-                   {ConstantInt::get(IRB.getInt8Ty(), arg.getOperandNo()),
-                    getSymbolicExpressionOrNull(arg)});
+    for (Use &arg : I.args()){
+        auto argSymExpr = getSymbolicExpressionOrNull(arg);
+        auto argSymID = getSymIDOrZero(argSymExpr);
+        IRB.CreateCall(runtime.setParameterExpression,
+                     {ConstantInt::get(IRB.getInt8Ty(), arg.getOperandNo()),
+                             argSymID});
+    }
 
-  if (!I.user_empty()) {
-    // The result of the function is used somewhere later on. Since we have no
-    // way of knowing whether the function is instrumented (and thus sets a
-    // proper return expression), we have to account for the possibility that
-    // it's not: in that case, we'll have to treat the result as an opaque
-    // concrete value. Therefore, we set the return expression to null here in
-    // order to avoid accidentally using whatever is stored there from the
-    // previous function call. (If the function is instrumented, it will just
-    // override our null with the real expression.)
-    IRB.CreateCall(runtime.setReturnExpression,
-                   ConstantPointerNull::get(IRB.getInt8PtrTy()));
-    IRB.SetInsertPoint(returnPoint);
-    symbolicExpressions[&I] = IRB.CreateCall(runtime.getReturnExpression);
-  }
+
+    if (!I.user_empty()) {
+        // The result of the function is used somewhere later on. Since we have no
+        // way of knowing whether the function is instrumented (and thus sets a
+        // proper return expression), we have to account for the possibility that
+        // it's not: in that case, we'll have to treat the result as an opaque
+        // concrete value. Therefore, we set the return expression to null here in
+        // order to avoid accidentally using whatever is stored there from the
+        // previous function call. (If the function is instrumented, it will just
+        // override our null with the real expression.)
+        IRB.CreateCall(runtime.setReturnExpression,ConstantInt::get(runtime.symIDT,0));
+        IRB.SetInsertPoint(returnPoint);
+        auto returnSymExpr = IRB.CreateCall(runtime.getReturnExpression);
+        symbolicExpressions[&I] = returnSymExpr;
+        assignSymID(returnSymExpr,returnSymExpr);
+    }
 }
 
 void Symbolizer::visitBinaryOperator(BinaryOperator &I) {
@@ -410,7 +414,7 @@ void Symbolizer::visitReturnInst(ReturnInst &I) {
   // processing.
   IRBuilder<> IRB(&I);
   auto returnSymExpr = getSymbolicExpressionOrNull(I.getReturnValue());
-  Value* returnSymID = nullptr;
+  Value* returnSymID = getSymIDOrZero(returnSymExpr);
 
   IRB.CreateCall(runtime.setReturnExpression,
                  returnSymID);
@@ -747,22 +751,22 @@ void Symbolizer::visitCastInst(CastInst &I) {
 }
 
 void Symbolizer::visitPHINode(PHINode &I) {
-  // PHI nodes just assign values based on the origin of the last jump, so we
-  // assign the corresponding symbolic expression the same way.
+    // PHI nodes just assign values based on the origin of the last jump, so we
+    // assign the corresponding symbolic expression the same way.
 
-  phiNodes.push_back(&I); // to be finalized later, see finalizePHINodes
+    phiNodes.push_back(&I); // to be finalized later, see finalizePHINodes
 
-  IRBuilder<> IRB(&I);
-  unsigned numIncomingValues = I.getNumIncomingValues();
-  auto *exprPHI = IRB.CreatePHI(IRB.getInt8PtrTy(), numIncomingValues);
-  for (unsigned incoming = 0; incoming < numIncomingValues; incoming++) {
-    exprPHI->addIncoming(
-        // The null pointer will be replaced in finalizePHINodes.
-        ConstantPointerNull::get(cast<PointerType>(IRB.getInt8PtrTy())),
-        I.getIncomingBlock(incoming));
-  }
+    IRBuilder<> IRB(&I);
+    unsigned numIncomingValues = I.getNumIncomingValues();
+    auto *exprPHI = IRB.CreatePHI(IRB.getInt8PtrTy(), numIncomingValues);
+    for (unsigned incoming = 0; incoming < numIncomingValues; incoming++) {
+        exprPHI->addIncoming(
+            // The null pointer will be replaced in finalizePHINodes.
+            ConstantInt::get(runtime.symIDT,0),
+            I.getIncomingBlock(incoming));
+    }
 
-  symbolicExpressions[&I] = exprPHI;
+    symbolicExpressions[&I] = exprPHI;
 }
 
 void Symbolizer::visitInsertValueInst(InsertValueInst &I) {
