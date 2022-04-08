@@ -17,6 +17,7 @@
 
 #include <llvm/IR/InstrTypes.h>
 #include <llvm/IR/Module.h>
+#include <set>
 
 #if LLVM_VERSION_MAJOR >= 9 && LLVM_VERSION_MAJOR < 11
   using SymFnT = llvm::Value *;
@@ -29,6 +30,8 @@ struct Runtime {
   Runtime(llvm::Module &M);
   llvm::IntegerType* symIDT;
   llvm::IntegerType* booleanT;
+  std::set<SymFnT> SymOperators;
+
   SymFnT buildInteger{};
   SymFnT buildInteger128{};
   SymFnT buildFloat{};

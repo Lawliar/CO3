@@ -791,8 +791,9 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
     auto *valueType = V->getType();
     CallInst* ret = nullptr;
     if (isa<ConstantPointerNull>(V)) {
+        auto symID = getNextID();
         ret = IRB.CreateCall(runtime.buildNullPointer, {});
-        assignSymID(ret,getNextID());
+        assignSymID(ret,symID);
         return ret;
     }
 

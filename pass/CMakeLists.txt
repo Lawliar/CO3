@@ -15,10 +15,11 @@
 cmake_minimum_required(VERSION 3.5)
 project(SymbolicCompiler)
 set(llvm_hints "/home/lcm/github/toolchains/x86_64/clang+llvm-11.0.0-x86_64-linux-gnu-ubuntu-20.04")
+set(boost_hints "../deps/boost/install/lib/cmake")
+
 find_package(LLVM REQUIRED CONFIG HINTS ${llvm_hints})
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake from ${LLVM_DIR}")
-
 if (${LLVM_VERSION_MAJOR} LESS 8 OR ${LLVM_VERSION_MAJOR} GREATER 11)
   message(WARNING "The software has been developed for LLVM 8 through 11; \
 it is unlikely to work with other versions!")
@@ -28,6 +29,13 @@ add_definitions(${LLVM_DEFINITIONS})
 message(STATUS "LLVM_INCLUDE_DIRS ${LLVM_INCLUDE_DIRS}")
 
 include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
+
+
+
+FIND_PACKAGE( Boost REQUIRED HINTS ${boost_hints})
+INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
+
+
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 \
 -Wredundant-decls -Wcast-align -Wmissing-include-dirs -Wswitch-default \
@@ -44,11 +52,11 @@ add_library(Symbolize MODULE
             Symbolizer.cpp
             Pass.cpp
             Runtime.cpp
-            Main.cpp)
+            Main.cpp DataDepGraph.cpp)
 if (NOT LLVM_ENABLE_RTTI)
   set_target_properties(Symbolize PROPERTIES COMPILE_FLAGS "-fno-rtti")
 endif()
-
+TARGET_LINK_LIBRARIES( Symbolize LINK_PUBLIC ${Boost_LIBRARIES} )
 
 find_program(CLANG_BINARY "clang"
   HINTS ${LLVM_TOOLS_BINARY_DIR}

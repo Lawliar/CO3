@@ -23,13 +23,15 @@
 #include <optional>
 
 
+#include "DataDepGraph.h"
 #include "Runtime.h"
 class Symbolizer : public llvm::InstVisitor<Symbolizer> {
 public:
   explicit Symbolizer(llvm::Module &M)
       : runtime(M), dataLayout(M.getDataLayout()),
         ptrBits(M.getDataLayout().getPointerSizeInBits()),
-        intPtrType(M.getDataLayout().getIntPtrType(M.getContext())) {}
+        intPtrType(M.getDataLayout().getIntPtrType(M.getContext())),
+        g(runtime){}
 
   /// Insert code to obtain the symbolic expressions for the function arguments.
   void symbolizeFunctionArguments(llvm::Function &F);
@@ -367,6 +369,8 @@ public:
   /// Therefore, we keep a record of all the places that construct expressions
   /// and insert the fast path later.
   std::vector<SymbolicComputation> expressionUses;
+
+  SymDepGraph g;
 };
 
 #endif
