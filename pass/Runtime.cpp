@@ -40,7 +40,7 @@ Runtime::Runtime(Module &M) {
   auto *ptrT = IRB.getInt8PtrTy();
   auto *int8T = IRB.getInt8Ty();
   auto *voidT = IRB.getVoidTy();
-  auto *booleanT = IRB.getInt1Ty();
+  booleanT = IRB.getInt1Ty();
   symIDT = IRB.getInt32Ty();
 
 

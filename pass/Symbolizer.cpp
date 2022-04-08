@@ -93,41 +93,14 @@ void Symbolizer::shortCircuitExpressionUses() {
         // is a symbolic input).
         //auto *nullExpression = ConstantPointerNull::get(IRB.getInt8PtrTy());
         auto *zeroSymID = ConstantInt::get(runtime.symIDT,0);
-        std::vector<Value *> nullChecks;
-        for (const auto &input : symbolicComputation.inputs) {
-            auto symOperand = input.getSymbolicOperand();
-            nullChecks.push_back(
-                IRB.CreateCall(runtime.concreteCheck,symOperand));
-        }
-        auto *allConcrete = nullChecks[0];
-        for (unsigned argIndex = 1; argIndex < nullChecks.size(); argIndex++) {
-            allConcrete = IRB.CreateAnd(allConcrete, nullChecks[argIndex]);
-        }
-
-        // The main branch: if we don't enter here, we can short-circuit the
-        // symbolic computation. Otherwise, we need to check all input expressions
-        // and create an output expression.
-        auto *head = symbolicComputation.firstInstruction->getParent();
-        auto *slowPath = SplitBlock(head, symbolicComputation.firstInstruction);
-        auto *tail = SplitBlock(slowPath,
-                            symbolicComputation.lastInstruction->getNextNode());
-        ReplaceInstWithInst(head->getTerminator(),
-                        BranchInst::Create(tail, slowPath, allConcrete));
-
-        // In the slow case, we need to check each input expression for null
-        // (i.e., the input is concrete) and create an expression from the
-        // concrete value if necessary.
         auto numUnknownConcreteness = std::count_if(
         symbolicComputation.inputs.begin(), symbolicComputation.inputs.end(),
         [&](const Input &input) {
             return (input.getSymbolicOperand() != zeroSymID);
         });
-        errs()<<"firstInstruction:"<<*symbolicComputation.firstInstruction<<'\n';
-        errs()<<"lastInstruction:"<<*symbolicComputation.lastInstruction<<'\n';
         for (unsigned argIndex = 0; argIndex < symbolicComputation.inputs.size();argIndex++) {
             auto &argument = symbolicComputation.inputs[argIndex];
-            auto *originalArgExpression = argument.getSymbolicOperand();
-            auto *argCheckBlock = symbolicComputation.firstInstruction->getParent();
+            auto *originalSymID = argument.getSymbolicOperand();
 
             // We only need a run-time check for concreteness if the argument isn't
             // known to be concrete at compile time already. However, there is one
@@ -135,47 +108,16 @@ void Symbolizer::shortCircuitExpressionUses() {
             // concreteness, then we know that it must be symbolic since we ended up
             // in the slow path. Therefore, we can skip expression generation in
             // that case.
-            bool needRuntimeCheck = originalArgExpression !=  zeroSymID;
+            bool needRuntimeCheck = originalSymID !=  zeroSymID;
             if (needRuntimeCheck && (numUnknownConcreteness == 1))
                 continue;
-            if (needRuntimeCheck) {
-                auto *argExpressionBlock = SplitBlockAndInsertIfThen(
-                nullChecks[argIndex], symbolicComputation.firstInstruction,
-                /* unreachable */ false);
-                IRB.SetInsertPoint(argExpressionBlock);
-            } else {
+            if (! needRuntimeCheck) {
                 IRB.SetInsertPoint(symbolicComputation.firstInstruction);
-            }
-
-            auto *newArgExpression = createValueExpression(argument.concreteValue, IRB);
-
-            Value *finalArgExpression;
-            if (needRuntimeCheck) {
-                IRB.SetInsertPoint(symbolicComputation.firstInstruction);
-                auto *argPHI = IRB.CreatePHI(runtime.symIDT, 2);
-                argPHI->addIncoming(originalArgExpression, argCheckBlock);
-
-                auto newArgSymID = getSymID(newArgExpression);
+                auto *newArgExpression = createValueExpression(argument.concreteValue, IRB);
+                auto *newArgSymID = getSymID(newArgExpression);
                 assert(newArgSymID != nullptr);
-                argPHI->addIncoming(newArgSymID, newArgExpression->getParent());
-                finalArgExpression = argPHI;
-            } else {
-                finalArgExpression = newArgExpression;
+                argument.replaceOperand(newArgSymID);
             }
-
-            argument.replaceOperand(finalArgExpression);
-            errs()<<*symbolicComputation.firstInstruction->getFunction();
-            __asm__("nop");
-        }
-
-        // Finally, the overall result (if the computation produces one) is null if we've taken the fast path
-        //                            and the symbolic expression computed above if short-circuiting wasn't possible.
-        if (!symbolicComputation.lastInstruction->use_empty()) {
-            IRB.SetInsertPoint(&tail->front());
-            auto *finalExpression = IRB.CreatePHI(IRB.getInt8PtrTy(), 2);
-            symbolicComputation.lastInstruction->replaceAllUsesWith(finalExpression);
-            finalExpression->addIncoming(ConstantPointerNull::get(IRB.getInt8PtrTy()),head);
-            finalExpression->addIncoming(symbolicComputation.lastInstruction,symbolicComputation.lastInstruction->getParent());
         }
     }
 }
