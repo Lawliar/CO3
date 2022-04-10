@@ -125,7 +125,7 @@ Runtime::Runtime(Module &M) {
     SymOperators.push_back(&setParameterExpression);
 
     //get the symIDT from the global memory on the MCU.
-    getParameterExpression = import(M, "_sym_get_parameter_expression", symIDT, int8T);
+    getParameterExpression = import(M, "_sym_get_parameter_expression", voidT, int8T);
     SymOperators.push_back(&getParameterExpression);
 
     setReturnExpression = import(M, "_sym_set_return_expression", voidT, symIDT);
@@ -196,7 +196,7 @@ Runtime::Runtime(Module &M) {
 
 #define LOAD_COMPARISON_HANDLER(constant, name)                                \
   comparisonHandlers[CmpInst::constant] =                                      \
-      import(M, "_sym_build_" #name, voidT, symIDT, symIDT,symIDT);
+      import(M, "_sym_build_" #name, voidT, symIDT, symIDT);
 
   LOAD_COMPARISON_HANDLER(ICMP_EQ, equal)
   LOAD_COMPARISON_HANDLER(ICMP_NE, not_equal)
