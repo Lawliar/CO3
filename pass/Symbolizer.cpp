@@ -32,9 +32,10 @@ void Symbolizer::initializeFunctions(Function &F) {
         // The main function doesn't receive symbolic arguments.
         for (auto &arg : F.args()) {
             if (!arg.user_empty()){
-                auto * symcall  = IRB.CreateCall(runtime.getParameterExpression,IRB.getInt8(arg.getArgNo()));
+                auto * symcall  = IRB.CreateCall(runtime.getParameterExpression,
+                                                                IRB.getInt8(arg.getArgNo()));
                 symbolicExpressions[&arg] = symcall;
-                assignSymID(symcall,symcall);// the id of this sym call is not known until run-time.
+                assignSymID(symcall,getNextID());// the id of this sym call is not known until run-time.
             }
         }
     }
@@ -445,7 +446,6 @@ void Symbolizer::visitStoreInst(StoreInst &I) {
         assignSymID(cast<CallInst>(data) , newSymID);
         dataSymID = newSymID;
     }
-
     IRB.CreateCall(
         runtime.writeMemory,
         {IRB.CreatePtrToInt(I.getPointerOperand(), intPtrType),
@@ -942,6 +942,3 @@ uint64_t Symbolizer::aggregateMemberOffset(Type *aggregateType,
 }
 
 
-llvm::Constant *Symbolizer::symIDFromInt(unsigned int id) {
-    return ConstantStruct::get(runtime.symIDT,{ConstantInt::get(runtime.symIntT,id)});
-}

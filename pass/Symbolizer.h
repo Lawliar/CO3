@@ -206,10 +206,13 @@ public:
         auto exprIt = symbolicIDs.find(V);
         return (exprIt != symbolicIDs.end()) ? exprIt->second : nullptr;
     }
+    llvm::Constant *symIDFromInt(unsigned int id) {
+        return llvm::ConstantStruct::get(runtime.symIDT,{llvm::ConstantInt::get(runtime.symIntT,id)});
+    }
     llvm::Value* getSymIDOrZero(llvm::Value* V){
         llvm::Value * returnSymID = nullptr;
         if(llvm::isa<llvm::ConstantPointerNull>(V)){
-            returnSymID = llvm::ConstantInt::get(runtime.symIDT,0);
+            returnSymID = symIDFromInt(0);
         }else{
             returnSymID = getSymID(llvm::cast<llvm::CallInst>(V));
             assert(returnSymID != nullptr);
@@ -376,7 +379,6 @@ public:
   const unsigned perBufferSize = 8;
   std::vector<llvm::AllocaInst*> allocaBuffers;
 
-  llvm::Constant*  symIDFromInt(unsigned id);
 };
 
 #endif
