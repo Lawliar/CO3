@@ -28,9 +28,11 @@
 /// Runtime functions
 struct Runtime {
   Runtime(llvm::Module &M);
-  llvm::IntegerType* symIDT;
+  llvm::StructType* symIDT;
+  llvm::IntegerType* symIntT;
+  llvm::StringRef symIDTyName;
   llvm::IntegerType* booleanT;
-  std::set<SymFnT> SymOperators;
+  std::vector<SymFnT*> SymOperators;
 
   SymFnT buildInteger{};
   SymFnT buildInteger128{};
@@ -80,6 +82,11 @@ struct Runtime {
   /// corresponding symbolic expressions.
   std::array<SymFnT, llvm::Instruction::BinaryOpsEnd>
       binaryOperatorHandlers{};
+
+    SymFnT spearReport1{};
+    SymFnT spearReport2{};
+    SymFnT spearReport3{};
+    SymFnT spearReport4{};
 };
 
 bool isInterceptedFunction(const llvm::Function &f);

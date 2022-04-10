@@ -217,11 +217,11 @@ public:
         return returnSymID;
     }
     unsigned availableSymID = 1;
-    llvm::ConstantInt* getNextID(){
+    llvm::Constant* getNextID(){
         unsigned id;
         id = availableSymID;
         availableSymID++;
-        return llvm::ConstantInt::get(runtime.symIDT, id);
+        return symIDFromInt(id);
     }
     void assignSymID(llvm::CallInst * symcall, llvm::Value* ID){
         auto exprIt = symbolicIDs.find(symcall);
@@ -371,6 +371,8 @@ public:
   std::vector<SymbolicComputation> expressionUses;
 
   SymDepGraph g;
+
+  llvm::Constant*  symIDFromInt(unsigned id);
 };
 
 #endif

@@ -8,19 +8,25 @@ SymDepGraph::SymDepGraph(const Runtime &runtime){
     // initialize OpMap
     unsigned cur_op = 1;
     for(auto eachSymOperation: runtime.SymOperators){
-        OpMap.insert(std::pair<SymFnT,unsigned>(eachSymOperation,cur_op++));
+        OpMap.insert(std::pair<SymFnT*,unsigned>(eachSymOperation,cur_op++));
     }
     for(auto eachSymOperation:runtime.comparisonHandlers){
-        OpMap.insert(std::pair<SymFnT,unsigned>(eachSymOperation,cur_op++));
+        OpMap.insert(std::pair<SymFnT*,unsigned>(&eachSymOperation,cur_op++));
     }
     for(auto eachSymOperation:runtime.binaryOperatorHandlers){
-        OpMap.insert(std::pair<SymFnT,unsigned>(eachSymOperation,cur_op++));
+        OpMap.insert(std::pair<SymFnT*,unsigned>(&eachSymOperation,cur_op++));
     }
 }
-SymDepGraph::vertex_t SymDepGraph::AddVertice(unsigned symID, SymFnT op, NodeType nodeType, bool c){
+SymDepGraph::vertex_t SymDepGraph::AddVertice(unsigned symID, SymFnT* op, NodeType nodeType, bool c){
     vertex_t u = boost::add_vertex(graph);
     graph[u].symID = symID;
-    graph[u].op = OpMap.at(op);
+    graph[u].op = 0;
+    for(auto it = OpMap.begin(); it != OpMap.end(); it++){
+        if(it->first->getCallee()->getName().equals(op->getCallee()->getName())){
+            graph[u].op = it->second;
+        }
+    }
+    assert(graph[u].op != 0);
     graph[u].nodeType = nodeType;
     graph[u].concretenessCheck = c;
     return u;

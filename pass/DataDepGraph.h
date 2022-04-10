@@ -34,9 +34,9 @@ public:
     typedef boost::graph_traits<Graph>::edge_descriptor edge_t;
 
 
-    std::map<SymFnT,unsigned> OpMap;
+    std::map<SymFnT*,unsigned> OpMap;
     SymDepGraph(const Runtime&);
-    SymDepGraph::vertex_t AddVertice(unsigned symID, SymFnT op, NodeType nodeType, bool);
+    SymDepGraph::vertex_t AddVertice(unsigned symID, SymFnT* op, NodeType nodeType, bool);
     void AddEdge(SymDepGraph::vertex_t f, SymDepGraph::vertex_t t);
 private:
     Graph graph;                                                // the boost graph

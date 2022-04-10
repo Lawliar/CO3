@@ -875,17 +875,6 @@ Symbolizer::SymbolicComputation
 Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
                                   ArrayRef<std::pair<Value *, bool>> args) {
     std::vector<Value *> functionArgs;
-    unsigned numParas = function.getFunctionType()->getNumParams();
-    bool needNewID = true;
-    if(numParas == args.size()){
-        needNewID = false;
-    }else if (numParas == (args.size() + 1)){
-        // this means, the value that is previously returned, now it's passed into the function as a parameter.
-        needNewID = true;
-    }else{
-        llvm_unreachable("too many arguments");
-    }
-
     for (const auto &[arg, symbolic] : args) {
         Value * para = nullptr;
         if(symbolic){
@@ -898,15 +887,9 @@ Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
         functionArgs.push_back(para);
     }
 
-    llvm::ConstantInt* newSymID = nullptr;
-    if(needNewID){
-        newSymID = getNextID();
-        functionArgs.push_back(newSymID);
-    }
+    llvm::Constant* newSymID = getNextID();
     auto *call = IRB.CreateCall(function, functionArgs);
-    if(needNewID){
-        assignSymID(call,newSymID);
-    }
+    assignSymID(call,newSymID);
 
     std::vector<Input> inputs;
     for (unsigned i = 0; i < args.size(); i++) {
@@ -960,4 +943,9 @@ uint64_t Symbolizer::aggregateMemberOffset(Type *aggregateType,
   }
 
   return offset;
+}
+
+
+llvm::Constant *Symbolizer::symIDFromInt(unsigned int id) {
+    return ConstantStruct::get(runtime.symIDT,{ConstantInt::get(runtime.symIntT,id)});
 }

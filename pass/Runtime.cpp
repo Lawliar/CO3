@@ -42,103 +42,134 @@ Runtime::Runtime(Module &M) {
     auto *int8T = IRB.getInt8Ty();
     auto *voidT = IRB.getVoidTy();
     booleanT = IRB.getInt1Ty();
-    symIDT = IRB.getInt32Ty();
+    symIntT = IRB.getInt32Ty();
+    symIDTyName = StringRef("SymIDTy");
+    symIDT = llvm::StructType::create(M.getContext(),{symIntT},symIDTyName);
 
-    buildInteger = import(M, "_sym_build_integer", voidT, IRB.getInt64Ty(), int8T, symIDT);
-    SymOperators.insert(buildInteger);
 
-    buildInteger128 = import(M, "_sym_build_integer128", voidT, IRB.getInt64Ty(),
-                           IRB.getInt64Ty(), symIDT);
-    SymOperators.insert(buildInteger128);
+    buildInteger = import(M, "_sym_build_integer", voidT, IRB.getInt64Ty(), int8T);
+    SymOperators.push_back(&buildInteger);
 
-    buildFloat =
-      import(M, "_sym_build_float", voidT, IRB.getDoubleTy(), IRB.getInt1Ty(), symIDT);
-    SymOperators.insert(buildFloat);
+    buildInteger128 = import(M, "_sym_build_integer128", voidT, IRB.getInt64Ty(), IRB.getInt64Ty());
+    SymOperators.push_back(&buildInteger128);
 
-    buildNullPointer = import(M, "_sym_build_null_pointer", booleanT,symIDT);
-    SymOperators.insert(buildNullPointer);
+    buildFloat = import(M, "_sym_build_float", voidT, IRB.getDoubleTy(), IRB.getInt1Ty());
+    SymOperators.push_back(&buildFloat);
 
-    concreteCheck = import(M, "_sym_concrete_check",booleanT,symIDT);
-    SymOperators.insert(concreteCheck);
+    buildNullPointer = import(M, "_sym_build_null_pointer", booleanT);
+    SymOperators.push_back(&buildNullPointer);
 
-    buildTrue = import(M, "_sym_build_true", voidT,symIDT);
-    SymOperators.insert(buildTrue);
+    concreteCheck = import(M, "_sym_concrete_check",booleanT);
+    SymOperators.push_back(&concreteCheck);
 
-    buildFalse = import(M, "_sym_build_false", voidT,symIDT);
-    SymOperators.insert(buildFalse);
+    buildTrue = import(M, "_sym_build_true", voidT);
+    SymOperators.push_back(&buildTrue);
 
-    buildBool = import(M, "_sym_build_bool", voidT, IRB.getInt1Ty(),symIDT);
-    SymOperators.insert(buildBool);
+    buildFalse = import(M, "_sym_build_false", voidT);
+    SymOperators.push_back(&buildFalse);
 
-    buildSExt = import(M, "_sym_build_sext", voidT, symIDT, int8T,symIDT);
-    SymOperators.insert(buildSExt);
+    buildBool = import(M, "_sym_build_bool", voidT, IRB.getInt1Ty());
+    SymOperators.push_back(&buildBool);
 
-    buildZExt = import(M, "_sym_build_zext", voidT, symIDT, int8T,symIDT);
-    SymOperators.insert(buildZExt);
+    buildSExt = import(M, "_sym_build_sext", voidT, symIDT, int8T);
+    SymOperators.push_back(&buildSExt);
 
-    buildTrunc = import(M, "_sym_build_trunc", voidT, symIDT, int8T,symIDT);
-    SymOperators.insert(buildTrunc);
+    buildZExt = import(M, "_sym_build_zext", voidT, symIDT, int8T);
+    SymOperators.push_back(&buildZExt);
 
-    buildBswap = import(M, "_sym_build_bswap", voidT, symIDT,symIDT);
-    SymOperators.insert(buildBswap);
+    buildTrunc = import(M, "_sym_build_trunc", voidT, symIDT, int8T);
+    SymOperators.push_back(&buildTrunc);
 
-    buildIntToFloat = import(M, "_sym_build_int_to_float", voidT, symIDT,
-                           IRB.getInt1Ty(), IRB.getInt1Ty(),symIDT);
-    SymOperators.insert(buildIntToFloat);
+    buildBswap = import(M, "_sym_build_bswap", voidT, symIDT);
+    SymOperators.push_back(&buildBswap);
 
-    buildFloatToFloat =
-      import(M, "_sym_build_float_to_float", voidT, symIDT, IRB.getInt1Ty(),symIDT);
-    SymOperators.insert(buildFloatToFloat);
+    buildIntToFloat = import(M, "_sym_build_int_to_float", voidT, symIDT, IRB.getInt1Ty(), IRB.getInt1Ty());
+    SymOperators.push_back(&buildIntToFloat);
 
-    buildBitsToFloat = import(M, "_sym_build_bits_to_float", voidT, symIDT, IRB.getInt1Ty(),symIDT);
-    SymOperators.insert(buildBitsToFloat);
+    buildFloatToFloat = import(M, "_sym_build_float_to_float", voidT, symIDT, IRB.getInt1Ty());
+    SymOperators.push_back(&buildFloatToFloat);
 
-    buildFloatToBits = import(M, "_sym_build_float_to_bits", voidT, symIDT,symIDT);
-    SymOperators.insert(buildFloatToBits);
+    buildBitsToFloat = import(M, "_sym_build_bits_to_float", voidT, symIDT, IRB.getInt1Ty());
+    SymOperators.push_back(&buildBitsToFloat);
+
+    buildFloatToBits = import(M, "_sym_build_float_to_bits", voidT, symIDT);
+    SymOperators.push_back(&buildFloatToBits);
 
     buildFloatToSignedInt =
-      import(M, "_sym_build_float_to_signed_integer", voidT, symIDT, int8T,symIDT);
-    SymOperators.insert(buildFloatToSignedInt);
+      import(M, "_sym_build_float_to_signed_integer", voidT, symIDT, int8T);
+    SymOperators.push_back(&buildFloatToSignedInt);
 
     buildFloatToUnsignedInt =
-      import(M, "_sym_build_float_to_unsigned_integer", voidT, symIDT, int8T,symIDT);
-    SymOperators.insert(buildFloatToUnsignedInt);
+      import(M, "_sym_build_float_to_unsigned_integer", voidT, symIDT, int8T);
+    SymOperators.push_back(&buildFloatToUnsignedInt);
 
-    buildFloatAbs = import(M, "_sym_build_fp_abs", voidT, symIDT,symIDT);
-    SymOperators.insert(buildFloatAbs);
+    buildFloatAbs = import(M, "_sym_build_fp_abs", voidT, symIDT);
+    SymOperators.push_back(&buildFloatAbs);
 
-    buildBoolAnd = import(M, "_sym_build_bool_and", voidT, symIDT, symIDT,symIDT);
-    SymOperators.insert(buildBoolAnd);
+    buildBoolAnd = import(M, "_sym_build_bool_and", voidT, symIDT, symIDT);
+    SymOperators.push_back(&buildBoolAnd);
 
-    buildBoolOr = import(M, "_sym_build_bool_or", voidT, symIDT, symIDT,symIDT);
-    SymOperators.insert(buildBoolOr);
+    buildBoolOr = import(M, "_sym_build_bool_or", voidT, symIDT, symIDT);
+    SymOperators.push_back(&buildBoolOr);
 
-    buildBoolXor = import(M, "_sym_build_bool_xor", voidT, symIDT, symIDT,symIDT);
-    SymOperators.insert(buildBoolXor);
+    buildBoolXor = import(M, "_sym_build_bool_xor", voidT, symIDT, symIDT);
+    SymOperators.push_back(&buildBoolXor);
 
-    buildBoolToBits = import(M, "_sym_build_bool_to_bits", voidT, symIDT, int8T,symIDT);
-    SymOperators.insert(buildBoolToBits);
+    buildBoolToBits = import(M, "_sym_build_bool_to_bits", voidT, symIDT, int8T);
+    SymOperators.push_back(&buildBoolToBits);
 
-    pushPathConstraint = import(M, "_sym_push_path_constraint", voidT, symIDT,
-                              IRB.getInt1Ty(), intPtrType);
-    SymOperators.insert(pushPathConstraint);
+    pushPathConstraint = import(M, "_sym_push_path_constraint", voidT, symIDT, IRB.getInt1Ty(), intPtrType);
+    SymOperators.push_back(&pushPathConstraint);
 
     setParameterExpression = import(M, "_sym_set_parameter_expression", voidT, int8T, symIDT);
-    SymOperators.insert(setParameterExpression);
+    SymOperators.push_back(&setParameterExpression);
 
     //get the symIDT from the global memory on the MCU.
     getParameterExpression = import(M, "_sym_get_parameter_expression", symIDT, int8T);
-    SymOperators.insert(getParameterExpression);
+    SymOperators.push_back(&getParameterExpression);
 
     setReturnExpression = import(M, "_sym_set_return_expression", voidT, symIDT);
-    SymOperators.insert(setReturnExpression);
+    SymOperators.push_back(&setReturnExpression);
 
     getReturnExpression = import(M, "_sym_get_return_expression", symIDT);
-    SymOperators.insert(getReturnExpression);
+    SymOperators.push_back(&getReturnExpression);
+
+
+
+
+    memcpy = import(M, "_sym_memcpy", voidT, ptrT, ptrT, intPtrType);
+    SymOperators.push_back(&memcpy);
+
+    memset = import(M, "_sym_memset", voidT, ptrT, ptrT, intPtrType);
+    SymOperators.push_back(&memset);
+
+    memmove = import(M, "_sym_memmove", voidT, ptrT, ptrT, intPtrType);
+    SymOperators.push_back(&memmove);
+
+    readMemory = import(M, "_sym_read_memory", voidT, intPtrType, intPtrType, int8T);
+    SymOperators.push_back(&readMemory);
+
+    writeMemory = import(M, "_sym_write_memory", voidT, intPtrType, intPtrType, symIDT, int8T);
+    SymOperators.push_back(&writeMemory);
+
+    buildInsert = import(M, "_sym_build_insert", voidT, symIDT, symIDT, IRB.getInt64Ty(), int8T);
+    SymOperators.push_back(&buildInsert);
+
+    buildExtract = import(M, "_sym_build_extract", voidT, symIDT, IRB.getInt64Ty(), IRB.getInt64Ty(), int8T);
+    SymOperators.push_back(&buildExtract);
+
+    notifyCall = import(M, "_sym_notify_call", voidT, intPtrType);
+    SymOperators.push_back(&notifyCall);
+
+    notifyRet = import(M, "_sym_notify_ret", voidT, intPtrType);
+    SymOperators.push_back(&notifyRet);
+
+    notifyBasicBlock = import(M, "_sym_notify_basic_block", voidT, intPtrType);
+    SymOperators.push_back(&notifyBasicBlock);
 
 #define LOAD_BINARY_OPERATOR_HANDLER(constant, name)                           \
   binaryOperatorHandlers[Instruction::constant] =                              \
-      import(M, "_sym_build_" #name, voidT, symIDT, symIDT,symIDT);
+      import(M, "_sym_build_" #name, voidT, symIDT, symIDT);
 
   LOAD_BINARY_OPERATOR_HANDLER(Add, add)
   LOAD_BINARY_OPERATOR_HANDLER(Sub, sub)
@@ -196,20 +227,9 @@ Runtime::Runtime(Module &M) {
 
 #undef LOAD_COMPARISON_HANDLER
 
-  memcpy = import(M, "_sym_memcpy", voidT, ptrT, ptrT, intPtrType);
-  memset = import(M, "_sym_memset", voidT, ptrT, ptrT, intPtrType);
-  memmove = import(M, "_sym_memmove", voidT, ptrT, ptrT, intPtrType);
-  readMemory =
-      import(M, "_sym_read_memory", voidT, intPtrType, intPtrType, int8T, symIDT);
-  writeMemory = import(M, "_sym_write_memory", voidT, intPtrType, intPtrType, symIDT, int8T);
-  buildInsert =
-      import(M, "_sym_build_insert", symIDT, symIDT, symIDT, IRB.getInt64Ty(), int8T);
-  buildExtract = import(M, "_sym_build_extract", symIDT, symIDT, IRB.getInt64Ty(), IRB.getInt64Ty(), int8T);
 
-  notifyCall = import(M, "_sym_notify_call", voidT, intPtrType);
-  notifyRet = import(M, "_sym_notify_ret", voidT, intPtrType);
-  notifyBasicBlock = import(M, "_sym_notify_basic_block", voidT, intPtrType);
 }
+
 
 /// Decide whether a function is called symbolically.
 bool isInterceptedFunction(const Function &f) {
