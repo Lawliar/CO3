@@ -25,20 +25,21 @@
 
 using namespace llvm;
 
-void Symbolizer::symbolizeFunctionArguments(Function &F) {
-  // The main function doesn't receive symbolic arguments.
-    if (F.getName() == "main")
-        return;
+void Symbolizer::initializeFunctions(Function &F) {
 
     IRBuilder<> IRB(F.getEntryBlock().getFirstNonPHI());
-
-    for (auto &arg : F.args()) {
-        if (!arg.user_empty()){
-            auto * symcall  = IRB.CreateCall(runtime.getParameterExpression,
-                                             IRB.getInt8(arg.getArgNo()));
-            symbolicExpressions[&arg] = symcall;
-            assignSymID(symcall,symcall);// the id of this sym call is not known until run-time.
+    if (F.getName() != "main"){
+        // The main function doesn't receive symbolic arguments.
+        for (auto &arg : F.args()) {
+            if (!arg.user_empty()){
+                auto * symcall  = IRB.CreateCall(runtime.getParameterExpression,IRB.getInt8(arg.getArgNo()));
+                symbolicExpressions[&arg] = symcall;
+                assignSymID(symcall,symcall);// the id of this sym call is not known until run-time.
+            }
         }
+    }
+    for(unsigned i = 0 ; i < maxNumOperands ; i++){
+        allocaBuffers.push_back(IRB.CreateAlloca(IRB.getInt8Ty(), 0,ConstantInt::get(IRB.getInt8Ty(),perBufferSize)));
     }
 }
 
@@ -265,8 +266,7 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
         auto argSymExpr = getSymbolicExpressionOrNull(arg);
         auto argSymID = getSymIDOrZero(argSymExpr);
         IRB.CreateCall(runtime.setParameterExpression,
-                     {ConstantInt::get(IRB.getInt8Ty(), arg.getOperandNo()),
-                             argSymID});
+                     {ConstantInt::get(IRB.getInt8Ty(), arg.getOperandNo()), argSymID});
     }
 
 
@@ -279,7 +279,7 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
         // order to avoid accidentally using whatever is stored there from the
         // previous function call. (If the function is instrumented, it will just
         // override our null with the real expression.)
-        IRB.CreateCall(runtime.setReturnExpression,ConstantInt::get(runtime.symIDT,0));
+        IRB.CreateCall(runtime.setReturnExpression, symIDFromInt(0));
         IRB.SetInsertPoint(returnPoint);
         auto returnSymExpr = IRB.CreateCall(runtime.getReturnExpression);
         symbolicExpressions[&I] = returnSymExpr;
@@ -397,8 +397,7 @@ void Symbolizer::visitInvokeInst(InvokeInst &I) {
   // this case, we split the edge and query the return expression in the new
   // block that is specific to our edge.
   auto *newBlock = SplitCriticalEdge(I.getParent(), I.getNormalDest());
-  handleFunctionCall(I, newBlock != nullptr
-                            ? newBlock->getFirstNonPHI()
+  handleFunctionCall(I, newBlock != nullptr ? newBlock->getFirstNonPHI()
                             : I.getNormalDest()->getFirstNonPHI());
 }
 
@@ -419,14 +418,13 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
       runtime.readMemory,
       {IRB.CreatePtrToInt(addr, intPtrType),
        ConstantInt::get(intPtrType, dataLayout.getTypeStoreSize(dataType)),
-       ConstantInt::get(IRB.getInt8Ty(), isLittleEndian(dataType) ? 1 : 0),
-       readMemSymID});
+       ConstantInt::get(IRB.getInt8Ty(), isLittleEndian(dataType) ? 1 : 0)});
     assignSymID(data,readMemSymID);
 
     if (dataType->isFloatingPointTy()) {
         auto bitToFloatSymID = getNextID();
         data = IRB.CreateCall(runtime.buildBitsToFloat,
-                          {readMemSymID, IRB.getInt1(dataType->isDoubleTy()),bitToFloatSymID});
+                          {readMemSymID, IRB.getInt1(dataType->isDoubleTy())});
         assignSymID(data,bitToFloatSymID );
     }
 
@@ -443,7 +441,7 @@ void Symbolizer::visitStoreInst(StoreInst &I) {
     auto *dataType = I.getValueOperand()->getType();
     if (dataType->isFloatingPointTy()) {
         auto newSymID = getNextID();
-        data = IRB.CreateCall(runtime.buildFloatToBits, {dataSymID,newSymID});
+        data = IRB.CreateCall(runtime.buildFloatToBits, {dataSymID});
         assignSymID(cast<CallInst>(data) , newSymID);
         dataSymID = newSymID;
     }
@@ -765,7 +763,7 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
         auto caseConstraintSymID = getNextID();
         auto *caseConstraint = IRB.CreateCall(
         runtime.comparisonHandlers[CmpInst::ICMP_EQ],
-        {conditionSymID, caseValueSymID,caseConstraintSymID});
+        {conditionSymID, caseValueSymID});
         assignSymID(caseConstraint,caseConstraintSymID);
 
         IRB.CreateCall(runtime.pushPathConstraint,
@@ -803,14 +801,14 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
             // Special case: LLVM uses the type i1 to represent Boolean values, but
             // for Z3 we have to create expressions of a separate sort.
             auto symid = getNextID();
-            ret = IRB.CreateCall(runtime.buildBool, {V,symid});
+            ret = IRB.CreateCall(runtime.buildBool, {V});
             assignSymID(ret,symid);
             return ret;
         } else if (bits <= 64) {
             auto symid = getNextID();
             ret = IRB.CreateCall(runtime.buildInteger,
                                  {IRB.CreateZExtOrBitCast(V, IRB.getInt64Ty()),
-                                  IRB.getInt8(valueType->getPrimitiveSizeInBits()),symid});
+                                  IRB.getInt8(valueType->getPrimitiveSizeInBits())});
             assignSymID(ret,symid);
             return ret;
         } else {
@@ -823,8 +821,7 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
                     runtime.buildInteger128,
                     {
                             IRB.CreateTrunc(IRB.CreateLShr(V, ConstantInt::get(valueType, 64)),IRB.getInt64Ty()),
-                            IRB.CreateTrunc(V, IRB.getInt64Ty()),
-                            symid});
+                            IRB.CreateTrunc(V, IRB.getInt64Ty())});
             assignSymID(ret,symid);
             return ret;
         }
@@ -834,7 +831,7 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
         auto symid = getNextID();
         ret = IRB.CreateCall(runtime.buildFloat,
                              {IRB.CreateFPCast(V, IRB.getDoubleTy()),
-                              IRB.getInt1(valueType->isDoubleTy()),symid});
+                              IRB.getInt1(valueType->isDoubleTy())});
         assignSymID(ret, symid);
         return ret;
     }
@@ -843,7 +840,7 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
         auto symid = getNextID();
         ret = IRB.CreateCall(
                 runtime.buildInteger,
-                {IRB.CreatePtrToInt(V, IRB.getInt64Ty()), IRB.getInt8(ptrBits),symid});
+                {IRB.CreatePtrToInt(V, IRB.getInt64Ty()), IRB.getInt8(ptrBits)});
         assignSymID(ret,symid);
         return ret;
     }
@@ -864,7 +861,7 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
         auto *memory = IRB.CreateAlloca(V->getType());
         IRB.CreateStore(V, memory);
         auto symid = getNextID();
-        ret = IRB.CreateCall(runtime.readMemory,{IRB.CreatePtrToInt(memory, intPtrType), ConstantInt::get(intPtrType,dataLayout.getTypeStoreSize(V->getType())),IRB.getInt8(0),symid});
+        ret = IRB.CreateCall(runtime.readMemory,{IRB.CreatePtrToInt(memory, intPtrType), ConstantInt::get(intPtrType,dataLayout.getTypeStoreSize(V->getType())),IRB.getInt8(0)});
         assignSymID(ret,symid);
         return ret;
     }
@@ -941,7 +938,6 @@ uint64_t Symbolizer::aggregateMemberOffset(Type *aggregateType,
       indexedType = arrayType->getArrayElementType();
     }
   }
-
   return offset;
 }
 

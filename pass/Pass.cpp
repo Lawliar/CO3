@@ -68,7 +68,7 @@ bool SymbolizePass::runOnFunction(Function &F) {
     allInstructions.push_back(&I);
 
   Symbolizer symbolizer(*F.getParent());
-  symbolizer.symbolizeFunctionArguments(F);
+  symbolizer.initializeFunctions(F);
 
   for (auto &basicBlock : F)
     symbolizer.insertBasicBlockNotification(basicBlock);

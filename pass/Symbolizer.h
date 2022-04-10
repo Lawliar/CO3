@@ -34,7 +34,7 @@ public:
         g(runtime){}
 
   /// Insert code to obtain the symbolic expressions for the function arguments.
-  void symbolizeFunctionArguments(llvm::Function &F);
+  void initializeFunctions(llvm::Function &F);
 
   /// Insert a call to the run-time library to notify it of the basic block
   /// entry.
@@ -371,6 +371,10 @@ public:
   std::vector<SymbolicComputation> expressionUses;
 
   SymDepGraph g;
+
+  const unsigned maxNumOperands = 4;
+  const unsigned perBufferSize = 8;
+  std::vector<llvm::AllocaInst*> allocaBuffers;
 
   llvm::Constant*  symIDFromInt(unsigned id);
 };
