@@ -38,7 +38,6 @@ struct Runtime {
   SymFnT buildInteger128{};
   SymFnT buildFloat{};
   SymFnT buildNullPointer{};
-  SymFnT concreteCheck{};
   SymFnT buildTrue{};
   SymFnT buildFalse{};
   SymFnT buildBool{};

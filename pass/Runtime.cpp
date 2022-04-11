@@ -59,8 +59,6 @@ Runtime::Runtime(Module &M) {
     buildNullPointer = import(M, "_sym_build_null_pointer", booleanT);
     SymOperators.push_back(&buildNullPointer);
 
-    concreteCheck = import(M, "_sym_concrete_check",booleanT);
-    SymOperators.push_back(&concreteCheck);
 
     buildTrue = import(M, "_sym_build_true", voidT);
     SymOperators.push_back(&buildTrue);
