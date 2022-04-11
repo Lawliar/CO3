@@ -44,7 +44,7 @@ bool SymbolizePass::doInitialization(Module &M) {
   for (auto &function : M.functions()) {
     auto name = function.getName();
     if (isInterceptedFunction(function))
-      function.setName(name + "_symbolized");
+      function.setName(name + "_interpreted");
   }
 
   // Insert a constructor that initializes the runtime and any globals.

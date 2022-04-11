@@ -30,7 +30,7 @@
 #include "Shadow.h"
 #include <Runtime.h>
 
-#define SYM(x) x##_symbolized
+#define SYM(x) x##_interpreted
 
 namespace {
 
