@@ -50,7 +50,7 @@ SymExpr _sym_get_parameter_expression(uint8_t index) {
   return g_function_arguments[index];
 }
 
-void _sym_memcpy(uint8_t *dest, const uint8_t *src, size_t length) {
+void _sym_build_memcpy(uint8_t *dest, const uint8_t *src, size_t length) {
   if (isConcrete(src, length) && isConcrete(dest, length))
     return;
 
@@ -59,7 +59,7 @@ void _sym_memcpy(uint8_t *dest, const uint8_t *src, size_t length) {
   std::copy(srcShadow.begin(), srcShadow.end(), destShadow.begin());
 }
 
-void _sym_memset(uint8_t *memory, SymExpr value, size_t length) {
+void _sym_build_memset(uint8_t *memory, SymExpr value, size_t length) {
   if ((value == nullptr) && isConcrete(memory, length))
     return;
 
@@ -67,7 +67,7 @@ void _sym_memset(uint8_t *memory, SymExpr value, size_t length) {
   std::fill(shadow.begin(), shadow.end(), value);
 }
 
-void _sym_memmove(uint8_t *dest, const uint8_t *src, size_t length) {
+void _sym_build_memmove(uint8_t *dest, const uint8_t *src, size_t length) {
   if (isConcrete(src, length) && isConcrete(dest, length))
     return;
 
@@ -79,7 +79,7 @@ void _sym_memmove(uint8_t *dest, const uint8_t *src, size_t length) {
     std::copy(srcShadow.begin(), srcShadow.end(), destShadow.begin());
 }
 
-SymExpr _sym_read_memory(uint8_t *addr, size_t length, bool little_endian) {
+SymExpr _sym_build_read_memory(uint8_t *addr, size_t length, bool little_endian) {
   assert(length && "Invalid query for zero-length memory region");
 
 #ifdef DEBUG_RUNTIME
@@ -106,7 +106,7 @@ SymExpr _sym_read_memory(uint8_t *addr, size_t length, bool little_endian) {
                          });
 }
 
-void _sym_write_memory(uint8_t *addr, size_t length, SymExpr expr,
+void _sym_build_write_memory(uint8_t *addr, size_t length, SymExpr expr,
                        bool little_endian) {
   assert(length && "Invalid query for zero-length memory region");
 

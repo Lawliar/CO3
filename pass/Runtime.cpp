@@ -115,7 +115,7 @@ Runtime::Runtime(Module &M) {
     buildBoolToBits = import(M, "_sym_build_bool_to_bits", voidT, symIDT, int8T);
     SymOperators.push_back(&buildBoolToBits);
 
-    pushPathConstraint = import(M, "_sym_push_path_constraint", voidT, symIDT, IRB.getInt1Ty(), intPtrType);
+    pushPathConstraint = import(M, "_sym_build_path_constraint", voidT, symIDT, IRB.getInt1Ty(), intPtrType);
     SymOperators.push_back(&pushPathConstraint);
 
     setParameterExpression = import(M, "_sym_set_parameter_expression", voidT, int8T, symIDT);
@@ -134,19 +134,19 @@ Runtime::Runtime(Module &M) {
 
 
 
-    memcpy = import(M, "_sym_memcpy", voidT, ptrT, ptrT, intPtrType);
+    memcpy = import(M, "_sym_build_memcpy", voidT, ptrT, ptrT, intPtrType);
     SymOperators.push_back(&memcpy);
 
-    memset = import(M, "_sym_memset", voidT, ptrT, ptrT, intPtrType);
+    memset = import(M, "_sym_build_memset", voidT, ptrT, ptrT, intPtrType);
     SymOperators.push_back(&memset);
 
-    memmove = import(M, "_sym_memmove", voidT, ptrT, ptrT, intPtrType);
+    memmove = import(M, "_sym_build_memmove", voidT, ptrT, ptrT, intPtrType);
     SymOperators.push_back(&memmove);
 
-    readMemory = import(M, "_sym_read_memory", voidT, intPtrType, intPtrType, int8T);
+    readMemory = import(M, "_sym_build_read_memory", voidT, intPtrType, intPtrType, int8T);
     SymOperators.push_back(&readMemory);
 
-    writeMemory = import(M, "_sym_write_memory", voidT, intPtrType, intPtrType, symIDT, int8T);
+    writeMemory = import(M, "_sym_build_write_memory", voidT, intPtrType, intPtrType, symIDT, int8T);
     SymOperators.push_back(&writeMemory);
 
     buildInsert = import(M, "_sym_build_insert", voidT, symIDT, symIDT, IRB.getInt64Ty(), int8T);
@@ -228,13 +228,9 @@ Runtime::Runtime(Module &M) {
 }
 
 
+
+
 /// Decide whether a function is called symbolically.
 bool isInterceptedFunction(const Function &f) {
-  static const StringSet<> kInterceptedFunctions = {
-      "malloc",   "calloc",  "mmap",    "mmap64", "open",   "read",    "lseek",
-      "lseek64",  "fopen",   "fopen64", "fread",  "fseek",  "fseeko",  "rewind",
-      "fseeko64", "getc",    "ungetc",  "memcpy", "memset", "strncpy", "strchr",
-      "memcmp",   "memmove", "ntohl",   "fgets",  "fgetc", "getchar"};
-
   return (kInterceptedFunctions.count(f.getName()) > 0);
 }

@@ -86,6 +86,12 @@ struct Runtime {
     SymFnT spearReport3{};
     SymFnT spearReport4{};
 };
+const std::set<llvm::StringRef> kInterceptedFunctions = {
+        "malloc",   "calloc",  "mmap",    "mmap64", "open",   "read",    "lseek",
+        "lseek64",  "fopen",   "fopen64", "fread",  "fseek",  "fseeko",  "rewind",
+        "fseeko64", "getc",    "ungetc",  "memcpy", "memset", "strncpy", "strchr",
+        "memcmp",   "memmove", "ntohl",   "fgets",  "fgetc", "getchar"};
+const llvm::StringRef kInterceptedFunctionSuffix("_interpreted");
 
 bool isInterceptedFunction(const llvm::Function &f);
 

@@ -44,7 +44,7 @@ uint64_t inputOffset = 0;
 template <typename V, typename F>
 void tryAlternative(V value, SymExpr valueExpr, F caller) {
   if (valueExpr) {
-    _sym_push_path_constraint(
+    _sym_build_path_constraint(
         _sym_build_equal(valueExpr,
                          _sym_build_integer(value, sizeof(value) * 8)),
                           true, 
@@ -383,7 +383,7 @@ void *SYM(memcpy)(void *dest, const void *src, size_t n) {
   tryAlternative(src, _sym_get_parameter_expression(1), SYM(memcpy));
   tryAlternative(n, _sym_get_parameter_expression(2), SYM(memcpy));
 
-  _sym_memcpy(static_cast<uint8_t *>(dest), static_cast<const uint8_t *>(src),
+  _sym_build_memcpy(static_cast<uint8_t *>(dest), static_cast<const uint8_t *>(src),
               n);
   _sym_set_return_expression(_sym_get_parameter_expression(0));
   return result;
@@ -395,7 +395,7 @@ void *SYM(memset)(void *s, int c, size_t n) {
   tryAlternative(s, _sym_get_parameter_expression(0), SYM(memset));
   tryAlternative(n, _sym_get_parameter_expression(2), SYM(memset));
 
-  _sym_memset(static_cast<uint8_t *>(s), _sym_get_parameter_expression(1), n);
+  _sym_build_memset(static_cast<uint8_t *>(s), _sym_get_parameter_expression(1), n);
   _sym_set_return_expression(_sym_get_parameter_expression(0));
   return result;
 }
@@ -406,7 +406,7 @@ void *SYM(memmove)(void *dest, const void *src, size_t n) {
   tryAlternative(n, _sym_get_parameter_expression(2), SYM(memmove));
 
   auto *result = memmove(dest, src, n);
-  _sym_memmove(static_cast<uint8_t *>(dest), static_cast<const uint8_t *>(src),
+  _sym_build_memmove(static_cast<uint8_t *>(dest), static_cast<const uint8_t *>(src),
                n);
 
   _sym_set_return_expression(_sym_get_parameter_expression(0));
@@ -459,7 +459,7 @@ const char *SYM(strchr)(const char *s, int c) {
   auto shadow = ReadOnlyShadow(s, length);
   auto shadowIt = shadow.begin();
   for (size_t i = 0; i < length; i++) {
-    _sym_push_path_constraint(
+    _sym_build_path_constraint(
         _sym_build_not_equal(
             (*shadowIt != nullptr) ? *shadowIt : _sym_build_integer(s[i], 8),
             cExpr),
@@ -491,7 +491,7 @@ int SYM(memcmp)(const void *a, const void *b, size_t n) {
         _sym_build_bool_and(allEqual, _sym_build_equal(*aShadowIt, *bShadowIt));
   }
 
-  _sym_push_path_constraint(allEqual, result == 0,
+  _sym_build_path_constraint(allEqual, result == 0,
                             reinterpret_cast<uintptr_t>(SYM(memcmp)));
   return result;
 }

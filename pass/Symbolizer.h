@@ -25,13 +25,19 @@
 
 #include "DataDepGraph.h"
 #include "Runtime.h"
+
+
 class Symbolizer : public llvm::InstVisitor<Symbolizer> {
 public:
   explicit Symbolizer(llvm::Module &M)
       : runtime(M), dataLayout(M.getDataLayout()),
         ptrBits(M.getDataLayout().getPointerSizeInBits()),
         intPtrType(M.getDataLayout().getIntPtrType(M.getContext())),
-        g(runtime){}
+        g(runtime){
+      for(auto eachIntFunction : kInterceptedFunctions){
+          interpretedFunctionNames.push_back(eachIntFunction+kInterceptedFunctionSuffix);
+      }
+  };
 
   /// Insert code to obtain the symbolic expressions for the function arguments.
   void initializeFunctions(llvm::Function &F);
@@ -389,6 +395,7 @@ public:
   const unsigned perBufferSize = 8;
   std::vector<llvm::AllocaInst*> allocaBuffers;
 
+  std::vector<llvm::Twine> interpretedFunctionNames;
 };
 
 #endif

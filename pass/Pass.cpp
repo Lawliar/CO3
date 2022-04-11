@@ -43,8 +43,11 @@ bool SymbolizePass::doInitialization(Module &M) {
   // rename internal functions.
   for (auto &function : M.functions()) {
     auto name = function.getName();
-    if (isInterceptedFunction(function))
-      function.setName(name + "_interpreted");
+    if (isInterceptedFunction(function)){
+        auto newName = name + kInterceptedFunctionSuffix;
+        function.setName(newName);
+    }
+
   }
 
   // Insert a constructor that initializes the runtime and any globals.

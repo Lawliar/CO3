@@ -281,7 +281,7 @@ SymExpr _sym_build_trunc(SymExpr expr, uint8_t bits) {
       g_expr_builder->createTrunc(allocatedExpressions.at(expr), bits));
 }
 
-void _sym_push_path_constraint(SymExpr constraint, int taken,
+void _sym_build_path_constraint(SymExpr constraint, int taken,
                                uintptr_t site_id) {
   if (constraint == nullptr)
     return;
