@@ -31,7 +31,6 @@ struct Runtime {
   llvm::StructType* symIDT;
   llvm::IntegerType* symIntT;
   llvm::StringRef symIDTyName;
-  llvm::IntegerType* booleanT;
   std::vector<SymFnT*> SymOperators;
 
   SymFnT buildInteger{};
