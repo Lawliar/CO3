@@ -209,6 +209,16 @@ public:
     llvm::Constant *symIDFromInt(unsigned int id) {
         return llvm::ConstantStruct::get(runtime.symIDT,{llvm::ConstantInt::get(runtime.symIntT,id)});
     }
+    unsigned getIntFromSymID(llvm::Value* symid){
+        llvm::Constant * int_operand = nullptr;
+        if( auto con_struct = llvm::dyn_cast<llvm::ConstantStruct>(symid)){
+            int_operand = con_struct->getOperand(0);
+            return llvm::cast<llvm::ConstantInt>(int_operand)->getZExtValue();
+        }else{
+            assert(llvm::isa<llvm::ConstantAggregateZero>(symid));
+            return 0;
+        }
+    }
     llvm::Value* getSymIDOrZero(llvm::Value* V){
         llvm::Value * returnSymID = nullptr;
         if(llvm::isa<llvm::ConstantPointerNull>(V)){

@@ -110,7 +110,13 @@ void Symbolizer::shortCircuitExpressionUses() {
             // concreteness, then we know that it must be symbolic since we ended up
             // in the slow path. Therefore, we can skip expression generation in
             // that case.
-            bool needRuntimeCheck = originalSymID !=  zeroSymID;
+            bool needRuntimeCheck;
+            if(getIntFromSymID(originalSymID) == 0){
+                // it means the sym var is not there yet
+                needRuntimeCheck = false;
+            }else{
+                needRuntimeCheck = true;
+            }
             if (needRuntimeCheck && (numUnknownConcreteness == 1))
                 continue;
             if (! needRuntimeCheck) {
@@ -284,7 +290,7 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
         IRB.SetInsertPoint(returnPoint);
         auto returnSymExpr = IRB.CreateCall(runtime.getReturnExpression);
         symbolicExpressions[&I] = returnSymExpr;
-        assignSymID(returnSymExpr,returnSymExpr);
+        assignSymID(returnSymExpr,getNextID());
     }
 }
 
@@ -423,10 +429,9 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
     assignSymID(data,readMemSymID);
 
     if (dataType->isFloatingPointTy()) {
-        auto bitToFloatSymID = getNextID();
         data = IRB.CreateCall(runtime.buildBitsToFloat,
                           {readMemSymID, IRB.getInt1(dataType->isDoubleTy())});
-        assignSymID(data,bitToFloatSymID );
+        assignSymID(data,getNextID() );
     }
 
     symbolicExpressions[&I] = data;
@@ -789,9 +794,8 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
     auto *valueType = V->getType();
     CallInst* ret = nullptr;
     if (isa<ConstantPointerNull>(V)) {
-        auto symID = getNextID();
         ret = IRB.CreateCall(runtime.buildNullPointer, {});
-        assignSymID(ret,symID);
+        assignSymID(ret,getNextID());
         return ret;
     }
 
@@ -883,7 +887,6 @@ Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
         }
         functionArgs.push_back(para);
     }
-
     llvm::Constant* newSymID = getNextID();
     auto *call = IRB.CreateCall(function, functionArgs);
     assignSymID(call,newSymID);
