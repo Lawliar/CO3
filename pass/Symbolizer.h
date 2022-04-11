@@ -107,6 +107,7 @@ public:
   void handleInlineAssembly(llvm::CallInst &I);
   void handleFunctionCall(llvm::CallBase &I, llvm::Instruction *returnPoint);
 
+  void createDDGAndReplace(llvm::Function&);
   //
   // Implementation of InstVisitor
   //

@@ -45,7 +45,6 @@ Runtime::Runtime(Module &M) {
     symIDTyName = StringRef("SymIDTy");
     symIDT = llvm::StructType::create(M.getContext(),{symIntT},symIDTyName);
 
-
     buildInteger = import(M, "_sym_build_integer", voidT, IRB.getInt64Ty(), int8T);
     SymOperators.push_back(&buildInteger);
 

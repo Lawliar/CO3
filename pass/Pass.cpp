@@ -77,13 +77,12 @@ bool SymbolizePass::runOnFunction(Function &F) {
     symbolizer.insertBasicBlockNotification(basicBlock);
 
   for (auto *instPtr : allInstructions){
-    errs() << "handling:"<<*instPtr<<'\n';
     symbolizer.visit(instPtr);
   }
-  //errs()<<F<<'\n';
   symbolizer.finalizePHINodes();
   symbolizer.shortCircuitExpressionUses();
 
+  symbolizer.createDDGAndReplace(F);
   assert(!verifyFunction(F, &errs()) &&
          "SymbolizePass produced invalid bitcode");
 

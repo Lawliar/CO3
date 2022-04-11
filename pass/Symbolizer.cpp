@@ -945,3 +945,38 @@ uint64_t Symbolizer::aggregateMemberOffset(Type *aggregateType,
 }
 
 
+void Symbolizer::createDDGAndReplace(llvm::Function& F){
+    std::set<StringRef> toKeep{"_sym_notify_call", "_sym_notify_ret","_sym_notify_basic_block"};
+    std::set<StringRef> toRemove{"_sym_set_parameter_expression", "_sym_get_parameter_expression",
+                                 "_sym_set_return_expression","_sym_get_return_expression"};
+    std::set<StringRef> toExamine;
+    for(auto eachSymOperation: runtime.SymOperators){
+        if(eachSymOperation->getCallee()->getName().startswith("_sym_build")){
+            toExamine.insert(eachSymOperation->getCallee()->getName());
+        }
+    }
+    for(auto eachSymOperation:runtime.comparisonHandlers){
+        if(eachSymOperation.getCallee() == nullptr)
+            continue;
+        toExamine.insert(eachSymOperation.getCallee()->getName());
+    }
+    for(auto eachSymOperation:runtime.binaryOperatorHandlers){
+        if(eachSymOperation.getCallee() == nullptr)
+            continue;
+        toExamine.insert(eachSymOperation.getCallee()->getName());
+    }
+
+    for (auto &basicBlock : F){
+        auto blockID = cast<ConstantInt>(cast<CallInst>(basicBlock.getFirstNonPHI())->getOperand(0))->getZExtValue();
+        for(auto & eachInst : basicBlock){
+            if(!isa<CallInst>(eachInst))
+                continue;
+            auto callee = cast<CallInst>(eachInst).getCalledFunction();
+            // check if indirect call
+            if(callee == nullptr)
+                continue;
+            auto calleeName = callee->getName();
+        }
+    }
+}
+
