@@ -41,7 +41,6 @@ Runtime::Runtime(Module &M) {
     auto *ptrT = IRB.getInt8PtrTy();
     auto *int8T = IRB.getInt8Ty();
     auto *voidT = IRB.getVoidTy();
-    booleanT = IRB.getInt1Ty();
     symIntT = IRB.getInt32Ty();
     symIDTyName = StringRef("SymIDTy");
     symIDT = llvm::StructType::create(M.getContext(),{symIntT},symIDTyName);
@@ -56,7 +55,7 @@ Runtime::Runtime(Module &M) {
     buildFloat = import(M, "_sym_build_float", voidT, IRB.getDoubleTy(), IRB.getInt1Ty());
     SymOperators.push_back(&buildFloat);
 
-    buildNullPointer = import(M, "_sym_build_null_pointer", booleanT);
+    buildNullPointer = import(M, "_sym_build_null_pointer",voidT);
     SymOperators.push_back(&buildNullPointer);
 
 
