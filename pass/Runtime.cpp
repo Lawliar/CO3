@@ -128,7 +128,7 @@ Runtime::Runtime(Module &M) {
     setReturnExpression = import(M, "_sym_set_return_expression", voidT, symIDT);
     SymOperators.push_back(&setReturnExpression);
 
-    getReturnExpression = import(M, "_sym_get_return_expression", symIDT);
+    getReturnExpression = import(M, "_sym_get_return_expression", voidT);
     SymOperators.push_back(&getReturnExpression);
 
 
