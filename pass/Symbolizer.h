@@ -21,7 +21,8 @@
 #include <llvm/IR/ValueMap.h>
 #include <llvm/Support/raw_ostream.h>
 #include <optional>
-
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "DataDepGraph.h"
 #include "Runtime.h"
@@ -29,15 +30,23 @@
 
 class Symbolizer : public llvm::InstVisitor<Symbolizer> {
 public:
-  explicit Symbolizer(llvm::Module &M)
-      : runtime(M), dataLayout(M.getDataLayout()),
+  explicit Symbolizer(llvm::Module &M, Runtime*r)
+      : runtime(*r), dataLayout(M.getDataLayout()),
         ptrBits(M.getDataLayout().getPointerSizeInBits()),
         intPtrType(M.getDataLayout().getIntPtrType(M.getContext())),
         g(runtime){
       for(auto eachIntFunction : kInterceptedFunctions){
-          interpretedFunctionNames.push_back(eachIntFunction+kInterceptedFunctionSuffix);
+          std::string newFuncName = eachIntFunction.str() + kInterceptedFunctionSuffix.str();
+          size_t len = newFuncName.size();
+          // I know, I know..
+          char * buf = (char *)malloc(len+ 1);
+          snprintf(buf, len + 1, "%s%s",eachIntFunction.str().c_str(),kInterceptedFunctionSuffix.str().c_str());
+          //buf[len] = '\0';
+          interpretedFunctionNames.insert(buf);
       }
   };
+  ~Symbolizer(){
+  }
 
   /// Insert code to obtain the symbolic expressions for the function arguments.
   void initializeFunctions(llvm::Function &F);
@@ -236,6 +245,7 @@ public:
         }
         return returnSymID;
     }
+
     unsigned availableSymID = 1;
     llvm::Constant* getNextID(){
         unsigned id;
@@ -345,7 +355,7 @@ public:
   uint64_t aggregateMemberOffset(llvm::Type *aggregateType,
                                  llvm::ArrayRef<unsigned> indices) const;
 
-  const Runtime runtime;
+  const Runtime& runtime;
 
   /// The data layout of the currently processed module.
   const llvm::DataLayout &dataLayout;
@@ -396,7 +406,7 @@ public:
   const unsigned perBufferSize = 8;
   std::vector<llvm::AllocaInst*> allocaBuffers;
 
-  std::vector<llvm::Twine> interpretedFunctionNames;
+  std::set<llvm::StringRef> interpretedFunctionNames;
 };
 
 #endif

@@ -94,11 +94,10 @@ void Symbolizer::shortCircuitExpressionUses() {
         // Build the check whether any input expression is non-null (i.e., there
         // is a symbolic input).
         //auto *nullExpression = ConstantPointerNull::get(IRB.getInt8PtrTy());
-        auto *zeroSymID = ConstantInt::get(runtime.symIDT,0);
         auto numUnknownConcreteness = std::count_if(
         symbolicComputation.inputs.begin(), symbolicComputation.inputs.end(),
         [&](const Input &input) {
-            return (input.getSymbolicOperand() != zeroSymID);
+            return (getIntFromSymID(input.getSymbolicOperand()) != 0);
         });
         for (unsigned argIndex = 0; argIndex < symbolicComputation.inputs.size();argIndex++) {
             auto &argument = symbolicComputation.inputs[argIndex];
@@ -707,7 +706,7 @@ void Symbolizer::visitPHINode(PHINode &I) {
     for (unsigned incoming = 0; incoming < numIncomingValues; incoming++) {
         exprPHI->addIncoming(
             // The null pointer will be replaced in finalizePHINodes.
-            ConstantInt::get(runtime.symIDT,0),
+                symIDFromInt(0),
             I.getIncomingBlock(incoming));
     }
 
@@ -949,7 +948,9 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
     std::set<StringRef> toKeep{"_sym_notify_call", "_sym_notify_ret","_sym_notify_basic_block"};
     std::set<StringRef> toRemove{"_sym_set_parameter_expression", "_sym_get_parameter_expression",
                                  "_sym_set_return_expression","_sym_get_return_expression"};
+    std::vector<CallInst*> toBeRemoved;
     std::set<StringRef> toExamine;
+
     for(auto eachSymOperation: runtime.SymOperators){
         if(eachSymOperation->getCallee()->getName().startswith("_sym_build")){
             toExamine.insert(eachSymOperation->getCallee()->getName());
@@ -965,18 +966,35 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
             continue;
         toExamine.insert(eachSymOperation.getCallee()->getName());
     }
-
+    for(auto eachInterpretedFunction: interpretedFunctionNames){
+        toExamine.insert(eachInterpretedFunction);
+    }
     for (auto &basicBlock : F){
-        auto blockID = cast<ConstantInt>(cast<CallInst>(basicBlock.getFirstNonPHI())->getOperand(0))->getZExtValue();
+        //auto blockID = cast<ConstantInt>(cast<CallInst>(basicBlock.getFirstNonPHI())->getOperand(0))->getZExtValue();
         for(auto & eachInst : basicBlock){
-            if(!isa<CallInst>(eachInst))
+            if(!isa<CallInst>(&eachInst))
                 continue;
-            auto callee = cast<CallInst>(eachInst).getCalledFunction();
+            auto callInst = cast<CallInst>(&eachInst);
+            auto callee = callInst->getCalledFunction();
             // check if indirect call
             if(callee == nullptr)
                 continue;
             auto calleeName = callee->getName();
+            if(toKeep.find(calleeName) != toKeep.end()){
+                continue;
+            }else if(toRemove.find(calleeName) != toRemove.end()){
+                toBeRemoved.push_back(callInst);
+            }else if(toExamine.find(calleeName) != toExamine.end()){
+                errs()<<calleeName<<'\n';
+                for(auto arg_it = callInst->arg_begin() ; arg_it != callInst->arg_end() ; arg_it++){
+                    errs() << *((*arg_it)->getType())<<"||"<<*(*arg_it)<<'\n';
+                }
+            }
         }
     }
+    for(auto eachToBeRemoved: toBeRemoved){
+        eachToBeRemoved->eraseFromParent();
+    }
+    __asm__("nop");
 }
 
