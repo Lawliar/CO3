@@ -27,6 +27,7 @@ public:
 
   bool doInitialization(llvm::Module &M) override;
   bool runOnFunction(llvm::Function &F) override;
+  bool doFinalization(llvm::Module &M) override;
 
 private:
   static constexpr char kSymCtorName[] = "__sym_ctor";

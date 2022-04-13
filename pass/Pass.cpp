@@ -36,6 +36,8 @@ using namespace llvm;
 
 char SymbolizePass::ID = 0;
 
+Runtime * r = nullptr;
+
 bool SymbolizePass::doInitialization(Module &M) {
   DEBUG(errs() << "Symbolizer module init\n");
 
@@ -49,7 +51,7 @@ bool SymbolizePass::doInitialization(Module &M) {
     }
 
   }
-
+  r =  new Runtime(M);
   // Insert a constructor that initializes the runtime and any globals.
   Function *ctor;
   std::tie(ctor, std::ignore) = createSanitizerCtorAndInitFunctions(
@@ -59,6 +61,11 @@ bool SymbolizePass::doInitialization(Module &M) {
   return true;
 }
 
+bool SymbolizePass::doFinalization(llvm::Module & m) {
+    (void)m;
+    delete r;
+    return false;
+}
 bool SymbolizePass::runOnFunction(Function &F) {
   auto functionName = F.getName();
   if (functionName == kSymCtorName)
@@ -70,7 +77,7 @@ bool SymbolizePass::runOnFunction(Function &F) {
   for (auto &I : instructions(F))
     allInstructions.push_back(&I);
 
-  Symbolizer symbolizer(*F.getParent());
+  Symbolizer symbolizer(*F.getParent(),r);
   symbolizer.initializeFunctions(F);
 
   for (auto &basicBlock : F)
