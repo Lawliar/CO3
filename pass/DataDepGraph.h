@@ -20,26 +20,30 @@ public:
     struct Vertex_Properties                                    // property bundle for vertices
     {
         unsigned symID;
-        unsigned op;
+        std::string op;
         NodeType nodeType;
-        bool concretenessCheck;
     };
     struct Edge_Properties                                    // property bundle for vertices
     {
-
+        unsigned arg_no;
     };
     typedef boost::adjacency_list<boost::listS, boost::vecS,  boost::directedS,
             Vertex_Properties,Edge_Properties> Graph;
     typedef boost::graph_traits<Graph>::vertex_descriptor vertex_t;
+    typedef boost::graph_traits<Graph>::vertex_iterator vertex_it;
     typedef boost::graph_traits<Graph>::edge_descriptor edge_t;
+    typedef boost::graph_traits<Graph>::edge_iterator edge_it;
 
 
-    std::map<SymFnT*,unsigned> OpMap;
-    SymDepGraph(const Runtime&);
-    SymDepGraph::vertex_t AddVertice(unsigned symID, SymFnT* op, NodeType nodeType, bool);
+    SymDepGraph();
+    SymDepGraph::vertex_t AddVertice(unsigned symID, llvm::StringRef calleeName, NodeType nodeType);
     void AddEdge(SymDepGraph::vertex_t f, SymDepGraph::vertex_t t);
+    SymDepGraph::vertex_it GetVerticeBySymID(unsigned symID);
+
+    SymDepGraph::vertex_it GetVerticeEndIt();
 private:
     Graph graph;                                                // the boost graph
+
 
 };
 

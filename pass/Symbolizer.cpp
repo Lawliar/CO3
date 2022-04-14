@@ -985,9 +985,16 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
             }else if(toRemove.find(calleeName) != toRemove.end()){
                 toBeRemoved.push_back(callInst);
             }else if(toExamine.find(calleeName) != toExamine.end()){
-                errs()<<calleeName<<'\n';
+                unsigned userSymID = getIntFromSymID(getSymID(callInst));
+                g.AddVertice(userSymID, calleeName, NodeSym);
                 for(auto arg_it = callInst->arg_begin() ; arg_it != callInst->arg_end() ; arg_it++){
-                    errs() << *((*arg_it)->getType())<<"||"<<*(*arg_it)<<'\n';
+                    Value * arg = *arg_it ;
+                    unsigned arg_idx = callInst->getArgOperandNo(arg_it);
+                    if(isSymIDType(arg)){
+                        unsigned arg_symid = getIntFromSymID(arg);
+                        auto symNode = g.GetVerticeBySymID(arg_symid);
+                        assert(symNode != g.GetVerticeEndIt());
+                    }
                 }
             }
         }

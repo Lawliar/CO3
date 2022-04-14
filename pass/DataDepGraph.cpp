@@ -4,34 +4,28 @@
 
 #include "DataDepGraph.h"
 
-SymDepGraph::SymDepGraph(const Runtime &runtime){
-    // initialize OpMap
-    unsigned cur_op = 1;
-    for(auto eachSymOperation: runtime.SymOperators){
-        OpMap.insert(std::pair<SymFnT*,unsigned>(eachSymOperation,cur_op++));
-    }
-    for(auto eachSymOperation:runtime.comparisonHandlers){
-        OpMap.insert(std::pair<SymFnT*,unsigned>(&eachSymOperation,cur_op++));
-    }
-    for(auto eachSymOperation:runtime.binaryOperatorHandlers){
-        OpMap.insert(std::pair<SymFnT*,unsigned>(&eachSymOperation,cur_op++));
-    }
-}
-SymDepGraph::vertex_t SymDepGraph::AddVertice(unsigned symID, SymFnT* op, NodeType nodeType, bool c){
+SymDepGraph::SymDepGraph(){}
+SymDepGraph::vertex_t SymDepGraph::AddVertice(unsigned symID, llvm::StringRef op, NodeType nodeType){
     vertex_t u = boost::add_vertex(graph);
     graph[u].symID = symID;
-    graph[u].op = 0;
-    for(auto it = OpMap.begin(); it != OpMap.end(); it++){
-        if(it->first->getCallee()->getName().equals(op->getCallee()->getName())){
-            graph[u].op = it->second;
-        }
-    }
-    assert(graph[u].op != 0);
+    //make a copy
+    graph[u].op = std::string(op.str());
     graph[u].nodeType = nodeType;
-    graph[u].concretenessCheck = c;
     return u;
 }
 
 void SymDepGraph::AddEdge(SymDepGraph::vertex_t f, SymDepGraph::vertex_t t){
     boost::add_edge(f,t,graph);
+}
+
+SymDepGraph::vertex_it SymDepGraph::GetVerticeBySymID(unsigned int symID) {
+    vertex_it vi, vi_end;
+    for (boost::tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
+        if(graph[*vi].symID == symID) return vi;
+    }
+    return vi_end;
+}
+
+SymDepGraph::vertex_it SymDepGraph::GetVerticeEndIt(){
+    return boost::vertices(graph).second;
 }

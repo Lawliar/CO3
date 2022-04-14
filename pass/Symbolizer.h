@@ -225,10 +225,20 @@ public:
     llvm::Constant *symIDFromInt(unsigned int id) {
         return llvm::ConstantStruct::get(runtime.symIDT,{llvm::ConstantInt::get(runtime.symIntT,id)});
     }
+    bool isSymIDType(llvm::Value * v){
+        llvm::Type * ty = v->getType();
+        if(! llvm::isa<llvm::StructType>(ty)){
+            return false;
+        }
+        if(! ty->getStructName().equals(runtime.symIDTyName)){
+            return false;
+        }
+        return true;
+    }
     unsigned getIntFromSymID(llvm::Value* symid){
         llvm::Constant * int_operand = nullptr;
         llvm::StringRef struct_name = symid->getType()->getStructName();
-        assert(struct_name.equals("SymIDTy"));
+        assert(struct_name.equals(runtime.symIDTyName));
         if( auto con_struct = llvm::dyn_cast<llvm::ConstantStruct>(symid)){
             int_operand = con_struct->getOperand(0);
             return llvm::cast<llvm::ConstantInt>(int_operand)->getZExtValue();
