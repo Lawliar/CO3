@@ -227,6 +227,8 @@ public:
     }
     unsigned getIntFromSymID(llvm::Value* symid){
         llvm::Constant * int_operand = nullptr;
+        llvm::StringRef struct_name = symid->getType()->getStructName();
+        assert(struct_name.equals("SymIDTy"));
         if( auto con_struct = llvm::dyn_cast<llvm::ConstantStruct>(symid)){
             int_operand = con_struct->getOperand(0);
             return llvm::cast<llvm::ConstantInt>(int_operand)->getZExtValue();
