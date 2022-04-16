@@ -20,10 +20,9 @@ set(boost_hints "../deps/boost/install/lib/cmake")
 find_package(LLVM REQUIRED CONFIG HINTS ${llvm_hints})
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake from ${LLVM_DIR}")
-if (${LLVM_VERSION_MAJOR} LESS 8 OR ${LLVM_VERSION_MAJOR} GREATER 11)
-  message(WARNING "The software has been developed for LLVM 8 through 11; \
-it is unlikely to work with other versions!")
-endif()
+#if (${LLVM_VERSION_MAJOR} LESS 8 OR ${LLVM_VERSION_MAJOR} GREATER 11)
+#  message(WARNING "The software has been developed for LLVM 8 through 11; it is unlikely to work with other versions!")
+#endif()
 
 add_definitions(${LLVM_DEFINITIONS})
 message(STATUS "LLVM_INCLUDE_DIRS ${LLVM_INCLUDE_DIRS}")
@@ -52,11 +51,20 @@ add_library(Symbolize MODULE
             Symbolizer.cpp
             Pass.cpp
             Runtime.cpp
-            Main.cpp DataDepGraph.cpp)
+            Main.cpp
+            DataDepGraph.cpp)
+
 if (NOT LLVM_ENABLE_RTTI)
-  set_target_properties(Symbolize PROPERTIES COMPILE_FLAGS "-fno-rtti")
+  #set_target_properties(Symbolize PROPERTIES COMPILE_FLAGS "-fno-rtti")
+  set_source_files_properties(Symbolizer.cpp PROPERTIES COMPILE_FLAGS "-fno-rtti")
+  set_source_files_properties(Pass.cpp PROPERTIES COMPILE_FLAGS "-fno-rtti")
+  set_source_files_properties(Runtime.cpp PROPERTIES COMPILE_FLAGS "-fno-rtti")
+  set_source_files_properties(Main.cpp PROPERTIES COMPILE_FLAGS "-fno-rtti")
 endif()
+
+
 TARGET_LINK_LIBRARIES( Symbolize LINK_PUBLIC ${Boost_LIBRARIES} )
+
 
 find_program(CLANG_BINARY "clang"
   HINTS ${LLVM_TOOLS_BINARY_DIR}
