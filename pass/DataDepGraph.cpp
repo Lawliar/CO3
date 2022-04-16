@@ -16,6 +16,16 @@ SymDepGraph::vertex_t SymDepGraph::AddSymVertice(unsigned symID, llvm::StringRef
     graph[u].const_value = 0;
     return u;
 }
+SymDepGraph::vertex_t SymDepGraph::AddInterFuncVertice(unsigned symID, llvm::StringRef op){
+    vertex_t u = boost::add_vertex(graph);
+    graph[u].symID = symID;
+    //make a copy
+    graph[u].op = std::string(op.str());
+    graph[u].nodeType = NodeIntepretedFunc;
+    graph[u].bitwidth = 0;
+    graph[u].const_value = 0;
+    return u;
+}
 SymDepGraph::vertex_t SymDepGraph::AddSymParaVertice(unsigned symID){
     vertex_t u = boost::add_vertex(graph);
     graph[u].symID = symID;

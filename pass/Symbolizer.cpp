@@ -267,13 +267,25 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
 
     if (callee == nullptr)
         tryAlternative(IRB, I.getCalledOperand());
-
+    else{
+        auto calleeName = callee->getName();
+        bool is_interpreted = false;
+        for(auto eachInterpreted: interpretedFunctionNames){
+            if(calleeName.equals(eachInterpreted)){
+                is_interpreted = true;
+            }
+        }
+        if(is_interpreted){
+            assignSymID(cast<CallInst>(&I),getNextID());
+        }
+    }
     for (Use &arg : I.args()){
         auto argSymExpr = getSymbolicExpressionOrNull(arg);
         auto argSymID = getSymIDOrZero(argSymExpr);
         IRB.CreateCall(runtime.setParameterExpression,
                      {ConstantInt::get(IRB.getInt8Ty(), arg.getOperandNo()), argSymID});
     }
+
 
 
     if (!I.user_empty()) {

@@ -13,6 +13,7 @@
 typedef enum _NodeType{
     NodeConst,
     NodeSym,
+    NodeIntepretedFunc,
     NodeRuntime,
     NodeSymPara,//spacial case for parameters
 }NodeType;
@@ -42,6 +43,7 @@ public:
     SymDepGraph();
     SymDepGraph::vertex_t AddSymVertice(unsigned symID, llvm::StringRef op);
     SymDepGraph::vertex_t AddSymParaVertice(unsigned symID);
+    SymDepGraph::vertex_t AddInterFuncVertice(unsigned symID, llvm::StringRef op);
     SymDepGraph::vertex_t AddConstVertice(unsigned long value, unsigned int bit_width);
     SymDepGraph::vertex_t AddRuntimeVertice(unsigned int bit_width);
 
