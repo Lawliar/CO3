@@ -450,12 +450,13 @@ void Symbolizer::visitStoreInst(StoreInst &I) {
         assignSymID(cast<CallInst>(data) , newSymID);
         dataSymID = newSymID;
     }
-    IRB.CreateCall(
+    auto writeMemCall = IRB.CreateCall(
         runtime.writeMemory,
         {IRB.CreatePtrToInt(I.getPointerOperand(), intPtrType),
          ConstantInt::get(intPtrType, dataLayout.getTypeStoreSize(dataType)),
          dataSymID,
          ConstantInt::get(IRB.getInt8Ty(), dataLayout.isLittleEndian() ? 1 : 0)});
+    assignSymID(writeMemCall,getNextID());
 }
 
 void Symbolizer::visitGetElementPtrInst(GetElementPtrInst &I) {
@@ -971,6 +972,7 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
     }
     for (auto &basicBlock : F){
         //auto blockID = cast<ConstantInt>(cast<CallInst>(basicBlock.getFirstNonPHI())->getOperand(0))->getZExtValue();
+
         for(auto & eachInst : basicBlock){
             if(!isa<CallInst>(&eachInst))
                 continue;
@@ -984,16 +986,34 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
                 continue;
             }else if(toRemove.find(calleeName) != toRemove.end()){
                 toBeRemoved.push_back(callInst);
+                if(calleeName.equals("_sym_get_parameter_expression")){
+                    // even if we're removing this from instrumentation, we're generating sym para node
+                    g.AddSymParaVertice(getIntFromSymID(getSymID(callInst)));
+                }
             }else if(toExamine.find(calleeName) != toExamine.end()){
                 unsigned userSymID = getIntFromSymID(getSymID(callInst));
-                g.AddVertice(userSymID, calleeName, NodeSym);
+                auto userNode = g.AddSymVertice(userSymID, calleeName);
+                std::map<unsigned,Value*> pushed_arg;
                 for(auto arg_it = callInst->arg_begin() ; arg_it != callInst->arg_end() ; arg_it++){
                     Value * arg = *arg_it ;
                     unsigned arg_idx = callInst->getArgOperandNo(arg_it);
                     if(isSymIDType(arg)){
                         unsigned arg_symid = getIntFromSymID(arg);
-                        auto symNode = g.GetVerticeBySymID(arg_symid);
-                        assert(symNode != g.GetVerticeEndIt());
+                        g.AddEdge(arg_symid,userSymID, arg_idx);
+                    }else if(isa<Constant>(arg)){
+                        if(ConstantInt * cont_int = dyn_cast<ConstantInt>(arg)){
+                            unsigned int conBitWidth = cont_int->getBitWidth();
+                            int64_t contValue = cont_int->getSExtValue();
+                            auto conVert = g.AddConstVertice(contValue, conBitWidth);
+                            g.AddEdge(conVert,userNode, arg_idx);
+                        }else{
+                            llvm_unreachable("unhandled constant");
+                        }
+                    }else{
+                        Type* val_type = arg->getType();
+                        unsigned int intBitWidth = val_type->getIntegerBitWidth();
+                        auto runtimeVert = g.AddRuntimeVertice(intBitWidth);
+                        g.AddEdge(runtimeVert,userNode,arg_idx);
                     }
                 }
             }
@@ -1002,6 +1022,6 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
     for(auto eachToBeRemoved: toBeRemoved){
         eachToBeRemoved->eraseFromParent();
     }
-    __asm__("nop");
+    g.writeToFile("out.dot");
 }
 

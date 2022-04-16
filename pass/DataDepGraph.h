@@ -7,12 +7,14 @@
 
 #include "boost/graph/graph_traits.hpp"
 #include "boost/graph/adjacency_list.hpp"
+
 #include "Runtime.h"
 
 typedef enum _NodeType{
     NodeConst,
     NodeSym,
     NodeRuntime,
+    NodeSymPara,//spacial case for parameters
 }NodeType;
 class SymDepGraph
 {
@@ -22,6 +24,8 @@ public:
         unsigned symID;
         std::string op;
         NodeType nodeType;
+        long const_value;
+        unsigned int bitwidth;
     };
     struct Edge_Properties                                    // property bundle for vertices
     {
@@ -36,11 +40,18 @@ public:
 
 
     SymDepGraph();
-    SymDepGraph::vertex_t AddVertice(unsigned symID, llvm::StringRef calleeName, NodeType nodeType);
-    void AddEdge(SymDepGraph::vertex_t f, SymDepGraph::vertex_t t);
+    SymDepGraph::vertex_t AddSymVertice(unsigned symID, llvm::StringRef op);
+    SymDepGraph::vertex_t AddSymParaVertice(unsigned symID);
+    SymDepGraph::vertex_t AddConstVertice(unsigned long value, unsigned int bit_width);
+    SymDepGraph::vertex_t AddRuntimeVertice(unsigned int bit_width);
+
+    void AddEdge(unsigned from_symid, unsigned to_symid, unsigned arg_no);
+    void AddEdge(vertex_t, vertex_t, unsigned);
     SymDepGraph::vertex_it GetVerticeBySymID(unsigned symID);
 
     SymDepGraph::vertex_it GetVerticeEndIt();
+
+    void writeToFile(std::string filename);
 private:
     Graph graph;                                                // the boost graph
 

@@ -34,7 +34,7 @@ public:
       : runtime(*r), dataLayout(M.getDataLayout()),
         ptrBits(M.getDataLayout().getPointerSizeInBits()),
         intPtrType(M.getDataLayout().getIntPtrType(M.getContext())),
-        g(runtime){
+        g(){
       for(auto eachIntFunction : kInterceptedFunctions){
           std::string newFuncName = eachIntFunction.str() + kInterceptedFunctionSuffix.str();
           size_t len = newFuncName.size();
