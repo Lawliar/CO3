@@ -1001,9 +1001,12 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
                 if(calleeName.equals("_sym_get_parameter_expression")){
                     // even if we're removing this from instrumentation, we're generating sym para node
                     g.AddSymParaVertice(getIntFromSymID(getSymID(callInst)));
+                }else if(calleeName.equals("_sym_get_return_expression")){
+                    g.AddSymReturnVertice(getIntFromSymID(getSymID(callInst)));
                 }
             }else if(toExamine.find(calleeName) != toExamine.end()){
                 unsigned userSymID = getIntFromSymID(getSymID(callInst));
+                //errs()<<userSymID <<"|"<< *callInst<<'\n';
                 auto userNode = g.AddSymVertice(userSymID, calleeName);
                 std::map<unsigned,Value*> pushed_arg;
                 for(auto arg_it = callInst->arg_begin() ; arg_it != callInst->arg_end() ; arg_it++){
@@ -1019,12 +1022,24 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
                             auto conVert = g.AddConstVertice(contValue, conBitWidth);
                             g.AddEdge(conVert,userNode, arg_idx);
                         }else{
+                            errs()<< *arg<<'\n';
                             llvm_unreachable("unhandled constant");
                         }
                     }else{
                         Type* val_type = arg->getType();
-                        unsigned int intBitWidth = val_type->getIntegerBitWidth();
-                        auto runtimeVert = g.AddRuntimeVertice(intBitWidth);
+                        unsigned int bitWdith = 0;
+                        if(IntegerType * intType = dyn_cast<IntegerType>(val_type)){
+                            bitWdith = intType->getIntegerBitWidth();
+                        }else if(PointerType * ptrType = dyn_cast<PointerType>(val_type)){
+                            bitWdith = dataLayout.getPointerTypeSizeInBits(ptrType);
+                        }
+                        else{
+                            errs()<< *arg<<'\n';
+                            errs()<<*val_type<<'\n';
+                            llvm_unreachable("unhandled runtime type");
+                        }
+                        assert(bitWdith > 0);
+                        auto runtimeVert = g.AddRuntimeVertice(bitWdith);
                         g.AddEdge(runtimeVert,userNode,arg_idx);
                     }
                 }

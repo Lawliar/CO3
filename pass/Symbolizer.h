@@ -362,6 +362,11 @@ public:
     return llvm::ConstantInt::get(intPtrType,
                                   reinterpret_cast<uint64_t>(pointer));
   }
+  void DisplaySymbolicIDs(){
+      for(auto eachSymOp : symbolicIDs){
+          llvm::errs()<<*eachSymOp->second<<"|"<<*eachSymOp->first<<'\n';
+      }
+  }
 
   /// Compute the offset of a member in a (possibly nested) aggregate.
   uint64_t aggregateMemberOffset(llvm::Type *aggregateType,
