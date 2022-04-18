@@ -116,6 +116,7 @@ public:
   void handleInlineAssembly(llvm::CallInst &I);
   void handleFunctionCall(llvm::CallBase &I, llvm::Instruction *returnPoint);
 
+
   void createDDGAndReplace(llvm::Function&);
   //
   // Implementation of InstVisitor
@@ -257,7 +258,13 @@ public:
         }
         return returnSymID;
     }
-
+    bool isInterpretedFunc(llvm::StringRef f){
+        for(auto each_f : interpretedFunctionNames){
+            if(each_f.equals(f))
+                return true;
+        }
+        return false;
+    }
     unsigned availableSymID = 1;
     llvm::Constant* getNextID(){
         unsigned id;
@@ -420,7 +427,7 @@ public:
   SymDepGraph g;
 
   const unsigned maxNumOperands = 4;
-  const unsigned perBufferSize = 8;
+  const unsigned perBufferSize = 16;
   std::vector<llvm::AllocaInst*> allocaBuffers;
 
   std::set<llvm::StringRef> interpretedFunctionNames;

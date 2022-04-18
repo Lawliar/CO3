@@ -1006,9 +1006,8 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
                 }
             }else if(toExamine.find(calleeName) != toExamine.end()){
                 unsigned userSymID = getIntFromSymID(getSymID(callInst));
-                //errs()<<userSymID <<"|"<< *callInst<<'\n';
                 auto userNode = g.AddSymVertice(userSymID, calleeName);
-                std::map<unsigned,Value*> pushed_arg;
+                std::map<unsigned,std::pair<unsigned,Value*> > pushed_arg;
                 for(auto arg_it = callInst->arg_begin() ; arg_it != callInst->arg_end() ; arg_it++){
                     Value * arg = *arg_it ;
                     unsigned arg_idx = callInst->getArgOperandNo(arg_it);
@@ -1029,24 +1028,71 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
                         Type* val_type = arg->getType();
                         unsigned int bitWdith = 0;
                         if(IntegerType * intType = dyn_cast<IntegerType>(val_type)){
-                            bitWdith = intType->getIntegerBitWidth();
+                            bitWdith =  dataLayout.getTypeAllocSize(intType);
                         }else if(PointerType * ptrType = dyn_cast<PointerType>(val_type)){
-                            bitWdith = dataLayout.getPointerTypeSizeInBits(ptrType);
+                            bitWdith = dataLayout.getPointerTypeSize(ptrType);
                         }
                         else{
                             errs()<< *arg<<'\n';
                             errs()<<*val_type<<'\n';
                             llvm_unreachable("unhandled runtime type");
                         }
+                        //sanity check the width
                         assert(bitWdith > 0);
+                        if(bitWdith + 2 > perBufferSize){
+                            errs()<< "bitWidth:"<<bitWdith<<'\n';
+                            errs()<< "arg:"<<*arg<<'\n';
+                            llvm_unreachable("bitwidth of the runtime arg is too large");
+                        }
                         auto runtimeVert = g.AddRuntimeVertice(bitWdith);
                         g.AddEdge(runtimeVert,userNode,arg_idx);
+                        pushed_arg.insert(std::make_pair(arg_idx, std::make_pair(bitWdith,arg)));
                     }
                 }
+                size_t args_to_report_size = pushed_arg.size();
+                if(pushed_arg.size() > 0){
+                    // need to report the runtime values
+                    SymFnT reporter;
+                    if(args_to_report_size == 1)
+                        reporter = runtime.spearReport1;
+                    else if(args_to_report_size == 2)
+                        reporter = runtime.spearReport2;
+                    else if(args_to_report_size == 3)
+                        reporter = runtime.spearReport3;
+                    else if(args_to_report_size == 4)
+                        reporter = runtime.spearReport4;
+                    else
+                        llvm_unreachable("too many runtime values need to report");
+                    IRBuilder<> IRB(callInst);
+                    std::vector<Value*> reporter_args;
+                    // push the user's symid
+                    reporter_args.push_back(ConstantInt::get(runtime.int32T,userSymID));
+                    unsigned buffer_idx = 0;
+                    for(auto each_arg : pushed_arg){
+                        unsigned arg_idx = each_arg.first;
+                        unsigned bitwidth = each_arg.second.first;
+                        Value * runtime_val = each_arg.second.second;
+                        IRB.CreateStore(ConstantInt::get(runtime.int8T,arg_idx),allocaBuffers[buffer_idx]);
+                        Value * width_offset = IRB.CreateGEP(allocaBuffers[buffer_idx],ConstantInt::get(runtime.int8T,1));
+                        IRB.CreateStore(ConstantInt::get(runtime.int8T,bitwidth),width_offset);
+                        Value* value_offset = IRB.CreateGEP(allocaBuffers[buffer_idx],ConstantInt::get(runtime.int8T,2));
+                        Value* bitcast_value_offset = IRB.CreateBitCast(value_offset, PointerType::getUnqual(runtime_val->getType()));
+                        IRB.CreateStore(runtime_val,bitcast_value_offset);
+                        reporter_args.push_back(allocaBuffers[buffer_idx]);
+                        buffer_idx++;
+                    }
+                    CallInst* spear_call = IRB.CreateCall(reporter,reporter_args);
+                    if(isInterpretedFunc(calleeName)){
+                        callInst->replaceAllUsesWith(spear_call);
+                    }
+                }
+                if(!isInterpretedFunc(calleeName))
+                    toBeRemoved.push_back(callInst);
             }
         }
     }
     for(auto eachToBeRemoved: toBeRemoved){
+        errs()<<"removing"<<*eachToBeRemoved<<'\n';
         eachToBeRemoved->eraseFromParent();
     }
     g.writeToFile("out.dot");

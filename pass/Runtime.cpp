@@ -39,8 +39,9 @@ Runtime::Runtime(Module &M) {
     IRBuilder<> IRB(M.getContext());
     auto *intPtrType = M.getDataLayout().getIntPtrType(M.getContext());
     auto *ptrT = IRB.getInt8PtrTy();
-    auto *int8T = IRB.getInt8Ty();
     auto *voidT = IRB.getVoidTy();
+    int8T = IRB.getInt8Ty();
+    int32T = IRB.getInt32Ty();
     symIntT = IRB.getInt32Ty();
     symIDTyName = StringRef("SymIDTy");
     symIDT = llvm::StructType::create(M.getContext(),{symIntT},symIDTyName);
@@ -223,7 +224,10 @@ Runtime::Runtime(Module &M) {
 
 #undef LOAD_COMPARISON_HANDLER
 
-
+    spearReport1 = import(M, "_spear_report1", voidT,int32T, ptrT);
+    spearReport2 = import(M, "_spear_report1", voidT,int32T, ptrT,ptrT);
+    spearReport3 = import(M, "_spear_report1", voidT,int32T, ptrT,ptrT,ptrT);
+    spearReport4 = import(M, "_spear_report1", voidT,int32T, ptrT,ptrT,ptrT,ptrT);
 }
 
 

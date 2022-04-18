@@ -89,8 +89,9 @@ bool SymbolizePass::runOnFunction(Function &F) {
   symbolizer.finalizePHINodes();
   symbolizer.shortCircuitExpressionUses();
 
-  symbolizer.DisplaySymbolicIDs();
+  //symbolizer.DisplaySymbolicIDs();
   symbolizer.createDDGAndReplace(F);
+  errs()<<F<<'\n';
   assert(!verifyFunction(F, &errs()) &&
          "SymbolizePass produced invalid bitcode");
 
