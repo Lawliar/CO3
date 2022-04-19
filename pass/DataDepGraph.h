@@ -15,15 +15,13 @@ typedef enum _NodeType{
     NodeSym,
     NodeIntepretedFunc,
     NodeRuntime,
-    NodeSymPara,//spacial case for parameters
-    NodeSymReturn,
 }NodeType;
 class SymDepGraph
 {
 public:
     struct Vertex_Properties                                    // property bundle for vertices
     {
-        unsigned symID;
+        int symID;
         std::string op;
         NodeType nodeType;
         long const_value;
@@ -47,12 +45,8 @@ public:
             return "sym";
         }else if(nt == NodeIntepretedFunc){
             return "symFunc";
-        }else if(nt == NodeRuntime){
+        }else if(nt == NodeRuntime) {
             return "runtime";
-        }else if(nt == NodeSymPara){
-            return "NodeSymPara";
-        }else if(nt == NodeSymReturn){
-            return "NodeSymReturn";
         }
         return "Invalid";
     }
@@ -87,12 +81,11 @@ public:
 
     SymDepGraph();
     SymDepGraph::vertex_t AddSymVertice(unsigned symID, llvm::StringRef op);
-    SymDepGraph::vertex_t AddSymParaVertice(unsigned symID);
-    SymDepGraph::vertex_t AddSymReturnVertice(unsigned symID);
+    SymDepGraph::vertex_t AddContextVertice(unsigned symID,NodeType);
     SymDepGraph::vertex_t AddInterFuncVertice(unsigned symID, llvm::StringRef op);
     SymDepGraph::vertex_t AddConstVertice(unsigned long value, unsigned int bit_width);
     SymDepGraph::vertex_t AddRuntimeVertice(unsigned int bit_width);
-    SymDepGraph::vertex_t AddVertice(unsigned symID,std::string op,NodeType nodeType,long const_value,unsigned int bitwidth);
+    SymDepGraph::vertex_t AddVertice(int symID,std::string op,NodeType nodeType,long const_value,unsigned int bitwidth);
 
     void AddEdge(unsigned from_symid, unsigned to_symid, unsigned arg_no);
     void AddEdge(vertex_t, vertex_t, unsigned);

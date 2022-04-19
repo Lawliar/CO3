@@ -5,9 +5,11 @@
 #include "DataDepGraph.h"
 #include "boost/graph/graphviz.hpp"
 
-SymDepGraph::SymDepGraph(){}
+SymDepGraph::SymDepGraph(){
+    AddVertice(0,"",NodeSym, 0,0);
+}
 
-SymDepGraph::vertex_t SymDepGraph::AddVertice(unsigned symID,std::string op,NodeType nodeType,long const_value,unsigned int bitwidth){
+SymDepGraph::vertex_t SymDepGraph::AddVertice(int symID,std::string op,NodeType nodeType,long const_value,unsigned int bitwidth){
     vertex_t u = boost::add_vertex(graph);
     graph[u].symID = symID;
     //make a copy
@@ -19,24 +21,24 @@ SymDepGraph::vertex_t SymDepGraph::AddVertice(unsigned symID,std::string op,Node
 }
 
 SymDepGraph::vertex_t SymDepGraph::AddSymVertice(unsigned symID, llvm::StringRef op){
+    assert(symID !=0);
     return AddVertice(symID,op.str(),NodeSym, 0, 0);
 }
 SymDepGraph::vertex_t SymDepGraph::AddInterFuncVertice(unsigned symID, llvm::StringRef op){
+    assert(symID !=0);
     return AddVertice(symID,op.str(),NodeIntepretedFunc, 0, 0);
 }
-SymDepGraph::vertex_t SymDepGraph::AddSymParaVertice(unsigned symID){
-    return AddVertice(symID,"",NodeSymPara, 0, 0);
-}
-SymDepGraph::vertex_t SymDepGraph::AddSymReturnVertice(unsigned symID){
-    return AddVertice(symID,"",NodeSymReturn, 0, 0);
+SymDepGraph::vertex_t SymDepGraph::AddContextVertice(unsigned symID,NodeType nt){
+    assert(symID !=0);
+    return AddVertice(symID,"",nt, 0, 0);
 }
 
 SymDepGraph::vertex_t SymDepGraph::AddConstVertice(unsigned long value, unsigned int bit_width){
-    return AddVertice(0,"",NodeConst, value,bit_width);
+    return AddVertice(-1,"",NodeConst, value,bit_width);
 }
 
 SymDepGraph::vertex_t SymDepGraph::AddRuntimeVertice(unsigned int bit_width){
-    return AddVertice(0,"",NodeRuntime, 0,bit_width);
+    return AddVertice(-1,"",NodeRuntime, 0,bit_width);
 }
 
 void SymDepGraph::AddEdge(unsigned from_symid, unsigned to_symid, unsigned arg_no){
@@ -54,7 +56,7 @@ void SymDepGraph::AddEdge( vertex_t from, vertex_t to, unsigned arg_no){
 SymDepGraph::vertex_it SymDepGraph::GetVerticeBySymID(unsigned int symID) {
     vertex_it vi, vi_end;
     for (boost::tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
-        if(graph[*vi].symID == symID) return vi;
+        if(graph[*vi].symID == (int)symID) return vi;
     }
     return vi_end;
 }

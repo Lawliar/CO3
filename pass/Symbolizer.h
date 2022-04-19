@@ -219,7 +219,7 @@ public:
         return (exprIt != symbolicExpressions.end()) ? exprIt->second : nullptr;
     }
 
-    llvm::Value* getSymID(llvm::CallInst *V) {
+    llvm::Value* getSymIDFromSymExpr(llvm::CallInst *V) {
         auto exprIt = symbolicIDs.find(V);
         return (exprIt != symbolicIDs.end()) ? exprIt->second : nullptr;
     }
@@ -248,15 +248,27 @@ public:
             return 0;
         }
     }
-    llvm::Value* getSymIDOrZero(llvm::Value* V){
+    llvm::Value* getSymIDOrZeroFromSymExpr(llvm::Value* V){
         llvm::Value * returnSymID = nullptr;
         if(llvm::isa<llvm::ConstantPointerNull>(V)){
             returnSymID = symIDFromInt(0);
         }else{
-            returnSymID = getSymID(llvm::cast<llvm::CallInst>(V));
+            returnSymID = getSymIDFromSymExpr(llvm::cast<llvm::CallInst>(V));
             assert(returnSymID != nullptr);
         }
         return returnSymID;
+    }
+    llvm::Value * getSymIDOrCreateFromConcreteExpr(llvm::Value* v, llvm::IRBuilder<> &IRB){
+        llvm::Value * retSymID = nullptr;
+        if(getSymbolicExpression(v) == nullptr){
+            llvm::CallInst* symExprCreateCall = createValueExpression(v,IRB);
+            retSymID = getSymIDFromSymExpr(symExprCreateCall);
+        }else{
+            llvm::Value * sym_call = getSymbolicExpression(v);
+            retSymID = getSymIDFromSymExpr(llvm::cast<llvm::CallInst>(sym_call));
+            assert(getIntFromSymID(retSymID) != 0);
+        }
+        return retSymID;
     }
     bool isInterpretedFunc(llvm::StringRef f){
         for(auto each_f : interpretedFunctionNames){

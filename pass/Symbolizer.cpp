@@ -69,7 +69,7 @@ void Symbolizer::finalizePHINodes() {
         for (unsigned incoming = 0, totalIncoming = phi->getNumIncomingValues();
             incoming < totalIncoming; incoming++) {
             auto symExpr = getSymbolicExpressionOrNull(phi->getIncomingValue(incoming));
-            auto symID = getSymIDOrZero(symExpr);
+            auto symID = getSymIDOrZeroFromSymExpr(symExpr);
             symbolicPHI->setIncomingValue(incoming,symID);
         }
     }
@@ -121,7 +121,7 @@ void Symbolizer::shortCircuitExpressionUses() {
             if (! needRuntimeCheck) {
                 IRB.SetInsertPoint(symbolicComputation.firstInstruction);
                 auto *newArgExpression = createValueExpression(argument.concreteValue, IRB);
-                auto *newArgSymID = getSymID(newArgExpression);
+                auto *newArgSymID = getSymIDFromSymExpr(newArgExpression);
                 assert(newArgSymID != nullptr);
                 argument.replaceOperand(newArgSymID);
             }
@@ -281,9 +281,10 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
     }
     for (Use &arg : I.args()){
         auto argSymExpr = getSymbolicExpressionOrNull(arg);
-        auto argSymID = getSymIDOrZero(argSymExpr);
-        IRB.CreateCall(runtime.setParameterExpression,
+        auto argSymID = getSymIDOrZeroFromSymExpr(argSymExpr);
+        CallInst * call_to_set_para = IRB.CreateCall(runtime.setParameterExpression,
                      {ConstantInt::get(IRB.getInt8Ty(), arg.getOperandNo()), argSymID});
+        assignSymID(call_to_set_para,getNextID());
     }
 
 
@@ -297,11 +298,12 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
         // order to avoid accidentally using whatever is stored there from the
         // previous function call. (If the function is instrumented, it will just
         // override our null with the real expression.)
-        IRB.CreateCall(runtime.setReturnExpression, symIDFromInt(0));
+        auto callToSetReturn = IRB.CreateCall(runtime.setReturnExpression, symIDFromInt(0));
+        assignSymID(callToSetReturn,getNextID());
         IRB.SetInsertPoint(returnPoint);
-        auto returnSymExpr = IRB.CreateCall(runtime.getReturnExpression);
-        symbolicExpressions[&I] = returnSymExpr;
-        assignSymID(returnSymExpr,getNextID());
+        auto getReturnCall = IRB.CreateCall(runtime.getReturnExpression);
+        symbolicExpressions[&I] = getReturnCall;
+        assignSymID(getReturnCall,getNextID());
     }
 }
 
@@ -374,10 +376,11 @@ void Symbolizer::visitReturnInst(ReturnInst &I) {
   // processing.
   IRBuilder<> IRB(&I);
   auto returnSymExpr = getSymbolicExpressionOrNull(I.getReturnValue());
-  Value* returnSymID = getSymIDOrZero(returnSymExpr);
+  Value* returnSymID = getSymIDOrZeroFromSymExpr(returnSymExpr);
 
-  IRB.CreateCall(runtime.setReturnExpression,
+  CallInst * set_return_inst = IRB.CreateCall(runtime.setReturnExpression,
                  returnSymID);
+  assignSymID(set_return_inst,getNextID());
 }
 
 void Symbolizer::visitBranchInst(BranchInst &I) {
@@ -453,13 +456,11 @@ void Symbolizer::visitStoreInst(StoreInst &I) {
 
     tryAlternative(IRB, I.getPointerOperand());
 
-    auto *data = getSymbolicExpressionOrNull(I.getValueOperand());
-    Value * dataSymID = getSymIDOrZero(data);
+    Value * dataSymID = getSymIDOrCreateFromConcreteExpr(I.getValueOperand(),IRB);
     auto *dataType = I.getValueOperand()->getType();
     if (dataType->isFloatingPointTy()) {
         auto newSymID = getNextID();
-        data = IRB.CreateCall(runtime.buildFloatToBits, {dataSymID});
-        assignSymID(cast<CallInst>(data) , newSymID);
+        assignSymID(cast<CallInst>(IRB.CreateCall(runtime.buildFloatToBits, {dataSymID})) , newSymID);
         dataSymID = newSymID;
     }
     auto writeMemCall = IRB.CreateCall(
@@ -762,7 +763,7 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
     auto *conditionExpr = getSymbolicExpression(condition);
     if (conditionExpr == nullptr)
         return;
-    auto conditionSymID = getSymID(cast<CallInst>(conditionExpr));
+    auto conditionSymID = getSymIDFromSymExpr(cast<CallInst>(conditionExpr));
     assert(conditionSymID != nullptr);
 
     // Build a check whether we have a symbolic condition, to be used later.
@@ -774,7 +775,7 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
     for (auto &caseHandle : I.cases()) {
         auto *caseTaken = IRB.CreateICmpEQ(condition, caseHandle.getCaseValue());
         auto caseValueExpr = createValueExpression(caseHandle.getCaseValue(), IRB);
-        auto caseValueSymID = getSymID(caseValueExpr);
+        auto caseValueSymID = getSymIDFromSymExpr(caseValueExpr);
         assert(caseValueSymID != nullptr);
 
         auto caseConstraintSymID = getNextID();
@@ -891,8 +892,7 @@ Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
     for (const auto &[arg, symbolic] : args) {
         Value * para = nullptr;
         if(symbolic){
-            auto paraSymExpr = getSymbolicExpressionOrNull(arg);
-            Value* paraSymID = getSymIDOrZero(paraSymExpr);
+            Value* paraSymID = getSymIDOrCreateFromConcreteExpr(arg,IRB);
             para = paraSymID;
         }else{
             para = arg;
@@ -916,21 +916,21 @@ Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
 void Symbolizer::tryAlternative(IRBuilder<> &IRB, Value *V) {
     auto *destExpr = getSymbolicExpression(V);
     if (destExpr != nullptr) {
-        auto destSymId = getSymID(cast<CallInst>(destExpr));
+        auto destSymId = getSymIDFromSymExpr(cast<CallInst>(destExpr));
         assert(destSymId != nullptr);
         auto *concreteDestExpr = createValueExpression(V, IRB);
-        auto concreteDestSymId = getSymID(concreteDestExpr);
+        auto concreteDestSymId = getSymIDFromSymExpr(concreteDestExpr);
         assert(concreteDestSymId != nullptr);
 
         auto destAssertSymID = getNextID();
         auto *destAssertion = IRB.CreateCall(runtime.comparisonHandlers[CmpInst::ICMP_EQ],
-                       {destSymId, concreteDestSymId,destAssertSymID});
+                                             {destSymId, concreteDestSymId,destAssertSymID});
         assignSymID(destAssertion,destAssertSymID);
         // no need to assign a symid for push constraint, as long as all its symbolic operands are there
         auto *pushAssertion = IRB.CreateCall(runtime.pushPathConstraint,
-        {destAssertSymID, IRB.getInt1(true), getTargetPreferredInt(V)});
+                                             {destAssertSymID, IRB.getInt1(true), getTargetPreferredInt(V)});
         registerSymbolicComputation(SymbolicComputation(
-        concreteDestExpr, pushAssertion, {{V, 0, destAssertion}}));
+                concreteDestExpr, pushAssertion, {{V, 0, destAssertion}}));
     }
 }
 
@@ -998,20 +998,37 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
                 continue;
             }else if(toRemove.find(calleeName) != toRemove.end()){
                 toBeRemoved.push_back(callInst);
-                if(calleeName.equals("_sym_get_parameter_expression")){
-                    // even if we're removing this from instrumentation, we're generating sym para node
-                    g.AddSymParaVertice(getIntFromSymID(getSymID(callInst)));
+                if(calleeName.equals("_sym_get_parameter_expression") ){
+                    g.AddSymVertice(getIntFromSymID(getSymIDFromSymExpr(callInst)), calleeName);
                 }else if(calleeName.equals("_sym_get_return_expression")){
-                    g.AddSymReturnVertice(getIntFromSymID(getSymID(callInst)));
+                    g.AddSymVertice(getIntFromSymID(getSymIDFromSymExpr(callInst)), calleeName);
+                }else if(calleeName.equals("_sym_set_parameter_expression")){
+                    g.AddSymVertice(getIntFromSymID(getSymIDFromSymExpr(callInst)), calleeName);
+                    size_t arg_size = callInst->arg_size();
+                    assert(arg_size == 2);
+                    ConstantInt * idx_const = cast<ConstantInt>(callInst->getArgOperand(0));
+
+                    Value * sym_arg = callInst->getArgOperand(1);
+                    assert(isSymIDType(sym_arg));
+                    g.AddEdge(getIntFromSymID(sym_arg),getIntFromSymID(getSymIDFromSymExpr(callInst)), idx_const->getZExtValue());
+                }else if(calleeName.equals("_sym_set_return_expression")){
+                    g.AddSymVertice(getIntFromSymID(getSymIDFromSymExpr(callInst)), calleeName);
+                    size_t arg_size = callInst->arg_size();
+                    assert(arg_size == 1);
+                    Value * arg = callInst->getArgOperand(0);
+                    assert(isSymIDType(arg));
+                    errs()<< * arg <<'\n';
+                    g.AddEdge(getIntFromSymID(arg),getIntFromSymID(getSymIDFromSymExpr(callInst)), 0);
                 }
             }else if(toExamine.find(calleeName) != toExamine.end()){
-                unsigned userSymID = getIntFromSymID(getSymID(callInst));
+                unsigned userSymID = getIntFromSymID(getSymIDFromSymExpr(callInst));
                 auto userNode = g.AddSymVertice(userSymID, calleeName);
                 std::map<unsigned,std::pair<unsigned,Value*> > pushed_arg;
                 for(auto arg_it = callInst->arg_begin() ; arg_it != callInst->arg_end() ; arg_it++){
                     Value * arg = *arg_it ;
                     unsigned arg_idx = callInst->getArgOperandNo(arg_it);
                     if(isSymIDType(arg)){
+                        errs()<< * arg<<'\n'<<*callInst<<'\n';
                         unsigned arg_symid = getIntFromSymID(arg);
                         g.AddEdge(arg_symid,userSymID, arg_idx);
                     }else if(isa<Constant>(arg)){
@@ -1092,7 +1109,6 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
         }
     }
     for(auto eachToBeRemoved: toBeRemoved){
-        errs()<<"removing"<<*eachToBeRemoved<<'\n';
         eachToBeRemoved->eraseFromParent();
     }
     g.writeToFile((F.getName() + ".dot").str());
