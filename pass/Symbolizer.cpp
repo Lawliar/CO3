@@ -1095,6 +1095,6 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
         errs()<<"removing"<<*eachToBeRemoved<<'\n';
         eachToBeRemoved->eraseFromParent();
     }
-    g.writeToFile("out.dot");
+    g.writeToFile((F.getName() + ".dot").str());
 }
 
