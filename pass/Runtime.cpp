@@ -225,9 +225,9 @@ Runtime::Runtime(Module &M) {
 #undef LOAD_COMPARISON_HANDLER
 
     spearReport1 = import(M, "_spear_report1", voidT,int32T, ptrT);
-    spearReport2 = import(M, "_spear_report1", voidT,int32T, ptrT,ptrT);
-    spearReport3 = import(M, "_spear_report1", voidT,int32T, ptrT,ptrT,ptrT);
-    spearReport4 = import(M, "_spear_report1", voidT,int32T, ptrT,ptrT,ptrT,ptrT);
+    spearReport2 = import(M, "_spear_report2", voidT,int32T, ptrT,ptrT);
+    spearReport3 = import(M, "_spear_report3", voidT,int32T, ptrT,ptrT,ptrT);
+    spearReport4 = import(M, "_spear_report4", voidT,int32T, ptrT,ptrT,ptrT,ptrT);
 }
 
 
