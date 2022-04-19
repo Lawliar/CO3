@@ -63,8 +63,18 @@ SymDepGraph::vertex_it SymDepGraph::GetVerticeEndIt(){
     return boost::vertices(graph).second;
 }
 
+
 void SymDepGraph::writeToFile(std::string filename){
     std::ofstream f(filename);
-    boost::write_graphviz(f,graph,boost::make_label_writer(""));
+
+    boost::write_graphviz(f,graph,
+                          make_node_writer(boost::get(&Vertex_Properties::symID,graph),
+                                           boost::get(&Vertex_Properties::op,graph),
+                                           boost::get(&Vertex_Properties::nodeType,graph),
+                                           boost::get(&Vertex_Properties::const_value,graph),
+                                           boost::get(&Vertex_Properties::bitwidth,graph)),
+                          boost::make_label_writer(boost::get(&Edge_Properties::arg_no,graph))
+                          );
+
     f.close();
 }

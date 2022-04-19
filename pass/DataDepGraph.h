@@ -40,6 +40,50 @@ public:
     typedef boost::graph_traits<Graph>::edge_descriptor edge_t;
     typedef boost::graph_traits<Graph>::edge_iterator edge_it;
 
+    static std::string nodeTyToString(NodeType nt){
+        if(nt == NodeConst){
+            return "const";
+        }else if(nt == NodeSym){
+            return "sym";
+        }else if(nt == NodeIntepretedFunc){
+            return "symFunc";
+        }else if(nt == NodeRuntime){
+            return "runtime";
+        }else if(nt == NodeSymPara){
+            return "NodeSymPara";
+        }else if(nt == NodeSymReturn){
+            return "NodeSymReturn";
+        }
+        return "Invalid";
+    }
+
+    template <class symIDMap,class opMap, class nodeTypeMap, class constValueMap, class bitWidthMap>
+    class node_writer {
+    public:
+        node_writer(symIDMap s, opMap o,nodeTypeMap n,constValueMap c ,bitWidthMap b) : sm(s),om(o),nm(n),cm(c),bm(b) {}
+        template <class Node>
+        void operator()(std::ostream &out, const Node& n) const {
+            out << "[label=\"" << "symid:"<<sm[n] <<'|' \
+                                    <<"op:"<<om[n] <<'\n' \
+                                    <<"nodeT:"<<nodeTyToString(nm[n]) <<'|' \
+                                    <<"cv:"<<cm[n] <<'|' \
+                                    <<"bw:"<<bm[n] <<'\n' \
+                   << "\"]";
+        }
+    private:
+        symIDMap sm;
+        opMap om;
+        nodeTypeMap nm;
+        constValueMap cm;
+        bitWidthMap bm;
+    };
+
+    template <class symIDMap,class opMap, class nodeTypeMap, class constValueMap, class bitWidthMap>
+    inline node_writer<symIDMap,opMap,nodeTypeMap,constValueMap,bitWidthMap>
+    make_node_writer(symIDMap s, opMap o,nodeTypeMap n,constValueMap c ,bitWidthMap b) {
+        return node_writer<symIDMap,opMap,nodeTypeMap,constValueMap,bitWidthMap>(s,o,n,c,b);
+    }
+
 
     SymDepGraph();
     SymDepGraph::vertex_t AddSymVertice(unsigned symID, llvm::StringRef op);
@@ -57,6 +101,7 @@ public:
     SymDepGraph::vertex_it GetVerticeEndIt();
 
     void writeToFile(std::string filename);
+
 private:
     Graph graph;                                                // the boost graph
 
