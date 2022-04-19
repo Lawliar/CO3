@@ -1016,9 +1016,9 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
                         g.AddEdge(arg_symid,userSymID, arg_idx);
                     }else if(isa<Constant>(arg)){
                         if(ConstantInt * cont_int = dyn_cast<ConstantInt>(arg)){
-                            unsigned int conBitWidth = cont_int->getBitWidth();
+                            unsigned int conWidth = dataLayout.getTypeAllocSize(cont_int->getType());
                             int64_t contValue = cont_int->getSExtValue();
-                            auto conVert = g.AddConstVertice(contValue, conBitWidth);
+                            auto conVert = g.AddConstVertice(contValue, conWidth);
                             g.AddEdge(conVert,userNode, arg_idx);
                         }else{
                             errs()<< *arg<<'\n';
@@ -1026,11 +1026,11 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
                         }
                     }else{
                         Type* val_type = arg->getType();
-                        unsigned int bitWdith = 0;
+                        unsigned int width = 0;
                         if(IntegerType * intType = dyn_cast<IntegerType>(val_type)){
-                            bitWdith =  dataLayout.getTypeAllocSize(intType);
+                            width =  dataLayout.getTypeAllocSize(intType);
                         }else if(PointerType * ptrType = dyn_cast<PointerType>(val_type)){
-                            bitWdith = dataLayout.getPointerTypeSize(ptrType);
+                            width = dataLayout.getPointerTypeSize(ptrType);
                         }
                         else{
                             errs()<< *arg<<'\n';
@@ -1038,15 +1038,15 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
                             llvm_unreachable("unhandled runtime type");
                         }
                         //sanity check the width
-                        assert(bitWdith > 0);
-                        if(bitWdith + 2 > perBufferSize){
-                            errs()<< "bitWidth:"<<bitWdith<<'\n';
+                        assert(width > 0);
+                        if(width + 2 > perBufferSize){
+                            errs()<< "Width:"<<width<<'\n';
                             errs()<< "arg:"<<*arg<<'\n';
                             llvm_unreachable("bitwidth of the runtime arg is too large");
                         }
-                        auto runtimeVert = g.AddRuntimeVertice(bitWdith);
+                        auto runtimeVert = g.AddRuntimeVertice(width);
                         g.AddEdge(runtimeVert,userNode,arg_idx);
-                        pushed_arg.insert(std::make_pair(arg_idx, std::make_pair(bitWdith,arg)));
+                        pushed_arg.insert(std::make_pair(arg_idx, std::make_pair(width,arg)));
                     }
                 }
                 size_t args_to_report_size = pushed_arg.size();
