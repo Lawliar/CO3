@@ -6,10 +6,10 @@
 #include "boost/graph/graphviz.hpp"
 
 SymDepGraph::SymDepGraph(){
-    AddVertice(0,"",NodeSym, 0,0);
+    AddVertice(0,"",NodeSym, 0,0,0);
 }
 
-SymDepGraph::vertex_t SymDepGraph::AddVertice(int symID,std::string op,NodeType nodeType,long const_value,unsigned int bitwidth){
+SymDepGraph::vertex_t SymDepGraph::AddVertice(int symID,std::string op,NodeType nodeType,long const_value,unsigned int bitwidth,unsigned long BBID){
     vertex_t u = boost::add_vertex(graph);
     graph[u].symID = symID;
     //make a copy
@@ -17,28 +17,29 @@ SymDepGraph::vertex_t SymDepGraph::AddVertice(int symID,std::string op,NodeType 
     graph[u].nodeType = nodeType;
     graph[u].const_value = const_value;
     graph[u].bitwidth = bitwidth;
+    graph[u].BBID = BBID;
     return u;
 }
 
-SymDepGraph::vertex_t SymDepGraph::AddSymVertice(unsigned symID, llvm::StringRef op){
+SymDepGraph::vertex_t SymDepGraph::AddSymVertice(unsigned symID, llvm::StringRef op, unsigned long BBID){
     assert(symID !=0);
-    return AddVertice(symID,op.str(),NodeSym, 0, 0);
+    return AddVertice(symID,op.str(),NodeSym, 0, 0,BBID);
 }
-SymDepGraph::vertex_t SymDepGraph::AddInterFuncVertice(unsigned symID, llvm::StringRef op){
+SymDepGraph::vertex_t SymDepGraph::AddInterFuncVertice(unsigned symID, llvm::StringRef op,unsigned long BBID){
     assert(symID !=0);
-    return AddVertice(symID,op.str(),NodeIntepretedFunc, 0, 0);
+    return AddVertice(symID,op.str(),NodeIntepretedFunc, 0, 0,BBID);
 }
-SymDepGraph::vertex_t SymDepGraph::AddContextVertice(unsigned symID,NodeType nt){
+SymDepGraph::vertex_t SymDepGraph::AddContextVertice(unsigned symID,NodeType nt,unsigned long BBID){
     assert(symID !=0);
-    return AddVertice(symID,"",nt, 0, 0);
+    return AddVertice(symID,"",nt, 0, 0,BBID);
 }
 
-SymDepGraph::vertex_t SymDepGraph::AddConstVertice(unsigned long value, unsigned int bit_width){
-    return AddVertice(-1,"",NodeConst, value,bit_width);
+SymDepGraph::vertex_t SymDepGraph::AddConstVertice(unsigned long value, unsigned int bit_width,unsigned long BBID){
+    return AddVertice(-1,"",NodeConst, value,bit_width,BBID);
 }
 
-SymDepGraph::vertex_t SymDepGraph::AddRuntimeVertice(unsigned int bit_width){
-    return AddVertice(-1,"",NodeRuntime, 0,bit_width);
+SymDepGraph::vertex_t SymDepGraph::AddRuntimeVertice(unsigned int bit_width,unsigned long BBID){
+    return AddVertice(-1,"",NodeRuntime, 0,bit_width,BBID);
 }
 
 void SymDepGraph::AddEdge(unsigned from_symid, unsigned to_symid, unsigned arg_no){
@@ -74,7 +75,9 @@ void SymDepGraph::writeToFile(std::string filename){
                                            boost::get(&Vertex_Properties::op,graph),
                                            boost::get(&Vertex_Properties::nodeType,graph),
                                            boost::get(&Vertex_Properties::const_value,graph),
-                                           boost::get(&Vertex_Properties::bitwidth,graph)),
+                                           boost::get(&Vertex_Properties::bitwidth,graph),
+                                           boost::get(&Vertex_Properties::BBID,graph)
+                                           ),
                           boost::make_label_writer(boost::get(&Edge_Properties::arg_no,graph))
                           );
 

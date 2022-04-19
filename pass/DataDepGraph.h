@@ -26,6 +26,7 @@ public:
         NodeType nodeType;
         long const_value;
         unsigned int bitwidth;
+        unsigned long BBID;
     };
     struct Edge_Properties                                    // property bundle for vertices
     {
@@ -51,10 +52,10 @@ public:
         return "Invalid";
     }
 
-    template <class symIDMap,class opMap, class nodeTypeMap, class constValueMap, class bitWidthMap>
+    template <class symIDMap,class opMap, class nodeTypeMap, class constValueMap, class bitWidthMap,class BBMap>
     class node_writer {
     public:
-        node_writer(symIDMap s, opMap o,nodeTypeMap n,constValueMap c ,bitWidthMap b) : sm(s),om(o),nm(n),cm(c),bm(b) {}
+        node_writer(symIDMap s, opMap o,nodeTypeMap n,constValueMap c ,bitWidthMap b, BBMap bb) : sm(s),om(o),nm(n),cm(c),bm(b),bbm(bb) {}
         template <class Node>
         void operator()(std::ostream &out, const Node& n) const {
             out << "[label=\"" << "symid:"<<sm[n] <<'|' \
@@ -62,6 +63,7 @@ public:
                                     <<"nodeT:"<<nodeTyToString(nm[n]) <<'|' \
                                     <<"cv:"<<cm[n] <<'|' \
                                     <<"bw:"<<bm[n] <<'\n' \
+                                    <<"BB:"<<bbm[n]<< '\n' \
                    << "\"]";
         }
     private:
@@ -70,22 +72,23 @@ public:
         nodeTypeMap nm;
         constValueMap cm;
         bitWidthMap bm;
+        BBMap bbm;
     };
 
-    template <class symIDMap,class opMap, class nodeTypeMap, class constValueMap, class bitWidthMap>
-    inline node_writer<symIDMap,opMap,nodeTypeMap,constValueMap,bitWidthMap>
-    make_node_writer(symIDMap s, opMap o,nodeTypeMap n,constValueMap c ,bitWidthMap b) {
-        return node_writer<symIDMap,opMap,nodeTypeMap,constValueMap,bitWidthMap>(s,o,n,c,b);
+    template <class symIDMap,class opMap, class nodeTypeMap, class constValueMap, class bitWidthMap,class BBMap>
+    inline node_writer<symIDMap,opMap,nodeTypeMap,constValueMap,bitWidthMap,BBMap>
+    make_node_writer(symIDMap s, opMap o,nodeTypeMap n,constValueMap c ,bitWidthMap b, BBMap bb) {
+        return node_writer<symIDMap,opMap,nodeTypeMap,constValueMap,bitWidthMap,BBMap>(s,o,n,c,b,bb);
     }
 
 
     SymDepGraph();
-    SymDepGraph::vertex_t AddSymVertice(unsigned symID, llvm::StringRef op);
-    SymDepGraph::vertex_t AddContextVertice(unsigned symID,NodeType);
-    SymDepGraph::vertex_t AddInterFuncVertice(unsigned symID, llvm::StringRef op);
-    SymDepGraph::vertex_t AddConstVertice(unsigned long value, unsigned int bit_width);
-    SymDepGraph::vertex_t AddRuntimeVertice(unsigned int bit_width);
-    SymDepGraph::vertex_t AddVertice(int symID,std::string op,NodeType nodeType,long const_value,unsigned int bitwidth);
+    SymDepGraph::vertex_t AddSymVertice(unsigned symID, llvm::StringRef op,unsigned long);
+    SymDepGraph::vertex_t AddContextVertice(unsigned symID,NodeType,unsigned long);
+    SymDepGraph::vertex_t AddInterFuncVertice(unsigned symID, llvm::StringRef op,unsigned long);
+    SymDepGraph::vertex_t AddConstVertice(unsigned long value, unsigned int bit_width,unsigned long);
+    SymDepGraph::vertex_t AddRuntimeVertice(unsigned int bit_width,unsigned long);
+    SymDepGraph::vertex_t AddVertice(int symID,std::string op,NodeType nodeType,long const_value,unsigned int, unsigned long);
 
     void AddEdge(unsigned from_symid, unsigned to_symid, unsigned arg_no);
     void AddEdge(vertex_t, vertex_t, unsigned);

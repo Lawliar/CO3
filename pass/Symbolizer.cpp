@@ -79,11 +79,6 @@ void Symbolizer::finalizePHINodes() {
         symbolicPHI->eraseFromParent();
     }
 
-    // Replacing all uses has fixed uses of the symbolic PHI nodes in existing
-    // code, but the nodes may still be referenced via symbolicExpressions. We
-    // therefore invalidate symbolicExpressions, meaning that it cannot be used
-    // after this point.
-    symbolicExpressions.clear();
 }
 
 void Symbolizer::shortCircuitExpressionUses() {
@@ -983,7 +978,7 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
         toExamine.insert(eachInterpretedFunction);
     }
     for (auto &basicBlock : F){
-        //auto blockID = cast<ConstantInt>(cast<CallInst>(basicBlock.getFirstNonPHI())->getOperand(0))->getZExtValue();
+        unsigned long blockID = cast<ConstantInt>(cast<CallInst>(basicBlock.getFirstNonPHI())->getOperand(0))->getZExtValue();
 
         for(auto & eachInst : basicBlock){
             if(!isa<CallInst>(&eachInst))
@@ -999,11 +994,11 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
             }else if(toRemove.find(calleeName) != toRemove.end()){
                 toBeRemoved.push_back(callInst);
                 if(calleeName.equals("_sym_get_parameter_expression") ){
-                    g.AddSymVertice(getIntFromSymID(getSymIDFromSymExpr(callInst)), calleeName);
+                    g.AddSymVertice(getIntFromSymID(getSymIDFromSymExpr(callInst)), calleeName,blockID);
                 }else if(calleeName.equals("_sym_get_return_expression")){
-                    g.AddSymVertice(getIntFromSymID(getSymIDFromSymExpr(callInst)), calleeName);
+                    g.AddSymVertice(getIntFromSymID(getSymIDFromSymExpr(callInst)), calleeName,blockID);
                 }else if(calleeName.equals("_sym_set_parameter_expression")){
-                    g.AddSymVertice(getIntFromSymID(getSymIDFromSymExpr(callInst)), calleeName);
+                    g.AddSymVertice(getIntFromSymID(getSymIDFromSymExpr(callInst)), calleeName,blockID);
                     size_t arg_size = callInst->arg_size();
                     assert(arg_size == 2);
                     ConstantInt * idx_const = cast<ConstantInt>(callInst->getArgOperand(0));
@@ -1012,7 +1007,7 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
                     assert(isSymIDType(sym_arg));
                     g.AddEdge(getIntFromSymID(sym_arg),getIntFromSymID(getSymIDFromSymExpr(callInst)), idx_const->getZExtValue());
                 }else if(calleeName.equals("_sym_set_return_expression")){
-                    g.AddSymVertice(getIntFromSymID(getSymIDFromSymExpr(callInst)), calleeName);
+                    g.AddSymVertice(getIntFromSymID(getSymIDFromSymExpr(callInst)), calleeName,blockID);
                     size_t arg_size = callInst->arg_size();
                     assert(arg_size == 1);
                     Value * arg = callInst->getArgOperand(0);
@@ -1022,7 +1017,7 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
                 }
             }else if(toExamine.find(calleeName) != toExamine.end()){
                 unsigned userSymID = getIntFromSymID(getSymIDFromSymExpr(callInst));
-                auto userNode = g.AddSymVertice(userSymID, calleeName);
+                auto userNode = g.AddSymVertice(userSymID, calleeName,blockID);
                 std::map<unsigned,std::pair<unsigned,Value*> > pushed_arg;
                 for(auto arg_it = callInst->arg_begin() ; arg_it != callInst->arg_end() ; arg_it++){
                     Value * arg = *arg_it ;
@@ -1035,7 +1030,7 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
                         if(ConstantInt * cont_int = dyn_cast<ConstantInt>(arg)){
                             unsigned int conWidth = dataLayout.getTypeAllocSize(cont_int->getType());
                             int64_t contValue = cont_int->getSExtValue();
-                            auto conVert = g.AddConstVertice(contValue, conWidth);
+                            auto conVert = g.AddConstVertice(contValue, conWidth,blockID);
                             g.AddEdge(conVert,userNode, arg_idx);
                         }else{
                             errs()<< *arg<<'\n';
@@ -1061,7 +1056,7 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
                             errs()<< "arg:"<<*arg<<'\n';
                             llvm_unreachable("bitwidth of the runtime arg is too large");
                         }
-                        auto runtimeVert = g.AddRuntimeVertice(width);
+                        auto runtimeVert = g.AddRuntimeVertice(width,blockID);
                         g.AddEdge(runtimeVert,userNode,arg_idx);
                         pushed_arg.insert(std::make_pair(arg_idx, std::make_pair(width,arg)));
                     }
@@ -1112,5 +1107,10 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
         eachToBeRemoved->eraseFromParent();
     }
     g.writeToFile((F.getName() + ".dot").str());
+    // Replacing all uses has fixed uses of the symbolic PHI nodes in existing
+    // code, but the nodes may still be referenced via symbolicExpressions. We
+    // therefore invalidate symbolicExpressions, meaning that it cannot be used
+    // after this point.
+    symbolicExpressions.clear();
 }
 
