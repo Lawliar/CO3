@@ -12,6 +12,7 @@
 
 typedef enum _NodeType{
     NodeConst,
+    NodePhi,
     NodeSym,
     NodeIntepretedFunc,
     NodeRuntime,
@@ -48,6 +49,8 @@ public:
             return "symFunc";
         }else if(nt == NodeRuntime) {
             return "runtime";
+        }else if(nt == NodePhi){
+            return "phi";
         }
         return "Invalid";
     }
@@ -84,7 +87,7 @@ public:
 
     SymDepGraph();
     SymDepGraph::vertex_t AddSymVertice(unsigned symID, llvm::StringRef op,unsigned long);
-    SymDepGraph::vertex_t AddContextVertice(unsigned symID,NodeType,unsigned long);
+    SymDepGraph::vertex_t AddPhiVertice(unsigned symID, unsigned long);
     SymDepGraph::vertex_t AddInterFuncVertice(unsigned symID, llvm::StringRef op,unsigned long);
     SymDepGraph::vertex_t AddConstVertice(unsigned long value, unsigned int bit_width,unsigned long);
     SymDepGraph::vertex_t AddRuntimeVertice(unsigned int bit_width,unsigned long);

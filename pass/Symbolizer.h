@@ -414,6 +414,8 @@ public:
   llvm::ValueMap<llvm::Value *, llvm::Value *> symbolicExpressions;
   /// Maps symbolic value to its IDs
   llvm::ValueMap<llvm::CallInst *, llvm::Value *> symbolicIDs;
+  /// Maps phi nodes to its IDs
+  llvm::ValueMap<llvm::PHINode* , llvm::Value*> phiSymbolicIDs;
   ///
 
   /// A record of all PHI nodes in this function.

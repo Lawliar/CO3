@@ -29,9 +29,9 @@ SymDepGraph::vertex_t SymDepGraph::AddInterFuncVertice(unsigned symID, llvm::Str
     assert(symID !=0);
     return AddVertice(symID,op.str(),NodeIntepretedFunc, 0, 0,BBID);
 }
-SymDepGraph::vertex_t SymDepGraph::AddContextVertice(unsigned symID,NodeType nt,unsigned long BBID){
-    assert(symID !=0);
-    return AddVertice(symID,"",nt, 0, 0,BBID);
+SymDepGraph::vertex_t SymDepGraph::AddPhiVertice(unsigned int symID, unsigned long BBID) {
+    assert(symID != 0);
+    return AddVertice(symID,"",NodePhi, 0, 0,BBID);
 }
 
 SymDepGraph::vertex_t SymDepGraph::AddConstVertice(unsigned long value, unsigned int bit_width,unsigned long BBID){

@@ -65,11 +65,13 @@ void Symbolizer::finalizePHINodes() {
             nodesToErase.insert(symbolicPHI);
             continue;
         }
-
+        IRBuilder<> IRB(phi);
+        phiSymbolicIDs.insert(std::make_pair(symbolicPHI,getNextID()));
         for (unsigned incoming = 0, totalIncoming = phi->getNumIncomingValues();
             incoming < totalIncoming; incoming++) {
-            auto symExpr = getSymbolicExpressionOrNull(phi->getIncomingValue(incoming));
-            auto symID = getSymIDOrZeroFromSymExpr(symExpr);
+            Value * incomingValue = phi->getIncomingValue(incoming);
+            //auto symExpr = getSymbolicExpressionOrNull(incomingValue);
+            auto symID = getSymIDOrCreateFromConcreteExpr(incomingValue,IRB);
             symbolicPHI->setIncomingValue(incoming,symID);
         }
     }
@@ -979,10 +981,36 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
     }
     for (auto &basicBlock : F){
         unsigned long blockID = cast<ConstantInt>(cast<CallInst>(basicBlock.getFirstNonPHI())->getOperand(0))->getZExtValue();
-
         for(auto & eachInst : basicBlock){
-            if(!isa<CallInst>(&eachInst))
+            if(!isa<CallInst>(&eachInst)){
+                if( PHINode* symPhi = dyn_cast<PHINode>(&eachInst)){
+                    if( phiSymbolicIDs.find(symPhi) != phiSymbolicIDs.end()) {
+                        PHINode *phi = phiSymbolicIDs.find(symPhi)->first;
+                        unsigned userSymID = getIntFromSymID(phiSymbolicIDs.find(symPhi)->second);
+                        g.AddPhiVertice(userSymID, blockID);
+                        for (unsigned incoming = 0, totalIncoming = phi->getNumIncomingValues();
+                             incoming < totalIncoming; incoming++) {
+                            BasicBlock* incomingBB = phi->getIncomingBlock(incoming);
+                            // although we embed BBID into each node in the DDG, however,
+                            // phi node can have incoming value that does not reside in the incoming BB e.g., a constant
+                            // so instead of trusting the BBID field of the DDG node, we might as well just note it on the edge.
+                            unsigned incomingBBID = cast<ConstantInt>(cast<CallInst>(incomingBB->getFirstNonPHI())->getOperand(0))->getZExtValue();
+                            Value * incomingValue = phi->getIncomingValue(incoming);
+                            unsigned incomingValueSymID = 0;
+                            if(CallInst * symIncomingValue = dyn_cast<CallInst>(getSymbolicExpression(incomingValue))){
+                                incomingValueSymID = getIntFromSymID(getSymIDFromSymExpr(symIncomingValue));
+                            }else if(PHINode * anotherPhi = dyn_cast<PHINode>(getSymbolicExpression(incomingValue))){
+                                // this one should have been constructed already.
+                                auto anotherPhiIt = phiSymbolicIDs.find(anotherPhi);
+                                incomingValueSymID = getIntFromSymID(anotherPhiIt->second);
+                            }
+                            assert(incomingValueSymID != 0);
+                            g.AddEdge(incomingValueSymID,userSymID,incomingBBID);
+                        }
+                    }
+                }
                 continue;
+            }
             auto callInst = cast<CallInst>(&eachInst);
             auto callee = callInst->getCalledFunction();
             // check if indirect call
@@ -1061,6 +1089,7 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
                         pushed_arg.insert(std::make_pair(arg_idx, std::make_pair(width,arg)));
                     }
                 }
+
                 size_t args_to_report_size = pushed_arg.size();
                 if(pushed_arg.size() > 0){
                     // need to report the runtime values
