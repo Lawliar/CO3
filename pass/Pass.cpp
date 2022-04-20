@@ -90,7 +90,9 @@ bool SymbolizePass::runOnFunction(Function &F) {
   symbolizer.shortCircuitExpressionUses();
 
   symbolizer.DisplaySymbolicIDs();
-  symbolizer.createDDGAndReplace(F);
+  symbolizer.createDDGAndReplace(F,(F.getName() + "_ddg.dot").str());
+
+  symbolizer.outputCFG(F,(F.getName() + "_cfg.dot").str());
   assert(!verifyFunction(F, &errs()) &&
          "SymbolizePass produced invalid bitcode");
 

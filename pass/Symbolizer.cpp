@@ -954,7 +954,7 @@ uint64_t Symbolizer::aggregateMemberOffset(Type *aggregateType,
 }
 
 
-void Symbolizer::createDDGAndReplace(llvm::Function& F){
+void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
     std::set<StringRef> toKeep{"_sym_notify_call", "_sym_notify_ret","_sym_notify_basic_block"};
     std::set<StringRef> toRemove{"_sym_set_parameter_expression", "_sym_get_parameter_expression",
                                  "_sym_set_return_expression","_sym_get_return_expression"};
@@ -1136,7 +1136,7 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
     for(auto eachToBeRemoved: toBeRemoved){
         eachToBeRemoved->eraseFromParent();
     }
-    g.writeToFile((F.getName() + ".dot").str());
+    g.writeToFile(filename);
     // Replacing all uses has fixed uses of the symbolic PHI nodes in existing
     // code, but the nodes may still be referenced via symbolicExpressions. We
     // therefore invalidate symbolicExpressions, meaning that it cannot be used
@@ -1144,3 +1144,29 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F){
     symbolicExpressions.clear();
 }
 
+void Symbolizer::outputCFG(llvm::Function & F, std::string filename) {
+    std::string buffer_str;
+    std::error_code error;
+    raw_string_ostream rso(buffer_str);
+    StringRef name(filename);
+    std::map<BasicBlock*, unsigned long> basicBlockMap;
+
+    raw_fd_ostream file(name, error);
+    for (Function::iterator B_iter = F.begin(); B_iter != F.end(); ++B_iter){
+        unsigned long blockID = cast<ConstantInt>(cast<CallInst>(B_iter->getFirstNonPHI())->getOperand(0))->getZExtValue();
+        basicBlockMap.insert(std::make_pair(&*B_iter,blockID));
+    }
+    file << "digraph \"CFG for'" + F.getName() + "\' function\" {\n";
+    for (Function::iterator B_iter = F.begin(); B_iter != F.end(); ++B_iter){
+        BasicBlock* curBB = &*B_iter;
+        unsigned long from_num = basicBlockMap.find(curBB)->second;
+        file << "\tBB" << from_num << " [shape=record, label=\"{";
+        file  << from_num << "}\"];\n";
+        for (BasicBlock *SuccBB : successors(curBB)){
+            unsigned long to_num = basicBlockMap.find(SuccBB)->second;
+            file << "\tBB" << from_num<< "-> BB" << to_num << ";\n";
+        }
+    }
+    file << "}\n";
+    file.close();
+}

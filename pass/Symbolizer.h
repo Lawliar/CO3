@@ -117,7 +117,8 @@ public:
   void handleFunctionCall(llvm::CallBase &I, llvm::Instruction *returnPoint);
 
 
-  void createDDGAndReplace(llvm::Function&);
+  void createDDGAndReplace(llvm::Function&,std::string);
+  void outputCFG(llvm::Function&,std::string);
   //
   // Implementation of InstVisitor
   //
