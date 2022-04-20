@@ -315,7 +315,7 @@ class Expr : public DependencyNode {
 
     void printChildren(ostream& os, bool start, UINT depth) const;
 
-    virtual bool printAux(ostream& os) const {
+    virtual bool printAux([[maybe_unused]] ostream& os) const {
       return false;
     }
 
@@ -330,8 +330,8 @@ class Expr : public DependencyNode {
 
     virtual std::string getName() const = 0;
     virtual z3::expr toZ3ExprRecursively(bool verbose) = 0;
-    virtual void hashAux(XXH32_state_t* state) { return; }
-    virtual bool equalAux(const Expr& other) const { return true; }
+    virtual void hashAux([[maybe_unused]] XXH32_state_t* state) { return; }
+    virtual bool equalAux([[maybe_unused]] const Expr& other) const { return true; }
     virtual ExprRef evaluateImpl() = 0;
 
 }; // class Expr
@@ -381,7 +381,7 @@ protected:
     return true;
   }
 
-  z3::expr toZ3ExprRecursively(bool verbose) override {
+  z3::expr toZ3ExprRecursively([[maybe_unused]] bool verbose) override {
     if (value_.getNumWords() == 1)
       return context_.bv_val((__uint64)value_.getZExtValue(), bits_);
     else
@@ -482,7 +482,7 @@ protected:
     return true;
   }
 
-  z3::expr toZ3ExprRecursively(bool verbose) override {
+  z3::expr toZ3ExprRecursively([[maybe_unused]] bool verbose) override {
     return context_.bool_val(value_);
   }
 
@@ -522,7 +522,7 @@ protected:
     return true;
   }
 
-  z3::expr toZ3ExprRecursively(bool verbose) override {
+  z3::expr toZ3ExprRecursively([[maybe_unused]] bool verbose) override {
     z3::symbol symbol = context_.int_symbol(index_);
     z3::sort sort = context_.bv_sort(8);
     return context_.constant(symbol, sort);

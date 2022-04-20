@@ -508,7 +508,7 @@ ExprRef Solver::getRangeConstraint(ExprRef e, bool is_unsigned) {
 }
 
 
-bool Solver::isInterestingJcc(ExprRef rel_expr, bool taken, ADDRINT pc) {
+bool Solver::isInterestingJcc([[maybe_unused]] ExprRef rel_expr, bool taken, ADDRINT pc) {
   bool interesting = trace_.isInterestingBranch(pc, taken);
   // record for other decision
   last_interested_ = interesting;

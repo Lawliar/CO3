@@ -15,6 +15,7 @@
 # Build the parts of the Qsym backend that are relevant for us
 
 set(QSYM_SOURCE_DIR "qsym/qsym/pintool")
+set(boost_hints "/home/lcm/github/spear/spear-code/deps/boost/install/lib/cmake")
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/expr__gen.cpp
   COMMAND python2 gen_expr.py ${CMAKE_CURRENT_BINARY_DIR}
@@ -50,7 +51,11 @@ configure CMake with -DZ3_TRUST_SYSTEM_VERSION=on (see also docs/Configuration.t
   endif()
 endif()
 
-add_library(SymRuntime SHARED
+find_package( Boost REQUIRED HINTS ${boost_hints})
+include_directories( ${Boost_INCLUDE_DIR} )
+
+
+add_executable(orchestrator
   ${CMAKE_CURRENT_BINARY_DIR}/expr__gen.cpp
   ${CMAKE_CURRENT_BINARY_DIR}/expr_builder__gen.cpp
   ${QSYM_SOURCE_DIR}/expr_cache.cpp
@@ -66,43 +71,21 @@ add_library(SymRuntime SHARED
   ${SHARED_RUNTIME_SOURCES}
   Runtime.cpp)
 
-add_library(SymRuntimeStatic STATIC
-  ${CMAKE_CURRENT_BINARY_DIR}/expr__gen.cpp
-  ${CMAKE_CURRENT_BINARY_DIR}/expr_builder__gen.cpp
-  ${QSYM_SOURCE_DIR}/expr_cache.cpp
-  ${QSYM_SOURCE_DIR}/expr_evaluate.cpp
-  ${QSYM_SOURCE_DIR}/solver.cpp
-  ${QSYM_SOURCE_DIR}/dependency.cpp
-  ${QSYM_SOURCE_DIR}/logging.cpp
-  ${QSYM_SOURCE_DIR}/afl_trace_map.cpp
-  ${QSYM_SOURCE_DIR}/allocation.cpp
-  ${QSYM_SOURCE_DIR}/call_stack_manager.cpp
-  ${QSYM_SOURCE_DIR}/third_party/llvm/range.cpp
-  ${QSYM_SOURCE_DIR}/third_party/xxhash/xxhash.cpp
-  ${SHARED_RUNTIME_SOURCES}
-  Runtime.cpp)
+TARGET_LINK_LIBRARIES( orchestrator LINK_PUBLIC ${Boost_LIBRARIES} )
+target_link_libraries( orchestrator boost_program_options)
 
-target_include_directories(SymRuntime PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}     # for our fake pin.H and Runtime.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/..) # for common runtime components
-
-target_include_directories(SymRuntimeStatic PRIVATE
+target_include_directories(orchestrator PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}     # for our fake pin.H and Runtime.h
   ${CMAKE_CURRENT_SOURCE_DIR}/..) # for common runtime components
 
 
-target_include_directories(SymRuntime SYSTEM PRIVATE
+target_include_directories(orchestrator SYSTEM PRIVATE
   ${Z3_CXX_INCLUDE_DIRS}        # for Z3 support
   ${QSYM_SOURCE_DIR})
-target_include_directories(SymRuntimeStatic SYSTEM PRIVATE
-  ${Z3_CXX_INCLUDE_DIRS}        # for Z3 support
-  ${QSYM_SOURCE_DIR})
-
 # We need to get the LLVM support component for llvm::APInt.
 llvm_map_components_to_libnames(QSYM_LLVM_DEPS support)
 
-target_link_libraries(SymRuntime ${Z3_LIBRARIES} ${QSYM_LLVM_DEPS})
-target_link_libraries(SymRuntimeStatic ${Z3_LIBRARIES} ${QSYM_LLVM_DEPS})
+target_link_libraries(orchestrator ${Z3_LIBRARIES} ${QSYM_LLVM_DEPS})
 # We use std::filesystem, which has been added in C++17. Before its official
 # inclusion in the standard library, Clang shipped the feature first in
 # libc++experimental and later in libc++fs; GCC used to require libstdc++fs. We
@@ -111,11 +94,5 @@ target_link_libraries(SymRuntimeStatic ${Z3_LIBRARIES} ${QSYM_LLVM_DEPS})
 # std::filesystem - we catch this case in order to enable users of such systems
 # to build with the default compiler.
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  target_link_libraries(SymRuntime stdc++fs)
-endif()
-
-if (${TARGET_32BIT})
-  message(STATUS "BUILDING QsymSymRuntime to 32 bit")
-  set_target_properties(SymRuntime PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
-  set_target_properties(SymRuntimeStatic PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
+  target_link_libraries(orchestrator stdc++fs)
 endif()
