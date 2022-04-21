@@ -781,8 +781,9 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
         {conditionSymID, caseValueSymID});
         assignSymID(caseConstraint,caseConstraintSymID);
 
-        IRB.CreateCall(runtime.pushPathConstraint,
+        auto pushConstraintCall = IRB.CreateCall(runtime.pushPathConstraint,
                    {caseConstraintSymID, caseTaken, getTargetPreferredInt(&I)});
+        assignSymID(pushConstraintCall,getNextID());
     }
 }
 
@@ -926,6 +927,7 @@ void Symbolizer::tryAlternative(IRBuilder<> &IRB, Value *V) {
         // no need to assign a symid for push constraint, as long as all its symbolic operands are there
         auto *pushAssertion = IRB.CreateCall(runtime.pushPathConstraint,
                                              {destAssertSymID, IRB.getInt1(true), getTargetPreferredInt(V)});
+        assignSymID(pushAssertion,getNextID());
         registerSymbolicComputation(SymbolicComputation(
                 concreteDestExpr, pushAssertion, {{V, 0, destAssertion}}));
     }
@@ -1040,7 +1042,6 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                     assert(arg_size == 1);
                     Value * arg = callInst->getArgOperand(0);
                     assert(isSymIDType(arg));
-                    errs()<< * arg <<'\n';
                     g.AddEdge(getIntFromSymID(arg),getIntFromSymID(getSymIDFromSymExpr(callInst)), 0);
                 }
             }else if(toExamine.find(calleeName) != toExamine.end()){
@@ -1051,7 +1052,6 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                     Value * arg = *arg_it ;
                     unsigned arg_idx = callInst->getArgOperandNo(arg_it);
                     if(isSymIDType(arg)){
-                        errs()<< * arg<<'\n'<<*callInst<<'\n';
                         unsigned arg_symid = getIntFromSymID(arg);
                         g.AddEdge(arg_symid,userSymID, arg_idx);
                     }else if(isa<Constant>(arg)){
@@ -1076,6 +1076,7 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                         else{
                             errs()<< *arg<<'\n';
                             errs()<<*val_type<<'\n';
+                            errs()<<*callInst<<'\n';
                             llvm_unreachable("unhandled runtime type");
                         }
                         //sanity check the width
