@@ -51,8 +51,15 @@ configure CMake with -DZ3_TRUST_SYSTEM_VERSION=on (see also docs/Configuration.t
   endif()
 endif()
 
+## BOOST
 find_package( Boost REQUIRED HINTS ${boost_hints})
 include_directories( ${Boost_INCLUDE_DIR} )
+
+## Serial Port Source
+include_directories(${SERIAL_INCLUDE_DIR})
+
+## libserialport
+find_package(PkgConfig REQUIRED)
 
 
 add_executable(orchestrator
@@ -69,9 +76,16 @@ add_executable(orchestrator
   ${QSYM_SOURCE_DIR}/third_party/llvm/range.cpp
   ${QSYM_SOURCE_DIR}/third_party/xxhash/xxhash.cpp
   ${SHARED_RUNTIME_SOURCES}
+  ${SERIAL_PORT_SOURCES}
   Runtime.cpp)
 
-TARGET_LINK_LIBRARIES( orchestrator LINK_PUBLIC ${Boost_LIBRARIES} )
+## even when LIBSERIALPORT is found by pkg_check_modules, no related variables are set, so we have to do this in this ugly way, thanks cmake!!
+## when i tried to manually run pkg-config with execute_process, and find_library. While libserialport is literally under /usr/local/lib, and I specify this as hints to the find_library , it gave me NOTFOUND, this has been truly amazing.
+target_include_directories(orchestrator PRIVATE "/usr/local/include/")
+target_link_libraries(orchestrator "/usr/local/lib/libserialport.so")
+
+## link boost
+TARGET_LINK_LIBRARIES( orchestrator ${Boost_LIBRARIES} )
 target_link_libraries( orchestrator boost_program_options)
 
 target_include_directories(orchestrator PRIVATE

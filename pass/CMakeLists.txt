@@ -62,9 +62,8 @@ if (NOT LLVM_ENABLE_RTTI)
   set_source_files_properties(Main.cpp PROPERTIES COMPILE_FLAGS "-fno-rtti")
 endif()
 
-
 TARGET_LINK_LIBRARIES( Symbolize LINK_PUBLIC ${Boost_LIBRARIES} )
-
+TARGET_LINK_LIBRARIES( Symbolize boost_graph )
 
 find_program(CLANG_BINARY "clang"
   HINTS ${LLVM_TOOLS_BINARY_DIR}

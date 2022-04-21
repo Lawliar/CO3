@@ -48,6 +48,11 @@ set(SHARED_RUNTIME_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/GarbageCollection.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
 
+set(SERIAL_PORT_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/serialport/serialport.c
+)
+set(SERIAL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/serialport)
+
 if (${QSYM_BACKEND})
   add_subdirectory(qsym_backend)
 else()
