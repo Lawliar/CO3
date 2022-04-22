@@ -22,6 +22,7 @@
 
 #include "Runtime.h"
 #include "Symbolizer.h"
+#include "Lower.h"
 
 using namespace llvm;
 
@@ -72,6 +73,7 @@ bool SymbolizePass::runOnFunction(Function &F) {
     return false;
   llvm::errs() << "Symbolizing function " << functionName << '\n';
 
+  breakConstantExpr(F);
   SmallVector<Instruction *, 0> allInstructions;
   allInstructions.reserve(F.getInstructionCount());
   for (auto &I : instructions(F))
@@ -89,8 +91,9 @@ bool SymbolizePass::runOnFunction(Function &F) {
   symbolizer.finalizePHINodes();
   //symbolizer.shortCircuitExpressionUses();
 
-  //errs()<<F<<'\n';
-  symbolizer.DisplaySymbolicIDs();
+
+  //symbolizer.DisplaySymbolicIDs();
+  errs()<<F<<'\n';
   symbolizer.createDDGAndReplace(F,(F.getName() + "_ddg.dot").str());
 
   symbolizer.outputCFG(F,(F.getName() + "_cfg.dot").str());
