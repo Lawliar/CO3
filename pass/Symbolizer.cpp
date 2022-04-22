@@ -722,12 +722,6 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
     auto conditionSymID = getSymIDFromSymExpr(cast<CallInst>(conditionSymExpr));
     assert(conditionSymID != nullptr);
 
-    // Build a check whether we have a symbolic condition, to be used later.
-    auto *haveSymbolicCondition = IRB.CreateICmpNE(conditionSymExpr, ConstantPointerNull::get(IRB.getInt8PtrTy()));
-    auto *constraintBlock = SplitBlockAndInsertIfThen(haveSymbolicCondition, &I,/* unreachable */ false);
-
-    // In the constraint block, we push one path constraint per case.
-    IRB.SetInsertPoint(constraintBlock);
     for (auto &caseHandle : I.cases()) {
         auto *caseTaken = IRB.CreateICmpEQ(condition, caseHandle.getCaseValue());
         auto caseValueExpr = createValueExpression(caseHandle.getCaseValue(), IRB);
