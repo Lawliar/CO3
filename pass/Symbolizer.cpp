@@ -842,13 +842,16 @@ Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
     std::vector<Value *> functionArgs;
     for (const auto &[arg, symbolic] : args) {
         Value * paraSymID = nullptr;
-        if(CallInst* symExpr = dyn_cast<CallInst>(arg) ){
-            // we are dealing with a call which create symbolic variable
+        CallInst* symExpr = dyn_cast<CallInst>(arg);
+        if( symExpr != nullptr && getSymIDFromSymExpr(symExpr) != nullptr ){
+            // if this is call inst and this call is a symbolic call
             paraSymID = getSymIDFromSymExpr(symExpr);
             unsigned symID_int = getIntFromSymID(paraSymID);
             assert(symID_int > 0);
         }else{
             // we are dealing with non-symbolic operations
+            // if this non-symbolic operations has been associated with symExpr and symID before, return the id
+            // if not, construct a symid for it
             paraSymID = getSymIDOrCreateFromConcreteExpr(arg,IRB);
         }
         functionArgs.push_back(paraSymID);
