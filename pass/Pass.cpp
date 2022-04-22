@@ -84,16 +84,19 @@ bool SymbolizePass::runOnFunction(Function &F) {
 
   for (auto &basicBlock : F)
     symbolizer.insertBasicBlockNotification(basicBlock);
-
   for (auto *instPtr : allInstructions){
     symbolizer.visit(instPtr);
   }
   symbolizer.finalizePHINodes();
   //symbolizer.shortCircuitExpressionUses();
 
+  // output some intermediate info for debugging purpose
+  std::error_code ec;
+  raw_fd_ostream intermediate_file(StringRef((F.getName() + "_symcc.ll").str()),ec);
+  symbolizer.DisplaySymbolicIDs(intermediate_file);
+  intermediate_file << F<<'\n';
+  // end of output intermediate info
 
-  //symbolizer.DisplaySymbolicIDs();
-  errs()<<F<<'\n';
   symbolizer.createDDGAndReplace(F,(F.getName() + "_ddg.dot").str());
 
   symbolizer.outputCFG(F,(F.getName() + "_cfg.dot").str());

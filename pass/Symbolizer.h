@@ -382,9 +382,9 @@ public:
     return llvm::ConstantInt::get(intPtrType,
                                   reinterpret_cast<uint64_t>(pointer));
   }
-  void DisplaySymbolicIDs(){
+  void DisplaySymbolicIDs(llvm::raw_fd_ostream& output){
       for(auto eachSymOp : symbolicIDs){
-          llvm::errs()<<*eachSymOp->second<<"|"<<*eachSymOp->first<<'\n';
+          output<<*eachSymOp->second<<"|"<<*eachSymOp->first<<'\n';
       }
   }
 
