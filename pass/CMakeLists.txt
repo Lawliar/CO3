@@ -52,6 +52,7 @@ add_library(Symbolize MODULE
             Pass.cpp
             Runtime.cpp
             Main.cpp
+            Lower.cpp
             DataDepGraph.cpp)
 
 if (NOT LLVM_ENABLE_RTTI)
