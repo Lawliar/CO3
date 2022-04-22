@@ -716,14 +716,14 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
 
     IRBuilder<> IRB(&I);
     auto *condition = I.getCondition();
-    auto *conditionExpr = getSymbolicExpression(condition);
-    if (conditionExpr == nullptr)
+    auto *conditionSymExpr = getSymbolicExpression(condition);
+    if (conditionSymExpr == nullptr)
         return;
-    auto conditionSymID = getSymIDFromSymExpr(cast<CallInst>(conditionExpr));
+    auto conditionSymID = getSymIDFromSymExpr(cast<CallInst>(conditionSymExpr));
     assert(conditionSymID != nullptr);
 
     // Build a check whether we have a symbolic condition, to be used later.
-    auto *haveSymbolicCondition = IRB.CreateICmpNE(conditionExpr, ConstantPointerNull::get(IRB.getInt8PtrTy()));
+    auto *haveSymbolicCondition = IRB.CreateICmpNE(conditionSymExpr, ConstantPointerNull::get(IRB.getInt8PtrTy()));
     auto *constraintBlock = SplitBlockAndInsertIfThen(haveSymbolicCondition, &I,/* unreachable */ false);
 
     // In the constraint block, we push one path constraint per case.
@@ -859,9 +859,9 @@ Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
         }
         functionArgs.push_back(paraSymID);
     }
-    llvm::Constant* newSymID = getNextID();
+
     auto *call = IRB.CreateCall(function, functionArgs);
-    assignSymID(call,newSymID);
+    assignSymID(call,getNextID());
 
     std::vector<Input> inputs;
     for (unsigned i = 0; i < args.size(); i++) {
@@ -884,7 +884,7 @@ void Symbolizer::tryAlternative(IRBuilder<> &IRB, Value *V) {
 
         auto destAssertSymID = getNextID();
         auto *destAssertion = IRB.CreateCall(runtime.comparisonHandlers[CmpInst::ICMP_EQ],
-                                             {destSymId, concreteDestSymId,destAssertSymID});
+                                             {destSymId, concreteDestSymId});
         assignSymID(destAssertion,destAssertSymID);
         // no need to assign a symid for push constraint, as long as all its symbolic operands are there
         auto *pushAssertion = IRB.CreateCall(runtime.pushPathConstraint,
@@ -1020,7 +1020,6 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                 unsigned userSymID = getIntFromSymID(getSymIDFromSymExpr(callInst));
                 auto userNode = g.AddSymVertice(userSymID, calleeName,blockID);
                 std::map<unsigned,std::pair<unsigned,Value*> > pushed_arg;
-                errs()<<*callInst<<'\n';
                 for(auto arg_it = callInst->arg_begin() ; arg_it != callInst->arg_end() ; arg_it++){
                     Value * arg = *arg_it ;
                     unsigned arg_idx = callInst->getArgOperandNo(arg_it);
