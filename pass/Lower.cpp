@@ -765,7 +765,6 @@ bool BreakConstantExpr::runOnFunction(Function &F) {
             }
         }
     }
-
     return modified;
 }
 
