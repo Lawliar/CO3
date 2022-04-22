@@ -83,48 +83,6 @@ void Symbolizer::finalizePHINodes() {
 
 }
 
-void Symbolizer::shortCircuitExpressionUses() {
-    for (auto &symbolicComputation : expressionUses) {
-        assert(!symbolicComputation.inputs.empty() && "Symbolic computation has no inputs");
-        IRBuilder<> IRB(symbolicComputation.firstInstruction);
-
-        // Build the check whether any input expression is non-null (i.e., there
-        // is a symbolic input).
-        //auto *nullExpression = ConstantPointerNull::get(IRB.getInt8PtrTy());
-        auto numUnknownConcreteness = std::count_if(
-        symbolicComputation.inputs.begin(), symbolicComputation.inputs.end(),
-        [&](const Input &input) {
-            return (getIntFromSymID(input.getSymbolicOperand()) != 0);
-        });
-        for (unsigned argIndex = 0; argIndex < symbolicComputation.inputs.size();argIndex++) {
-            auto &argument = symbolicComputation.inputs[argIndex];
-            auto *originalSymID = argument.getSymbolicOperand();
-
-            // We only need a run-time check for concreteness if the argument isn't
-            // known to be concrete at compile time already. However, there is one
-            // exception: if the computation only has a single argument of unknown
-            // concreteness, then we know that it must be symbolic since we ended up
-            // in the slow path. Therefore, we can skip expression generation in
-            // that case.
-            bool needRuntimeCheck;
-            if(getIntFromSymID(originalSymID) == 0){
-                // it means the sym var is not there yet
-                needRuntimeCheck = false;
-            }else{
-                needRuntimeCheck = true;
-            }
-            if (needRuntimeCheck && (numUnknownConcreteness == 1))
-                continue;
-            if (! needRuntimeCheck) {
-                IRB.SetInsertPoint(symbolicComputation.firstInstruction);
-                auto *newArgExpression = createValueExpression(argument.concreteValue, IRB);
-                auto *newArgSymID = getSymIDFromSymExpr(newArgExpression);
-                assert(newArgSymID != nullptr);
-                argument.replaceOperand(newArgSymID);
-            }
-        }
-    }
-}
 
 void Symbolizer::handleIntrinsicCall(CallBase &I) {
   auto *callee = I.getCalledFunction();
@@ -538,7 +496,7 @@ void Symbolizer::visitGetElementPtrInst(GetElementPtrInst &I) {
               false}}));
         symbolicComputation.merge(forceBuildRuntimeCall(
             IRB, runtime.binaryOperatorHandlers[Instruction::Mul],
-            {{symbolicComputation.lastInstruction, false},
+            {{symbolicComputation.lastInstruction, false}, // the reason why this is false is probably because, the "index" a few lines above has already been true, so, no need to check this one i.e., if index is NULL equals "lastinstruction" being null, during short-circuiting no need to check
              {ConstantInt::get(intPtrType, elementSize), true}}));
       } else {
         symbolicComputation.merge(forceBuildRuntimeCall(
@@ -888,14 +846,17 @@ Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
                                   ArrayRef<std::pair<Value *, bool>> args) {
     std::vector<Value *> functionArgs;
     for (const auto &[arg, symbolic] : args) {
-        Value * para = nullptr;
-        if(symbolic){
-            Value* paraSymID = getSymIDOrCreateFromConcreteExpr(arg,IRB);
-            para = paraSymID;
+        Value * paraSymID = nullptr;
+        if(CallInst* symExpr = dyn_cast<CallInst>(arg) ){
+            // we are dealing with a call which create symbolic variable
+            paraSymID = getSymIDFromSymExpr(symExpr);
+            unsigned symID_int = getIntFromSymID(paraSymID);
+            assert(symID_int > 0);
         }else{
-            para = arg;
+            // we are dealing with non-symbolic operations
+            paraSymID = getSymIDOrCreateFromConcreteExpr(arg,IRB);
         }
-        functionArgs.push_back(para);
+        functionArgs.push_back(paraSymID);
     }
     llvm::Constant* newSymID = getNextID();
     auto *call = IRB.CreateCall(function, functionArgs);
@@ -984,30 +945,28 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
     for (auto &basicBlock : F){
         unsigned long blockID = cast<ConstantInt>(cast<CallInst>(basicBlock.getFirstNonPHI())->getOperand(0))->getZExtValue();
         for(auto & eachInst : basicBlock){
-            if( PHINode* symPhi = dyn_cast<PHINode>(&eachInst)){
-                if( phiSymbolicIDs.find(symPhi) != phiSymbolicIDs.end()) {
-                    PHINode *phi = phiSymbolicIDs.find(symPhi)->first;
-                    unsigned userSymID = getIntFromSymID(phiSymbolicIDs.find(symPhi)->second);
-                    g.AddPhiVertice(userSymID, blockID);
-                    for (unsigned incoming = 0, totalIncoming = phi->getNumIncomingValues();
-                         incoming < totalIncoming; incoming++) {
-                        BasicBlock* incomingBB = phi->getIncomingBlock(incoming);
-                        // although we embed BBID into each node in the DDG, however,
-                        // phi node can have incoming value that does not reside in the incoming BB e.g., a constant
-                        // so instead of trusting the BBID field of the DDG node, we might as well just note it on the edge.
-                        unsigned incomingBBID = cast<ConstantInt>(cast<CallInst>(incomingBB->getFirstNonPHI())->getOperand(0))->getZExtValue();
-                        Value * incomingValue = phi->getIncomingValue(incoming);
-                        unsigned incomingValueSymID = 0;
-                        if(CallInst * symIncomingValue = dyn_cast<CallInst>(getSymbolicExpression(incomingValue))){
-                            incomingValueSymID = getIntFromSymID(getSymIDFromSymExpr(symIncomingValue));
-                        }else if(PHINode * anotherPhi = dyn_cast<PHINode>(getSymbolicExpression(incomingValue))){
-                            // this one should have been constructed already.
-                            auto anotherPhiIt = phiSymbolicIDs.find(anotherPhi);
-                            incomingValueSymID = getIntFromSymID(anotherPhiIt->second);
-                        }
-                        assert(incomingValueSymID != 0);
-                        g.AddEdge(incomingValueSymID,userSymID,incomingBBID);
+            if( PHINode* symPhi = dyn_cast<PHINode>(&eachInst); symPhi != nullptr && phiSymbolicIDs.find(symPhi) != phiSymbolicIDs.end()){
+                PHINode *phi = phiSymbolicIDs.find(symPhi)->first;
+                unsigned userSymID = getIntFromSymID(phiSymbolicIDs.find(symPhi)->second);
+                g.AddPhiVertice(userSymID, blockID);
+                for (unsigned incoming = 0, totalIncoming = phi->getNumIncomingValues();
+                     incoming < totalIncoming; incoming++) {
+                    BasicBlock* incomingBB = phi->getIncomingBlock(incoming);
+                    // although we embed BBID into each node in the DDG, however,
+                    // phi node can have incoming value that does not reside in the incoming BB e.g., a constant
+                    // so instead of trusting the BBID field of the DDG node, we might as well just note it on the edge.
+                    unsigned incomingBBID = cast<ConstantInt>(cast<CallInst>(incomingBB->getFirstNonPHI())->getOperand(0))->getZExtValue();
+                    Value * incomingValue = phi->getIncomingValue(incoming);
+                    unsigned incomingValueSymID = 0;
+                    if(CallInst * symIncomingValue = dyn_cast<CallInst>(getSymbolicExpression(incomingValue))){
+                        incomingValueSymID = getIntFromSymID(getSymIDFromSymExpr(symIncomingValue));
+                    }else if(PHINode * anotherPhi = dyn_cast<PHINode>(getSymbolicExpression(incomingValue))){
+                        // this one should have been constructed already.
+                        auto anotherPhiIt = phiSymbolicIDs.find(anotherPhi);
+                        incomingValueSymID = getIntFromSymID(anotherPhiIt->second);
                     }
+                    assert(incomingValueSymID != 0);
+                    g.AddEdge(incomingValueSymID,userSymID,incomingBBID);
                 }
             }
             if(!isa<CallInst>(&eachInst)){
@@ -1062,6 +1021,8 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                             auto conVert = g.AddConstVertice(contValue, conWidth,blockID);
                             g.AddEdge(conVert,userNode, arg_idx);
                         }else{
+                            errs()<< dyn_cast<ConstantExpr>(arg)<<'\n';
+                            errs()<<*arg->getType()<<'\n';
                             errs()<< *arg<<'\n';
                             llvm_unreachable("unhandled constant");
                         }

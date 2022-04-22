@@ -87,8 +87,9 @@ bool SymbolizePass::runOnFunction(Function &F) {
     symbolizer.visit(instPtr);
   }
   symbolizer.finalizePHINodes();
-  symbolizer.shortCircuitExpressionUses();
+  //symbolizer.shortCircuitExpressionUses();
 
+  //errs()<<F<<'\n';
   symbolizer.DisplaySymbolicIDs();
   symbolizer.createDDGAndReplace(F,(F.getName() + "_ddg.dot").str());
 
