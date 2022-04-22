@@ -518,6 +518,7 @@ void Symbolizer::visitGetElementPtrInst(GetElementPtrInst &I) {
   registerSymbolicComputation(symbolicComputation, &I);
 }
 
+
 void Symbolizer::visitBitCastInst(BitCastInst &I) {
   if (I.getSrcTy()->isIntegerTy() && I.getDestTy()->isFloatingPointTy()) {
     IRBuilder<> IRB(&I);
@@ -915,8 +916,19 @@ uint64_t Symbolizer::aggregateMemberOffset(Type *aggregateType,
   }
   return offset;
 }
-
-
+unsigned int getTypeWidth(Type* ty, const DataLayout& dataLayout){
+    unsigned int width = 0;
+    if(IntegerType * intType = dyn_cast<IntegerType>(ty)){
+        width =  dataLayout.getTypeAllocSize(intType);
+    }else if(PointerType * ptrType = dyn_cast<PointerType>(ty)){
+        width = dataLayout.getPointerTypeSize(ptrType);
+    }
+    else{
+        errs()<<*ty<<'\n';
+        llvm_unreachable("unhandled type");
+    }
+    return width;
+}
 void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
     std::set<StringRef> toKeep{"_sym_notify_call", "_sym_notify_ret","_sym_notify_basic_block"};
     std::set<StringRef> toRemove{"_sym_set_parameter_expression", "_sym_get_parameter_expression",
@@ -978,6 +990,7 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
             if(callee == nullptr)
                 continue;
             auto calleeName = callee->getName();
+            IRBuilder<> IRB(callInst);
             if(toKeep.find(calleeName) != toKeep.end()){
                 continue;
             }else if(toRemove.find(calleeName) != toRemove.end()){
@@ -1007,6 +1020,7 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                 unsigned userSymID = getIntFromSymID(getSymIDFromSymExpr(callInst));
                 auto userNode = g.AddSymVertice(userSymID, calleeName,blockID);
                 std::map<unsigned,std::pair<unsigned,Value*> > pushed_arg;
+                errs()<<*callInst<<'\n';
                 for(auto arg_it = callInst->arg_begin() ; arg_it != callInst->arg_end() ; arg_it++){
                     Value * arg = *arg_it ;
                     unsigned arg_idx = callInst->getArgOperandNo(arg_it);
@@ -1020,27 +1034,33 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                             // constant's BBID is the same with its user(maybe we can merge?)
                             auto conVert = g.AddConstVertice(contValue, conWidth,blockID);
                             g.AddEdge(conVert,userNode, arg_idx);
+                        }else if(ConstantExpr * const_expr = dyn_cast<ConstantExpr>(arg)){
+                            Instruction * arg_inst = const_expr->getAsInstruction();
+                            if(PtrToIntInst* ptrToInt = dyn_cast<PtrToIntInst>(arg_inst)){
+                                // I don't know any pointer value, need runtime to tell me the value of the pointer
+                                unsigned int width = getTypeWidth(ptrToInt->getType(),dataLayout);
+                                assert(width > 0);
+                                if(width + 2 > perBufferSize){
+                                    errs()<< "Width:"<<width<<'\n';
+                                    errs()<< "arg:"<<*arg<<'\n';
+                                    llvm_unreachable("bitwidth of the runtime arg is too large");
+                                }
+                                auto runtimeVert = g.AddRuntimeVertice(width,blockID);
+                                g.AddEdge(runtimeVert,userNode,arg_idx);
+                                pushed_arg.insert(std::make_pair(arg_idx, std::make_pair(width,arg_inst)));
+                            }else{
+                                errs()<<*arg_inst->getType()<<'\n';
+                                errs()<< *arg_inst<<'\n';
+                                llvm_unreachable("unhandled constantExpr inst");
+                            }
                         }else{
-                            errs()<< dyn_cast<ConstantExpr>(arg)<<'\n';
                             errs()<<*arg->getType()<<'\n';
                             errs()<< *arg<<'\n';
                             llvm_unreachable("unhandled constant");
                         }
                     }else{
                         Type* val_type = arg->getType();
-                        unsigned int width = 0;
-                        if(IntegerType * intType = dyn_cast<IntegerType>(val_type)){
-                            width =  dataLayout.getTypeAllocSize(intType);
-                        }else if(PointerType * ptrType = dyn_cast<PointerType>(val_type)){
-                            width = dataLayout.getPointerTypeSize(ptrType);
-                        }
-                        else{
-                            errs()<< *arg<<'\n';
-                            errs()<<*val_type<<'\n';
-                            errs()<<*callInst<<'\n';
-                            llvm_unreachable("unhandled runtime type");
-                        }
-                        //sanity check the width
+                        unsigned int width = getTypeWidth(val_type,dataLayout);
                         assert(width > 0);
                         if(width + 2 > perBufferSize){
                             errs()<< "Width:"<<width<<'\n';
@@ -1067,7 +1087,7 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                         reporter = runtime.spearReport4;
                     else
                         llvm_unreachable("too many runtime values need to report");
-                    IRBuilder<> IRB(callInst);
+
                     std::vector<Value*> reporter_args;
                     // push the user's symid
                     reporter_args.push_back(ConstantInt::get(runtime.int32T,userSymID));
