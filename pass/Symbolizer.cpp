@@ -1028,7 +1028,7 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                             unsigned int conWidth = dataLayout.getTypeAllocSize(cont_int->getType());
                             int64_t contValue = cont_int->getSExtValue();
                             // constant's BBID is the same with its user(maybe we can merge?)
-                            auto conVert = g.AddConstVertice(contValue, conWidth,blockID);
+                            auto conVert = g.AddConstVertice(contValue, conWidth);
                             g.AddEdge(conVert,userNode, arg_idx);
                         }else if(ConstantExpr * const_expr = dyn_cast<ConstantExpr>(arg)){
                             Instruction * arg_inst = const_expr->getAsInstruction();

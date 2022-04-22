@@ -89,7 +89,7 @@ public:
     SymDepGraph::vertex_t AddSymVertice(unsigned symID, llvm::StringRef op,unsigned long);
     SymDepGraph::vertex_t AddPhiVertice(unsigned symID, unsigned long);
     SymDepGraph::vertex_t AddInterFuncVertice(unsigned symID, llvm::StringRef op,unsigned long);
-    SymDepGraph::vertex_t AddConstVertice(unsigned long value, unsigned int bit_width,unsigned long);
+    SymDepGraph::vertex_t AddConstVertice( long value, unsigned int bit_width);
     SymDepGraph::vertex_t AddRuntimeVertice(unsigned int bit_width,unsigned long);
     SymDepGraph::vertex_t AddVertice(int symID,std::string op,NodeType nodeType,long const_value,unsigned int, unsigned long);
 

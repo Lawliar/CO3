@@ -34,8 +34,14 @@ SymDepGraph::vertex_t SymDepGraph::AddPhiVertice(unsigned int symID, unsigned lo
     return AddVertice(symID,"",NodePhi, 0, 0,BBID);
 }
 
-SymDepGraph::vertex_t SymDepGraph::AddConstVertice(unsigned long value, unsigned int bit_width,unsigned long BBID){
-    return AddVertice(-1,"",NodeConst, value,bit_width,BBID);
+SymDepGraph::vertex_t SymDepGraph::AddConstVertice(long value, unsigned int bit_width){
+    vertex_it vi, vi_end;
+    for (boost::tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
+        if(graph[*vi].symID == -1 && graph[*vi].nodeType == NodeConst && graph[*vi].const_value == value && graph[*vi].bitwidth == bit_width){
+            return *vi;
+        }
+    }
+    return AddVertice(-1,"",NodeConst, value,bit_width,0);
 }
 
 SymDepGraph::vertex_t SymDepGraph::AddRuntimeVertice(unsigned int bit_width,unsigned long BBID){
