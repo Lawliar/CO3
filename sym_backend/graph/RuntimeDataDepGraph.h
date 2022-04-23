@@ -10,6 +10,6 @@
 class RuntimeSymDepGraph: public SymDepGraph{
     RuntimeSymDepGraph(){}
     void readGraphViz(std::string filename);
-};
 
+};
 #endif //SYMBACKEND_RUNTIMEDATADEPGRAPH_H

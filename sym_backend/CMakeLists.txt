@@ -13,7 +13,7 @@
 # SymCC. If not, see <https://www.gnu.org/licenses/>.
 
 cmake_minimum_required(VERSION 3.5)
-project(SymRuntime)
+project(SymBackend)
 
 option(TARGET_32BIT "Make the compiler work correctly with -m32" OFF)
 option(QSYM_BACKEND "Use the Qsym backend instead of our own" ON)
@@ -53,6 +53,12 @@ set(SERIAL_PORT_SOURCES
 )
 set(SERIAL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/serialport)
 
+set(GRAPH_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/../pass/ddg/DataDepGraph.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/graph/RuntimeDataDepGraph.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/graph/RuntimeCFG.cpp)
+set(GRAPH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../pass/ddg)
+set(RUNTIME_GRAPH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/graph)
 if (${QSYM_BACKEND})
   add_subdirectory(qsym_backend)
 else()

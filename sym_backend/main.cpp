@@ -1,7 +1,7 @@
+
+
 #include <boost/program_options.hpp>
 #include <iostream>
-
-
 
 boost::program_options::variables_map ParseCommand(int argc, const char *argv[]){
     try
@@ -26,5 +26,5 @@ int main(int argc, const char *argv[])
 {
     boost::program_options::variables_map vm = ParseCommand(argc, argv);
     std::cout << vm["cfg"].as<std::string>() <<'\n';
-    return 0;
+
 }

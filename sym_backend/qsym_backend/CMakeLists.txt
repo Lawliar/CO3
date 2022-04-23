@@ -77,6 +77,7 @@ add_executable(orchestrator
   ${QSYM_SOURCE_DIR}/third_party/xxhash/xxhash.cpp
   ${SHARED_RUNTIME_SOURCES}
   ${SERIAL_PORT_SOURCES}
+  ${GRAPH_SOURCES}
   Runtime.cpp)
 
 ## even when LIBSERIALPORT is found by pkg_check_modules, no related variables are set, so we have to do this in this ugly way, thanks cmake!!
@@ -84,9 +85,13 @@ add_executable(orchestrator
 target_include_directories(orchestrator PRIVATE "/usr/local/include/")
 target_link_libraries(orchestrator "/usr/local/lib/libserialport.so")
 
+##graph
+target_include_directories(orchestrator PRIVATE ${GRAPH_INCLUDE_DIR})
+target_include_directories(orchestrator PRIVATE ${RUNTIME_GRAPH_INCLUDE_DIR})
 ## link boost
 TARGET_LINK_LIBRARIES( orchestrator ${Boost_LIBRARIES} )
 target_link_libraries( orchestrator boost_program_options)
+TARGET_LINK_LIBRARIES( orchestrator boost_graph )
 
 target_include_directories(orchestrator PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}     # for our fake pin.H and Runtime.h
