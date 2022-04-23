@@ -993,11 +993,11 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
             }else if(toRemove.find(calleeName) != toRemove.end()){
                 toBeRemoved.push_back(callInst);
                 if(calleeName.equals("_sym_get_parameter_expression") ){
-                    g.AddSymVertice(getIntFromSymID(getSymIDFromSymExpr(callInst)), calleeName,blockID);
+                    g.AddSymVertice(getIntFromSymID(getSymIDFromSymExpr(callInst)), calleeName.str(),blockID);
                 }else if(calleeName.equals("_sym_get_return_expression")){
-                    g.AddSymVertice(getIntFromSymID(getSymIDFromSymExpr(callInst)), calleeName,blockID);
+                    g.AddSymVertice(getIntFromSymID(getSymIDFromSymExpr(callInst)), calleeName.str(),blockID);
                 }else if(calleeName.equals("_sym_set_parameter_expression")){
-                    g.AddSymVertice(getIntFromSymID(getSymIDFromSymExpr(callInst)), calleeName,blockID);
+                    g.AddSymVertice(getIntFromSymID(getSymIDFromSymExpr(callInst)), calleeName.str(),blockID);
                     size_t arg_size = callInst->arg_size();
                     assert(arg_size == 2);
                     ConstantInt * idx_const = cast<ConstantInt>(callInst->getArgOperand(0));
@@ -1006,7 +1006,7 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                     assert(isSymIDType(sym_arg));
                     g.AddEdge(getIntFromSymID(sym_arg),getIntFromSymID(getSymIDFromSymExpr(callInst)), idx_const->getZExtValue());
                 }else if(calleeName.equals("_sym_set_return_expression")){
-                    g.AddSymVertice(getIntFromSymID(getSymIDFromSymExpr(callInst)), calleeName,blockID);
+                    g.AddSymVertice(getIntFromSymID(getSymIDFromSymExpr(callInst)), calleeName.str(),blockID);
                     size_t arg_size = callInst->arg_size();
                     assert(arg_size == 1);
                     Value * arg = callInst->getArgOperand(0);
@@ -1015,7 +1015,7 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                 }
             }else if(toExamine.find(calleeName) != toExamine.end()){
                 unsigned userSymID = getIntFromSymID(getSymIDFromSymExpr(callInst));
-                auto userNode = g.AddSymVertice(userSymID, calleeName,blockID);
+                auto userNode = g.AddSymVertice(userSymID, calleeName.str(),blockID);
                 std::map<unsigned,std::pair<unsigned,Value*> > pushed_arg;
                 for(auto arg_it = callInst->arg_begin() ; arg_it != callInst->arg_end() ; arg_it++){
                     Value * arg = *arg_it ;
@@ -1030,7 +1030,7 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                             // constant's BBID is the same with its user(maybe we can merge?)
                             auto conVert = g.AddConstVertice(contValue, conWidth);
                             g.AddEdge(conVert,userNode, arg_idx);
-                        }else if(ConstantExpr * const_expr = dyn_cast<ConstantExpr>(arg)){
+                        }/*else if(ConstantExpr * const_expr = dyn_cast<ConstantExpr>(arg)){
                             Instruction * arg_inst = const_expr->getAsInstruction();
                             if(PtrToIntInst* ptrToInt = dyn_cast<PtrToIntInst>(arg_inst)){
                                 // I don't know any pointer value, need runtime to tell me the value of the pointer
@@ -1049,7 +1049,7 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                                 errs()<< *arg_inst<<'\n';
                                 llvm_unreachable("unhandled constantExpr inst");
                             }
-                        }else{
+                        }*/else{
                             errs()<<*arg->getType()<<'\n';
                             errs()<< *arg<<'\n';
                             llvm_unreachable("unhandled constant");
@@ -1138,8 +1138,8 @@ void Symbolizer::outputCFG(llvm::Function & F, std::string filename) {
     for (Function::iterator B_iter = F.begin(); B_iter != F.end(); ++B_iter){
         BasicBlock* curBB = &*B_iter;
         unsigned long from_num = basicBlockMap.find(curBB)->second;
-        file << "\tBB" << from_num << " [shape=record, label=\"{";
-        file  << from_num << "}\"];\n";
+        file << "\tBB" << from_num << " [shape=record, label=\"";
+        file  << from_num << "\"];\n";
         for (BasicBlock *SuccBB : successors(curBB)){
             unsigned long to_num = basicBlockMap.find(SuccBB)->second;
             file << "\tBB" << from_num<< "-> BB" << to_num << ";\n";

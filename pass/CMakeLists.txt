@@ -53,7 +53,7 @@ add_library(Symbolize MODULE
             Runtime.cpp
             Main.cpp
             Lower.cpp
-            DataDepGraph.cpp)
+        ddg/DataDepGraph.cpp)
 
 if (NOT LLVM_ENABLE_RTTI)
   #set_target_properties(Symbolize PROPERTIES COMPILE_FLAGS "-fno-rtti")
