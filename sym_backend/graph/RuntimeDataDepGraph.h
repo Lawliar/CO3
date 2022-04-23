@@ -8,6 +8,7 @@
 #include "DataDepGraph.h"
 
 class RuntimeSymDepGraph: public SymDepGraph{
+public:
     RuntimeSymDepGraph(){}
     void readGraphViz(std::string filename);
 

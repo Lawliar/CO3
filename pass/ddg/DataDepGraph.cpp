@@ -6,7 +6,7 @@
 #include "boost/graph/graphviz.hpp"
 
 SymDepGraph::SymDepGraph(){
-    AddVertice(0,"",NodeSym, 0,0,0);
+    AddVertice(0,VoidStr,NodeSym, 0,0,0);
 }
 
 SymDepGraph::vertex_t SymDepGraph::AddVertice(int symID,std::string op,NodeType nodeType,long const_value,unsigned int bitwidth,unsigned long BBID){
@@ -31,7 +31,7 @@ SymDepGraph::vertex_t SymDepGraph::AddInterFuncVertice(unsigned symID, std::stri
 }
 SymDepGraph::vertex_t SymDepGraph::AddPhiVertice(unsigned int symID, unsigned long BBID) {
     assert(symID != 0);
-    return AddVertice(symID,"",NodePhi, 0, 0,BBID);
+    return AddVertice(symID,VoidStr,NodePhi, 0, 0,BBID);
 }
 
 SymDepGraph::vertex_t SymDepGraph::AddConstVertice(long value, unsigned int bit_width){
@@ -41,11 +41,11 @@ SymDepGraph::vertex_t SymDepGraph::AddConstVertice(long value, unsigned int bit_
             return *vi;
         }
     }
-    return AddVertice(-1,"",NodeConst, value,bit_width,0);
+    return AddVertice(-1,VoidStr,NodeConst, value,bit_width,0);
 }
 
 SymDepGraph::vertex_t SymDepGraph::AddRuntimeVertice(unsigned int bit_width,unsigned long BBID){
-    return AddVertice(-1,"",NodeRuntime, 0,bit_width,BBID);
+    return AddVertice(-1,VoidStr,NodeRuntime, 0,bit_width,BBID);
 }
 
 void SymDepGraph::AddEdge(unsigned from_symid, unsigned to_symid, unsigned arg_no){

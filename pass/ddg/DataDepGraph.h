@@ -15,11 +15,14 @@ typedef std::string NodeType;
 #define NodeIntepretedFunc "symFunc"
 #define NodeRuntime        "runtime"
 #define NodePhi            "phi"
+
+#define VoidStr            "NaS"
 class SymDepGraph
 {
 public:
     struct Vertex_Properties                                    // property bundle for vertices
     {
+        std::string name;
         int symID;
         std::string op;
         NodeType nodeType;
@@ -60,12 +63,12 @@ public:
         }*/
         void operator()(std::ostream &out, const Node& n) const {
             out << "["                            \
-                    << symIDPrefix           <<":"  <<sm[n] <<',' \
-                    << opPrefix           <<":"  <<om[n] <<','  \
-                    <<nodeTPrefix         <<":"  <<nm[n] <<',' \
-                    <<constantValuePrefix <<":"  <<cm[n] <<','  \
-                    <<widthPrefix         <<":"  <<bm[n] <<',' \
-                    <<BasicBlockPrefix    <<":"  <<bbm[n] << "]";
+                    << symIDPrefix           <<"="  <<sm[n] <<',' \
+                    << opPrefix           <<"="  <<om[n] <<','  \
+                    <<nodeTPrefix         <<"="  <<nm[n] <<',' \
+                    <<constantValuePrefix <<"="  <<cm[n] <<','  \
+                    <<widthPrefix         <<"="  <<bm[n] <<',' \
+                    <<BasicBlockPrefix    <<"="  <<bbm[n] << "]";
         }
 
     private:
