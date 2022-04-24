@@ -75,7 +75,6 @@ SymDepGraph::vertex_it SymDepGraph::GetVerticeEndIt(){
 
 void SymDepGraph::writeToFile(std::string filename){
     std::ofstream f(filename);
-
     boost::write_graphviz(f,graph,
                           make_node_writer(boost::get(&Vertex_Properties::symID,graph),
                                            boost::get(&Vertex_Properties::op,graph),

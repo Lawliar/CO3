@@ -22,7 +22,7 @@ class SymDepGraph
 public:
     struct Vertex_Properties                                    // property bundle for vertices
     {
-        std::string name;
+        std::string name;// not used for writing graph
         int symID;
         std::string op;
         NodeType nodeType;

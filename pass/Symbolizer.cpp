@@ -1138,11 +1138,11 @@ void Symbolizer::outputCFG(llvm::Function & F, std::string filename) {
     for (Function::iterator B_iter = F.begin(); B_iter != F.end(); ++B_iter){
         BasicBlock* curBB = &*B_iter;
         unsigned long from_num = basicBlockMap.find(curBB)->second;
-        file << "\tBB" << from_num << " [shape=record, label=\"";
-        file  << from_num << "\"];\n";
+        file << "\t" << from_num << " [shape=record, label=\"";
+        file  << from_num << "\",id=" << from_num << "];\n";
         for (BasicBlock *SuccBB : successors(curBB)){
             unsigned long to_num = basicBlockMap.find(SuccBB)->second;
-            file << "\tBB" << from_num<< "-> BB" << to_num << ";\n";
+            file << "\t" << from_num<< "-> " << to_num << ";\n";
         }
     }
     file << "}\n";
