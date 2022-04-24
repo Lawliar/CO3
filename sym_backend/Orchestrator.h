@@ -5,9 +5,21 @@
 #ifndef SYMBACKEND_ORCHESTRATOR_H
 #define SYMBACKEND_ORCHESTRATOR_H
 
-#include "RuntimeCommon.h"
+#include <string>
+#include "Runtime.h"
+#include "RuntimeCFG.h"
+#include "RuntimeDataDepGraph.h"
+extern "C" {
+#include "serialport.h"
+}
+
 
 class Orchestrator{
-    Orchestrator(std::string cfg_filename);
+public:
+    Orchestrator(std::string cfg_filename, std::string ddg_filename, std::string sp_port, int);
+    ~Orchestrator();
+    RuntimeSymDepGraph ddg;
+    RuntimeCFG cfg;
+    struct sp_port * sp;
 };
 #endif //SYMBACKEND_ORCHESTRATOR_H

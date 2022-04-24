@@ -53,7 +53,7 @@ void flush_rx_tx_buffers(struct sp_port* port){
 	check(sp_flush(port, SP_BUF_BOTH));
 }
 
-struct sp_port * initSerialPort(char * port_name, int baud_rate){
+struct sp_port * initSerialPort(const char * port_name, int baud_rate){
     struct sp_port *port = NULL;
     printf("Looking for port %s.\n", port_name);
     check(sp_get_port_by_name(port_name, &port));

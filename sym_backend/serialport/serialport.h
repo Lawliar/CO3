@@ -12,7 +12,7 @@ typedef struct _ReceivedBuf{
     uint32_t len;
 } ReceivedBuf;
 
-struct sp_port * initSerialPort(char * port_name, int);
+struct sp_port * initSerialPort(const char * port_name, int);
 void freeSerialPort(struct sp_port* port);
 
 void sendDataSerialPort(struct sp_port* port, uint8_t * buf, uint32_t size);

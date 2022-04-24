@@ -46,7 +46,8 @@ set(SHARED_RUNTIME_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/LibcWrappers.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Shadow.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/GarbageCollection.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/Orchestrator.cpp)
 
 set(SERIAL_PORT_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/serialport/serialport.c
