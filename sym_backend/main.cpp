@@ -3,6 +3,7 @@
 #include <boost/program_options.hpp>
 #include <iostream>
 #include "RuntimeDataDepGraph.h"
+#include "RuntimeCFG.h"
 
 boost::program_options::variables_map ParseCommand(int argc, const char *argv[]){
     try
@@ -27,6 +28,9 @@ int main(int argc, const char *argv[])
 {
     boost::program_options::variables_map vm = ParseCommand(argc, argv);
     std::string ddg_path = vm["ddg"].as<std::string>();
+    std::string cfg_path = vm["cfg"].as<std::string>();
     RuntimeSymDepGraph ddg;
     ddg.readGraphViz(ddg_path);
+    RuntimeCFG cfg;
+    cfg.readGraphViz(cfg_path);
 }
