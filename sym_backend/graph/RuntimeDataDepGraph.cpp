@@ -20,4 +20,5 @@ void RuntimeSymDepGraph::readGraphViz(std::string filename) {
     dp.property("label",             boost::get(&Edge_Properties::arg_no,         graph));
     std::ifstream myfile (filename);
     boost::read_graphviz(myfile, graph, dp);
+    myfile.close();
 }

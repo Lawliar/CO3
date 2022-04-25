@@ -14,5 +14,5 @@ void RuntimeCFG::readGraphViz(std::string filename) {
     dp.property(idPrefix,            boost::get(&Vertex_Properties::id,              graph));
     std::ifstream myfile (filename);
     boost::read_graphviz(myfile, graph, dp);
-    __asm__("nop");
+    myfile.close();
 }
