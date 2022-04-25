@@ -10,7 +10,6 @@ Orchestrator::Orchestrator(std::string cfg_filename, std::string ddg_filename, s
     cfg.readGraphViz(cfg_filename);
     ddg.readGraphViz(ddg_filename);
     sp = initSerialPort(sp_port.c_str(), baud_rate);
-    __asm__("nop");
 }
 Orchestrator::~Orchestrator() {
     freeSerialPort(sp);
