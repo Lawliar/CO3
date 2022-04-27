@@ -53,32 +53,36 @@ void flush_rx_tx_buffers(struct sp_port* port){
 	check(sp_flush(port, SP_BUF_BOTH));
 }
 
-struct sp_port * initSerialPort(const char * port_name, int baud_rate){
-    struct sp_port *port = NULL;
+OpenedSP initSerialPort(const char * port_name, int baud_rate){
+    OpenedSP ret = {.port = NULL, .events=NULL};
     printf("Looking for port %s.\n", port_name);
-    check(sp_get_port_by_name(port_name, &port));
+    check(sp_get_port_by_name(port_name, &ret.port));
 
     printf("Opening port.\n");
-    check(sp_open(port, SP_MODE_READ_WRITE));
+    check(sp_open(ret.port, SP_MODE_READ_WRITE));
 
     printf("Setting port to 9600 8N1, no flow control.\n");
 	if (baud_rate == 0){
-		check(sp_set_baudrate(port, 9600));
+		check(sp_set_baudrate(ret.port, 9600));
 	}
 	else{
-		check(sp_set_baudrate(port, baud_rate));
+		check(sp_set_baudrate(ret.port, baud_rate));
 	}
 
-	check(sp_set_bits(port, 8));
-    check(sp_set_parity(port, SP_PARITY_NONE));
-    check(sp_set_stopbits(port, 1));
-    check(sp_set_flowcontrol(port, SP_FLOWCONTROL_NONE));
-    return port;
+	check(sp_set_bits(ret.port, 8));
+    check(sp_set_parity(ret.port, SP_PARITY_NONE));
+    check(sp_set_stopbits(ret.port, 1));
+    check(sp_set_flowcontrol(ret.port, SP_FLOWCONTROL_NONE));
+
+    sp_new_event_set(&ret.events);
+    check(sp_add_port_events(ret.events, ret.port, SP_EVENT_RX_READY));
+    return ret;
 }
 
-void freeSerialPort(struct sp_port * port){
-    check(sp_close(port));
-    sp_free_port(port);
+void freeSerialPort(OpenedSP port){
+    sp_free_event_set(port.events);
+    check(sp_close(port.port));
+    sp_free_port(port.port);
 }
 
 inline void sendDataSerialPort(struct sp_port* port, uint8_t * buf, uint32_t size ){

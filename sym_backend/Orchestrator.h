@@ -17,9 +17,13 @@ extern "C" {
 class Orchestrator{
 public:
     Orchestrator(std::string cfg_filename, std::string ddg_filename, std::string sp_port, int);
+    int StartListen();
+    int Run();
+
     ~Orchestrator();
+
     RuntimeSymDepGraph ddg;
     RuntimeCFG cfg;
-    struct sp_port * sp;
+    OpenedSP sp;
 };
 #endif //SYMBACKEND_ORCHESTRATOR_H

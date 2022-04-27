@@ -12,8 +12,13 @@ typedef struct _ReceivedBuf{
     uint32_t len;
 } ReceivedBuf;
 
-struct sp_port * initSerialPort(const char * port_name, int);
-void freeSerialPort(struct sp_port* port);
+typedef struct _OpenedSP{
+    struct sp_event_set* events;
+    struct sp_port* port;
+} OpenedSP;
+
+OpenedSP initSerialPort(const char * port_name, int);
+void freeSerialPort(OpenedSP port);
 
 void sendDataSerialPort(struct sp_port* port, uint8_t * buf, uint32_t size);
 void flush_rx_tx_buffers(struct sp_port* port);

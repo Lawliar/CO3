@@ -12,6 +12,14 @@ Orchestrator::Orchestrator(std::string cfg_filename, std::string ddg_filename, s
     sp = initSerialPort(sp_port.c_str(), baud_rate);
 }
 Orchestrator::~Orchestrator() {
+
     freeSerialPort(sp);
-    sp = nullptr;
+}
+
+int Orchestrator::StartListen() {
+
+}
+int Orchestrator::Run() {
+
+    return 0;
 }

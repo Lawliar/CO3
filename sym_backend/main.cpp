@@ -12,7 +12,7 @@ boost::program_options::variables_map ParseCommand(int argc, const char *argv[])
                 ("cfg,c",  boost::program_options::value<std::string>()->required(), "cfg")
                 ("ddg,d",  boost::program_options::value<std::string>()->required(), "ddg")
                 ("sp,s",   boost::program_options::value<std::string>()->required(), "sp")
-                ("baudrate,b",boost::program_options::value<int>()->required(), "baud");
+                ("baudrate,b",boost::program_options::value<int>()->required(), "baudrate");
 
         boost::program_options::variables_map vm;
         boost::program_options::store(parse_command_line(argc, argv, desc), vm);
