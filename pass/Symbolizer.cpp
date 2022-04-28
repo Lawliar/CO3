@@ -840,23 +840,32 @@ Symbolizer::SymbolicComputation
 Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
                                   ArrayRef<std::pair<Value *, bool>> args) {
     std::vector<Value *> functionArgs;
+    int arg_idx = 0;
     for (const auto &[arg, symbolic] : args) {
-        Value * paraSymID = nullptr;
-        CallInst* symExpr = dyn_cast<CallInst>(arg);
-        if( symExpr != nullptr && getSymIDFromSymExpr(symExpr) != nullptr ){
-            // if this is call inst and this call is a symbolic call
-            paraSymID = getSymIDFromSymExpr(symExpr);
-            unsigned symID_int = getIntFromSymID(paraSymID);
-            assert(symID_int > 0);
+        Value * paraVal = nullptr;
+        Type* expectedTy = function.getFunctionType()->getParamType(arg_idx);
+        if(expectedTy == runtime.symIDT){
+            // if it's a symID that is needed
+            CallInst* symExpr = dyn_cast<CallInst>(arg);
+            if( symExpr != nullptr && getSymIDFromSymExpr(symExpr) != nullptr ){
+                // if this is call inst and this call is a symbolic call
+                paraVal = getSymIDFromSymExpr(symExpr);
+                unsigned symID_int = getIntFromSymID(paraVal);
+                assert(symID_int > 0);
+            }else{
+                // we are dealing with non-symbolic operations
+                // if this non-symbolic operations has been associated with symExpr and symID before, return the id
+                // if not, construct a symid for it
+                paraVal = getSymIDOrCreateFromConcreteExpr(arg,IRB);
+            }
         }else{
-            // we are dealing with non-symbolic operations
-            // if this non-symbolic operations has been associated with symExpr and symID before, return the id
-            // if not, construct a symid for it
-            paraSymID = getSymIDOrCreateFromConcreteExpr(arg,IRB);
+            assert(symbolic == false);
+            paraVal = arg;
         }
-        functionArgs.push_back(paraSymID);
-    }
 
+        functionArgs.push_back(paraVal);
+        arg_idx ++ ;
+    }
     auto *call = IRB.CreateCall(function, functionArgs);
     assignSymID(call,getNextID());
 
