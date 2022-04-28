@@ -1,5 +1,6 @@
 ROOT_DIR := $(abspath ..)
 PROJ_DIR := $(abspath .)
+SPEAR_ROOT := /home/lcm/github/spear/spear-code
 BUILD_DIR  := $(PROJ_DIR)/build
 Q ?= @
 
@@ -29,13 +30,15 @@ CLI_LDFLAG_OVERRIDES ?=
 # our path by default but allow things to be easily overridden, i.e:
 #
 # COMPILER=<PATH_TO_OTHER_GCC_VERSION>/arm-none-eabi-gcc make
-# COMPILER=clang make
-COMPILER ?= arm-none-eabi-gcc
+COMPILER=/home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/clang
+OPT=/home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/opt
+LLC=/home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/llc
+#COMPILER ?= arm-none-eabi-gcc
 CC = $(COMPILER)
 
 $(info $(CC))
 
-
+RUNTIME_SOURCE = $(SPEAR_ROOT)/runtime/runtime/runtime.c
 
 DRIVERS_SOURCES += \
 $(DRIVERS_ROOT_DIR)/stm32h7xx_hal.c \
@@ -100,9 +103,7 @@ $(USBDEVICE_ROOT_DIR)/Target/usbd_conf.c
 PROJECT_SRC_DIR = $(PROJ_DIR)/Core/Src
 
 
-#TEST_SRC = \
-$(TEST_ROOT_DIR)/Src/testmodbus.c \
-$(TEST_ROOT_DIR)/Src/test.c \
+TEST_SRC = $(TEST_ROOT_DIR)/Src/test.c 
 
 
 
@@ -112,20 +113,14 @@ $(FUZZING_ROOT_DIR)/Src/ring.c \
 $(FUZZING_ROOT_DIR)/Src/fuzzing.c 
 
 
-SRC_FILES += \
-$(PROJECT_SRC_DIR)/main.c \
-$(PROJECT_SRC_DIR)/stm32h7xx_hal_msp.c \
-$(PROJECT_SRC_DIR)/stm32h7xx_hal_timebase_tim.c \
-$(PROJECT_SRC_DIR)/stm32h7xx_it.c \
-$(PROJECT_SRC_DIR)/syscalls.c \
-$(PROJECT_SRC_DIR)/sysmem.c \
-$(PROJECT_SRC_DIR)/system_stm32h7xx.c \
+SRC_FILES += $(shell find $(PROJECT_SRC_DIR) -name '*.c') \
 $(DRIVERS_SOURCES) \
 $(FREERTOS_SOURCES) \
 $(MIDDLEWARES_SOURCES) \
-$(USB_DEVICE_SOURCES) 
+$(USB_DEVICE_SOURCES) \
+$(TEST_SRC) \
+$(RUNTIME_SOURCE)
 #$(FUZZING_SOURCES)
-#$(TEST_SRC) 
 
 
 
@@ -154,8 +149,9 @@ INCLUDE_PATHS += \
   -I$(PROJ_DIR)/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F \
   -I$(PROJ_DIR)/USB_DEVICE/App \
   -I$(PROJ_DIR)/USB_DEVICE/Target \
-#  -I$(ROOT_DIR)/Common/Fuzzing/Inc \
   -I$(ROOT_DIR)/Common/Test/Inc
+#  -I$(ROOT_DIR)/Common/Fuzzing/Inc \
+  
 
 
 # Note: These arguments will be used by clang to select
@@ -357,11 +353,19 @@ $(BUILD_DIR)/USBCDCH743/Core/Startup/%.o: $(PROJ_DIR)/Core/Startup/%.s | $(BUILD
 	@mkdir -p $(dir $@)
 	$(Q) $(CC) $(DEP_CFLAGS) $(ASFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
+# build Runtime Code
+$(BUILD_DIR)/runtime/%.o: $(SPEAR_ROOT)/runtime/runtime/runtime.c | $(BUILD_DIR) $(DEP_DIR) 
+	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
+	@mkdir -p $(dir $@)
+	$(Q) $(CC) $(DEP_CFLAGS) $(ASFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
+
 # build instrumented test
-#$(BUILD_DIR)/Common/Test/%.o: $(ROOT_DIR)/Common/Test/%.c | $(BUILD_DIR) $(DEP_DIR) 
-#	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
-#	@mkdir -p $(dir $@)
-#	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS)  -fsanitize-coverage=trace-pc-guard  $(INCLUDE_PATHS) -c -o $@ $<
+$(BUILD_DIR)/Common/Test/%.o: $(ROOT_DIR)/Common/Test/%.c | $(BUILD_DIR) $(DEP_DIR) 
+	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
+	@mkdir -p $(dir $@)
+	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -S -emit-llvm -o $<_raw.ll $<
+	$(Q) $(OPT) -load /home/lcm/github/spear/spear-code/pass/cmake-build-debug/libSymbolize.so --symbolize -o $<_ins.ll $<_raw.ll
+	$(Q) $(LLC) -filetype=obj -o $@ $<_ins.ll
 
 
 #$(CC) -mcpu=cortex-m3 -g3 -DDEBUG -c -x assembler-with-cpp -MMD -MP -MF"$(DEP_DIR)/startup_stm32l152retx.d" -MT"$(BUILD_DIR)/Core/Startup/startup_stm32l152retx.o" --specs=nano.specs -mfloat-abi=soft -mthumb  -o $@ $< 

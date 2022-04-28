@@ -8,19 +8,7 @@
 #include "task.h"
 #include "test.h"
 #include "main.h"
-//#include "stdio.h"
-#include "afl.h"
-//#include "stdlib.h"
-#include <McuASAN.h>
-
-
-
-#if DUALCOREFUZZ
-
-#else
-uint8_t AFLfuzzerRegion[AFLINPUTREGION_SIZE ] __attribute__( ( aligned( AFLINPUTREGION_SIZE ) ) );
-#endif
-
+#include "stdlib.h"
 
 
 
@@ -37,7 +25,7 @@ int test(uint8_t *buf, uint32_t size)
 
 	if(size<7)
 	{
-		return FAULT_NONE_RTOS; //normal execution does not trigger any bug
+		return 0; //normal execution does not trigger any bug
 	}
 
 	if(buf[0] == 'H' && buf[1] == 'A' && buf[2] == 'N' && buf[3] == 'G' )
@@ -68,7 +56,7 @@ int test(uint8_t *buf, uint32_t size)
 	}
 	else if(buf[0] == 'U' && buf[1] == 'D' && buf[2] == 'F')
 	{
-		__asm volatile("udf"); //this should trigger an undefined instruction exception
+		__asm volatile("nop"); //this should trigger an undefined instruction exception
 	}
 
 	else if(buf[0] == 'U' && buf[1] == 'N' && buf[2] == 'A' )
@@ -141,7 +129,7 @@ int test(uint8_t *buf, uint32_t size)
 
     }
 
-	return FAULT_NONE_RTOS; //normal execution does not trigger any bug
+	return 0; //normal execution does not trigger any bug
 
 
 }
