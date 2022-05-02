@@ -98,7 +98,6 @@
 
 #include "mpu_wrappers.h"
 
-
 /*
  * Setup the stack of a new task so it is ready to be placed under the
  * scheduler control.  The registers have to be placed on the stack in
@@ -174,6 +173,8 @@ void vPortGetHeapStats( HeapStats_t * pxHeapStats );
  * Map to the memory management routines required for the port.
  */
 void * pvPortMalloc( size_t xSize ) PRIVILEGED_FUNCTION;
+void * pvPortCalloc( size_t xNum,
+                     size_t xSize ) PRIVILEGED_FUNCTION;
 void vPortFree( void * pv ) PRIVILEGED_FUNCTION;
 void vPortInitialiseBlocks( void ) PRIVILEGED_FUNCTION;
 size_t xPortGetFreeHeapSize( void ) PRIVILEGED_FUNCTION;
@@ -185,6 +186,19 @@ size_t xPortGetMinimumEverFreeHeapSize( void ) PRIVILEGED_FUNCTION;
 #else
     #define pvPortMallocStack    pvPortMalloc
     #define vPortFreeStack       vPortFree
+#endif
+
+#if ( configUSE_MALLOC_FAILED_HOOK == 1 )
+
+/**
+ * task.h
+ * @code{c}
+ * void vApplicationMallocFailedHook( void )
+ * @endcode
+ *
+ * This hook function is called when allocation failed.
+ */
+    void vApplicationMallocFailedHook( void ); /*lint !e526 Symbol not defined as it is an application callback. */
 #endif
 
 /*

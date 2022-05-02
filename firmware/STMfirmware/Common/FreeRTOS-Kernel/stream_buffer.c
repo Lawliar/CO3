@@ -345,13 +345,13 @@ static void prvInitialiseNewStreamBuffer( StreamBuffer_t * const pxStreamBuffer,
         configASSERT( xBufferSizeBytes > sbBYTES_TO_STORE_MESSAGE_LENGTH );
 
         #if ( configASSERT_DEFINED == 1 )
-            {
-                /* Sanity check that the size of the structure used to declare a
-                 * variable of type StaticStreamBuffer_t equals the size of the real
-                 * message buffer structure. */
-                volatile size_t xSize = sizeof( StaticStreamBuffer_t );
-                configASSERT( xSize == sizeof( StreamBuffer_t ) );
-            } /*lint !e529 xSize is referenced is configASSERT() is defined. */
+        {
+            /* Sanity check that the size of the structure used to declare a
+             * variable of type StaticStreamBuffer_t equals the size of the real
+             * message buffer structure. */
+            volatile size_t xSize = sizeof( StaticStreamBuffer_t );
+            configASSERT( xSize == sizeof( StreamBuffer_t ) );
+        } /*lint !e529 xSize is referenced is configASSERT() is defined. */
         #endif /* configASSERT_DEFINED */
 
         if( ( pucStreamBufferStorageArea != NULL ) && ( pxStaticStreamBuffer != NULL ) )
@@ -393,17 +393,17 @@ void vStreamBufferDelete( StreamBufferHandle_t xStreamBuffer )
     if( ( pxStreamBuffer->ucFlags & sbFLAGS_IS_STATICALLY_ALLOCATED ) == ( uint8_t ) pdFALSE )
     {
         #if ( configSUPPORT_DYNAMIC_ALLOCATION == 1 )
-            {
-                /* Both the structure and the buffer were allocated using a single call
-                * to pvPortMalloc(), hence only one call to vPortFree() is required. */
-                vPortFree( ( void * ) pxStreamBuffer ); /*lint !e9087 Standard free() semantics require void *, plus pxStreamBuffer was allocated by pvPortMalloc(). */
-            }
+        {
+            /* Both the structure and the buffer were allocated using a single call
+            * to pvPortMalloc(), hence only one call to vPortFree() is required. */
+            vPortFree( ( void * ) pxStreamBuffer ); /*lint !e9087 Standard free() semantics require void *, plus pxStreamBuffer was allocated by pvPortMalloc(). */
+        }
         #else
-            {
-                /* Should not be possible to get here, ucFlags must be corrupt.
-                 * Force an assert. */
-                configASSERT( xStreamBuffer == ( StreamBufferHandle_t ) ~0 );
-            }
+        {
+            /* Should not be possible to get here, ucFlags must be corrupt.
+             * Force an assert. */
+            configASSERT( xStreamBuffer == ( StreamBufferHandle_t ) ~0 );
+        }
         #endif
     }
     else
@@ -427,11 +427,11 @@ BaseType_t xStreamBufferReset( StreamBufferHandle_t xStreamBuffer )
     configASSERT( pxStreamBuffer );
 
     #if ( configUSE_TRACE_FACILITY == 1 )
-        {
-            /* Store the stream buffer number so it can be restored after the
-             * reset. */
-            uxStreamBufferNumber = pxStreamBuffer->uxStreamBufferNumber;
-        }
+    {
+        /* Store the stream buffer number so it can be restored after the
+         * reset. */
+        uxStreamBufferNumber = pxStreamBuffer->uxStreamBufferNumber;
+    }
     #endif
 
     /* Can only reset a message buffer if there are no tasks blocked on it. */
@@ -449,9 +449,9 @@ BaseType_t xStreamBufferReset( StreamBufferHandle_t xStreamBuffer )
                 xReturn = pdPASS;
 
                 #if ( configUSE_TRACE_FACILITY == 1 )
-                    {
-                        pxStreamBuffer->uxStreamBufferNumber = uxStreamBufferNumber;
-                    }
+                {
+                    pxStreamBuffer->uxStreamBufferNumber = uxStreamBufferNumber;
+                }
                 #endif
 
                 traceSTREAM_BUFFER_RESET( xStreamBuffer );
@@ -728,17 +728,24 @@ static size_t prvWriteMessageToBuffer( StreamBuffer_t * const pxStreamBuffer,
                                        size_t xRequiredSpace )
 {
     size_t xNextHead = pxStreamBuffer->xHead;
+    configMESSAGE_BUFFER_LENGTH_TYPE xMessageLength;
 
     if( ( pxStreamBuffer->ucFlags & sbFLAGS_IS_MESSAGE_BUFFER ) != ( uint8_t ) 0 )
     {
         /* This is a message buffer, as opposed to a stream buffer. */
+
+        /* Convert xDataLengthBytes to the message length type. */
+        xMessageLength = ( configMESSAGE_BUFFER_LENGTH_TYPE ) xDataLengthBytes;
+
+        /* Ensure the data length given fits within configMESSAGE_BUFFER_LENGTH_TYPE. */
+        configASSERT( ( size_t ) xMessageLength == xDataLengthBytes );
 
         if( xSpace >= xRequiredSpace )
         {
             /* There is enough space to write both the message length and the message
              * itself into the buffer.  Start by writing the length of the data, the data
              * itself will be written later in this function. */
-            xNextHead = prvWriteBytesToBuffer( pxStreamBuffer, ( const uint8_t * ) &( xDataLengthBytes ), sbBYTES_TO_STORE_MESSAGE_LENGTH, xNextHead );
+            xNextHead = prvWriteBytesToBuffer( pxStreamBuffer, ( const uint8_t * ) &( xMessageLength ), sbBYTES_TO_STORE_MESSAGE_LENGTH, xNextHead );
         }
         else
         {
@@ -1259,13 +1266,13 @@ static void prvInitialiseNewStreamBuffer( StreamBuffer_t * const pxStreamBuffer,
      * be written to without generating exceptions, and is setting the buffer to a
      * known value to assist in development/debugging. */
     #if ( configASSERT_DEFINED == 1 )
-        {
-            /* The value written just has to be identifiable when looking at the
-             * memory.  Don't use 0xA5 as that is the stack fill value and could
-             * result in confusion as to what is actually being observed. */
-            const BaseType_t xWriteValue = 0x55;
-            configASSERT( memset( pucBuffer, ( int ) xWriteValue, xBufferSizeBytes ) == pucBuffer );
-        } /*lint !e529 !e438 xWriteValue is only used if configASSERT() is defined. */
+    {
+        /* The value written just has to be identifiable when looking at the
+         * memory.  Don't use 0xA5 as that is the stack fill value and could
+         * result in confusion as to what is actually being observed. */
+        const BaseType_t xWriteValue = 0x55;
+        configASSERT( memset( pucBuffer, ( int ) xWriteValue, xBufferSizeBytes ) == pucBuffer );
+    } /*lint !e529 !e438 xWriteValue is only used if configASSERT() is defined. */
     #endif
 
     ( void ) memset( ( void * ) pxStreamBuffer, 0x00, sizeof( StreamBuffer_t ) ); /*lint !e9087 memset() requires void *. */

@@ -31,7 +31,7 @@ enum {
 
 
 //Function prototypes
-void _sym_initialize(){}
+void _sym_initialize();
 void _spear_report1(uint32_t userID, char * arg1);
 void _spear_report2(uint32_t userID, char * arg1,char * arg2);
 void _spear_report3(uint32_t userID, char * arg1,char * arg2,char * arg3);

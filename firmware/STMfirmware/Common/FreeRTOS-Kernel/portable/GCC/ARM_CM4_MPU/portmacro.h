@@ -83,7 +83,6 @@ typedef unsigned long    UBaseType_t;
 #define portMPU_REGION_PRIVILEGED_READ_WRITE                     ( 0x01UL << 24UL )
 #define portMPU_REGION_PRIVILEGED_READ_WRITE_UNPRIV_READ_ONLY    ( 0x02UL << 24UL )
 #define portMPU_REGION_CACHEABLE_BUFFERABLE                      ( 0x07UL << 16UL )
-#define portMPU_REGION_SHAREABLE                                 ( 0x01UL << 16UL )
 #define portMPU_REGION_EXECUTE_NEVER                             ( 0x01UL << 28UL )
 
 /* Location of the TEX,S,C,B bits in the MPU Region Attribute and Size

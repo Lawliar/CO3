@@ -38,7 +38,7 @@
 #ifndef MPU_PROTOTYPES_H
 #define MPU_PROTOTYPES_H
 
-/* MPU versions of tasks.h API functions. */
+/* MPU versions of task.h API functions. */
 BaseType_t MPU_xTaskCreate( TaskFunction_t pxTaskCode,
                             const char * const pcName,
                             const uint16_t usStackDepth,
@@ -254,31 +254,6 @@ StreamBufferHandle_t MPU_xStreamBufferGenericCreateStatic( size_t xBufferSizeByt
                                                            BaseType_t xIsMessageBuffer,
                                                            uint8_t * const pucStreamBufferStorageArea,
                                                            StaticStreamBuffer_t * const pxStaticStreamBuffer ) FREERTOS_SYSTEM_CALL;
-
-
-typedef void func(void);
-void *MPU_mallocMPU( size_t size) FREERTOS_SYSTEM_CALL;
-void MPU_InitmallocMPU(uint8_t *StartAddressA,
-		uint8_t *StartAddressB,
-		uint32_t Blocksize,
-		uint32_t Regionsize,
-		uint8_t Firstregion,
-		int8_t  TotalRegion,
-		func *callbackInvalidFree
-		) FREERTOS_SYSTEM_CALL;
-void MPU_freeMPU(void *ptr) FREERTOS_SYSTEM_CALL;
-void *MPU_ASAN_malloc(size_t size) FREERTOS_SYSTEM_CALL;
-void MPU_ASAN_free(void *ptr) FREERTOS_SYSTEM_CALL;
-void MPU_ASAN_flush_alloc()FREERTOS_SYSTEM_CALL;
-void MPU_WWDG_Refresh()FREERTOS_SYSTEM_CALL;
-void MPU_HSEM_activate_notification(uint32_t HS) FREERTOS_SYSTEM_CALL;
-void MPU_HSEM_notify(uint32_t HS) FREERTOS_SYSTEM_CALL;
-void MPU_WWDG_activate() FREERTOS_SYSTEM_CALL;
-void MPU_SytemCall_1()FREERTOS_SYSTEM_CALL;
-void MPU_SytemCall_2()FREERTOS_SYSTEM_CALL;
-void MPU_SytemCall_3()FREERTOS_SYSTEM_CALL;
-void MPU_SytemCall_4(void *val)FREERTOS_SYSTEM_CALL;
-void MPU_SytemCall_5(void *val)FREERTOS_SYSTEM_CALL;
 
 
 

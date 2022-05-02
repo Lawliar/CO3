@@ -1,6 +1,6 @@
 
 
-
+#include "runtime.h"
 
 void _sym_initialize()
 {
