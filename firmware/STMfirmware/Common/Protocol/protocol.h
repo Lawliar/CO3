@@ -34,11 +34,13 @@ typedef struct
     volatile bool bRXcomplete;  // variable must be declared as volatile otherwise the compiler may optimize out it
     volatile bool bTXcomplete;
     volatile bool breceiving;
-    TaskHandle_t xTaskFuzzer;
+    TaskHandle_t xTaskMonitor;
     TaskHandle_t xTaskTarget;
 
 }Fuzzer_t;
 
 extern Fuzzer_t AFLfuzzer;
+
+void FuzzingInputHandler(uint8_t* Buf, uint32_t *Len);
 
 #endif /* PROTOCOL_H_ */
