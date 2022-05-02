@@ -38,6 +38,16 @@ Runtime::Runtime(Module &M) {
 
     IRBuilder<> IRB(M.getContext());
     auto *intPtrType = M.getDataLayout().getIntPtrType(M.getContext());
+    int_type = nullptr;
+    if(M.getDataLayout().isLegalInteger(64)){
+        int_type = IRB.getInt64Ty();
+    }else if(M.getDataLayout().isLegalInteger(32)){
+        int_type = IRB.getInt32Ty();
+    }else if(M.getDataLayout().isLegalInteger(16)){
+        int_type = IRB.getInt16Ty();
+    }else{
+        llvm_unreachable("integer width less than 16 bit?");
+    }
     auto *ptrT = IRB.getInt8PtrTy();
     auto *voidT = IRB.getVoidTy();
     int8T = IRB.getInt8Ty();
@@ -46,7 +56,7 @@ Runtime::Runtime(Module &M) {
     symIDTyName = StringRef("SymIDTy");
     symIDT = llvm::StructType::create(M.getContext(),{symIntT},symIDTyName);
 
-    buildInteger = import(M, "_sym_build_integer", voidT, IRB.getInt64Ty(), int8T);
+    buildInteger = import(M, "_sym_build_integer", voidT, int_type, int8T);
     SymOperators.push_back(&buildInteger);
 
     buildInteger128 = import(M, "_sym_build_integer128", voidT, IRB.getInt64Ty(), IRB.getInt64Ty());
@@ -149,10 +159,10 @@ Runtime::Runtime(Module &M) {
     writeMemory = import(M, "_sym_build_write_memory", voidT, intPtrType, intPtrType, symIDT, int8T);
     SymOperators.push_back(&writeMemory);
 
-    buildInsert = import(M, "_sym_build_insert", voidT, symIDT, symIDT, IRB.getInt64Ty(), int8T);
+    buildInsert = import(M, "_sym_build_insert", voidT, symIDT, symIDT, int_type, int8T);
     SymOperators.push_back(&buildInsert);
 
-    buildExtract = import(M, "_sym_build_extract", voidT, symIDT, IRB.getInt64Ty(), IRB.getInt64Ty(), int8T);
+    buildExtract = import(M, "_sym_build_extract", voidT, symIDT, int_type, int_type, int8T);
     SymOperators.push_back(&buildExtract);
 
     notifyCall = import(M, "_sym_notify_call", voidT, intPtrType);

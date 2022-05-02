@@ -442,7 +442,7 @@ public:
   SymDepGraph g;
 
   const unsigned maxNumOperands = 4;
-  const unsigned perBufferSize = 16;
+  const unsigned perBufferSize = 8;
   std::vector<llvm::AllocaInst*> allocaBuffers;
 
   std::set<llvm::StringRef> interpretedFunctionNames;

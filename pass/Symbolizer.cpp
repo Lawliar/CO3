@@ -685,12 +685,12 @@ void Symbolizer::visitPHINode(PHINode &I) {
 
 void Symbolizer::visitInsertValueInst(InsertValueInst &I) {
   IRBuilder<> IRB(&I);
+
   auto insert = buildRuntimeCall(
       IRB, runtime.buildInsert,
       {{I.getAggregateOperand(), true},
        {I.getInsertedValueOperand(), true},
-       {IRB.getInt64(aggregateMemberOffset(I.getAggregateOperand()->getType(),
-                                           I.getIndices())),
+       {ConstantInt::get(runtime.int_type,aggregateMemberOffset(I.getAggregateOperand()->getType(),I.getIndices())),
         false},
        {IRB.getInt8(isLittleEndian(I.getInsertedValueOperand()->getType()) ? 1 : 0), false}});
   registerSymbolicComputation(insert, &I);
@@ -701,8 +701,8 @@ void Symbolizer::visitExtractValueInst(ExtractValueInst &I) {
   auto extract = buildRuntimeCall(
       IRB, runtime.buildExtract,
       {{I.getAggregateOperand(), true},
-       {IRB.getInt64(aggregateMemberOffset(I.getAggregateOperand()->getType(),
-                                           I.getIndices())),
+       {ConstantInt::get(runtime.int_type,aggregateMemberOffset(I.getAggregateOperand()->getType(),
+                                                                I.getIndices())),
         false},
        {IRB.getInt64(dataLayout.getTypeStoreSize(I.getType())), false},
        {IRB.getInt8(isLittleEndian(I.getType()) ? 1 : 0), false}});
@@ -775,7 +775,7 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
         } else if (bits <= 64) {
             auto symid = getNextID();
             ret = IRB.CreateCall(runtime.buildInteger,
-                                 {IRB.CreateZExtOrBitCast(V, IRB.getInt64Ty()),
+                                 {IRB.CreateZExtOrBitCast(V, runtime.int_type),
                                   IRB.getInt8(valueType->getPrimitiveSizeInBits())});
             assignSymID(ret,symid);
             return ret;
@@ -808,7 +808,7 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
         auto symid = getNextID();
         ret = IRB.CreateCall(
                 runtime.buildInteger,
-                {IRB.CreatePtrToInt(V, IRB.getInt64Ty()), IRB.getInt8(ptrBits)});
+                {IRB.CreatePtrToInt(V, intPtrType), IRB.getInt8(ptrBits)});
         assignSymID(ret,symid);
         return ret;
     }
@@ -1066,11 +1066,11 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                     }else{
                         Type* val_type = arg->getType();
                         unsigned int width = getTypeWidth(val_type,dataLayout);
-                        assert(width > 0);
                         if(width + 2 > perBufferSize){
                             errs()<< "Width:"<<width<<'\n';
                             errs()<< "arg:"<<*arg<<'\n';
-                            llvm_unreachable("bitwidth of the runtime arg is too large");
+                            errs()<<F<<'\n';
+                            llvm_unreachable("byte width of this runtime arg is too large");
                         }
                         auto runtimeVert = g.AddRuntimeVertice(width,blockID);
                         g.AddEdge(runtimeVert,userNode,arg_idx);
