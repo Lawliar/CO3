@@ -85,6 +85,11 @@
 #define configUSE_CO_ROUTINES                   0
 #define configMAX_CO_ROUTINE_PRIORITIES         ( 2 )
 
+
+#define configUSE_TASK_NOTIFICATIONS            1
+#define configTASK_NOTIFICATION_ARRAY_ENTRIES   4
+
+
 /* Software timer definitions. */
 #define configUSE_TIMERS                        0
 #define configTIMER_TASK_PRIORITY               ( 2 )
