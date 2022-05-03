@@ -58,7 +58,9 @@ static void MX_USART3_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+void __io_putchar(uint8_t ch) {
+HAL_UART_Transmit(&huart3, &ch, 1, 1);
+}
 /* USER CODE END 0 */
 
 /**

@@ -36,14 +36,12 @@ void app_main( void )
 void vStartMonitor( void )
 {
 
-
 	xTaskCreate(MonitorTask,
 			    "Monitor",
 				configMINIMAL_STACK_SIZE,
 				NULL,
 				10,
 				&AFLfuzzer.xTaskMonitor);
-
 
 
 }
@@ -138,8 +136,9 @@ static void TargetTask( void * pvParameters )
 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // wait for the notification coming from the Monitor task
 		HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
 		//here we should call the instrumented code
-
+        printf("\nStart\n");
 		testprotocol(10); // this function will call instrumentation callbacks for testing
+		printf("\nFinish\n");
 
 		//xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,10,eSetValueWithOverwrite);//notify that the test finished
         vTaskDelay(10);
