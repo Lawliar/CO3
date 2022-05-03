@@ -15,7 +15,7 @@
 //types and enums
 
 enum {
-  /* 00 */ SYM_INIT,
+  /* 00 */ SYM_INIT =1,
   /* 01 */ SPEAR_RPT1,
   /* 02 */ SPEAR_RPT2,
   /* 03 */ SPEAR_RPT3,

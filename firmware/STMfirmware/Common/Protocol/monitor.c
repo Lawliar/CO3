@@ -69,14 +69,46 @@ static void MonitorTask( void * pvParameters )
 	// wait for the target task notification when ready
     ulTaskNotifyTakeIndexed(0,pdTRUE, TARGET_TIMEOUT/2);
 
-	while(1)
+    // notification indexes Monitor
+    // 0: notification from target when ready to execute
+    // 1: notification from USB CDC ISR when fuzzing data has arrived
+    // 2: notification from USB CDC ISR when TX completed
+    // 3: notification from target to transmit function packet
+
+    for(uint8_t j; j<MAX_USB_FRAME; j++ )
+    		{
+    			AFLfuzzer.txbuffer[j]=0;
+
+    		}
+
+
+    while(1)
 	{
 		// we will wait for a notification on index 1 when fuzzing data has arrived
 		ulTaskNotifyTakeIndexed(1,pdTRUE, portMAX_DELAY);
-		//notify the target that data has arrived
+		//cleaning the packet buffer
+		AFLfuzzer.txTotalFunctions=0;
+		for(uint8_t i=1; i<8; i++)
+		{
+			AFLfuzzer.txbuffer[i]=0;
+		}
+		AFLfuzzer.txCurrentIndex=8;
+
+
+
+		//notify the target that data has arrived, and it should start execution
 		xTaskNotify(AFLfuzzer.xTaskTarget,0,eSetValueWithOverwrite);
-		// wait for the target finishing execution
-		notificationvalue = ulTaskNotifyTakeIndexed(0,pdTRUE, TARGET_TIMEOUT);
+
+		// wait for the target command to transmit
+		// this command is generated when we have around 64 bytes ready to transmit in the buffer
+		notificationvalue = ulTaskNotifyTakeIndexed(3,pdTRUE, TARGET_TIMEOUT);
+		while(notificationvalue)
+		{
+			TransmitPack();
+			notificationvalue = ulTaskNotifyTakeIndexed(3,pdTRUE, TARGET_TIMEOUT);
+		}
+		TransmitPack(); //transmit any remaining package in the buffer if any
+
 
 		//delete the target
 		vTaskDelete(AFLfuzzer.xTaskTarget);
@@ -92,6 +124,8 @@ static void MonitorTask( void * pvParameters )
 		RingZeroes(&AFLfuzzer.inputAFL);
 
 
+
+
 	}
 }
 
@@ -105,8 +139,10 @@ static void TargetTask( void * pvParameters )
 		HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
 		//here we should call the instrumented code
 
-		xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,10,eSetValueWithOverwrite);//notify that the test finished
+		testprotocol(10); // this function will call instrumentation callbacks for testing
 
+		//xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,10,eSetValueWithOverwrite);//notify that the test finished
+        vTaskDelay(10);
 
 	}
 }
