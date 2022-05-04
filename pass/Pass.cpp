@@ -68,40 +68,45 @@ bool SymbolizePass::doFinalization(llvm::Module & m) {
     return false;
 }
 bool SymbolizePass::runOnFunction(Function &F) {
-  auto functionName = F.getName();
-  if (functionName == kSymCtorName)
-    return false;
-  llvm::errs() << "Symbolizing function " << functionName << '\n';
+    auto functionName = F.getName();
+    if (functionName == kSymCtorName)
+        return false;
+    llvm::errs() << "Symbolizing function " << functionName << '\n';
 
-  breakConstantExpr(F);
-  SmallVector<Instruction *, 0> allInstructions;
-  allInstructions.reserve(F.getInstructionCount());
-  for (auto &I : instructions(F))
-    allInstructions.push_back(&I);
+    SmallVector<Instruction *, 0> allInstructions;
+    allInstructions.reserve(F.getInstructionCount());
+    for (auto &I : instructions(F)){
+        allInstructions.push_back(&I);
+    }
 
-  Symbolizer symbolizer(*F.getParent(),r);
-  symbolizer.initializeFunctions(F);
 
-  for (auto &basicBlock : F)
-    symbolizer.insertBasicBlockNotification(basicBlock);
-  for (auto *instPtr : allInstructions){
-    symbolizer.visit(instPtr);
-  }
-  symbolizer.finalizePHINodes();
-  //symbolizer.shortCircuitExpressionUses();
+    Symbolizer symbolizer(*F.getParent(),r);
+    symbolizer.initializeFunctions(F);
 
-  // output some intermediate info for debugging purpose
-  std::error_code ec;
-  raw_fd_ostream intermediate_file(StringRef((F.getName() + "_symcc.ll").str()),ec);
-  symbolizer.DisplaySymbolicIDs(intermediate_file);
-  intermediate_file << F<<'\n';
-  // end of output intermediate info
 
-  symbolizer.createDDGAndReplace(F,(F.getName() + "_ddg.dot").str());
 
-  symbolizer.outputCFG(F,(F.getName() + "_cfg.dot").str());
-  assert(!verifyFunction(F, &errs()) &&
+    for (auto &basicBlock : F){
+        symbolizer.insertBasicBlockNotification(basicBlock);
+    }
+    for (auto *instPtr : allInstructions){
+        symbolizer.visit(instPtr);
+    }
+    symbolizer.finalizePHINodes();
+    breakConstantExpr(F);
+    //symbolizer.shortCircuitExpressionUses();
+    // output some intermediate info for debugging purpose
+    std::error_code ec;
+    raw_fd_ostream intermediate_file(StringRef((F.getName() + "_symcc.ll").str()),ec);
+    symbolizer.DisplaySymbolicIDs(intermediate_file);
+    intermediate_file << F<<'\n';
+
+    // end of output intermediate info
+
+    symbolizer.createDDGAndReplace(F,(F.getName() + "_ddg.dot").str());
+
+    symbolizer.outputCFG(F,(F.getName() + "_cfg.dot").str());
+    assert(!verifyFunction(F, &errs()) &&
          "SymbolizePass produced invalid bitcode");
 
-  return true;
+    return true;
 }

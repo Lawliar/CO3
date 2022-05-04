@@ -65,12 +65,11 @@ void Symbolizer::finalizePHINodes() {
             nodesToErase.insert(symbolicPHI);
             continue;
         }
-        IRBuilder<> IRB(phi);
-        phiSymbolicIDs.insert(std::make_pair(symbolicPHI,getNextID()));
-        for (unsigned incoming = 0, totalIncoming = phi->getNumIncomingValues();
-            incoming < totalIncoming; incoming++) {
+
+        for (unsigned incoming = 0, totalIncoming = phi->getNumIncomingValues();incoming < totalIncoming; incoming++) {
             Value * incomingValue = phi->getIncomingValue(incoming);
-            //auto symExpr = getSymbolicExpressionOrNull(incomingValue);
+            BasicBlock* incomingBasicBlock = phi->getIncomingBlock(incoming);
+            IRBuilder<> IRB(incomingBasicBlock->getTerminator());
             auto symID = getSymIDOrCreateFromConcreteExpr(incomingValue,IRB);
             symbolicPHI->setIncomingValue(incoming,symID);
         }
@@ -672,15 +671,15 @@ void Symbolizer::visitPHINode(PHINode &I) {
 
     IRBuilder<> IRB(&I);
     unsigned numIncomingValues = I.getNumIncomingValues();
-    auto *exprPHI = IRB.CreatePHI(IRB.getInt8PtrTy(), numIncomingValues);
+    auto *phiSymExpr = IRB.CreatePHI(runtime.symIDT, numIncomingValues);
     for (unsigned incoming = 0; incoming < numIncomingValues; incoming++) {
-        exprPHI->addIncoming(
+        phiSymExpr->addIncoming(
             // The null pointer will be replaced in finalizePHINodes.
                 symIDFromInt(0),
             I.getIncomingBlock(incoming));
     }
-
-    symbolicExpressions[&I] = exprPHI;
+    assignSymIDPhi(phiSymExpr, getNextID());
+    symbolicExpressions[&I] = phiSymExpr;
 }
 
 void Symbolizer::visitInsertValueInst(InsertValueInst &I) {
@@ -963,29 +962,10 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
     for (auto &basicBlock : F){
         unsigned long blockID = cast<ConstantInt>(cast<CallInst>(basicBlock.getFirstNonPHI())->getOperand(0))->getZExtValue();
         for(auto & eachInst : basicBlock){
-            if( PHINode* symPhi = dyn_cast<PHINode>(&eachInst); symPhi != nullptr && phiSymbolicIDs.find(symPhi) != phiSymbolicIDs.end()){
-                PHINode *phi = phiSymbolicIDs.find(symPhi)->first;
+            if (PHINode *symPhi = dyn_cast<PHINode>(&eachInst); symPhi != nullptr &&
+                                                                phiSymbolicIDs.find(symPhi) != phiSymbolicIDs.end()) {
                 unsigned userSymID = getIntFromSymID(phiSymbolicIDs.find(symPhi)->second);
                 g.AddPhiVertice(userSymID, blockID);
-                for (unsigned incoming = 0, totalIncoming = phi->getNumIncomingValues();
-                     incoming < totalIncoming; incoming++) {
-                    BasicBlock* incomingBB = phi->getIncomingBlock(incoming);
-                    // although we embed BBID into each node in the DDG, however,
-                    // phi node can have incoming value that does not reside in the incoming BB e.g., a constant
-                    // so instead of trusting the BBID field of the DDG node, we might as well just note it on the edge.
-                    unsigned incomingBBID = cast<ConstantInt>(cast<CallInst>(incomingBB->getFirstNonPHI())->getOperand(0))->getZExtValue();
-                    Value * incomingValue = phi->getIncomingValue(incoming);
-                    unsigned incomingValueSymID = 0;
-                    if(CallInst * symIncomingValue = dyn_cast<CallInst>(getSymbolicExpression(incomingValue))){
-                        incomingValueSymID = getIntFromSymID(getSymIDFromSymExpr(symIncomingValue));
-                    }else if(PHINode * anotherPhi = dyn_cast<PHINode>(getSymbolicExpression(incomingValue))){
-                        // this one should have been constructed already.
-                        auto anotherPhiIt = phiSymbolicIDs.find(anotherPhi);
-                        incomingValueSymID = getIntFromSymID(anotherPhiIt->second);
-                    }
-                    assert(incomingValueSymID != 0);
-                    g.AddEdge(incomingValueSymID,userSymID,incomingBBID);
-                }
             }
             if(!isa<CallInst>(&eachInst)){
                 continue;
@@ -1041,6 +1021,7 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                             g.AddEdge(conVert,userNode, arg_idx);
                         }/*else if(ConstantExpr * const_expr = dyn_cast<ConstantExpr>(arg)){
                             Instruction * arg_inst = const_expr->getAsInstruction();
+                            errs()<<*callInst->getFunction()<<'\n';
                             if(PtrToIntInst* ptrToInt = dyn_cast<PtrToIntInst>(arg_inst)){
                                 // I don't know any pointer value, need runtime to tell me the value of the pointer
                                 unsigned int width = getTypeWidth(ptrToInt->getType(),dataLayout);
@@ -1117,6 +1098,27 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                 }
                 if(!isInterpretedFunc(calleeName))
                     toBeRemoved.push_back(callInst);
+            }
+        }
+    }
+    for (auto &basicBlock : F){
+        for(auto & eachInst : basicBlock) {
+            if (PHINode *symPhi = dyn_cast<PHINode>(&eachInst); symPhi != nullptr &&
+                                                                phiSymbolicIDs.find(symPhi) != phiSymbolicIDs.end()) {
+                PHINode *phi = phiSymbolicIDs.find(symPhi)->first;
+                unsigned userSymID = getIntFromSymID(phiSymbolicIDs.find(symPhi)->second);
+                for (unsigned incoming = 0, totalIncoming = phi->getNumIncomingValues();
+                     incoming < totalIncoming; incoming++) {
+                    BasicBlock *incomingBB = phi->getIncomingBlock(incoming);
+
+                    unsigned incomingBBID = cast<ConstantInt>(
+                            cast<CallInst>(incomingBB->getFirstNonPHI())->getOperand(0))->getZExtValue();
+                    Value *incomingValue = phi->getIncomingValue(incoming);
+                    unsigned incomingValueSymID = getIntFromSymID(incomingValue);
+                    assert(incomingValueSymID != 0);
+                    // add incoming BBID as edge property just to double check
+                    g.AddEdge(incomingValueSymID, userSymID, incomingBBID);
+                }
             }
         }
     }
