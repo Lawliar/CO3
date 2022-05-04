@@ -101,9 +101,9 @@ void Symbolizer::handleIntrinsicCall(CallBase &I) {
   case Intrinsic::memcpy: {
     IRBuilder<> IRB(&I);
 
-    tryAlternative(IRB, I.getOperand(0));
-    tryAlternative(IRB, I.getOperand(1));
-    tryAlternative(IRB, I.getOperand(2));
+    //tryAlternative(IRB, I.getOperand(0));
+    //tryAlternative(IRB, I.getOperand(1));
+    //tryAlternative(IRB, I.getOperand(2));
 
     // The intrinsic allows both 32 and 64-bit integers to specify the length;
     // convert to the right type if necessary. This may truncate the value on
@@ -118,8 +118,8 @@ void Symbolizer::handleIntrinsicCall(CallBase &I) {
   case Intrinsic::memset: {
     IRBuilder<> IRB(&I);
 
-    tryAlternative(IRB, I.getOperand(0));
-    tryAlternative(IRB, I.getOperand(2));
+    //tryAlternative(IRB, I.getOperand(0));
+    //tryAlternative(IRB, I.getOperand(2));
 
     // The comment on memcpy's length parameter applies analogously.
 
@@ -132,9 +132,9 @@ void Symbolizer::handleIntrinsicCall(CallBase &I) {
   case Intrinsic::memmove: {
     IRBuilder<> IRB(&I);
 
-    tryAlternative(IRB, I.getOperand(0));
-    tryAlternative(IRB, I.getOperand(1));
-    tryAlternative(IRB, I.getOperand(2));
+    //tryAlternative(IRB, I.getOperand(0));
+    //tryAlternative(IRB, I.getOperand(1));
+    //tryAlternative(IRB, I.getOperand(2));
 
     // The comment on memcpy's length parameter applies analogously.
 
@@ -219,8 +219,9 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
     IRB.SetInsertPoint(&I);
     IRB.CreateCall(runtime.notifyCall, getTargetPreferredInt(&I));
 
-    if (callee == nullptr)
-        tryAlternative(IRB, I.getCalledOperand());
+    if (callee == nullptr){
+        tryAlternative(IRB, I.getCalledOperand());//yeah I'm actually interested in this one
+    }
     else{
         auto calleeName = callee->getName();
         bool is_interpreted = false;
@@ -385,7 +386,7 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
     IRBuilder<> IRB(&I);
 
     auto *addr = I.getPointerOperand();
-    tryAlternative(IRB, addr);
+    //tryAlternative(IRB, addr);
 
     auto *dataType = I.getType();
     auto readMemSymID = getNextID();
@@ -408,7 +409,7 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
 void Symbolizer::visitStoreInst(StoreInst &I) {
     IRBuilder<> IRB(&I);
 
-    tryAlternative(IRB, I.getPointerOperand());
+    //tryAlternative(IRB, I.getPointerOperand());
 
     Value * dataSymID = getSymIDOrCreateFromConcreteExpr(I.getValueOperand(),IRB);
     auto *dataType = I.getValueOperand()->getType();
