@@ -75,10 +75,14 @@ void Symbolizer::finalizePHINodes() {
         }
     }
 
+    /*
     for (auto *symbolicPHI : nodesToErase) {
-        symbolicPHI->replaceAllUsesWith(ConstantPointerNull::get(cast<PointerType>(symbolicPHI->getType())));
+        auto zeroStruct = symIDFromInt(0);
+        // this code will fail because isa<KeySansPointerT>(zeroStruct) assertation is not true
+        symbolicPHI->replaceAllUsesWith(zeroStruct);
+
         symbolicPHI->eraseFromParent();
-    }
+    }*/
 
 }
 
@@ -719,7 +723,7 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
     auto *conditionSymExpr = getSymbolicExpression(condition);
     if (conditionSymExpr == nullptr)
         return;
-    auto conditionSymID = getSymIDFromSymExpr(cast<CallInst>(conditionSymExpr));
+    auto conditionSymID = getSymIDFromSym(conditionSymExpr);
     assert(conditionSymID != nullptr);
 
     for (auto &caseHandle : I.cases()) {
@@ -1020,7 +1024,14 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                             // constant's BBID is the same with its user(maybe we can merge?)
                             auto conVert = g.AddConstVertice(contValue, conWidth);
                             g.AddEdge(conVert,userNode, arg_idx);
-                        }/*else if(ConstantExpr * const_expr = dyn_cast<ConstantExpr>(arg)){
+                        }else if(ConstantFP* const_fp = dyn_cast<ConstantFP>(arg)){
+                            unsigned int conWidth = dataLayout.getTypeAllocSize(const_fp->getType());
+                            double contValue = const_fp->getValueAPF().convertToDouble();
+                            // constant's BBID is the same with its user(maybe we can merge?)
+                            auto conVert = g.AddConstVertice(contValue, conWidth);
+                            g.AddEdge(conVert,userNode, arg_idx);
+                        }
+                        /*else if(ConstantExpr * const_expr = dyn_cast<ConstantExpr>(arg)){
                             Instruction * arg_inst = const_expr->getAsInstruction();
                             errs()<<*callInst->getFunction()<<'\n';
                             if(PtrToIntInst* ptrToInt = dyn_cast<PtrToIntInst>(arg_inst)){
@@ -1116,7 +1127,8 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                             cast<CallInst>(incomingBB->getFirstNonPHI())->getOperand(0))->getZExtValue();
                     Value *incomingValue = phi->getIncomingValue(incoming);
                     unsigned incomingValueSymID = getIntFromSymID(incomingValue);
-                    assert(incomingValueSymID != 0);
+
+                    //assert(incomingValueSymID != 0); // incoming symid could be zero
                     // add incoming BBID as edge property just to double check
                     g.AddEdge(incomingValueSymID, userSymID, incomingBBID);
                 }
