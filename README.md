@@ -10,7 +10,7 @@
 - git submodule init
 - git submodule update
 - ./bootstrap.sh --prefix=./install
-- ./b2 install --with-graph --with-program_options
+- ./b2 install --with-filesystem --with-graph --with-program_options
 
 ## build libserialport
 - cd to deps/libserialport
