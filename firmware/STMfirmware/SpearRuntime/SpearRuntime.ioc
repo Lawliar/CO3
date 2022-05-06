@@ -1,4 +1,7 @@
 #MicroXplorer Configuration settings - do not modify
+CORTEX_M7.CPU_DCache=Enabled
+CORTEX_M7.CPU_ICache=Enabled
+CORTEX_M7.IPParameters=CPU_ICache,CPU_DCache
 File.Version=6
 KeepUserPlacement=false
 Mcu.Family=STM32H7

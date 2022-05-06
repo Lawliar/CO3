@@ -73,6 +73,12 @@ int main(void)
 
   /* USER CODE END 1 */
 
+  /* Enable I-Cache---------------------------------------------------------*/
+  SCB_EnableICache();
+
+  /* Enable D-Cache---------------------------------------------------------*/
+  SCB_EnableDCache();
+
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
@@ -97,7 +103,8 @@ int main(void)
 
   //entry point of the application it will create the
   //monitor and target and start the kernel
-  app_main();
+  core_main();
+  //app_main();
 
   /* USER CODE END 2 */
 

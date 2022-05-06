@@ -139,10 +139,9 @@ static void TargetTask( void * pvParameters )
 		//here we should call the instrumented code
         printf("\nStart\n");
 		//testprotocol(10); // this function will call instrumentation callbacks for testing
-<<<<<<< HEAD
+
         core_main();
-=======
->>>>>>> 3ccbd01ae0d587b71fa9127003a85a9069168155
+
 		printf("\nFinish\n");
 
 		//xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,10,eSetValueWithOverwrite);//notify that the test finished
