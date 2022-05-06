@@ -220,9 +220,26 @@ public:
         return (exprIt != symbolicExpressions.end()) ? exprIt->second : nullptr;
     }
 
+    llvm::Value* getSymIDFromSym(llvm::Value *V) {
+        llvm::Value* retSymID = nullptr;
+        if(auto nonPhiSymExpr = llvm::dyn_cast<llvm::CallInst>(V)){
+            retSymID = getSymIDFromSymExpr(nonPhiSymExpr);
+        }else if(auto phiSymExpr = llvm::dyn_cast<llvm::PHINode>(V)){
+            retSymID = getSymIDFromSymPhi(phiSymExpr);
+        }else{
+            llvm_unreachable("sym expr can only be of phiNode or call inst");
+        }
+        return retSymID;
+    }
     llvm::Value* getSymIDFromSymExpr(llvm::CallInst *V) {
         auto exprIt = symbolicIDs.find(V);
         return (exprIt != symbolicIDs.end()) ? exprIt->second : nullptr;
+    }
+
+    llvm::Value* getSymIDFromSymPhi(llvm::PHINode * phi){
+        auto it = phiSymbolicIDs.find(phi);
+        assert(it != phiSymbolicIDs.end());
+        return it->second;
     }
     llvm::Constant *symIDFromInt(unsigned int id) {
         return llvm::ConstantStruct::get(runtime.symIDT,{llvm::ConstantInt::get(runtime.symIntT,id)});
@@ -254,7 +271,7 @@ public:
         if(llvm::isa<llvm::ConstantPointerNull>(V)){
             returnSymID = symIDFromInt(0);
         }else{
-            returnSymID = getSymIDFromSymExpr(llvm::cast<llvm::CallInst>(V));
+            returnSymID = getSymIDFromSym(V);
             assert(returnSymID != nullptr);
         }
         return returnSymID;
@@ -266,7 +283,7 @@ public:
             retSymID = getSymIDFromSymExpr(symExprCreateCall);
         }else{
             llvm::Value * sym_call = getSymbolicExpression(v);
-            retSymID = getSymIDFromSymExpr(llvm::cast<llvm::CallInst>(sym_call));
+            retSymID = getSymIDFromSym(sym_call);
             assert(getIntFromSymID(retSymID) != 0);
         }
         return retSymID;
@@ -289,6 +306,9 @@ public:
         auto exprIt = symbolicIDs.find(symcall);
         assert(exprIt == symbolicIDs.end());
         symbolicIDs[symcall] = ID;
+    }
+    void assignSymIDPhi(llvm::PHINode* symPhi, llvm::Value* ID){
+        phiSymbolicIDs.insert(std::make_pair(symPhi,ID));
     }
 
     llvm::Value *getSymbolicExpressionOrNull(llvm::Value *V) {
@@ -384,6 +404,9 @@ public:
   }
   void DisplaySymbolicIDs(llvm::raw_fd_ostream& output){
       for(auto eachSymOp : symbolicIDs){
+          output<<*eachSymOp->second<<"|"<<*eachSymOp->first<<'\n';
+      }
+      for(auto eachSymOp : phiSymbolicIDs){
           output<<*eachSymOp->second<<"|"<<*eachSymOp->first<<'\n';
       }
   }

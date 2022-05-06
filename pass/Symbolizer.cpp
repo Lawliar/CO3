@@ -65,21 +65,24 @@ void Symbolizer::finalizePHINodes() {
             nodesToErase.insert(symbolicPHI);
             continue;
         }
-        IRBuilder<> IRB(phi);
-        phiSymbolicIDs.insert(std::make_pair(symbolicPHI,getNextID()));
-        for (unsigned incoming = 0, totalIncoming = phi->getNumIncomingValues();
-            incoming < totalIncoming; incoming++) {
+
+        for (unsigned incoming = 0, totalIncoming = phi->getNumIncomingValues();incoming < totalIncoming; incoming++) {
             Value * incomingValue = phi->getIncomingValue(incoming);
-            //auto symExpr = getSymbolicExpressionOrNull(incomingValue);
+            BasicBlock* incomingBasicBlock = phi->getIncomingBlock(incoming);
+            IRBuilder<> IRB(incomingBasicBlock->getTerminator());
             auto symID = getSymIDOrCreateFromConcreteExpr(incomingValue,IRB);
             symbolicPHI->setIncomingValue(incoming,symID);
         }
     }
 
+    /*
     for (auto *symbolicPHI : nodesToErase) {
-        symbolicPHI->replaceAllUsesWith(ConstantPointerNull::get(cast<PointerType>(symbolicPHI->getType())));
+        auto zeroStruct = symIDFromInt(0);
+        // this code will fail because isa<KeySansPointerT>(zeroStruct) assertation is not true
+        symbolicPHI->replaceAllUsesWith(zeroStruct);
+
         symbolicPHI->eraseFromParent();
-    }
+    }*/
 
 }
 
@@ -102,9 +105,9 @@ void Symbolizer::handleIntrinsicCall(CallBase &I) {
   case Intrinsic::memcpy: {
     IRBuilder<> IRB(&I);
 
-    tryAlternative(IRB, I.getOperand(0));
-    tryAlternative(IRB, I.getOperand(1));
-    tryAlternative(IRB, I.getOperand(2));
+    //tryAlternative(IRB, I.getOperand(0));
+    //tryAlternative(IRB, I.getOperand(1));
+    //tryAlternative(IRB, I.getOperand(2));
 
     // The intrinsic allows both 32 and 64-bit integers to specify the length;
     // convert to the right type if necessary. This may truncate the value on
@@ -119,8 +122,8 @@ void Symbolizer::handleIntrinsicCall(CallBase &I) {
   case Intrinsic::memset: {
     IRBuilder<> IRB(&I);
 
-    tryAlternative(IRB, I.getOperand(0));
-    tryAlternative(IRB, I.getOperand(2));
+    //tryAlternative(IRB, I.getOperand(0));
+    //tryAlternative(IRB, I.getOperand(2));
 
     // The comment on memcpy's length parameter applies analogously.
 
@@ -133,9 +136,9 @@ void Symbolizer::handleIntrinsicCall(CallBase &I) {
   case Intrinsic::memmove: {
     IRBuilder<> IRB(&I);
 
-    tryAlternative(IRB, I.getOperand(0));
-    tryAlternative(IRB, I.getOperand(1));
-    tryAlternative(IRB, I.getOperand(2));
+    //tryAlternative(IRB, I.getOperand(0));
+    //tryAlternative(IRB, I.getOperand(1));
+    //tryAlternative(IRB, I.getOperand(2));
 
     // The comment on memcpy's length parameter applies analogously.
 
@@ -220,8 +223,9 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
     IRB.SetInsertPoint(&I);
     IRB.CreateCall(runtime.notifyCall, getTargetPreferredInt(&I));
 
-    if (callee == nullptr)
-        tryAlternative(IRB, I.getCalledOperand());
+    if (callee == nullptr){
+        tryAlternative(IRB, I.getCalledOperand());//yeah I'm actually interested in this one
+    }
     else{
         auto calleeName = callee->getName();
         bool is_interpreted = false;
@@ -386,7 +390,7 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
     IRBuilder<> IRB(&I);
 
     auto *addr = I.getPointerOperand();
-    tryAlternative(IRB, addr);
+    //tryAlternative(IRB, addr);
 
     auto *dataType = I.getType();
     auto readMemSymID = getNextID();
@@ -409,7 +413,7 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
 void Symbolizer::visitStoreInst(StoreInst &I) {
     IRBuilder<> IRB(&I);
 
-    tryAlternative(IRB, I.getPointerOperand());
+    //tryAlternative(IRB, I.getPointerOperand());
 
     Value * dataSymID = getSymIDOrCreateFromConcreteExpr(I.getValueOperand(),IRB);
     auto *dataType = I.getValueOperand()->getType();
@@ -672,15 +676,15 @@ void Symbolizer::visitPHINode(PHINode &I) {
 
     IRBuilder<> IRB(&I);
     unsigned numIncomingValues = I.getNumIncomingValues();
-    auto *exprPHI = IRB.CreatePHI(IRB.getInt8PtrTy(), numIncomingValues);
+    auto *phiSymExpr = IRB.CreatePHI(runtime.symIDT, numIncomingValues);
     for (unsigned incoming = 0; incoming < numIncomingValues; incoming++) {
-        exprPHI->addIncoming(
+        phiSymExpr->addIncoming(
             // The null pointer will be replaced in finalizePHINodes.
                 symIDFromInt(0),
             I.getIncomingBlock(incoming));
     }
-
-    symbolicExpressions[&I] = exprPHI;
+    assignSymIDPhi(phiSymExpr, getNextID());
+    symbolicExpressions[&I] = phiSymExpr;
 }
 
 void Symbolizer::visitInsertValueInst(InsertValueInst &I) {
@@ -719,7 +723,7 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
     auto *conditionSymExpr = getSymbolicExpression(condition);
     if (conditionSymExpr == nullptr)
         return;
-    auto conditionSymID = getSymIDFromSymExpr(cast<CallInst>(conditionSymExpr));
+    auto conditionSymID = getSymIDFromSym(conditionSymExpr);
     assert(conditionSymID != nullptr);
 
     for (auto &caseHandle : I.cases()) {
@@ -963,29 +967,10 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
     for (auto &basicBlock : F){
         unsigned long blockID = cast<ConstantInt>(cast<CallInst>(basicBlock.getFirstNonPHI())->getOperand(0))->getZExtValue();
         for(auto & eachInst : basicBlock){
-            if( PHINode* symPhi = dyn_cast<PHINode>(&eachInst); symPhi != nullptr && phiSymbolicIDs.find(symPhi) != phiSymbolicIDs.end()){
-                PHINode *phi = phiSymbolicIDs.find(symPhi)->first;
+            if (PHINode *symPhi = dyn_cast<PHINode>(&eachInst); symPhi != nullptr &&
+                                                                phiSymbolicIDs.find(symPhi) != phiSymbolicIDs.end()) {
                 unsigned userSymID = getIntFromSymID(phiSymbolicIDs.find(symPhi)->second);
                 g.AddPhiVertice(userSymID, blockID);
-                for (unsigned incoming = 0, totalIncoming = phi->getNumIncomingValues();
-                     incoming < totalIncoming; incoming++) {
-                    BasicBlock* incomingBB = phi->getIncomingBlock(incoming);
-                    // although we embed BBID into each node in the DDG, however,
-                    // phi node can have incoming value that does not reside in the incoming BB e.g., a constant
-                    // so instead of trusting the BBID field of the DDG node, we might as well just note it on the edge.
-                    unsigned incomingBBID = cast<ConstantInt>(cast<CallInst>(incomingBB->getFirstNonPHI())->getOperand(0))->getZExtValue();
-                    Value * incomingValue = phi->getIncomingValue(incoming);
-                    unsigned incomingValueSymID = 0;
-                    if(CallInst * symIncomingValue = dyn_cast<CallInst>(getSymbolicExpression(incomingValue))){
-                        incomingValueSymID = getIntFromSymID(getSymIDFromSymExpr(symIncomingValue));
-                    }else if(PHINode * anotherPhi = dyn_cast<PHINode>(getSymbolicExpression(incomingValue))){
-                        // this one should have been constructed already.
-                        auto anotherPhiIt = phiSymbolicIDs.find(anotherPhi);
-                        incomingValueSymID = getIntFromSymID(anotherPhiIt->second);
-                    }
-                    assert(incomingValueSymID != 0);
-                    g.AddEdge(incomingValueSymID,userSymID,incomingBBID);
-                }
             }
             if(!isa<CallInst>(&eachInst)){
                 continue;
@@ -1039,8 +1024,16 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                             // constant's BBID is the same with its user(maybe we can merge?)
                             auto conVert = g.AddConstVertice(contValue, conWidth);
                             g.AddEdge(conVert,userNode, arg_idx);
-                        }/*else if(ConstantExpr * const_expr = dyn_cast<ConstantExpr>(arg)){
+                        }else if(ConstantFP* const_fp = dyn_cast<ConstantFP>(arg)){
+                            unsigned int conWidth = dataLayout.getTypeAllocSize(const_fp->getType());
+                            double contValue = const_fp->getValueAPF().convertToDouble();
+                            // constant's BBID is the same with its user(maybe we can merge?)
+                            auto conVert = g.AddConstVertice(contValue, conWidth);
+                            g.AddEdge(conVert,userNode, arg_idx);
+                        }
+                        /*else if(ConstantExpr * const_expr = dyn_cast<ConstantExpr>(arg)){
                             Instruction * arg_inst = const_expr->getAsInstruction();
+                            errs()<<*callInst->getFunction()<<'\n';
                             if(PtrToIntInst* ptrToInt = dyn_cast<PtrToIntInst>(arg_inst)){
                                 // I don't know any pointer value, need runtime to tell me the value of the pointer
                                 unsigned int width = getTypeWidth(ptrToInt->getType(),dataLayout);
@@ -1117,6 +1110,28 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                 }
                 if(!isInterpretedFunc(calleeName))
                     toBeRemoved.push_back(callInst);
+            }
+        }
+    }
+    for (auto &basicBlock : F){
+        for(auto & eachInst : basicBlock) {
+            if (PHINode *symPhi = dyn_cast<PHINode>(&eachInst); symPhi != nullptr &&
+                                                                phiSymbolicIDs.find(symPhi) != phiSymbolicIDs.end()) {
+                PHINode *phi = phiSymbolicIDs.find(symPhi)->first;
+                unsigned userSymID = getIntFromSymID(phiSymbolicIDs.find(symPhi)->second);
+                for (unsigned incoming = 0, totalIncoming = phi->getNumIncomingValues();
+                     incoming < totalIncoming; incoming++) {
+                    BasicBlock *incomingBB = phi->getIncomingBlock(incoming);
+
+                    unsigned incomingBBID = cast<ConstantInt>(
+                            cast<CallInst>(incomingBB->getFirstNonPHI())->getOperand(0))->getZExtValue();
+                    Value *incomingValue = phi->getIncomingValue(incoming);
+                    unsigned incomingValueSymID = getIntFromSymID(incomingValue);
+
+                    //assert(incomingValueSymID != 0); // incoming symid could be zero
+                    // add incoming BBID as edge property just to double check
+                    g.AddEdge(incomingValueSymID, userSymID, incomingBBID);
+                }
             }
         }
     }

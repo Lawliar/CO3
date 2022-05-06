@@ -65,6 +65,7 @@ endif()
 
 TARGET_LINK_LIBRARIES( Symbolize LINK_PUBLIC ${Boost_LIBRARIES} )
 TARGET_LINK_LIBRARIES( Symbolize boost_graph )
+TARGET_LINK_LIBRARIES( Symbolize boost_filesystem )
 
 find_program(CLANG_BINARY "clang"
   HINTS ${LLVM_TOOLS_BINARY_DIR}

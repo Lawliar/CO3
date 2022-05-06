@@ -35,9 +35,14 @@ using namespace llvm;
 #define DEBUG(X) ((void)0)
 #endif
 
+#include <llvm/Support/CommandLine.h>
+#include <boost/filesystem.hpp>
+
 char SymbolizePass::ID = 0;
 
 Runtime * r = nullptr;
+cl::opt<std::string> outDir("out", cl::Required,cl::desc("output dir"));
+
 
 bool SymbolizePass::doInitialization(Module &M) {
   DEBUG(errs() << "Symbolizer module init\n");
@@ -68,40 +73,56 @@ bool SymbolizePass::doFinalization(llvm::Module & m) {
     return false;
 }
 bool SymbolizePass::runOnFunction(Function &F) {
-  auto functionName = F.getName();
-  if (functionName == kSymCtorName)
-    return false;
-  llvm::errs() << "Symbolizing function " << functionName << '\n';
+    auto functionName = F.getName();
+    if (functionName == kSymCtorName)
+        return false;
+    llvm::errs() << "Symbolizing function " << functionName << '\n';
 
-  breakConstantExpr(F);
-  SmallVector<Instruction *, 0> allInstructions;
-  allInstructions.reserve(F.getInstructionCount());
-  for (auto &I : instructions(F))
-    allInstructions.push_back(&I);
+    boost::filesystem::path dir (outDir.getValue());
+    if(! boost::filesystem::exists(dir)){
+        errs()<< outDir<<'\n';
+        llvm_unreachable("output dir does not exist");
+    }
+    boost::filesystem::path ddgFile = dir / (F.getName() + "_ddg.dot").str();
+    boost::filesystem::path cfgFile = dir / (F.getName() + "_cfg.dot").str();
+    boost::filesystem::path intermediateFile = dir / (F.getName() + "_symcc.ll").str();
 
-  Symbolizer symbolizer(*F.getParent(),r);
-  symbolizer.initializeFunctions(F);
 
-  for (auto &basicBlock : F)
-    symbolizer.insertBasicBlockNotification(basicBlock);
-  for (auto *instPtr : allInstructions){
-    symbolizer.visit(instPtr);
-  }
-  symbolizer.finalizePHINodes();
-  //symbolizer.shortCircuitExpressionUses();
 
-  // output some intermediate info for debugging purpose
-  std::error_code ec;
-  raw_fd_ostream intermediate_file(StringRef((F.getName() + "_symcc.ll").str()),ec);
-  symbolizer.DisplaySymbolicIDs(intermediate_file);
-  intermediate_file << F<<'\n';
-  // end of output intermediate info
+    SmallVector<Instruction *, 0> allInstructions;
+    allInstructions.reserve(F.getInstructionCount());
+    for (auto &I : instructions(F)){
+        allInstructions.push_back(&I);
+    }
 
-  symbolizer.createDDGAndReplace(F,(F.getName() + "_ddg.dot").str());
 
-  symbolizer.outputCFG(F,(F.getName() + "_cfg.dot").str());
-  assert(!verifyFunction(F, &errs()) &&
+    Symbolizer symbolizer(*F.getParent(),r);
+    symbolizer.initializeFunctions(F);
+
+
+
+    for (auto &basicBlock : F){
+        symbolizer.insertBasicBlockNotification(basicBlock);
+    }
+    for (auto *instPtr : allInstructions){
+        symbolizer.visit(instPtr);
+    }
+    symbolizer.finalizePHINodes();
+    breakConstantExpr(F);
+    //symbolizer.shortCircuitExpressionUses();
+    // output some intermediate info for debugging purpose
+    std::error_code ec;
+    raw_fd_ostream intermediate_file(StringRef(intermediateFile.string()),ec);
+    symbolizer.DisplaySymbolicIDs(intermediate_file);
+    intermediate_file << F<<'\n';
+
+    // end of output intermediate info
+
+    symbolizer.createDDGAndReplace(F,ddgFile.string());
+
+    symbolizer.outputCFG(F,cfgFile.string());
+    assert(!verifyFunction(F, &errs()) &&
          "SymbolizePass produced invalid bitcode");
 
-  return true;
+    return true;
 }
