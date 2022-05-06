@@ -40,7 +40,7 @@ void vStartMonitor( void )
 			    "Monitor",
 				configMINIMAL_STACK_SIZE,
 				NULL,
-				10,
+				5,
 				&AFLfuzzer.xTaskMonitor);
 
 
@@ -51,7 +51,7 @@ void spawnNewTarget( void )
 {
 	xTaskCreate(TargetTask,
 				    "Target",
-					configMINIMAL_STACK_SIZE,
+					configMINIMAL_STACK_SIZE*16,
 					NULL,
 					10,
 					&AFLfuzzer.xTaskTarget);
@@ -64,6 +64,7 @@ static void MonitorTask( void * pvParameters )
 
     spawnNewTarget();  //spawn a new target
 
+    vTaskDelay(1000000);
 	// wait for the target task notification when ready
     ulTaskNotifyTakeIndexed(0,pdTRUE, TARGET_TIMEOUT/2);
 
@@ -133,11 +134,12 @@ static void TargetTask( void * pvParameters )
 	xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,1,eSetValueWithOverwrite); //notify the monitor task the target is ready
 	while(1)
 	{
-		ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // wait for the notification coming from the Monitor task
+		//ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // wait for the notification coming from the Monitor task
 		HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
 		//here we should call the instrumented code
         printf("\nStart\n");
-		testprotocol(10); // this function will call instrumentation callbacks for testing
+		//testprotocol(10); // this function will call instrumentation callbacks for testing
+        core_main();
 		printf("\nFinish\n");
 
 		//xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,10,eSetValueWithOverwrite);//notify that the test finished
