@@ -52,7 +52,7 @@ void TransmitPack(void)
 		AFLfuzzer.txbuffer[i]=0;
 	}
 	AFLfuzzer.txCurrentIndex=8;
-	for(uint8_t j; j<MAX_USB_FRAME; j++ )
+	for(uint8_t j = 0; j<MAX_USB_FRAME; j++ )
 	{
 		AFLfuzzer.txbuffer[j]=0;
 	}

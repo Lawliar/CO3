@@ -11,7 +11,7 @@
 #include "main.h"
 #include  "monitor.h"
 #include  "ring.h"
-
+#include "stdio.h"
 
 void vStartMonitor( void );
 void spawnNewTarget( void );
@@ -73,7 +73,7 @@ static void MonitorTask( void * pvParameters )
     // 2: notification from USB CDC ISR when TX completed
     // 3: notification from target to transmit function packet
 
-    for(uint8_t j; j<MAX_USB_FRAME; j++ )
+    for(uint8_t j = 0; j<MAX_USB_FRAME; j++ )
     		{
     			AFLfuzzer.txbuffer[j]=0;
 
@@ -137,7 +137,7 @@ static void TargetTask( void * pvParameters )
 		HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
 		//here we should call the instrumented code
         printf("\nStart\n");
-		testprotocol(10); // this function will call instrumentation callbacks for testing
+		//testprotocol(10); // this function will call instrumentation callbacks for testing
 		printf("\nFinish\n");
 
 		//xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,10,eSetValueWithOverwrite);//notify that the test finished
