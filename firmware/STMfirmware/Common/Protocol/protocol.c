@@ -13,7 +13,7 @@
 #include "usbd_cdc_if.h"
 
 
-Symex_t AFLfuzzer;
+extern Symex_t AFLfuzzer;
 
 // Callback executed on USB TX complete ISR
 void notifyTXfinish()

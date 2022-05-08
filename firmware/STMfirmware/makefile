@@ -14,24 +14,58 @@ CLI_LDFLAG_OVERRIDES ?=
 # our path by default but allow things to be easily overridden, i.e:
 #
 # COMPILER=<PATH_TO_OTHER_GCC_VERSION>/arm-none-eabi-gcc make
-COMPILER=/home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/clang
-OPT=/home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/opt
-LLC=/home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/llc
+GCC_COMPILER := arm-none-eabi-gcc
+CLANG_COMPILER := /home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/clang
+OPT      	   := /home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/opt
+LLC      	   := /home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/llc
 #COMPILER ?= arm-none-eabi-gcc
-CC = $(COMPILER)
+CC := $(CLANG_COMPILER)
 
 $(info $(CC))
+
+
+
+
+
+
+## Middleware Dir, include and sources
+MIDDLEWARE_DIR := $(PROJ_DIR)/Middlewares
+
+MIDDLEWARE_INCLUDE_DIR := \
+-I$(MIDDLEWARE_DIR)/ST/STM32_USB_Device_Library/Core/Inc \
+-I$(MIDDLEWARE_DIR)/ST/STM32_USB_Device_Library/Class/CDC/Inc
+
+MIDDLEWARES_SOURCES := \
+$(MIDDLEWARE_DIR)/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c \
+$(MIDDLEWARE_DIR)/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c \
+$(MIDDLEWARE_DIR)/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c \
+$(MIDDLEWARE_DIR)/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c
+
+
+## USB-DEVICE Dir, include and sources
+
+USB_DEVICE_DIR := $(PROJ_DIR)/USB_DEVICE
+
+USB_DEVICE_INCLUDE_DIR := -I$(USB_DEVICE_DIR)/App \
+-I$(USB_DEVICE_DIR)/Target
+
+USB_DEVICE_SOURCES := \
+$(USB_DEVICE_DIR)/App/usb_device.c \
+$(USB_DEVICE_DIR)/App/usbd_cdc_if.c \
+$(USB_DEVICE_DIR)/App/usbd_desc.c \
+$(USB_DEVICE_DIR)/Target/usbd_conf.c
 
 ## Drivers Dir, include and sources
 DRIVERS_ROOT_DIR := $(PROJ_DIR)/Drivers
 
 DRIVERS_INCLUDE_DIR := -I$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Inc \
 -I$(DRIVERS_ROOT_DIR)/CMSIS/Device/ST/STM32H7xx/Include \
--I$(DRIVERS_ROOT_DIR)/CMSIS/Include
+-I$(DRIVERS_ROOT_DIR)/CMSIS/Include \
+-I$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Inc/Legacy
 
 
 
-DRIVERS_SOURCES += \
+DRIVERS_SOURCES := \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma.c \
@@ -44,6 +78,8 @@ $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_hsem.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c_ex.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_mdma.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pcd.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pcd_ex.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr_ex.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c \
@@ -51,14 +87,16 @@ $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc_ex.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim_ex.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c \
-$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart_ex.c 
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart_ex.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_ll_usb.c
+
 
 ## Protocol Dir, include and sources
 PROTOCOL_DIR := $(ROOT_DIR)/Common/Protocol
 
 PROTOCOL_INCLUDE_DIR :=  -I$(PROTOCOL_DIR)
 
-PROTOCOL_SOURCES += \
+PROTOCOL_SOURCES := \
 $(PROTOCOL_DIR)/monitor.c \
 $(PROTOCOL_DIR)/protocol.c \
 $(PROTOCOL_DIR)/ring.c
@@ -67,20 +105,22 @@ $(PROTOCOL_DIR)/ring.c
 
 
 ## SymRuntime Dir, include and sources
-SYMRUNTIME_DIR = $(ROOT_DIR)/Common/SymRuntime
+SYMRUNTIME_DIR := $(ROOT_DIR)/Common/SymRuntime
 
-SYMRUNTIME_INCLUDE_DIR = -I$(SYMRUNTIME_DIR)
+SYMRUNTIME_INCLUDE_DIR := -I$(SYMRUNTIME_DIR)
 
-SYMRUNTIME_SOURCES += $(SYMRUNTIME_DIR)/runtime.c
+SYMRUNTIME_SOURCES := $(SYMRUNTIME_DIR)/runtime.c
 
 
 
 ## FREERTOS Dir, include, sources
-FREERTOS_DIR = $(ROOT_DIR)/Common/FreeRTOS-Kernel
+FREERTOS_DIR := $(ROOT_DIR)/Common/FreeRTOS-Kernel
 
-FREERTOS_INCLUDE_DIR = -I$(FREERTOS_DIR)/include
+FREERTOS_INCLUDE_DIR := \
+-I$(FREERTOS_DIR)/include \
+-I$(FREERTOS_DIR)/portable/GCC/ARM_CM4F
 
-FREERTOS_SOURCES += \
+FREERTOS_SOURCES := \
 $(FREERTOS_DIR)/tasks.c \
 $(FREERTOS_DIR)/stream_buffer.c \
 $(FREERTOS_DIR)/queue.c \
@@ -92,23 +132,35 @@ $(FREERTOS_DIR)/portable/GCC/ARM_CM4F/port.c \
 $(FREERTOS_DIR)/portable/MemMang/heap_4.c
 
 ## Coremark Dir, include, sources
-COREMARK_HAL_DIR = $(ROOT_DIR)/coremark_stm32_hal
+COREMARK_HAL_DIR := $(PROJ_DIR)/Target
 
-COREMARK_HAL_INCLUDE_DIR = -I$(COREMARK_HAL_DIR)
+COREMARK_HAL_INCLUDE_DIR := \
+-I$(COREMARK_HAL_DIR)/Inc \
+-I$(COREMARK_HAL_DIR)/Inc/portme
 
-COREMARK_HAL_SOURCES += \
-$(COREMARK_HAL_DIR)/core_list_join.c \
-$(COREMARK_HAL_DIR)/core_main.c \
-$(COREMARK_HAL_DIR)/core_matrix.c \
-$(COREMARK_HAL_DIR)/core_portme.c \
-$(COREMARK_HAL_DIR)/core_state.c \
-$(COREMARK_HAL_DIR)/core_util.c
+COREMARK_HAL_SOURCES := \
+$(COREMARK_HAL_DIR)/Src/core_list_join.c \
+$(COREMARK_HAL_DIR)/Src/core_main.c \
+$(COREMARK_HAL_DIR)/Src/core_matrix.c \
+$(COREMARK_HAL_DIR)/Src/core_portme.c \
+$(COREMARK_HAL_DIR)/Src/core_state.c \
+$(COREMARK_HAL_DIR)/Src/core_util.c
 
 ## Project core Dir, Include, sources
 
-PROJECT_CORE_DIR = $(PROJ_DIR)/Core
-PROJECT_CORE_INCLUDE_DIR = -I$(PROJECT_CORE_DIR)/Inc
-PROJECT_CORE_SOURCES += $(shell find $(PROJECT_CORE_DIR)/Src -name '*.c')
+PROJECT_CORE_DIR := $(PROJ_DIR)/Core
+
+PROJECT_CORE_INCLUDE_DIR := -I$(PROJECT_CORE_DIR)/Inc
+
+PROJECT_CORE_SOURCES := \
+$(PROJECT_CORE_DIR)/Src/main.c \
+$(PROJECT_CORE_DIR)/Src/stm32h7xx_hal_timebase_tim.c \
+$(PROJECT_CORE_DIR)/Src/syscalls.c \
+$(PROJECT_CORE_DIR)/Src/system_stm32h7xx.c \
+$(PROJECT_CORE_DIR)/Src/stm32h7xx_hal_msp.c \
+$(PROJECT_CORE_DIR)/Src/stm32h7xx_it.c \
+$(PROJECT_CORE_DIR)/Src/sysmem.c
+
 
 
 
@@ -119,6 +171,8 @@ $(COREMARK_HAL_SOURCES) \
 $(FREERTOS_SOURCES) \
 $(SYMRUNTIME_SOURCES) \
 $(PROTOCOL_SOURCES) \
+$(USB_DEVICE_SOURCES) \
+$(MIDDLEWARES_SOURCES)
 
 
 
@@ -142,7 +196,9 @@ INCLUDE_PATHS += \
   $(COREMARK_HAL_INCLUDE_DIR) \
   $(FREERTOS_INCLUDE_DIR) \
   $(SYMRUNTIME_INCLUDE_DIR) \
-  $(PROTOCOL_INCLUDE_DIR)
+  $(PROTOCOL_INCLUDE_DIR) \
+  $(USB_DEVICE_INCLUDE_DIR) \
+  $(MIDDLEWARE_INCLUDE_DIR)
 
 
 # Note: These arguments will be used by clang to select
@@ -180,7 +236,7 @@ ARM_CORTEXM_BUILTINS ?= \
 COMPILER_SPECIFIC_CFLAGS += \
   --target=arm-none-eabi \
   --sysroot=$(ARM_CORTEXM_SYSROOT) \
-  -Oz 
+  -O3
 
 
 #-Wthread-safety \
@@ -195,8 +251,8 @@ endif
 ifneq '' '$(findstring gcc,$(CC_VERSION_INFO))'
 $(info ===GCC Compiler Detected===)
 
-COMPILER_SPECIFIC_CFLAGS += \
-  -Os
+#COMPILER_SPECIFIC_CFLAGS += \
+#  -Os
 
 COMPILER_SPECIFIC_LDFLAGS += \
   -Wl,-lgcc 
@@ -216,7 +272,7 @@ CFLAGS += -nostdlib
 CFLAGS += -DDEBUG 
 CFLAGS += -DUSE_HAL_DRIVER 
 CFLAGS += -DSTM32H743xx 
-CFLAGS += -Wno-parentheses-equality 
+#CFLAGS += -Wno-parentheses-equality 
 CFLAGS +=  $(COMPILER_SPECIFIC_CFLAGS) 
 CFLAGS +=  $(ARCH_CFLAGS) 
 CFLAGS +=  $(CLI_CFLAG_OVERRIDES)
@@ -238,10 +294,12 @@ LDFLAGS += $(COMPILER_SPECIFIC_LDFLAGS)
 LDFLAGS +=  $(ARCH_CFLAGS) 
 LDFLAGS += -T$(LDSCRIPT)
 LDFLAGS += --specs=nosys.specs
+LDFLAGS += -fno-short-enums
 LDFLAGS += -Wl,-Map="$(BUILD_DIR)/$(TARGET).map"
 LDFLAGS += -Wl,--gc-sections -static 
 LDFLAGS += --specs=nano.specs
 LDFLAGS += -Wl,--start-group -lc -lm -Wl,--end-group
+LDFLAGS += -u _printf_float
 LDFLAGS += $(CLI_LDFLAG_OVERRIDES)
 
 
@@ -289,7 +347,7 @@ $(TARGET_ELF): $(OBJ_FILES)  $(LDSCRIPT)
 	$(Q) arm-none-eabi-gcc $(OBJ_FILES)  $(LDFLAGS) -o $@
 	@echo "Generated $(patsubst $(ROOT_DIR)/%,%,$@)"
 	arm-none-eabi-objcopy -O binary $(TARGET_ELF)  "$(BUILD_DIR)/$(TARGET).bin"
-  
+
 $(BUILD_DIR): 
 	@mkdir -p $(BUILD_DIR)
 
@@ -304,51 +362,74 @@ $(DEP_DIR):
 
 $(OBJ_FILES): $(SRC_FILES) makefile 
 
+
+# build Middleware
+
+$(BUILD_DIR)/SpearRuntime/Middlewares/%.o: $(PROJ_DIR)/Middlewares/%.c | $(BUILD_DIR) $(DEP_DIR) 
+	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
+	@mkdir -p $(dir $@)
+	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
+
+
+# build USB_DEVICES
+
+$(BUILD_DIR)/SpearRuntime/USB_DEVICE/%.o: $(PROJ_DIR)/USB_DEVICE/%.c | $(BUILD_DIR) $(DEP_DIR) 
+	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
+	@mkdir -p $(dir $@)
+	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
+
 # build core files
-$(BUILD_DIR)/Coremark/CoremarkH743ZI_SPEAR/Core/Src/%.o: $(PROJECT_CORE_SOURCES) | $(BUILD_DIR) $(DEP_DIR) 
+$(BUILD_DIR)/SpearRuntime/Core/Src/%.o:  $(PROJ_DIR)/Core/Src/%.c | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
 	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
 
 # build drivers
-$(BUILD_DIR)/Coremark/CoremarkH743ZI_SPEAR/Drivers/Src/%.o: $(DRIVERS_SOURCES) | $(BUILD_DIR) $(DEP_DIR) 
+$(BUILD_DIR)/SpearRuntime/Drivers/%.o: $(PROJ_DIR)/Drivers/%.c  | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
 	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
 
 # build Assembly startup code
-$(BUILD_DIR)/Coremark/CoremarkH743ZI_SPEAR/Core/Startup/%.o: $(PROJ_DIR)/Core/Startup/%.s | $(BUILD_DIR) $(DEP_DIR) 
+$(BUILD_DIR)/SpearRuntime/Core/Startup/%.o: $(PROJ_DIR)/Core/Startup/%.s | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
 	$(Q) $(CC) $(DEP_CFLAGS) $(ASFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
 # build freertos
-$(BUILD_DIR)/Common/FreeRTOS-Kernel/%.o: $(FREERTOS_SOURCES) | $(BUILD_DIR) $(DEP_DIR) 
+$(BUILD_DIR)/Common/FreeRTOS-Kernel/%.o: $(ROOT_DIR)/Common/FreeRTOS-Kernel/%.c | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
-	$(Q) $(CC) $(DEP_CFLAGS) $(ASFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
+	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
 # build protocol code
-$(BUILD_DIR)/Common/Protocol/%.o: $(PROTOCOL_SOURCES) | $(BUILD_DIR) $(DEP_DIR) 
+$(BUILD_DIR)/Common/Protocol/%.o: $(ROOT_DIR)/Common/Protocol/%.c | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
 	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
 # build Runtime Code
-$(BUILD_DIR)/Common/SymRuntime/%.o: $(RUNTIME_SOURCE) | $(BUILD_DIR) $(DEP_DIR) 
+$(BUILD_DIR)/Common/SymRuntime/%.o: $(ROOT_DIR)/Common/SymRuntime/%.c  | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
 	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
-# build instrumented coremark
-$(BUILD_DIR)/Coremark/coremark_stm32_hal/%.o: $(ROOT_DIR)/coremark_stm32_hal/%.c | $(BUILD_DIR) $(DEP_DIR) 
+$(BUILD_DIR)/SpearRuntime/Target/%.o: $(PROJ_DIR)/Target/%.c| $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
-	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -S -emit-llvm -o $@_raw.ll $<
-	$(Q) $(OPT) -load /home/lcm/github/spear/spear-code/pass/cmake-build-debug/libSymbolize.so --symbolize -out $(OUTPUT_DIR) -o $@_ins.ll $@_raw.ll
-	$(Q) $(LLC) -filetype=obj -o $@ $@_ins.ll
+	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
+
+
+# build instrumented coremark
+#$(BUILD_DIR)/SpearRuntime/coremark_stm32_hal/%.o: $(PROJ_DIR)/coremark_stm32_hal/%.c| $(BUILD_DIR) $(DEP_DIR) 
+#	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
+#	@mkdir -p $(dir $@)
+#	@mkdir -p $(OUTPUT_DIR)
+#	$(Q) $(CLANG_COMPILER) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -S -emit-llvm -o $@_raw.ll $<
+#	$(Q) $(OPT) -load /home/lcm/github/spear/spear-code/pass/cmake-build-debug/libSymbolize.so --symbolize -out $(OUTPUT_DIR) -o $@_ins.ll $@_raw.ll
+#	$(Q) $(LLC) -filetype=obj -o $@ $@_ins.ll
 
 
 #$(CC) -mcpu=cortex-m3 -g3 -DDEBUG -c -x assembler-with-cpp -MMD -MP -MF"$(DEP_DIR)/startup_stm32l152retx.d" -MT"$(BUILD_DIR)/Core/Startup/startup_stm32l152retx.o" --specs=nano.specs -mfloat-abi=soft -mthumb  -o $@ $< 

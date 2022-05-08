@@ -12,6 +12,7 @@
 #include  "monitor.h"
 #include  "ring.h"
 #include "stdio.h"
+#include "coremark.h"
 
 void vStartMonitor( void );
 void spawnNewTarget( void );

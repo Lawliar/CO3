@@ -24,6 +24,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "monitor.h"
+#include "coremark.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
