@@ -12,7 +12,13 @@
 #include  "monitor.h"
 #include  "ring.h"
 #include "stdio.h"
-#include "coremark.h"
+#include "test.h"
+#include "string.h"
+
+static clock_t start_time_val, stop_time_val;
+
+// for getting time
+#include "stm32h7xx_hal.h"
 
 void vStartMonitor( void );
 void spawnNewTarget( void );
@@ -41,7 +47,7 @@ void vStartMonitor( void )
 			    "Monitor",
 				configMINIMAL_STACK_SIZE,
 				NULL,
-				5,
+				10,
 				&AFLfuzzer.xTaskMonitor);
 
 
@@ -65,7 +71,7 @@ static void MonitorTask( void * pvParameters )
 
     spawnNewTarget();  //spawn a new target
 
-    vTaskDelay(1000000);
+    //vTaskDelay(1000000);
 	// wait for the target task notification when ready
     ulTaskNotifyTakeIndexed(0,pdTRUE, TARGET_TIMEOUT/2);
 
@@ -76,16 +82,15 @@ static void MonitorTask( void * pvParameters )
     // 3: notification from target to transmit function packet
 
     for(uint8_t j = 0; j<MAX_USB_FRAME; j++ )
-    		{
-    			AFLfuzzer.txbuffer[j]=0;
-
-    		}
+    {
+    	AFLfuzzer.txbuffer[j]=0;
+    }
 
 
     while(1)
 	{
 		// we will wait for a notification on index 1 when fuzzing data has arrived
-		ulTaskNotifyTakeIndexed(1,pdTRUE, portMAX_DELAY);
+		//ulTaskNotifyTakeIndexed(1,pdTRUE, portMAX_DELAY);
 		//cleaning the packet buffer
 		AFLfuzzer.txTotalFunctions=0;
 		for(uint8_t i=1; i<8; i++)
@@ -133,23 +138,24 @@ static void TargetTask( void * pvParameters )
 {
 
 	xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,1,eSetValueWithOverwrite); //notify the monitor task the target is ready
-	while(1)
-	{
-		//ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // wait for the notification coming from the Monitor task
+	while(1){
+		ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // wait for the notification coming from the Monitor task
 		HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
 		//here we should call the instrumented code
         printf("\nStart\n");
 		//testprotocol(10); // this function will call instrumentation callbacks for testing
-
-        core_main();
-
+		char * buf = "12312312113";
+    	uint32_t size = strlen(buf);
+		start_time_val = HAL_GetTick();
+        test((unsigned char*)buf,size);
+		stop_time_val = HAL_GetTick();
 		printf("\nFinish\n");
+		printf("clocks:%lu\n\n", stop_time_val - start_time_val);
 
 		//xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,10,eSetValueWithOverwrite);//notify that the test finished
-        vTaskDelay(10);
+        //vTaskDelay(10);
 
 	}
 }
-
 
 

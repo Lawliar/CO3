@@ -5,7 +5,7 @@
 
 Symex_t AFLfuzzer;
 
-void txCommandtoMonitor(uint8_t size)
+static inline void txCommandtoMonitor(uint8_t size)
 {
 	//If we don't have more space in the buffer or we already have 8 functions TX the packet
 	if (AFLfuzzer.txCurrentIndex + size >= MAX_USB_FRAME || AFLfuzzer.txTotalFunctions>=8 )
@@ -35,7 +35,7 @@ void _sym_initialize()
 }
 
 
-void set_id(uint32_t userID)
+static inline void set_id(uint32_t userID)
 {
 
 	union ubytes_t aux;
@@ -48,7 +48,7 @@ void set_id(uint32_t userID)
 }
 
 
-void get_report(uint8_t * arg)
+static inline void get_report(uint8_t * arg)
 {
 
 	uint8_t arg_id, width;

@@ -36,13 +36,16 @@ void notifyTXfinish()
 // this shoudl be only called by the monitor
 void TransmitPack(void)
 {
+	uint32_t usb_cdc_timeout = 100;
     // Transmit all functions in output buffer if any
 	if(AFLfuzzer.txTotalFunctions)
 	{
-
 		AFLfuzzer.txbuffer[0]= AFLfuzzer.txCurrentIndex; //set the total length
 		CDC_Transmit_FS(AFLfuzzer.txbuffer, AFLfuzzer.txCurrentIndex);
-		ulTaskNotifyTakeIndexed(1,pdTRUE, 100); //get notification from USB CDC on index 1
+		uint32_t ret = ulTaskNotifyTakeIndexed(1,pdTRUE, usb_cdc_timeout); //get notification from USB CDC on index 1
+		if(ret == 0){
+			printf("timed out %u ms\n",usb_cdc_timeout );
+		}
 	}
 
 	//cleaning the packet buffer
@@ -56,8 +59,6 @@ void TransmitPack(void)
 	{
 		AFLfuzzer.txbuffer[j]=0;
 	}
-
-
 	xTaskNotifyIndexed(AFLfuzzer.xTaskTarget,0,1,eSetValueWithOverwrite); //notify the target to continue execution
 
 }
