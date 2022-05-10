@@ -13,7 +13,7 @@ volatile uint8_t  buffer[128];
 
 void testprotocol(uint8_t numberfunc)
 {
-    for(int i; i<sizeof(buffer); i++)
+    for(int i=0; i<sizeof(buffer); i++)
     {
     	buffer[i]=i;
 	}

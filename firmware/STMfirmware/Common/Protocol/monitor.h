@@ -9,7 +9,7 @@
 #define MONITOR_H_
 
 
-#define TARGET_TIMEOUT 100
+#define TARGET_TIMEOUT 10
 
 void app_main( void );
 

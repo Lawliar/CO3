@@ -21,34 +21,8 @@ void notifyTXfinish()
 	BaseType_t xHigherPriorityTaskWoken;
 	xHigherPriorityTaskWoken = pdFALSE;
 
-	//notify on index 1 that TX finished
-	xTaskNotifyIndexedFromISR(AFLfuzzer.xTaskMonitor,
-  	  	    				1, //index
-  							1, //value = 1 data TX complete
-  							eSetBits,
-  							&xHigherPriorityTaskWoken);
 
-    portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
-
-}
-
-
-// this shoudl be only called by the monitor
-void TransmitPack(void)
-{
-	uint32_t usb_cdc_timeout = 100;
-    // Transmit all functions in output buffer if any
-	if(AFLfuzzer.txTotalFunctions)
-	{
-		AFLfuzzer.txbuffer[0]= AFLfuzzer.txCurrentIndex; //set the total length
-		CDC_Transmit_FS(AFLfuzzer.txbuffer, AFLfuzzer.txCurrentIndex);
-		uint32_t ret = ulTaskNotifyTakeIndexed(1,pdTRUE, usb_cdc_timeout); //get notification from USB CDC on index 1
-		if(ret == 0){
-			printf("timed out %u ms\n",usb_cdc_timeout );
-		}
-	}
-
-	//cleaning the packet buffer
+	//cleaning the packet buffer to receive new messages
 	AFLfuzzer.txTotalFunctions=0;
 	for(uint8_t i=1; i<8; i++)
 	{
@@ -59,7 +33,28 @@ void TransmitPack(void)
 	{
 		AFLfuzzer.txbuffer[j]=0;
 	}
-	xTaskNotifyIndexed(AFLfuzzer.xTaskTarget,0,1,eSetValueWithOverwrite); //notify the target to continue execution
+
+	//notify the target to continue execution
+	xTaskNotifyIndexedFromISR(AFLfuzzer.xTaskTarget,
+  	  	    				0, //index
+  							1, //value = 1 data TX complete
+  							eSetBits,
+  							&xHigherPriorityTaskWoken);
+
+    portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+
+}
+
+
+// this should be only called by the monitor
+void TransmitPack(void)
+{
+    // Transmit all functions in output buffer if any
+	if(AFLfuzzer.txTotalFunctions)
+	{
+		AFLfuzzer.txbuffer[0]= AFLfuzzer.txCurrentIndex; //set the total length
+		CDC_Transmit_FS(AFLfuzzer.txbuffer, AFLfuzzer.txCurrentIndex); //transmit data
+	}
 
 }
 

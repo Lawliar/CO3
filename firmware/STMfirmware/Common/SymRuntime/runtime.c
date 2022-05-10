@@ -12,7 +12,8 @@ static inline void txCommandtoMonitor(uint8_t size)
 	{
 	    xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,3,1,eSetValueWithOverwrite); //notify the Monitor to transmit
 	    ulTaskNotifyTake(pdTRUE, portMAX_DELAY); //get notification when transmission finishes to continue execution
-	    //Note: Monitor will clean buffer after transmission so we will have space for the next function
+	    //Note: the TxComplete callback will clean buffer after transmission so we will have space for the next function.
+	    //It also notifies the target to continue execution
 	}
 }
 
@@ -63,7 +64,6 @@ static inline void get_report(uint8_t * arg)
 	{
 		width = 1;
 	}
-
 
 	uint32_t  *aux32;
 

@@ -104,8 +104,8 @@ int main(void)
 
   //entry point of the application it will create the
   //monitor and target and start the kernel
-  core_main();
-  //app_main();
+  //core_main();
+  app_main();
 
   /* USER CODE END 2 */
 

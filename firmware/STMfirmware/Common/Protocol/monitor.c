@@ -12,10 +12,10 @@
 #include  "monitor.h"
 #include  "ring.h"
 #include "stdio.h"
-#include "test.h"
 #include "string.h"
+#include "testprotocol.h"
 
-static clock_t start_time_val, stop_time_val;
+static uint32_t start_time_val, stop_time_val;
 
 // for getting time
 #include "stm32h7xx_hal.h"
@@ -86,6 +86,9 @@ static void MonitorTask( void * pvParameters )
     	AFLfuzzer.txbuffer[j]=0;
     }
 
+    //enable the cycle counter
+    DWT->CYCCNT = 0;
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 
     while(1)
 	{
@@ -124,11 +127,22 @@ static void MonitorTask( void * pvParameters )
 		// wait for the target to start
 		ulTaskNotifyTakeIndexed(0,pdTRUE, TARGET_TIMEOUT/2);
 
+
+		//clean the buffers
+		AFLfuzzer.txTotalFunctions=0;
+		for(uint8_t i=1; i<8; i++)
+		{
+			AFLfuzzer.txbuffer[i]=0;
+		}
+		AFLfuzzer.txCurrentIndex=8;
+		for(uint8_t j = 0; j<MAX_USB_FRAME; j++ )
+		{
+			AFLfuzzer.txbuffer[j]=0;
+		}
+
 		AFLfuzzer.bRXcomplete = false;
 		AFLfuzzer.inputLength = 0;
 		RingZeroes(&AFLfuzzer.inputAFL);
-
-
 
 
 	}
@@ -143,12 +157,14 @@ static void TargetTask( void * pvParameters )
 		HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
 		//here we should call the instrumented code
         printf("\nStart\n");
-		//testprotocol(10); // this function will call instrumentation callbacks for testing
-		char * buf = "12312312113";
-    	uint32_t size = strlen(buf);
-		start_time_val = HAL_GetTick();
-        test((unsigned char*)buf,size);
-		stop_time_val = HAL_GetTick();
+
+		//char * buf = "12312312113";
+    	//uint32_t size = strlen(buf);
+        DWT->CYCCNT=0;
+		start_time_val = DWT->CYCCNT;
+        //test((unsigned char*)buf,size);
+		testprotocol(10); // this function will call instrumentation callbacks for testing
+		stop_time_val = DWT->CYCCNT;
 		printf("\nFinish\n");
 		printf("clocks:%lu\n\n", stop_time_val - start_time_val);
 
