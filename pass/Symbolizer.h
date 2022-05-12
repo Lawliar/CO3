@@ -33,8 +33,9 @@ public:
   explicit Symbolizer(llvm::Module &M, Runtime*r)
       : runtime(*r), dataLayout(M.getDataLayout()),
         ptrBits(M.getDataLayout().getPointerSizeInBits()),
-        intPtrType(M.getDataLayout().getIntPtrType(M.getContext())),
-        g(){
+        maxNumSymVars((1 << r->symIntT->getBitWidth()) - 1),
+        intPtrType(M.getDataLayout().getIntPtrType(M.getContext())),g()
+        {
       for(auto eachIntFunction : kInterceptedFunctions){
           std::string newFuncName = eachIntFunction.str() + kInterceptedFunctionSuffix.str();
           size_t len = newFuncName.size();
@@ -300,6 +301,9 @@ public:
         unsigned id;
         id = availableSymID;
         availableSymID++;
+        if(availableSymID > maxNumSymVars){
+            llvm_unreachable("current function has too many in memory variables");
+        }
         return symIDFromInt(id);
     }
     void assignSymID(llvm::CallInst * symcall, llvm::Value* ID){
@@ -422,7 +426,8 @@ public:
 
   /// The width in bits of pointers in the module.
   unsigned ptrBits;
-
+  /// max number in-register symbolic variables
+  const unsigned maxNumSymVars;
   /// An integer type at least as wide as a pointer.
   llvm::IntegerType *intPtrType;
 
@@ -465,7 +470,7 @@ public:
   SymDepGraph g;
 
   const unsigned maxNumOperands = 4;
-  const unsigned perBufferSize = 8;
+  const unsigned perBufferSize = 16;
   std::vector<llvm::AllocaInst*> allocaBuffers;
 
   std::set<llvm::StringRef> interpretedFunctionNames;
