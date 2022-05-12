@@ -55,12 +55,12 @@ public:
     public:
         node_writer(symIDMap s, opMap o,nodeTypeMap n,constValueMap c ,bitWidthMap b, BBMap bb) : sm(s),om(o),nm(n),cm(c),bm(b),bbm(bb){}
         template <class Node>
-        /*
+
          void operator()(std::ostream &out, const Node& n) const {
             out << "[label=\"" << symIDPrefix << ":"<<sm[n] <<'|'<< opPrefix <<":"<<om[n] <<'\n' \
-                                    <<nodeTPrefix<<":"<<nodeTyToString(nm[n]) <<'|' <<constantValuePrefix<<":"<<cm[n] <<'|' <<widthPrefix<<":"<<bm[n] <<'\n' \
+                                    <<nodeTPrefix<<":"<<nm[n] <<'|' <<constantValuePrefix<<":"<<cm[n] <<'|' <<widthPrefix<<":"<<bm[n] <<'\n' \
                                     <<BasicBlockPrefix<<":"<<bbm[n]<< "\"]";
-        }*/
+        }/*
         void operator()(std::ostream &out, const Node& n) const {
             out << "["                            \
                     << symIDPrefix           <<"="  <<sm[n] <<',' \
@@ -69,7 +69,7 @@ public:
                     <<constantValuePrefix <<"="  <<cm[n] <<','  \
                     <<widthPrefix         <<"="  <<bm[n] <<',' \
                     <<BasicBlockPrefix    <<"="  <<bbm[n] << "]";
-        }
+        }*/
 
     private:
         symIDMap sm;

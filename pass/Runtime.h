@@ -32,7 +32,7 @@ struct Runtime {
   llvm::IntegerType* int32T;
   llvm::StructType* symIDT;
   llvm::IntegerType* symIntT;
-  llvm::IntegerType* concretenessT;
+  llvm::IntegerType* isSymT;
   llvm::IntegerType* int_type;
   llvm::StringRef symIDTyName;
   std::vector<SymFnT*> SymOperators;
