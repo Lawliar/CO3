@@ -243,7 +243,7 @@ Runtime::Runtime(Module &M) {
 
 #define LOAD_COMPARISON_HANDLER(constant, name)                                \
   comparisonHandlers[CmpInst::constant] =                                      \
-      import(M, "_sym_build_" #name, voidT, symIDT, symIDT);
+      import(M, "_sym_build_" #name, isSymT, isSymT, isSymT);
 
   LOAD_COMPARISON_HANDLER(ICMP_EQ, equal)
   LOAD_COMPARISON_HANDLER(ICMP_NE, not_equal)
