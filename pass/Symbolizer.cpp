@@ -35,18 +35,16 @@ void Symbolizer::initializeFunctions(Function &F) {
                 auto * symcall  = IRB.CreateCall(runtime.getParameterExpression,
                                                                 IRB.getInt8(arg.getArgNo()));
                 symbolicExpressions[&arg] = symcall;
-                assignSymID(symcall,getNextID());// the id of this sym call is not known until run-time.
+                assignSymID(symcall,getNextID());
             }
         }
-    }
-    for(unsigned i = 0 ; i < maxNumOperands ; i++){
-        allocaBuffers.push_back(IRB.CreateAlloca(IRB.getInt8Ty(), 0,ConstantInt::get(IRB.getInt8Ty(),perBufferSize)));
     }
 }
 
 void Symbolizer::insertBasicBlockNotification(llvm::BasicBlock &B) {
     IRBuilder<> IRB(&*B.getFirstInsertionPt());
-    llvm::ConstantInt * valueToInsert = getTargetPreferredInt(&B);
+    llvm::ConstantInt * valueToInsert = ConstantInt::get(runtime.int32T, BBID);
+    BBID++;
     IRB.CreateCall(runtime.notifyBasicBlock,valueToInsert);
 }
 
@@ -60,146 +58,149 @@ void Symbolizer::finalizePHINodes() {
         // A PHI node that receives only compile-time constants can be replaced by
         // a null expression.
         if (std::all_of(phi->op_begin(), phi->op_end(), [this](Value *input) {
-            return (getSymbolicExpression(input) == nullptr);
+            auto symExpr = getSymbolicExpression(input);
+            if(dyn_cast<ConstantInt>(symExpr)->isZero()){
+                return true;
+            }else{
+                return false;
+            }
         })) {
             nodesToErase.insert(symbolicPHI);
             continue;
         }
 
         for (unsigned incoming = 0, totalIncoming = phi->getNumIncomingValues();incoming < totalIncoming; incoming++) {
-            Value * incomingValue = phi->getIncomingValue(incoming);
-            BasicBlock* incomingBasicBlock = phi->getIncomingBlock(incoming);
-            IRBuilder<> IRB(incomingBasicBlock->getTerminator());
-            auto symID = getSymIDOrCreateFromConcreteExpr(incomingValue,IRB);
-            symbolicPHI->setIncomingValue(incoming,symID);
+            symbolicPHI->setIncomingValue(
+                    incoming,
+                    getSymbolicExpressionOrFalse(phi->getIncomingValue(incoming)));
         }
     }
 
-    /*
-    for (auto *symbolicPHI : nodesToErase) {
-        auto zeroStruct = symIDFromInt(0);
-        // this code will fail because isa<KeySansPointerT>(zeroStruct) assertation is not true
-        symbolicPHI->replaceAllUsesWith(zeroStruct);
 
+    for (auto *symbolicPHI : nodesToErase) {
+        // this code might fail because isa<KeySansPointerT>(zeroStruct) assertation is not true
+        symbolicPHI->replaceAllUsesWith(llvm::ConstantInt::get( runtime.isSymT, 0 ));
         symbolicPHI->eraseFromParent();
-    }*/
+    }
 
 }
 
 
 void Symbolizer::handleIntrinsicCall(CallBase &I) {
-  auto *callee = I.getCalledFunction();
+    auto *callee = I.getCalledFunction();
 
-  switch (callee->getIntrinsicID()) {
-  case Intrinsic::lifetime_start:
-  case Intrinsic::lifetime_end:
-  case Intrinsic::dbg_declare:
-  case Intrinsic::dbg_value:
-  case Intrinsic::is_constant:
-  case Intrinsic::trap:
-  case Intrinsic::invariant_start:
-  case Intrinsic::invariant_end:
-  case Intrinsic::assume:
-    // These are safe to ignore.
-    break;
-  case Intrinsic::memcpy: {
-    IRBuilder<> IRB(&I);
+    switch (callee->getIntrinsicID()) {
+        case Intrinsic::lifetime_start:
+        case Intrinsic::lifetime_end:
+        case Intrinsic::dbg_declare:
+        case Intrinsic::dbg_value:
+        case Intrinsic::is_constant:
+        case Intrinsic::trap:
+        case Intrinsic::invariant_start:
+        case Intrinsic::invariant_end:
+        case Intrinsic::assume:
+            // These are safe to ignore.
+            break;
+        case Intrinsic::memcpy: {
+            IRBuilder<> IRB(&I);
 
-    //tryAlternative(IRB, I.getOperand(0));
-    //tryAlternative(IRB, I.getOperand(1));
-    //tryAlternative(IRB, I.getOperand(2));
+            //tryAlternative(IRB, I.getOperand(0));
+            //tryAlternative(IRB, I.getOperand(1));
+            //tryAlternative(IRB, I.getOperand(2));
 
-    // The intrinsic allows both 32 and 64-bit integers to specify the length;
-    // convert to the right type if necessary. This may truncate the value on
-    // 32-bit architectures. However, what's the point of specifying a length to
-    // memcpy that is larger than your address space?
-
-    IRB.CreateCall(runtime.memcpy,
+            // The intrinsic allows both 32 and 64-bit integers to specify the length;
+            // convert to the right type if necessary. This may truncate the value on
+            // 32-bit architectures. However, what's the point of specifying a length to
+            // memcpy that is larger than your address space?
+            unsigned memCpyId = getNextID();
+            auto memCpyCall = IRB.CreateCall(runtime.memcpy,
                    {I.getOperand(0), I.getOperand(1),
-                    IRB.CreateZExtOrTrunc(I.getOperand(2), intPtrType)});
-    break;
-  }
-  case Intrinsic::memset: {
-    IRBuilder<> IRB(&I);
+                    IRB.CreateZExtOrTrunc(I.getOperand(2), intPtrType), ConstantHelper(runtime.symIntT, memCpyId) });
+            assignSymID(memCpyCall, memCpyId);
+            break;
+        }
+        case Intrinsic::memset: {
+            IRBuilder<> IRB(&I);
 
-    //tryAlternative(IRB, I.getOperand(0));
-    //tryAlternative(IRB, I.getOperand(2));
+            //tryAlternative(IRB, I.getOperand(0));
+            //tryAlternative(IRB, I.getOperand(2));
 
-    // The comment on memcpy's length parameter applies analogously.
-
-    IRB.CreateCall(runtime.memset,
+            unsigned memSetId = getNextID();
+            auto memSetCall = IRB.CreateCall(runtime.memset,
                    {I.getOperand(0),
-                    getSymbolicExpressionOrNull(I.getOperand(1)),
-                    IRB.CreateZExtOrTrunc(I.getOperand(2), intPtrType)});
-    break;
-  }
-  case Intrinsic::memmove: {
-    IRBuilder<> IRB(&I);
+                    getSymbolicExpressionOrFalse(I.getOperand(1)),
+                    IRB.CreateZExtOrTrunc(I.getOperand(2), intPtrType), ConstantHelper(runtime.symIntT, memSetId)});
+            assignSymID(memSetCall, memSetId);
+            break;
+        }
+        case Intrinsic::memmove: {
+            IRBuilder<> IRB(&I);
 
-    //tryAlternative(IRB, I.getOperand(0));
-    //tryAlternative(IRB, I.getOperand(1));
-    //tryAlternative(IRB, I.getOperand(2));
+            //tryAlternative(IRB, I.getOperand(0));
+            //tryAlternative(IRB, I.getOperand(1));
+            //tryAlternative(IRB, I.getOperand(2));
 
-    // The comment on memcpy's length parameter applies analogously.
-
-    IRB.CreateCall(runtime.memmove,
+            // The comment on memcpy's length parameter applies analogously.
+            unsigned memMoveId = getNextID();
+            auto memMoveCall = IRB.CreateCall(runtime.memmove,
                    {I.getOperand(0), I.getOperand(1),
-                    IRB.CreateZExtOrTrunc(I.getOperand(2), intPtrType)});
-    break;
-  }
-  case Intrinsic::stacksave: {
-    // The intrinsic returns an opaque pointer that should only be passed to
-    // the stackrestore intrinsic later. We treat the pointer as a constant.
-    break;
-  }
-  case Intrinsic::stackrestore:
-    // Ignored; see comment on stacksave above.
-    break;
-  case Intrinsic::expect:
-    // Just a hint for the optimizer; the value is the first parameter.
-    if (auto *expr = getSymbolicExpression(I.getArgOperand(0)))
-      symbolicExpressions[&I] = expr;
-    break;
-  case Intrinsic::fabs: {
-    // Floating-point absolute value; use the runtime to build the
-    // corresponding symbolic expression.
+                    IRB.CreateZExtOrTrunc(I.getOperand(2), intPtrType), ConstantHelper(runtime.symIntT, memMoveId)});
+            assignSymID(memMoveCall, memMoveId);
+            break;
+        }
+        case Intrinsic::stacksave: {
+            // The intrinsic returns an opaque pointer that should only be passed to
+            // the stackrestore intrinsic later. We treat the pointer as a constant.
+            break;
+        }
+        case Intrinsic::stackrestore:
+            // Ignored; see comment on stacksave above.
+            break;
+        case Intrinsic::expect:
+            // Just a hint for the optimizer; the value is the first parameter.
+            if (auto *expr = getSymbolicExpression(I.getArgOperand(0)))
+                symbolicExpressions[&I] = expr;
+            break;
+        case Intrinsic::fabs: {
+            // Floating-point absolute value; use the runtime to build the
+            // corresponding symbolic expression.
 
-    IRBuilder<> IRB(&I);
-    auto abs = buildRuntimeCall(IRB, runtime.buildFloatAbs, I.getOperand(0));
-    registerSymbolicComputation(abs, &I);
-    break;
-  }
-  case Intrinsic::cttz:
-  case Intrinsic::ctpop:
-  case Intrinsic::ctlz: {
-    // Various bit-count operations. Expressing these symbolically is
-    // difficult, so for now we just concretize.
+            IRBuilder<> IRB(&I);
+            auto abs = buildRuntimeCall(IRB, runtime.buildFloatAbs, I.getOperand(0));
+            registerSymbolicComputation(abs, &I);
+            break;
+        }
+        case Intrinsic::cttz:
+        case Intrinsic::ctpop:
+        case Intrinsic::ctlz: {
+            // Various bit-count operations. Expressing these symbolically is
+            // difficult, so for now we just concretize.
 
-    errs() << "Warning: losing track of symbolic expressions at bit-count "
-              "operation "
-           << I << "\n";
-    break;
-  }
-  case Intrinsic::returnaddress: {
-    // Obtain the return address of the current function or one of its parents
-    // on the stack. We just concretize.
+            errs() << "Warning: losing track of symbolic expressions at bit-count "
+                 "operation "
+                << I << "\n";
+            break;
+        }
+        case Intrinsic::returnaddress: {
+            // Obtain the return address of the current function or one of its parents
+            // on the stack. We just concretize.
 
-    errs() << "Warning: using concrete value for return address\n";
-    break;
-  }
-  case Intrinsic::bswap: {
-    // Bswap changes the endian-ness of integer values.
+            errs() << "Warning: using concrete value for return address\n";
+            break;
+        }
+        case Intrinsic::bswap: {
+            // Bswap changes the endian-ness of integer values.
 
-    IRBuilder<> IRB(&I);
-    auto swapped = buildRuntimeCall(IRB, runtime.buildBswap, I.getOperand(0));
-    registerSymbolicComputation(swapped, &I);
-    break;
-  }
-  default:
-    errs() << "Warning: unhandled LLVM intrinsic " << callee->getName()
-           << "; the result will be concretized\n";
-    break;
-  }
+            IRBuilder<> IRB(&I);
+            auto swapped = buildRuntimeCall(IRB, runtime.buildBswap, I.getOperand(0));
+            registerSymbolicComputation(swapped, &I);
+            break;
+        }
+        default:
+            errs() << "Warning: unhandled LLVM intrinsic " << callee->getName()
+                << "; the result will be concretized\n";
+        break;
+    }
 }
 
 void Symbolizer::handleInlineAssembly(CallInst &I) {
@@ -211,7 +212,28 @@ void Symbolizer::handleInlineAssembly(CallInst &I) {
   errs() << "Warning: losing track of symbolic expressions at inline assembly "
          << I << '\n';
 }
-
+void Symbolizer::interpretedFuncSanityCheck(CallBase  & I){
+    auto funcName = I.getCalledFunction()->getName();
+    SymFnT* target = nullptr;
+    for(auto eachSymbolizer: runtime.SymOperators){
+        if(funcName == eachSymbolizer->getCallee()->getName()){
+            target = eachSymbolizer;
+        }
+    }
+    assert(target != nullptr);
+    assert(target->getFunctionType()->getParamType(target->getFunctionType()->getNumParams() - 1) ==  runtime.symIntT);
+}
+void Symbolizer::addSymIDToCall(CallBase  & I){
+    interpretedFuncSanityCheck(I);
+    IRBuilder<> IRB(&I);
+    auto symID = getNextID();
+    auto numArg = I.arg_size();
+    std::vector<Value*> args(I.arg_begin(), I.arg_end());
+    args.push_back(ConstantHelper(runtime.symIntT, symID));
+    auto * symcall  = IRB.CreateCall(I.getCalledFunction(), args);
+    assignSymID(symcall, symID);
+    I.replaceAllUsesWith(symcall);
+}
 void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
     auto *callee = I.getCalledFunction();
     if (callee != nullptr && callee->isIntrinsic()) {
@@ -224,7 +246,7 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
     IRB.CreateCall(runtime.notifyCall, getTargetPreferredInt(&I));
 
     if (callee == nullptr){
-        tryAlternative(IRB, I.getCalledOperand());//yeah I'm actually interested in this one
+        tryAlternative(IRB, I.getCalledOperand());
     }
     else{
         auto calleeName = callee->getName();
@@ -235,14 +257,14 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
             }
         }
         if(is_interpreted){
-            assignSymID(cast<CallInst>(&I),getNextID());
+            // symID is inserted inside this function
+            addSymIDToCall(I);
         }
     }
     for (Use &arg : I.args()){
-        auto argSymExpr = getSymbolicExpressionOrNull(arg);
-        auto argSymID = getSymIDOrZeroFromSymExpr(argSymExpr);
+        auto argSymExpr = getSymbolicExpressionOrFalse(arg);
         CallInst * call_to_set_para = IRB.CreateCall(runtime.setParameterExpression,
-                     {ConstantInt::get(IRB.getInt8Ty(), arg.getOperandNo()), argSymID});
+                     {ConstantInt::get(IRB.getInt8Ty(), arg.getOperandNo()), argSymExpr});
         assignSymID(call_to_set_para,getNextID());
     }
 
@@ -257,7 +279,7 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
         // order to avoid accidentally using whatever is stored there from the
         // previous function call. (If the function is instrumented, it will just
         // override our null with the real expression.)
-        auto callToSetReturn = IRB.CreateCall(runtime.setReturnExpression, symIDFromInt(0));
+        auto callToSetReturn = IRB.CreateCall(runtime.setReturnExpression, ConstantHelper(runtime.isSymT,0));
         assignSymID(callToSetReturn,getNextID());
         IRB.SetInsertPoint(returnPoint);
         auto getReturnCall = IRB.CreateCall(runtime.getReturnExpression);
@@ -265,37 +287,36 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
         assignSymID(getReturnCall,getNextID());
     }
 }
-
+// TODO: Continue
 void Symbolizer::visitBinaryOperator(BinaryOperator &I) {
-  // Binary operators propagate into the symbolic expression.
+    // Binary operators propagate into the symbolic expression.
 
-  IRBuilder<> IRB(&I);
-  SymFnT handler = runtime.binaryOperatorHandlers.at(I.getOpcode());
+    IRBuilder<> IRB(&I);
+    SymFnT handler = runtime.binaryOperatorHandlers.at(I.getOpcode());
 
-  // Special case: the run-time library distinguishes between "and" and "or"
-  // on Boolean values and bit vectors.
-  if (I.getOperand(0)->getType() == IRB.getInt1Ty()) {
-    switch (I.getOpcode()) {
-    case Instruction::And:
-      handler = runtime.buildBoolAnd;
-      break;
-    case Instruction::Or:
-      handler = runtime.buildBoolOr;
-      break;
-    case Instruction::Xor:
-      handler = runtime.buildBoolXor;
-      break;
-    default:
-      errs() << "Can't handle Boolean operator " << I << '\n';
-      llvm_unreachable("Unknown Boolean operator");
-      break;
+    // Special case: the run-time library distinguishes between "and" and "or"
+    // on Boolean values and bit vectors.
+    if (I.getOperand(0)->getType() == IRB.getInt1Ty()) {
+        switch (I.getOpcode()) {
+            case Instruction::And:
+                handler = runtime.buildBoolAnd;
+                break;
+            case Instruction::Or:
+                handler = runtime.buildBoolOr;
+                break;
+            case Instruction::Xor:
+                handler = runtime.buildBoolXor;
+                break;
+            default:
+                errs() << "Can't handle Boolean operator " << I << '\n';
+                llvm_unreachable("Unknown Boolean operator");
+                break;
+        }
     }
-  }
 
-  assert(handler && "Unable to handle binary operator");
-  auto runtimeCall =
-      buildRuntimeCall(IRB, handler, {I.getOperand(0), I.getOperand(1)});
-  registerSymbolicComputation(runtimeCall, &I);
+    assert(handler && "Unable to handle binary operator");
+    auto runtimeCall = buildRuntimeCall(IRB, handler, {I.getOperand(0), I.getOperand(1)});
+    registerSymbolicComputation(runtimeCall, &I);
 }
 
 void Symbolizer::visitSelectInst(SelectInst &I) {
@@ -303,12 +324,12 @@ void Symbolizer::visitSelectInst(SelectInst &I) {
   // negated) condition to the path constraints and copy the symbolic
   // expression over from the chosen argument.
 
-  IRBuilder<> IRB(&I);
-  auto runtimeCall = buildRuntimeCall(IRB, runtime.pushPathConstraint,
-                                      {{I.getCondition(), true},
-                                       {I.getCondition(), false},
-                                       {getTargetPreferredInt(&I), false}});
-  registerSymbolicComputation(runtimeCall);
+    IRBuilder<> IRB(&I);
+    auto runtimeCall = buildRuntimeCall(IRB, runtime.pushPathConstraint,
+                                        {{I.getCondition(), true},
+                                         {I.getCondition(), false},
+                                         {getTargetPreferredInt(&I), false}});
+    registerSymbolicComputation(runtimeCall);
 }
 
 void Symbolizer::visitCmpInst(CmpInst &I) {
@@ -334,11 +355,9 @@ void Symbolizer::visitReturnInst(ReturnInst &I) {
   // create the call directly without registering it for short-circuit
   // processing.
   IRBuilder<> IRB(&I);
-  auto returnSymExpr = getSymbolicExpressionOrNull(I.getReturnValue());
-  Value* returnSymID = getSymIDOrZeroFromSymExpr(returnSymExpr);
+  auto returnSymExpr = getSymbolicExpressionOrFalse(I.getReturnValue());
 
-  CallInst * set_return_inst = IRB.CreateCall(runtime.setReturnExpression,
-                 returnSymID);
+  CallInst * set_return_inst = IRB.CreateCall(runtime.setReturnExpression,returnSymExpr);
   assignSymID(set_return_inst,getNextID());
 }
 
@@ -846,32 +865,36 @@ Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
     std::vector<Value *> functionArgs;
     int arg_idx = 0;
     for (const auto &[arg, symbolic] : args) {
-        Value * paraVal = nullptr;
-        Type* expectedTy = function.getFunctionType()->getParamType(arg_idx);
-        if(expectedTy == runtime.symIDT){
-            // if it's a symID that is needed
-            CallInst* symExpr = dyn_cast<CallInst>(arg);
-            if( symExpr != nullptr && getSymIDFromSymExpr(symExpr) != nullptr ){
-                // if this is call inst and this call is a symbolic call
-                paraVal = getSymIDFromSymExpr(symExpr);
-                unsigned symID_int = getIntFromSymID(paraVal);
-                assert(symID_int > 0);
-            }else{
-                // we are dealing with non-symbolic operations
-                // if this non-symbolic operations has been associated with symExpr and symID before, return the id
-                // if not, construct a symid for it
-                paraVal = getSymIDOrCreateFromConcreteExpr(arg,IRB);
-            }
-        }else{
-            assert(symbolic == false);
-            paraVal = arg;
-        }
+        functionArgs.push_back(symbolic ? getSymbolicExpressionOrFalse(arg) : arg);
+    }
+    auto symID = getNextID();
 
-        functionArgs.push_back(paraVal);
-        arg_idx ++ ;
+    // some sanity check
+    /// check if this function needs report
+    bool needsReport = false;
+    auto numArgs = function.getFunctionType()->getNumParams();
+    assert(numArgs == args.size());
+    Type* lastArgType = function.getFunctionType()->getParamType(numArgs - 1);
+    if(lastArgType == runtime.symIntT){
+        // this is the symid, meaning there is runtime value
+        needsReport = true;
+    }else{
+        needsReport = false;
+    }
+    if(!needsReport){
+        // then the parameters are either constants or isSym-Typed, cannot be anything else
+        for(unsigned i = 0 ; i < numArgs ; i ++){
+            Value * eachPara = args[i].first;
+            assert(isa<Constant>(eachPara) || eachPara->getType() == runtime.isSymT);
+        }
+    }
+    // end of sanity check
+    else{
+        assert(function.getFunctionType()->getParamType(function.getFunctionType()->getNumParams() + 1) == runtime.symIntT);
+        functionArgs.push_back(ConstantHelper(runtime.symIntT,symID));
     }
     auto *call = IRB.CreateCall(function, functionArgs);
-    assignSymID(call,getNextID());
+    assignSymID(call,symID);
 
     std::vector<Input> inputs;
     for (unsigned i = 0; i < args.size(); i++) {
@@ -886,45 +909,31 @@ Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
 void Symbolizer::tryAlternative(IRBuilder<> &IRB, Value *V) {
     auto *destExpr = getSymbolicExpression(V);
     if (destExpr != nullptr) {
-        auto destSymId = getSymIDFromSymExpr(cast<CallInst>(destExpr));
-        assert(destSymId != nullptr);
-        auto *concreteDestExpr = createValueExpression(V, IRB);
-        auto concreteDestSymId = getSymIDFromSymExpr(concreteDestExpr);
-        assert(concreteDestSymId != nullptr);
-
-        auto destAssertSymID = getNextID();
-        auto *destAssertion = IRB.CreateCall(runtime.comparisonHandlers[CmpInst::ICMP_EQ],
-                                             {destSymId, concreteDestSymId});
-        assignSymID(destAssertion,destAssertSymID);
-        // no need to assign a symid for push constraint, as long as all its symbolic operands are there
-        auto *pushAssertion = IRB.CreateCall(runtime.pushPathConstraint,
-                                             {destAssertSymID, IRB.getInt1(true), getTargetPreferredInt(V)});
-        assignSymID(pushAssertion,getNextID());
-        registerSymbolicComputation(SymbolicComputation(
-                concreteDestExpr, pushAssertion, {{V, 0, destAssertion}}));
+        // this call is just a place holder for DDG construction, will be removed later
+        auto *destAssertion = IRB.CreateCall(runtime.tryAlternative,{destExpr, V});
     }
 }
 
 uint64_t Symbolizer::aggregateMemberOffset(Type *aggregateType,
                                            ArrayRef<unsigned> indices) const {
-  uint64_t offset = 0;
-  auto *indexedType = aggregateType;
-  for (auto index : indices) {
-    // All indices in an extractvalue instruction are constant:
-    // https://llvm.org/docs/LangRef.html#extractvalue-instruction
+    uint64_t offset = 0;
+    auto *indexedType = aggregateType;
+    for (auto index : indices) {
+        // All indices in an extractvalue instruction are constant:
+        // https://llvm.org/docs/LangRef.html#extractvalue-instruction
 
-    if (auto *structType = dyn_cast<StructType>(indexedType)) {
-      offset += dataLayout.getStructLayout(structType)->getElementOffset(index);
-      indexedType = structType->getElementType(index);
-    } else {
-      auto *arrayType = cast<ArrayType>(indexedType);
-      unsigned elementSize =
-          dataLayout.getTypeAllocSize(arrayType->getArrayElementType());
-      offset += elementSize * index;
-      indexedType = arrayType->getArrayElementType();
+        if (auto *structType = dyn_cast<StructType>(indexedType)) {
+            offset += dataLayout.getStructLayout(structType)->getElementOffset(index);
+            indexedType = structType->getElementType(index);
+        } else {
+            auto *arrayType = cast<ArrayType>(indexedType);
+            unsigned elementSize =
+                    dataLayout.getTypeAllocSize(arrayType->getArrayElementType());
+            offset += elementSize * index;
+            indexedType = arrayType->getArrayElementType();
+        }
     }
-  }
-  return offset;
+    return offset;
 }
 unsigned int getTypeWidth(Type* ty, const DataLayout& dataLayout){
     unsigned int width = 0;
@@ -1059,54 +1068,15 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                     }else{
                         Type* val_type = arg->getType();
                         unsigned int width = getTypeWidth(val_type,dataLayout);
-                        if(width + 2 > perBufferSize){
-                            errs()<< "Width:"<<width<<'\n';
-                            errs()<< "arg:"<<*arg<<'\n';
-                            errs()<<F<<'\n';
-                            llvm_unreachable("byte width of this runtime arg is too large");
-                        }
+
                         auto runtimeVert = g.AddRuntimeVertice(width,blockID);
                         g.AddEdge(runtimeVert,userNode,arg_idx);
                         pushed_arg.insert(std::make_pair(arg_idx, std::make_pair(width,arg)));
                     }
                 }
 
-                size_t args_to_report_size = pushed_arg.size();
                 if(pushed_arg.size() > 0){
-                    // need to report the runtime values
-                    SymFnT reporter;
-                    if(args_to_report_size == 1)
-                        reporter = runtime.spearReport1;
-                    else if(args_to_report_size == 2)
-                        reporter = runtime.spearReport2;
-                    else if(args_to_report_size == 3)
-                        reporter = runtime.spearReport3;
-                    else if(args_to_report_size == 4)
-                        reporter = runtime.spearReport4;
-                    else
-                        llvm_unreachable("too many runtime values need to report");
 
-                    std::vector<Value*> reporter_args;
-                    // push the user's symid
-                    reporter_args.push_back(ConstantInt::get(runtime.int32T,userSymID));
-                    unsigned buffer_idx = 0;
-                    for(auto each_arg : pushed_arg){
-                        unsigned arg_idx = each_arg.first;
-                        unsigned bitwidth = each_arg.second.first;
-                        Value * runtime_val = each_arg.second.second;
-                        IRB.CreateStore(ConstantInt::get(runtime.int8T,arg_idx),allocaBuffers[buffer_idx]);
-                        Value * width_offset = IRB.CreateGEP(allocaBuffers[buffer_idx],ConstantInt::get(runtime.int8T,1));
-                        IRB.CreateStore(ConstantInt::get(runtime.int8T,bitwidth),width_offset);
-                        Value* value_offset = IRB.CreateGEP(allocaBuffers[buffer_idx],ConstantInt::get(runtime.int8T,2));
-                        Value* bitcast_value_offset = IRB.CreateBitCast(value_offset, PointerType::getUnqual(runtime_val->getType()));
-                        IRB.CreateStore(runtime_val,bitcast_value_offset);
-                        reporter_args.push_back(allocaBuffers[buffer_idx]);
-                        buffer_idx++;
-                    }
-                    CallInst* spear_call = IRB.CreateCall(reporter,reporter_args);
-                    if(isInterpretedFunc(calleeName)){
-                        callInst->replaceAllUsesWith(spear_call);
-                    }
                 }
                 if(!isInterpretedFunc(calleeName))
                     toBeRemoved.push_back(callInst);

@@ -74,6 +74,7 @@ struct Runtime {
   SymFnT notifyCall{};
   SymFnT notifyRet{};
   SymFnT notifyBasicBlock{};
+  SymFnT tryAlternative{};
 
   /// Mapping from icmp predicates to the functions that build the corresponding
   /// symbolic expressions.
@@ -97,8 +98,8 @@ const std::set<llvm::StringRef> kInterceptedFunctions = {
         "fseeko64", "getc",    "ungetc",  "memcpy", "memset", "strncpy", "strchr",
         "memcmp",   "memmove", "ntohl",   "fgets",  "fgetc", "getchar"};
 */
-const std::set<llvm::StringRef> kInterceptedFunctions = {};
- const llvm::StringRef kInterceptedFunctionSuffix("_interpreted");
+const std::set<llvm::StringRef> kInterceptedFunctions = {"memcpy", "memset","memmove"};
+ const llvm::StringRef kInterceptedFunctionPrefix("_sym_build_");
 
 bool isInterceptedFunction(const llvm::Function &f);
 

@@ -52,7 +52,7 @@ bool SymbolizePass::doInitialization(Module &M) {
   for (auto &function : M.functions()) {
     auto name = function.getName();
     if (isInterceptedFunction(function)){
-        auto newName = name + kInterceptedFunctionSuffix;
+        auto newName = kInterceptedFunctionPrefix + name;
         function.setName(newName);
     }
 

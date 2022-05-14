@@ -37,11 +37,11 @@ public:
         intPtrType(M.getDataLayout().getIntPtrType(M.getContext())),g()
         {
       for(auto eachIntFunction : kInterceptedFunctions){
-          std::string newFuncName = eachIntFunction.str() + kInterceptedFunctionSuffix.str();
+          std::string newFuncName = kInterceptedFunctionPrefix.str() + eachIntFunction.str() ;
           size_t len = newFuncName.size();
           // I know, I know..
           char * buf = (char *)malloc(len+ 1);
-          snprintf(buf, len + 1, "%s%s",eachIntFunction.str().c_str(),kInterceptedFunctionSuffix.str().c_str());
+          snprintf(buf, len + 1, "%s%s",kInterceptedFunctionPrefix.str().c_str(),eachIntFunction.str().c_str());
           //buf[len] = '\0';
           interpretedFunctionNames.insert(buf);
       }
@@ -221,8 +221,8 @@ public:
         return (exprIt != symbolicExpressions.end()) ? exprIt->second : nullptr;
     }
 
-    llvm::Value* getSymIDFromSym(llvm::Value *V) {
-        llvm::Value* retSymID = nullptr;
+    unsigned getSymIDFromSym(llvm::Value *V) {
+        unsigned retSymID = 0;
         if(auto nonPhiSymExpr = llvm::dyn_cast<llvm::CallInst>(V)){
             retSymID = getSymIDFromSymExpr(nonPhiSymExpr);
         }else if(auto phiSymExpr = llvm::dyn_cast<llvm::PHINode>(V)){
@@ -232,19 +232,18 @@ public:
         }
         return retSymID;
     }
-    llvm::Value* getSymIDFromSymExpr(llvm::CallInst *V) {
+    unsigned int getSymIDFromSymExpr(llvm::CallInst *V) {
         auto exprIt = symbolicIDs.find(V);
-        return (exprIt != symbolicIDs.end()) ? exprIt->second : nullptr;
+        assert(exprIt != symbolicIDs.end());
+        return exprIt->second;
     }
 
-    llvm::Value* getSymIDFromSymPhi(llvm::PHINode * phi){
+    unsigned int getSymIDFromSymPhi(llvm::PHINode * phi){
         auto it = phiSymbolicIDs.find(phi);
         assert(it != phiSymbolicIDs.end());
         return it->second;
     }
-    llvm::Constant *symIDFromInt(unsigned int id) {
-        return llvm::ConstantStruct::get(runtime.symIDT,{llvm::ConstantInt::get(runtime.symIntT,id)});
-    }
+
     bool isSymIDType(llvm::Value * v){
         llvm::Type * ty = v->getType();
         if(! llvm::isa<llvm::StructType>(ty)){
@@ -267,28 +266,6 @@ public:
             return 0;
         }
     }
-    llvm::Value* getSymIDOrZeroFromSymExpr(llvm::Value* V){
-        llvm::Value * returnSymID = nullptr;
-        if(llvm::isa<llvm::ConstantPointerNull>(V)){
-            returnSymID = symIDFromInt(0);
-        }else{
-            returnSymID = getSymIDFromSym(V);
-            assert(returnSymID != nullptr);
-        }
-        return returnSymID;
-    }
-    llvm::Value * getSymIDOrCreateFromConcreteExpr(llvm::Value* v, llvm::IRBuilder<> &IRB){
-        llvm::Value * retSymID = nullptr;
-        if(getSymbolicExpression(v) == nullptr){
-            llvm::CallInst* symExprCreateCall = createValueExpression(v,IRB);
-            retSymID = getSymIDFromSymExpr(symExprCreateCall);
-        }else{
-            llvm::Value * sym_call = getSymbolicExpression(v);
-            retSymID = getSymIDFromSym(sym_call);
-            assert(getIntFromSymID(retSymID) != 0);
-        }
-        return retSymID;
-    }
     bool isInterpretedFunc(llvm::StringRef f){
         for(auto each_f : interpretedFunctionNames){
             if(each_f.equals(f))
@@ -297,35 +274,42 @@ public:
         return false;
     }
     unsigned availableSymID = 1;
-    llvm::Constant* getNextID(){
+    unsigned int getNextID(){
         unsigned id;
         id = availableSymID;
         availableSymID++;
         if(availableSymID > maxNumSymVars){
             llvm_unreachable("current function has too many in memory variables");
         }
-        return symIDFromInt(id);
+        return id;
     }
-    void assignSymID(llvm::CallInst * symcall, llvm::Value* ID){
+    void assignSymID(llvm::CallInst * symcall, unsigned int ID){
         auto exprIt = symbolicIDs.find(symcall);
         assert(exprIt == symbolicIDs.end());
         symbolicIDs[symcall] = ID;
     }
-    void assignSymIDPhi(llvm::PHINode* symPhi, llvm::Value* ID){
-        phiSymbolicIDs.insert(std::make_pair(symPhi,ID));
+    void assignSymIDPhi(llvm::PHINode* symPhi, unsigned int ID){
+        auto exprIt = phiSymbolicIDs.find(symPhi);
+        assert(exprIt == phiSymbolicIDs.end());
+        phiSymbolicIDs[symPhi] = ID;
     }
 
-    llvm::Value *getSymbolicExpressionOrNull(llvm::Value *V) {
+    llvm::Value *getSymbolicExpressionOrFalse(llvm::Value *V) {
         auto *expr = getSymbolicExpression(V);
-        if (expr == nullptr)
-            return llvm::ConstantPointerNull::get( llvm::IntegerType::getInt8PtrTy(V->getContext()));
-        return expr;
+        if (expr == nullptr){
+            return llvm::ConstantInt::get( runtime.isSymT, 0 );
+        }else{
+            return expr;
+        }
     }
 
   bool isLittleEndian(llvm::Type *type) {
     return (!type->isAggregateType() && dataLayout.isLittleEndian());
   }
 
+  llvm::ConstantInt* ConstantHelper(llvm::IntegerType * ty, unsigned int id){
+        return llvm::ConstantInt::get(ty,id);
+    }
   /// Like buildRuntimeCall, but the call is always generated.
   SymbolicComputation
   forceBuildRuntimeCall(llvm::IRBuilder<> &IRB, SymFnT function,
@@ -408,10 +392,10 @@ public:
   }
   void DisplaySymbolicIDs(llvm::raw_fd_ostream& output){
       for(auto eachSymOp : symbolicIDs){
-          output<<*eachSymOp->second<<"|"<<*eachSymOp->first<<'\n';
+          output<<eachSymOp->second<<"|"<<*eachSymOp->first<<'\n';
       }
       for(auto eachSymOp : phiSymbolicIDs){
-          output<<*eachSymOp->second<<"|"<<*eachSymOp->first<<'\n';
+          output<<eachSymOp->second<<"|"<<*eachSymOp->first<<'\n';
       }
   }
 
@@ -442,11 +426,9 @@ public:
   /// explicitly.
   llvm::ValueMap<llvm::Value *, llvm::Value *> symbolicExpressions;
   /// Maps symbolic value to its IDs
-  llvm::ValueMap<llvm::CallInst *, llvm::Value *> symbolicIDs;
+  llvm::ValueMap<llvm::CallInst *, unsigned int> symbolicIDs;
   /// Maps phi nodes to its IDs
-  llvm::ValueMap<llvm::PHINode* , llvm::Value*> phiSymbolicIDs;
-  ///
-
+  llvm::ValueMap<llvm::PHINode* , unsigned int> phiSymbolicIDs;
   /// A record of all PHI nodes in this function.
   ///
   /// PHI nodes may refer to themselves, in which case we run into an infinite
@@ -465,15 +447,14 @@ public:
   /// analysis phase (because InstVisitor gets out of step if we try).
   /// Therefore, we keep a record of all the places that construct expressions
   /// and insert the fast path later.
-  std::vector<SymbolicComputation> expressionUses;
+    std::vector<SymbolicComputation> expressionUses;
 
-  SymDepGraph g;
+    SymDepGraph g;
 
-  const unsigned maxNumOperands = 4;
-  const unsigned perBufferSize = 16;
-  std::vector<llvm::AllocaInst*> allocaBuffers;
-
-  std::set<llvm::StringRef> interpretedFunctionNames;
+    unsigned int BBID = 1;
+    std::set<llvm::StringRef> interpretedFunctionNames;
+    void addSymIDToCall(llvm::CallBase&);
+    void interpretedFuncSanityCheck(llvm::CallBase&);
 };
 
 #endif
