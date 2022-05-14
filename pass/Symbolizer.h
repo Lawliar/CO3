@@ -218,7 +218,7 @@ public:
     /// Get the (already created) symbolic expression for a value.
     llvm::Value *getSymbolicExpression(llvm::Value *V) {
         auto exprIt = symbolicExpressions.find(V);
-        return (exprIt != symbolicExpressions.end()) ? exprIt->second : nullptr;
+        return (exprIt != symbolicExpressions.end()) ? exprIt->second : ConstantHelper(runtime.isSymT,0);
     }
 
     unsigned getSymIDFromSym(llvm::Value *V) {
@@ -254,18 +254,7 @@ public:
         }
         return true;
     }
-    unsigned getIntFromSymID(llvm::Value* symid){
-        llvm::Constant * int_operand = nullptr;
-        llvm::StringRef struct_name = symid->getType()->getStructName();
-        assert(struct_name.equals(runtime.symIDTyName));
-        if( auto con_struct = llvm::dyn_cast<llvm::ConstantStruct>(symid)){
-            int_operand = con_struct->getOperand(0);
-            return llvm::cast<llvm::ConstantInt>(int_operand)->getZExtValue();
-        }else{
-            assert(llvm::isa<llvm::ConstantAggregateZero>(symid));
-            return 0;
-        }
-    }
+
     bool isInterpretedFunc(llvm::StringRef f){
         for(auto each_f : interpretedFunctionNames){
             if(each_f.equals(f))
@@ -293,16 +282,22 @@ public:
         assert(exprIt == phiSymbolicIDs.end());
         phiSymbolicIDs[symPhi] = ID;
     }
-
-    llvm::Value *getSymbolicExpressionOrFalse(llvm::Value *V) {
-        auto *expr = getSymbolicExpression(V);
-        if (expr == nullptr){
-            return llvm::ConstantInt::get( runtime.isSymT, 0 );
+    bool tryGetSymExpr(llvm::Value * V){
+        auto expr = getSymbolicExpression(V);
+        if (auto symExpr = llvm::dyn_cast<llvm::ConstantInt>(expr); symExpr != nullptr && symExpr->isZero() ){
+            return false;
+        }else{
+            return true;
+        }
+    }
+    llvm::Value *getSymbolicExpressionOrCreate(llvm::Value *V,llvm::IRBuilder<> &IRB) {
+        auto expr = getSymbolicExpression(V);
+        if (auto symExpr = llvm::dyn_cast<llvm::ConstantInt>(expr); symExpr != nullptr && symExpr->isZero() ){
+            return createValueExpression(V, IRB);
         }else{
             return expr;
         }
     }
-
   bool isLittleEndian(llvm::Type *type) {
     return (!type->isAggregateType() && dataLayout.isLittleEndian());
   }
