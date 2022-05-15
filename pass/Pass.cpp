@@ -85,7 +85,7 @@ bool SymbolizePass::runOnFunction(Function &F) {
     }
     boost::filesystem::path ddgFile = dir / (F.getName() + "_ddg.dot").str();
     boost::filesystem::path cfgFile = dir / (F.getName() + "_cfg.dot").str();
-    boost::filesystem::path intermediateFile = dir / (F.getName() + "_symcc.ll").str();
+    boost::filesystem::path intermediateFile = dir / (F.getName() + "_intermediate.ll").str();
 
 
 
@@ -100,9 +100,6 @@ bool SymbolizePass::runOnFunction(Function &F) {
 
     for (auto &basicBlock : F){
         symbolizer.insertBasicBlockNotification(basicBlock);
-    }
-    for (auto *instPtr : allInstructions){
-        symbolizer.concreteInst2BBIDMap[instPtr] =  cast<ConstantInt>(cast<CallInst>(instPtr->getParent()->getFirstNonPHI())->getOperand(0))->getZExtValue();
     }
     for (auto *instPtr : allInstructions){
         symbolizer.visit(instPtr);

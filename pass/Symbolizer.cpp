@@ -36,7 +36,6 @@ void Symbolizer::initializeFunctions(Function &F) {
                                                                 IRB.getInt8(arg.getArgNo()));
                 symbolicExpressions[&arg] = symcall;
                 assignSymID(symcall,getNextID());
-                symInst2BBIDMap[symcall] = BBID;
             }
         }
     }
@@ -113,7 +112,6 @@ void Symbolizer::handleIntrinsicCall(CallBase &I) {
                    {I.getOperand(0), I.getOperand(1),
                     IRB.CreateZExtOrTrunc(I.getOperand(2), intPtrType), ConstantHelper(runtime.symIntT, memCpyId) });
             assignSymID(memCpyCall, memCpyId);
-            symInst2BBIDMap[memCpyCall] = concreteInst2BBIDMap.at(&I);
             break;
         }
         case Intrinsic::memset: {
@@ -128,7 +126,6 @@ void Symbolizer::handleIntrinsicCall(CallBase &I) {
                     getSymbolicExpression(I.getOperand(1)),
                     IRB.CreateZExtOrTrunc(I.getOperand(2), intPtrType), ConstantHelper(runtime.symIntT, memSetId)});
             assignSymID(memSetCall, memSetId);
-            symInst2BBIDMap[memSetCall] = concreteInst2BBIDMap.at(&I);
             break;
         }
         case Intrinsic::memmove: {
@@ -144,7 +141,6 @@ void Symbolizer::handleIntrinsicCall(CallBase &I) {
                    {I.getOperand(0), I.getOperand(1),
                     IRB.CreateZExtOrTrunc(I.getOperand(2), intPtrType), ConstantHelper(runtime.symIntT, memMoveId)});
             assignSymID(memMoveCall, memMoveId);
-            symInst2BBIDMap[memMoveCall] = concreteInst2BBIDMap.at(&I);
             break;
         }
         case Intrinsic::stacksave: {
@@ -230,7 +226,6 @@ void Symbolizer::addSymIDToCall(CallBase  & I){
     args.push_back(ConstantHelper(runtime.symIntT, symID));
     auto * symcall  = IRB.CreateCall(I.getCalledFunction(), args);
     assignSymID(symcall, symID);
-    symInst2BBIDMap[symcall] = concreteInst2BBIDMap.at(&I);
     //I.replaceAllUsesWith(symcall);
     replaceAllUseWith(&I, symcall);
 }
@@ -266,7 +261,6 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
         CallInst * call_to_set_para = IRB.CreateCall(runtime.setParameterExpression,
                      {ConstantInt::get(IRB.getInt8Ty(), arg.getOperandNo()), argSymExpr});
         assignSymID(call_to_set_para,getNextID());
-        symInst2BBIDMap[call_to_set_para] = concreteInst2BBIDMap.at(&I);
     }
 
 
@@ -282,12 +276,10 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
         // override our null with the real expression.)
         auto callToSetReturn = IRB.CreateCall(runtime.setReturnExpression, ConstantHelper(runtime.isSymT,0));
         assignSymID(callToSetReturn,getNextID());
-        symInst2BBIDMap[callToSetReturn] = concreteInst2BBIDMap.at(&I);
         IRB.SetInsertPoint(returnPoint);
         auto getReturnCall = IRB.CreateCall(runtime.getReturnExpression);
         symbolicExpressions[&I] = getReturnCall;
         assignSymID(getReturnCall,getNextID());
-        symInst2BBIDMap[getReturnCall] = concreteInst2BBIDMap.at(&I);
     }
 }
 
@@ -362,7 +354,6 @@ void Symbolizer::visitReturnInst(ReturnInst &I) {
 
     CallInst * set_return_inst = IRB.CreateCall(runtime.setReturnExpression,returnSymExpr);
     assignSymID(set_return_inst,getNextID());
-    symInst2BBIDMap[set_return_inst] = concreteInst2BBIDMap.at(&I);
 }
 
 void Symbolizer::visitBranchInst(BranchInst &I) {
@@ -394,14 +385,15 @@ void Symbolizer::visitCallInst(CallInst &I) {
 }
 
 void Symbolizer::visitInvokeInst(InvokeInst &I) {
-  // Invoke is like a call but additionally establishes an exception handler. We
-  // can obtain the return expression only in the success case, but the target
-  // block may have multiple incoming edges (i.e., our edge may be critical). In
-  // this case, we split the edge and query the return expression in the new
-  // block that is specific to our edge.
-  auto *newBlock = SplitCriticalEdge(I.getParent(), I.getNormalDest());
-  handleFunctionCall(I, newBlock != nullptr ? newBlock->getFirstNonPHI()
-                            : I.getNormalDest()->getFirstNonPHI());
+    // Invoke is like a call but additionally establishes an exception handler. We
+    // can obtain the return expression only in the success case, but the target
+    // block may have multiple incoming edges (i.e., our edge may be critical). In
+    // this case, we split the edge and query the return expression in the new
+    // block that is specific to our edge.
+    llvm_unreachable("invoke inst called, need to handle the splitted edge");
+    auto *newBlock = SplitCriticalEdge(I.getParent(), I.getNormalDest());
+    handleFunctionCall(I, newBlock != nullptr ? newBlock->getFirstNonPHI()
+                                              : I.getNormalDest()->getFirstNonPHI());
 }
 
 void Symbolizer::visitAllocaInst(AllocaInst & /*unused*/) {
@@ -424,11 +416,9 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
        ConstantInt::get(IRB.getInt8Ty(), isLittleEndian(dataType) ? 1 : 0),
        ConstantHelper(runtime.symIntT,readMemSymID)});
     assignSymID(data,readMemSymID);
-    symInst2BBIDMap[data] = concreteInst2BBIDMap.at(&I);
     if (dataType->isFloatingPointTy()) {
         data = IRB.CreateCall(runtime.buildBitsToFloat,{data, IRB.getInt1(dataType->isDoubleTy())});
         assignSymID(data,getNextID());
-        symInst2BBIDMap[data] = concreteInst2BBIDMap.at(&I);
     }
 
     symbolicExpressions[&I] = data;
@@ -444,7 +434,6 @@ void Symbolizer::visitStoreInst(StoreInst &I) {
     if (dataType->isFloatingPointTy()) {
         dataSymExpr = IRB.CreateCall(runtime.buildFloatToBits, {dataSymExpr});
         assignSymID(cast<CallInst>(dataSymExpr), getNextID());
-        symInst2BBIDMap[cast<Instruction>(dataSymExpr)] = concreteInst2BBIDMap.at(&I);
     }
     auto writeMemCall = IRB.CreateCall(
         runtime.writeMemory,
@@ -453,7 +442,6 @@ void Symbolizer::visitStoreInst(StoreInst &I) {
          dataSymExpr,
          ConstantInt::get(IRB.getInt8Ty(), dataLayout.isLittleEndian() ? 1 : 0)});
     assignSymID(writeMemCall,getNextID());
-    symInst2BBIDMap[writeMemCall] = concreteInst2BBIDMap.at(&I);
 }
 
 void Symbolizer::visitGetElementPtrInst(GetElementPtrInst &I) {
@@ -702,7 +690,6 @@ void Symbolizer::visitPHINode(PHINode &I) {
     unsigned numIncomingValues = I.getNumIncomingValues();
     auto *exprPHI = IRB.CreatePHI(runtime.isSymT, numIncomingValues);
     assignSymIDPhi(exprPHI, getNextID());
-    symInst2BBIDMap[exprPHI] = concreteInst2BBIDMap.at(&I);
     for (unsigned incoming = 0; incoming < numIncomingValues; incoming++) {
         exprPHI->addIncoming(
                 // The null pointer will be replaced in finalizePHINodes.
@@ -755,7 +742,7 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
             conditionExpr, ConstantHelper(runtime.isSymT, 0));
     auto *constraintBlock = SplitBlockAndInsertIfThen(haveSymbolicCondition, &I,
             /* unreachable */ false);
-
+    MapOriginalBlock(constraintBlock->getParent(), I.getParent());
     // In the constraint block, we push one path constraint per case.
     IRB.SetInsertPoint(constraintBlock);
     for (auto &caseHandle : I.cases()) {
@@ -763,11 +750,11 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
         auto *caseConstraint = IRB.CreateCall(
                 runtime.comparisonHandlers[CmpInst::ICMP_EQ],
                 {conditionExpr, createValueExpression(caseHandle.getCaseValue(), IRB)});
+        assignSymID(caseConstraint, getNextID());
         auto pushConstraintId = getNextID();
         auto callToPushConstraint = IRB.CreateCall(runtime.pushPathConstraint,
                        {caseConstraint, caseTaken, getTargetPreferredInt(&I), ConstantHelper(runtime.symIntT, pushConstraintId)});
         assignSymID(callToPushConstraint, pushConstraintId);
-        symInst2BBIDMap[callToPushConstraint] = concreteInst2BBIDMap.at(&I);
     }
 }
 
@@ -791,9 +778,6 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
     if (isa<ConstantPointerNull>(V)) {
         ret = IRB.CreateCall(runtime.buildNullPointer, {});
         assignSymID(ret,getNextID());
-        if(auto inst = dyn_cast<Instruction>(V)){
-            symInst2BBIDMap[ret] = concreteInst2BBIDMap.at(inst);
-        }
         return ret;
     }
 
@@ -805,9 +789,6 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
             auto symid = getNextID();
             ret = IRB.CreateCall(runtime.buildBool, {V, ConstantHelper(runtime.symIntT, symid)});
             assignSymID(ret,symid);
-            if(auto inst = dyn_cast<Instruction>(V)){
-                symInst2BBIDMap[ret] = concreteInst2BBIDMap.at(inst);
-            }
             return ret;
         } else if (bits <= 64) {
             auto symid = getNextID();
@@ -816,9 +797,6 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
                                   IRB.getInt8(valueType->getPrimitiveSizeInBits()),
                                   ConstantHelper(runtime.symIntT,symid)});
             assignSymID(ret,symid);
-            if(auto inst = dyn_cast<Instruction>(V)){
-                symInst2BBIDMap[ret] = concreteInst2BBIDMap.at(inst);
-            }
             return ret;
         } else {
             // Anything up to the maximum supported 128 bits. Those integers are a bit
@@ -832,9 +810,6 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
                             IRB.CreateTrunc(IRB.CreateLShr(V, ConstantInt::get(valueType, 64)),IRB.getInt64Ty()),
                             IRB.CreateTrunc(V, IRB.getInt64Ty())});
             assignSymID(ret,symid);
-            if(auto inst = dyn_cast<Instruction>(V)){
-                symInst2BBIDMap[ret] = concreteInst2BBIDMap.at(inst);
-            }
             return ret;
         }
     }
@@ -846,9 +821,6 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
                               IRB.getInt1(valueType->isDoubleTy()),
                               ConstantHelper(runtime.symIntT,symid)});
         assignSymID(ret, symid);
-        if(auto inst = dyn_cast<Instruction>(V)){
-            symInst2BBIDMap[ret] = concreteInst2BBIDMap.at(inst);
-        }
         return ret;
     }
 
@@ -858,9 +830,6 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
                 runtime.buildInteger,
                 {IRB.CreatePtrToInt(V, intPtrType), IRB.getInt8(ptrBits), ConstantHelper(runtime.symIntT, symid)});
         assignSymID(ret,symid);
-        if(auto inst = dyn_cast<Instruction>(V)){
-            symInst2BBIDMap[ret] = concreteInst2BBIDMap.at(inst);
-        }
         return ret;
     }
 
@@ -886,9 +855,6 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
                               IRB.getInt8(0),
                               ConstantHelper(runtime.symIntT, symid)});
         assignSymID(ret,symid);
-        if(auto inst = dyn_cast<Instruction>(V)){
-            symInst2BBIDMap[ret] = concreteInst2BBIDMap.at(inst);
-        }
         return ret;
     }
     llvm_unreachable("Unhandled type for constant expression");
@@ -921,7 +887,6 @@ Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
 
     auto *call = IRB.CreateCall(function, functionArgs);
     assignSymID(call,symID);
-    symInst2BBIDMap[call] = cast<ConstantInt>((cast<CallInst>(IRB.GetInsertBlock()->getFirstNonPHI()))->getOperand(0))->getZExtValue();
     std::vector<Input> inputs;
     for (unsigned i = 0; i < args.size(); i++) {
         const auto &[arg, symbolic] = args[i];
@@ -938,7 +903,6 @@ void Symbolizer::tryAlternative(IRBuilder<> &IRB, Value *V) {
         // this call is just a place holder for DDG construction, will be removed later
         auto *destAssertion = IRB.CreateCall(runtime.tryAlternative,{destExpr, V});
         assignSymID(destAssertion, getNextID());
-        symInst2BBIDMap[destAssertion] = cast<ConstantInt>((cast<CallInst>(IRB.GetInsertBlock()->getFirstNonPHI()))->getOperand(0))->getZExtValue();
     }
 }
 
@@ -1001,8 +965,10 @@ void Symbolizer::shortCircuitExpressionUses() {
         // and create an output expression.
         auto *head = symbolicComputation.firstInstruction->getParent();
         auto *slowPath = SplitBlock(head, symbolicComputation.firstInstruction);
+        MapOriginalBlock(slowPath, head);
         auto *tail = SplitBlock(slowPath,
                                 symbolicComputation.lastInstruction->getNextNode());
+        MapOriginalBlock(tail, head);
         ReplaceInstWithInst(head->getTerminator(),
                             BranchInst::Create(tail, slowPath, allConcrete));
 
@@ -1034,6 +1000,7 @@ void Symbolizer::shortCircuitExpressionUses() {
                 auto *argExpressionBlock = SplitBlockAndInsertIfThen(
                         nullChecks[argIndex], symbolicComputation.firstInstruction,
                         /* unreachable */ false);
+                MapOriginalBlock(argExpressionBlock->getParent(), head );
                 IRB.SetInsertPoint(argExpressionBlock);
             } else {
                 IRB.SetInsertPoint(symbolicComputation.firstInstruction);
@@ -1100,10 +1067,10 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
         toExamine.insert(eachInterpretedFunction);
     }
     for (auto &basicBlock : F){
+        unsigned blockID = GetBBID(&basicBlock);
         for(auto & eachInst : basicBlock){
             if (PHINode *symPhi = dyn_cast<PHINode>(&eachInst); symPhi != nullptr &&
                                                                 phiSymbolicIDs.find(symPhi) != phiSymbolicIDs.end()) {
-                unsigned blockID = symInst2BBIDMap.at(symPhi);
                 unsigned userSymID = getSymIDFromSym(symPhi);
                 g.AddPhiVertice(userSymID, blockID);
             }
@@ -1112,7 +1079,6 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
             }
             auto callInst = cast<CallInst>(&eachInst);
             auto callee = callInst->getCalledFunction();
-            unsigned blockID = symInst2BBIDMap.at(callInst);
             // check if indirect call
             if(callee == nullptr)
                 continue;
@@ -1142,6 +1108,8 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                     g.AddEdge(getSymIDFromSym(arg),getSymIDFromSym(callInst), 0);
                 }
             }else if(toExamine.find(calleeName) != toExamine.end() || toRemove.find(calleeName) != toRemove.end()){
+
+                errs()<<*callInst<<'\n';
                 unsigned userSymID = getSymIDFromSym(callInst);
                 auto userNode = g.AddSymVertice(userSymID, calleeName.str(),blockID);
                 std::map<unsigned,std::pair<unsigned,Value*> > pushed_arg;

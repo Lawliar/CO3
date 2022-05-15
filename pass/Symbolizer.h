@@ -307,7 +307,26 @@ public:
   bool isLittleEndian(llvm::Type *type) {
     return (!type->isAggregateType() && dataLayout.isLittleEndian());
   }
+  unsigned GetBBID(llvm::BasicBlock* BB){
+      llvm::BasicBlock* realOriginal = BB;
+      while(splited2OriginalBB.find(realOriginal) != splited2OriginalBB.end()){
+          realOriginal = splited2OriginalBB.at(realOriginal);
+      }
+      return llvm::cast<llvm::ConstantInt>(llvm::cast<llvm::CallInst>(realOriginal->getFirstNonPHI())->getOperand(0))->getZExtValue();
+    }
+  void MapOriginalBlock(llvm::BasicBlock * splitted, llvm::BasicBlock* original){
+        llvm::BasicBlock* realOriginal = original;
+        while(splited2OriginalBB.find(realOriginal) != splited2OriginalBB.end()){
+            realOriginal = splited2OriginalBB.at(realOriginal);
+        }
+        llvm::Instruction * originalFirstNonPhi = realOriginal->getFirstNonPHI();
+        if(  auto callInst = llvm::dyn_cast<llvm::CallInst>(originalFirstNonPhi); callInst == nullptr ||  ! (callInst->getCalledFunction()->getName().equals("_sym_notify_basic_block"))){
+            llvm::errs()<<*original<<'\n'<<*original->getParent()<<'\n';
+            llvm_unreachable("original BB does not have a notify BB");
+        }
 
+        splited2OriginalBB[splitted] = original;
+    }
   llvm::ConstantInt* ConstantHelper(llvm::IntegerType * ty, unsigned int id){
         return llvm::ConstantInt::get(ty,id);
     }
@@ -449,9 +468,7 @@ public:
   /// Therefore, we keep a record of all the places that construct expressions
   /// and insert the fast path later.
     std::vector<SymbolicComputation> expressionUses;
-
-    std::map<llvm::Instruction*, unsigned long> concreteInst2BBIDMap;
-    std::map<llvm::Instruction*, unsigned long> symInst2BBIDMap;
+    std::map<llvm::BasicBlock*, llvm::BasicBlock*> splited2OriginalBB;
     SymDepGraph g;
 
     unsigned int BBID = 1;
