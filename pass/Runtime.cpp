@@ -26,7 +26,7 @@ template <typename... ArgsTy>
 SymFnT import(llvm::Module &M, llvm::StringRef name, llvm::Type *ret,
               ArgsTy... args) {
 #if LLVM_VERSION_MAJOR >= 9 && LLVM_VERSION_MAJOR < 11
-  return M.getOrInsertFunction(name, ret, args...).getCallee();
+  return M.getOrInsertFunction(name, ret, args...);
 #else
   return M.getOrInsertFunction(name, ret, args...);
 #endif
@@ -37,7 +37,7 @@ SymFnT import(llvm::Module &M, llvm::StringRef name, llvm::Type *ret,
 Runtime::Runtime(Module &M) {
 
     IRBuilder<> IRB(M.getContext());
-    auto *intPtrType = M.getDataLayout().getIntPtrType(M.getContext());
+    intPtrType = M.getDataLayout().getIntPtrType(M.getContext());
     int_type = nullptr;
     if(M.getDataLayout().isLegalInteger(64)){
         int_type = IRB.getInt64Ty();
@@ -202,7 +202,7 @@ Runtime::Runtime(Module &M) {
     SymOperators.push_back(&buildExtract);
 
     // just a place-holder
-    tryAlternative = import(M,"_sym_try_alternative",voidT, ptrT,intPtrType );
+    tryAlternative = import(M,"_sym_try_alternative",voidT, symIntT, intPtrType );
 
     // control-flow related
     notifyCall = import(M, "_sym_notify_call", voidT, intPtrType);

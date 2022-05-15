@@ -19,8 +19,9 @@
 #include <llvm/IR/Module.h>
 #include <set>
 
+
 #if LLVM_VERSION_MAJOR >= 9 && LLVM_VERSION_MAJOR < 11
-  using SymFnT = llvm::Value *;
+  using SymFnT = llvm::FunctionCallee;
 #else
   using SymFnT = llvm::FunctionCallee;
 #endif
@@ -34,6 +35,7 @@ struct Runtime {
   llvm::IntegerType* symIntT;
   llvm::IntegerType* isSymT;
   llvm::IntegerType* int_type;
+  llvm::IntegerType*intPtrType;
   llvm::StringRef symIDTyName;
   std::vector<SymFnT*> SymOperators;
 

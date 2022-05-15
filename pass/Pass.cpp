@@ -105,11 +105,15 @@ bool SymbolizePass::runOnFunction(Function &F) {
         symbolizer.insertBasicBlockNotification(basicBlock);
     }
     for (auto *instPtr : allInstructions){
+        symbolizer.concreteInst2BBIDMap[instPtr] =  cast<ConstantInt>(cast<CallInst>(instPtr->getParent()->getFirstNonPHI())->getOperand(0))->getZExtValue();
+        symbolizer.visit(instPtr);
+    }
+    for (auto *instPtr : allInstructions){
         symbolizer.visit(instPtr);
     }
     symbolizer.finalizePHINodes();
     breakConstantExpr(F);
-    //symbolizer.shortCircuitExpressionUses();
+    symbolizer.shortCircuitExpressionUses();
     // output some intermediate info for debugging purpose
     std::error_code ec;
     raw_fd_ostream intermediate_file(StringRef(intermediateFile.string()),ec);

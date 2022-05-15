@@ -244,15 +244,15 @@ public:
         return it->second;
     }
 
-    bool isSymIDType(llvm::Value * v){
+    bool isSymStatusType(llvm::Value * v){
         llvm::Type * ty = v->getType();
-        if(! llvm::isa<llvm::StructType>(ty)){
+        llvm::CallInst * callInst = llvm::dyn_cast<llvm::CallInst>(v);
+        llvm::PHINode * phiNode = llvm::dyn_cast<llvm::PHINode>(v);
+        if((ty == runtime.isSymT) && (callInst != nullptr || phiNode != nullptr)){
+            return true;
+        }else{
             return false;
         }
-        if(! ty->getStructName().equals(runtime.symIDTyName)){
-            return false;
-        }
-        return true;
     }
 
     bool isInterpretedFunc(llvm::StringRef f){
@@ -444,6 +444,8 @@ public:
   /// and insert the fast path later.
     std::vector<SymbolicComputation> expressionUses;
 
+    std::map<llvm::Instruction*, unsigned long> concreteInst2BBIDMap;
+    std::map<llvm::Instruction*, unsigned long> symInst2BBIDMap;
     SymDepGraph g;
 
     unsigned int BBID = 1;
