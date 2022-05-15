@@ -95,18 +95,14 @@ bool SymbolizePass::runOnFunction(Function &F) {
         allInstructions.push_back(&I);
     }
 
-
     Symbolizer symbolizer(*F.getParent(),r);
     symbolizer.initializeFunctions(F);
-
-
 
     for (auto &basicBlock : F){
         symbolizer.insertBasicBlockNotification(basicBlock);
     }
     for (auto *instPtr : allInstructions){
         symbolizer.concreteInst2BBIDMap[instPtr] =  cast<ConstantInt>(cast<CallInst>(instPtr->getParent()->getFirstNonPHI())->getOperand(0))->getZExtValue();
-        symbolizer.visit(instPtr);
     }
     for (auto *instPtr : allInstructions){
         symbolizer.visit(instPtr);
