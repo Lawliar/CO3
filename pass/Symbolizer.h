@@ -243,7 +243,13 @@ public:
         assert(it != phiSymbolicIDs.end());
         return it->second;
     }
-
+    void replaceAllUseWith(llvm::Instruction * i, llvm::Value * v){
+        for(auto eachUser = i->user_begin(); eachUser != i->user_end(); eachUser++){
+            //users are suspicously  too many
+            eachUser->replaceUsesOfWith(i,v);
+        }
+        assert(i->user_empty());
+    }
     bool isSymStatusType(llvm::Value * v){
         llvm::Type * ty = v->getType();
         llvm::CallInst * callInst = llvm::dyn_cast<llvm::CallInst>(v);

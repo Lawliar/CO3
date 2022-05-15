@@ -75,7 +75,8 @@ void Symbolizer::finalizePHINodes() {
 
     for (auto *symbolicPHI : nodesToErase) {
         // this code might fail because isa<KeySansPointerT>(...) assertation is not true
-        symbolicPHI->replaceAllUsesWith(ConstantInt::get( runtime.isSymT, 0 ));
+        //symbolicPHI->replaceAllUsesWith(ConstantInt::get( runtime.isSymT, 0 ));
+        replaceAllUseWith(symbolicPHI, ConstantInt::get( runtime.isSymT, 0 ));
         symbolicPHI->eraseFromParent();
     }
 }
@@ -230,7 +231,8 @@ void Symbolizer::addSymIDToCall(CallBase  & I){
     auto * symcall  = IRB.CreateCall(I.getCalledFunction(), args);
     assignSymID(symcall, symID);
     symInst2BBIDMap[symcall] = concreteInst2BBIDMap.at(&I);
-    I.replaceAllUsesWith(symcall);
+    //I.replaceAllUsesWith(symcall);
+    replaceAllUseWith(&I, symcall);
 }
 void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
     auto *callee = I.getCalledFunction();
@@ -1060,8 +1062,9 @@ void Symbolizer::shortCircuitExpressionUses() {
         if (!symbolicComputation.lastInstruction->use_empty()) {
             IRB.SetInsertPoint(&tail->front());
             auto *finalExpression = IRB.CreatePHI(runtime.isSymT, 2);
-            symbolicComputation.lastInstruction->replaceAllUsesWith(finalExpression);
-            finalExpression->addIncoming(ConstantPointerNull::get(IRB.getInt8PtrTy()),
+            //symbolicComputation.lastInstruction->replaceAllUsesWith(finalExpression);
+            replaceAllUseWith(symbolicComputation.lastInstruction, finalExpression);
+            finalExpression->addIncoming(ConstantHelper(runtime.isSymT,0),
                                          head);
             finalExpression->addIncoming(
                     symbolicComputation.lastInstruction,

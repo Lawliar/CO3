@@ -29,6 +29,8 @@ SymDepGraph::vertex_t SymDepGraph::AddInterFuncVertice(unsigned symID, std::stri
     assert(symID !=0);
     return AddVertice(symID,std::string(op),NodeIntepretedFunc, 0, 0,BBID);
 }
+
+
 SymDepGraph::vertex_t SymDepGraph::AddPhiVertice(unsigned int symID, unsigned long BBID) {
     assert(symID != 0);
     return AddVertice(symID,VoidStr,NodePhi, 0, 0,BBID);
