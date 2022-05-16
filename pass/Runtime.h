@@ -28,65 +28,66 @@
 
 /// Runtime functions
 struct Runtime {
-  Runtime(llvm::Module &M);
-  llvm::IntegerType* int8T;
-  llvm::IntegerType* int32T;
-  llvm::StructType* symIDT;
-  llvm::IntegerType* symIntT;
-  llvm::IntegerType* isSymT;
-  llvm::IntegerType* int_type;
-  llvm::IntegerType*intPtrType;
-  llvm::StringRef symIDTyName;
-  std::vector<SymFnT*> SymOperators;
+    Runtime(llvm::Module &M);
+    llvm::IntegerType* int8T;
+    llvm::IntegerType* int32T;
+    llvm::StructType* symIDT;
+    llvm::IntegerType* symIntT;
+    llvm::IntegerType* isSymT;
+    llvm::IntegerType* int_type;
+    llvm::IntegerType*intPtrType;
+    llvm::StringRef symIDTyName;
+    std::vector<SymFnT*> SymOperators;
+    std::map<std::string, std::vector<unsigned> > isSymArgNo;
 
-  SymFnT buildInteger{};
-  SymFnT buildInteger128{};
-  SymFnT buildFloat{};
-  SymFnT buildNullPointer{};
-  SymFnT buildTrue{};
-  SymFnT buildFalse{};
-  SymFnT buildBool{};
-  SymFnT buildSExt{};
-  SymFnT buildZExt{};
-  SymFnT buildTrunc{};
-  SymFnT buildBswap{};
-  SymFnT buildIntToFloat{};
-  SymFnT buildFloatToFloat{};
-  SymFnT buildBitsToFloat{};
-  SymFnT buildFloatToBits{};
-  SymFnT buildFloatToSignedInt{};
-  SymFnT buildFloatToUnsignedInt{};
-  SymFnT buildFloatAbs{};
-  SymFnT buildBoolAnd{};
-  SymFnT buildBoolOr{};
-  SymFnT buildBoolXor{};
-  SymFnT buildBoolToBits{};
-  SymFnT pushPathConstraint{};
-  SymFnT getParameterExpression{};
-  SymFnT setParameterExpression{};
-  SymFnT setReturnExpression{};
-  SymFnT getReturnExpression{};
-  SymFnT memcpy{};
-  SymFnT memset{};
-  SymFnT memmove{};
-  SymFnT readMemory{};
-  SymFnT writeMemory{};
-  SymFnT buildInsert{};
-  SymFnT buildExtract{};
-  SymFnT notifyCall{};
-  SymFnT notifyRet{};
-  SymFnT notifyBasicBlock{};
-  SymFnT tryAlternative{};
+    SymFnT buildInteger{};
+    SymFnT buildInteger128{};
+    SymFnT buildFloat{};
+    SymFnT buildNullPointer{};
+    SymFnT buildTrue{};
+    SymFnT buildFalse{};
+    SymFnT buildBool{};
+    SymFnT buildSExt{};
+    SymFnT buildZExt{};
+    SymFnT buildTrunc{};
+    SymFnT buildBswap{};
+    SymFnT buildIntToFloat{};
+    SymFnT buildFloatToFloat{};
+    SymFnT buildBitsToFloat{};
+    SymFnT buildFloatToBits{};
+    SymFnT buildFloatToSignedInt{};
+    SymFnT buildFloatToUnsignedInt{};
+    SymFnT buildFloatAbs{};
+    SymFnT buildBoolAnd{};
+    SymFnT buildBoolOr{};
+    SymFnT buildBoolXor{};
+    SymFnT buildBoolToBits{};
+    SymFnT pushPathConstraint{};
+    SymFnT getParameterExpression{};
+    SymFnT setParameterExpression{};
+    SymFnT setReturnExpression{};
+    SymFnT getReturnExpression{};
+    SymFnT memcpy{};
+    SymFnT memset{};
+    SymFnT memmove{};
+    SymFnT readMemory{};
+    SymFnT writeMemory{};
+    SymFnT buildInsert{};
+    SymFnT buildExtract{};
+    SymFnT notifyCall{};
+    SymFnT notifyRet{};
+    SymFnT notifyBasicBlock{};
+    SymFnT tryAlternative{};
 
-  /// Mapping from icmp predicates to the functions that build the corresponding
-  /// symbolic expressions.
-  std::array<SymFnT, llvm::CmpInst::BAD_ICMP_PREDICATE>
-      comparisonHandlers{};
+    /// Mapping from icmp predicates to the functions that build the corresponding
+    /// symbolic expressions.
+    std::array<SymFnT, llvm::CmpInst::BAD_ICMP_PREDICATE>
+            comparisonHandlers{};
 
-  /// Mapping from binary operators to the functions that build the
-  /// corresponding symbolic expressions.
-  std::array<SymFnT, llvm::Instruction::BinaryOpsEnd>
-      binaryOperatorHandlers{};
+    /// Mapping from binary operators to the functions that build the
+    /// corresponding symbolic expressions.
+    std::array<SymFnT, llvm::Instruction::BinaryOpsEnd>
+            binaryOperatorHandlers{};
 
     SymFnT spearReport1{};
     SymFnT spearReport2{};

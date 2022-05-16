@@ -91,72 +91,89 @@ Runtime::Runtime(Module &M) {
     // functions that need a sym id
     // should always be the same with the input
     buildSExt = import(M, "_sym_build_sext", isSymT, isSymT, int8T);
+    isSymArgNo["_sym_build_sext"] = {0};
     SymOperators.push_back(&buildSExt);
 
     // should always be the same with the input
     buildZExt = import(M, "_sym_build_zext", isSymT, isSymT, int8T);
+    isSymArgNo["_sym_build_zext"] = {0};
     SymOperators.push_back(&buildZExt);
 
     // should always be the same with the input
     buildTrunc = import(M, "_sym_build_trunc", isSymT, isSymT, int8T);
+    isSymArgNo["_sym_build_trunc"] = {0};
     SymOperators.push_back(&buildTrunc);
 
     // should always be the same with the input
     buildBswap = import(M, "_sym_build_bswap", isSymT, isSymT);
+    isSymArgNo["_sym_build_bswap"] = {0};
     SymOperators.push_back(&buildBswap);
 
     // should always be the same with the input
     buildIntToFloat = import(M, "_sym_build_int_to_float", isSymT, isSymT, IRB.getInt1Ty(), IRB.getInt1Ty());
+    isSymArgNo["_sym_build_int_to_float"] = {0};
     SymOperators.push_back(&buildIntToFloat);
 
     // should always be the same with the input
     buildFloatToFloat = import(M, "_sym_build_float_to_float", isSymT, isSymT, IRB.getInt1Ty());
+    isSymArgNo["_sym_build_float_to_float"] = {0};
     SymOperators.push_back(&buildFloatToFloat);
 
     // should always be the same with the input
     buildBitsToFloat = import(M, "_sym_build_bits_to_float", isSymT, isSymT, IRB.getInt1Ty());
+    isSymArgNo["_sym_build_bits_to_float"] = {0};
     SymOperators.push_back(&buildBitsToFloat);
 
     // should always be the same with the input
     buildFloatToBits = import(M, "_sym_build_float_to_bits", isSymT, isSymT);
+    isSymArgNo["_sym_build_float_to_bits"] = {0};
     SymOperators.push_back(&buildFloatToBits);
 
     // should always be the same with the input
     buildFloatToSignedInt =
       import(M, "_sym_build_float_to_signed_integer", isSymT, isSymT, int8T);
+    isSymArgNo["_sym_build_float_to_signed_integer"] = {0};
     SymOperators.push_back(&buildFloatToSignedInt);
 
     // should always be the same with the input
     buildFloatToUnsignedInt =
       import(M, "_sym_build_float_to_unsigned_integer", isSymT, isSymT, int8T);
+    isSymArgNo["_sym_build_float_to_unsigned_integer"] = {0};
     SymOperators.push_back(&buildFloatToUnsignedInt);
 
     // should always be the same with the input
     buildFloatAbs = import(M, "_sym_build_fp_abs", isSymT, isSymT);
+    isSymArgNo["_sym_build_fp_abs"] = {0};
     SymOperators.push_back(&buildFloatAbs);
 
     // logic OR
     buildBoolAnd = import(M, "_sym_build_bool_and", isSymT, isSymT, isSymT);
+    isSymArgNo["_sym_build_bool_and"] = {0,1};
     SymOperators.push_back(&buildBoolAnd);
 
     // logic OR
     buildBoolOr = import(M, "_sym_build_bool_or", isSymT, isSymT, isSymT);
+    isSymArgNo["_sym_build_bool_or"] = {0,1};
     SymOperators.push_back(&buildBoolOr);
 
     // logic OR
     buildBoolXor = import(M, "_sym_build_bool_xor", isSymT, isSymT, isSymT);
+    isSymArgNo["_sym_build_bool_xor"] = {0,1};
     SymOperators.push_back(&buildBoolXor);
 
     // should always be the same with the input
     buildBoolToBits = import(M, "_sym_build_bool_to_bits", isSymT, isSymT, int8T);
+    isSymArgNo["_sym_build_bool_to_bits"] = {0};
     SymOperators.push_back(&buildBoolToBits);
 
     // no ret
     pushPathConstraint = import(M, "_sym_build_path_constraint", voidT, isSymT, IRB.getInt1Ty(), intPtrType, symIntT);
+    isSymArgNo["_sym_build_path_constraint"] = {0};
     SymOperators.push_back(&pushPathConstraint);
 
     // no ret
     setParameterExpression = import(M, "_sym_set_parameter_expression", voidT, int8T, isSymT);
+    isSymArgNo["_sym_set_parameter_expression"] = {1};
     SymOperators.push_back(&setParameterExpression);
 
     //see if the para is symbolic or not
@@ -165,6 +182,7 @@ Runtime::Runtime(Module &M) {
 
     // not ret
     setReturnExpression = import(M, "_sym_set_return_expression", voidT, isSymT);
+    isSymArgNo["_sym_set_return_expression"] = {0};
     SymOperators.push_back(&setReturnExpression);
 
     //see if the return val is symbolic or not
@@ -179,6 +197,7 @@ Runtime::Runtime(Module &M) {
     // the 1st para is a physical address
     // the 2nd para is actually a sym var which needs to be assigned with an ID
     memset = import(M, "_sym_build_memset", voidT, ptrT, isSymT, intPtrType, symIntT);
+    isSymArgNo["_sym_build_memset"] = {1};
     SymOperators.push_back(&memset);
 
     // the first 2 parameters are all physical address
@@ -191,14 +210,17 @@ Runtime::Runtime(Module &M) {
 
     // need to check if the given memory area as well as the written val is symbolic or not
     writeMemory = import(M, "_sym_build_write_memory", voidT, intPtrType, intPtrType, isSymT, int8T, symIntT);
+    isSymArgNo["_sym_build_write_memory"] = {2};
     SymOperators.push_back(&writeMemory);
 
     // xor ..?
     buildInsert = import(M, "_sym_build_insert", isSymT, isSymT, isSymT, int_type, int8T, symIntT);
+    isSymArgNo["_sym_build_insert"] = {0,1};
     SymOperators.push_back(&buildInsert);
 
     // same with input..?
     buildExtract = import(M, "_sym_build_extract", isSymT, isSymT, int_type, int_type, int8T, symIntT);
+    isSymArgNo["_sym_build_extract"] = {0};
     SymOperators.push_back(&buildExtract);
 
     // just a place-holder
@@ -216,8 +238,8 @@ Runtime::Runtime(Module &M) {
 
 #define LOAD_BINARY_OPERATOR_HANDLER(constant, name)                           \
   binaryOperatorHandlers[Instruction::constant] =                              \
-      import(M, "_sym_build_" #name, isSymT, isSymT, isSymT);
-
+      import(M, "_sym_build_" #name, isSymT, isSymT, isSymT);                  \
+      isSymArgNo["_sym_build_" #name] = {0,1};
   LOAD_BINARY_OPERATOR_HANDLER(Add, add)
   LOAD_BINARY_OPERATOR_HANDLER(Sub, sub)
   LOAD_BINARY_OPERATOR_HANDLER(Mul, mul)
@@ -243,7 +265,8 @@ Runtime::Runtime(Module &M) {
 
 #define LOAD_COMPARISON_HANDLER(constant, name)                                \
   comparisonHandlers[CmpInst::constant] =                                      \
-      import(M, "_sym_build_" #name, isSymT, isSymT, isSymT);
+      import(M, "_sym_build_" #name, isSymT, isSymT, isSymT);                  \
+      isSymArgNo["_sym_build_" #name] = {0,1};
 
   LOAD_COMPARISON_HANDLER(ICMP_EQ, equal)
   LOAD_COMPARISON_HANDLER(ICMP_NE, not_equal)
