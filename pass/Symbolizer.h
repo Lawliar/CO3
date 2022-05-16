@@ -227,8 +227,10 @@ public:
             retSymID = getSymIDFromSymExpr(nonPhiSymExpr);
         }else if(auto phiSymExpr = llvm::dyn_cast<llvm::PHINode>(V)){
             retSymID = getSymIDFromSymPhi(phiSymExpr);
+        }else if(auto symConst = llvm::dyn_cast<llvm::ConstantInt>(V); V->getType() == runtime.isSymT && symConst != nullptr && symConst->isZero() ){
+            return 0;
         }else{
-            llvm_unreachable("sym expr can only be of phiNode or call inst");
+            llvm_unreachable("sym expr can only be of phiNode or call inst or constant false");
         }
         return retSymID;
     }
@@ -240,22 +242,41 @@ public:
 
     unsigned int getSymIDFromSymPhi(llvm::PHINode * phi){
         auto it = phiSymbolicIDs.find(phi);
-        assert(it != phiSymbolicIDs.end());
+        if(it == phiSymbolicIDs.end()){
+            llvm::errs()<<*phi <<"does not have a sym id\n";
+            llvm_unreachable("");
+        }
         return it->second;
     }
     void replaceAllUseWith(llvm::Instruction * i, llvm::Value * v){
-        for(auto eachUser = i->user_begin(); eachUser != i->user_end(); eachUser++){
-            //users are suspicously  too many
-            eachUser->replaceUsesOfWith(i,v);
+        unsigned numUser1 = 0;
+        unsigned numUser2 = 0;
+        while(i->getNumUses() > 0) {
+            llvm::User* u = i->user_back();
+            u->replaceUsesOfWith(i, v);
+            numUser1++;
         }
-        assert(i->user_empty());
+        /*
+        for(auto eachUser = i->user_begin(); eachUser != i->user_end(); eachUser++){
+            eachUser->replaceUsesOfWith(i,v);
+            numUser1++;
+        }*/
+        for(auto eachUser = i->user_begin(); eachUser != i->user_end(); eachUser++){
+            numUser2++;
+        }
+        if( !i->user_empty()){
+            llvm::errs()<<numUser1<<'|'<<numUser2<<'\n';
+            llvm_unreachable("user not empty after replaced");
+        }
     }
-    bool isSymStatusType(llvm::Value * v){
-        llvm::Type * ty = v->getType();
-        llvm::CallInst * callInst = llvm::dyn_cast<llvm::CallInst>(v);
-        llvm::PHINode * phiNode = llvm::dyn_cast<llvm::PHINode>(v);
-        if((ty == runtime.isSymT) && (callInst != nullptr || phiNode != nullptr)){
-            return true;
+    bool isSymStatusType(unsigned arg_idx, llvm::StringRef calleename){
+        if(runtime.isSymArgNo.find(calleename.str()) != runtime.isSymArgNo.end()){
+            auto isSymArgs = runtime.isSymArgNo.at(calleename.str());
+            if(std::find(isSymArgs.begin(), isSymArgs.end(), arg_idx) != isSymArgs.end()){
+                return true;
+            }else{
+                return false;
+            }
         }else{
             return false;
         }
@@ -312,7 +333,9 @@ public:
       while(splited2OriginalBB.find(realOriginal) != splited2OriginalBB.end()){
           realOriginal = splited2OriginalBB.at(realOriginal);
       }
-      return llvm::cast<llvm::ConstantInt>(llvm::cast<llvm::CallInst>(realOriginal->getFirstNonPHI())->getOperand(0))->getZExtValue();
+      llvm::CallInst * call_to_notify_bb= llvm::cast<llvm::CallInst>(realOriginal->getFirstNonPHI());
+      llvm::ConstantInt * bbid = llvm::cast<llvm::ConstantInt>(call_to_notify_bb->getOperand(0));
+      return bbid->getZExtValue();
     }
   void MapOriginalBlock(llvm::BasicBlock * splitted, llvm::BasicBlock* original){
         llvm::BasicBlock* realOriginal = original;
@@ -416,6 +439,9 @@ public:
       }
       for(auto eachSymOp : phiSymbolicIDs){
           output<<eachSymOp->second<<"|"<<*eachSymOp->first<<'\n';
+      }
+      for(auto it = splited2OriginalBB.begin(); it != splited2OriginalBB.end();it++){
+          output<< "BB:"<<it->first->getName() <<"->BB"<<it->second->getName()<<'\n';
       }
   }
 

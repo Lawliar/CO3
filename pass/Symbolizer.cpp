@@ -435,13 +435,15 @@ void Symbolizer::visitStoreInst(StoreInst &I) {
         dataSymExpr = IRB.CreateCall(runtime.buildFloatToBits, {dataSymExpr});
         assignSymID(cast<CallInst>(dataSymExpr), getNextID());
     }
+    auto writeMemSymID = getNextID();
     auto writeMemCall = IRB.CreateCall(
         runtime.writeMemory,
         {IRB.CreatePtrToInt(I.getPointerOperand(), intPtrType),
          ConstantInt::get(intPtrType, dataLayout.getTypeStoreSize(dataType)),
          dataSymExpr,
-         ConstantInt::get(IRB.getInt8Ty(), dataLayout.isLittleEndian() ? 1 : 0)});
-    assignSymID(writeMemCall,getNextID());
+         ConstantInt::get(IRB.getInt8Ty(), dataLayout.isLittleEndian() ? 1 : 0),
+         ConstantHelper(runtime.symIntT, writeMemSymID)});
+    assignSymID(writeMemCall,writeMemSymID);
 }
 
 void Symbolizer::visitGetElementPtrInst(GetElementPtrInst &I) {
@@ -737,12 +739,16 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
     if (auto tmpExpr = dyn_cast<ConstantInt>(conditionExpr); tmpExpr != nullptr && tmpExpr->isZero())
         return;
 
+    BasicBlock* head = I.getParent();
     // Build a check whether we have a symbolic condition, to be used later.
     auto *haveSymbolicCondition = IRB.CreateICmpNE(
             conditionExpr, ConstantHelper(runtime.isSymT, 0));
     auto *constraintBlock = SplitBlockAndInsertIfThen(haveSymbolicCondition, &I,
             /* unreachable */ false);
-    MapOriginalBlock(constraintBlock->getParent(), I.getParent());
+    // then -> head
+    MapOriginalBlock(constraintBlock->getParent(), head);
+    // tail -> head
+    MapOriginalBlock(I.getParent(), head);
     // In the constraint block, we push one path constraint per case.
     IRB.SetInsertPoint(constraintBlock);
     for (auto &caseHandle : I.cases()) {
@@ -929,14 +935,12 @@ uint64_t Symbolizer::aggregateMemberOffset(Type *aggregateType,
 }
 unsigned int getTypeWidth(Type* ty, const DataLayout& dataLayout){
     unsigned int width = 0;
-    if(IntegerType * intType = dyn_cast<IntegerType>(ty)){
-        width =  dataLayout.getTypeAllocSize(intType);
-    }else if(PointerType * ptrType = dyn_cast<PointerType>(ty)){
+    if(PointerType * ptrType = dyn_cast<PointerType>(ty)){
         width = dataLayout.getPointerTypeSize(ptrType);
+        __asm__("nop");
     }
     else{
-        errs()<<*ty<<'\n';
-        llvm_unreachable("unhandled type");
+        width =  dataLayout.getTypeAllocSize(ty);
     }
     return width;
 }
@@ -1001,6 +1005,7 @@ void Symbolizer::shortCircuitExpressionUses() {
                         nullChecks[argIndex], symbolicComputation.firstInstruction,
                         /* unreachable */ false);
                 MapOriginalBlock(argExpressionBlock->getParent(), head );
+                MapOriginalBlock(symbolicComputation.firstInstruction->getParent(), head );
                 IRB.SetInsertPoint(argExpressionBlock);
             } else {
                 IRB.SetInsertPoint(symbolicComputation.firstInstruction);
@@ -1012,7 +1017,8 @@ void Symbolizer::shortCircuitExpressionUses() {
             Value *finalArgExpression;
             if (needRuntimeCheck) {
                 IRB.SetInsertPoint(symbolicComputation.firstInstruction);
-                auto *argPHI = IRB.CreatePHI(IRB.getInt8PtrTy(), 2);
+                auto *argPHI = IRB.CreatePHI(runtime.isSymT, 2);
+                assignSymIDPhi(argPHI, getNextID());
                 argPHI->addIncoming(originalArgExpression, argCheckBlock);
                 argPHI->addIncoming(newArgExpression, newArgExpression->getParent());
                 finalArgExpression = argPHI;
@@ -1029,8 +1035,10 @@ void Symbolizer::shortCircuitExpressionUses() {
         if (!symbolicComputation.lastInstruction->use_empty()) {
             IRB.SetInsertPoint(&tail->front());
             auto *finalExpression = IRB.CreatePHI(runtime.isSymT, 2);
+            assignSymIDPhi(finalExpression, getNextID());
             //symbolicComputation.lastInstruction->replaceAllUsesWith(finalExpression);
             replaceAllUseWith(symbolicComputation.lastInstruction, finalExpression);
+
             finalExpression->addIncoming(ConstantHelper(runtime.isSymT,0),
                                          head);
             finalExpression->addIncoming(
@@ -1097,32 +1105,23 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                     size_t arg_size = callInst->arg_size();
                     assert(arg_size == 2);
                     ConstantInt * idx_const = cast<ConstantInt>(callInst->getArgOperand(0));
-
                     Value * sym_arg = callInst->getArgOperand(1);
                     g.AddEdge(getSymIDFromSym(sym_arg),getSymIDFromSym(callInst), idx_const->getZExtValue()); //idx_const is the nth para that is set
                 }else if(calleeName.equals("_sym_set_return_expression")){
                     g.AddSymVertice(getSymIDFromSym(callInst), calleeName.str(),blockID);
                     size_t arg_size = callInst->arg_size();
                     assert(arg_size == 1);
-                    Value * arg = callInst->getArgOperand(0);
-                    g.AddEdge(getSymIDFromSym(arg),getSymIDFromSym(callInst), 0);
+                    g.AddEdge(getSymIDFromSym(callInst->getArgOperand(0)),getSymIDFromSym(callInst), 0);
                 }
             }else if(toExamine.find(calleeName) != toExamine.end() || toRemove.find(calleeName) != toRemove.end()){
-
-                errs()<<*callInst<<'\n';
                 unsigned userSymID = getSymIDFromSym(callInst);
                 auto userNode = g.AddSymVertice(userSymID, calleeName.str(),blockID);
                 std::map<unsigned,std::pair<unsigned,Value*> > pushed_arg;
                 for(auto arg_it = callInst->arg_begin() ; arg_it != callInst->arg_end() ; arg_it++){
                     Value * arg = *arg_it ;
                     unsigned arg_idx = callInst->getArgOperandNo(arg_it);
-                    if(isSymStatusType(arg)){
-                        unsigned arg_symid;
-                        if(auto constCheck = dyn_cast<ConstantInt>(arg); constCheck != nullptr && constCheck->isZero()){
-                            arg_symid = 0;
-                        }else{
-                            arg_symid = getSymIDFromSym(arg);
-                        }
+                    if(isSymStatusType(arg_idx, calleeName)){
+                        unsigned arg_symid = getSymIDFromSym(arg);
                         g.AddEdge(arg_symid,userSymID, arg_idx);
                     }else if(isa<Constant>(arg)){
                         if(ConstantInt * cont_int = dyn_cast<ConstantInt>(arg)){
@@ -1139,11 +1138,14 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                             g.AddEdge(conVert,userNode, arg_idx);
                         }
                     }else{
+                        //runtime values
                         Type* val_type = arg->getType();
                         unsigned int width = getTypeWidth(val_type,dataLayout);
                         auto runtimeVert = g.AddRuntimeVertice(width,blockID);
                         g.AddEdge(runtimeVert,userNode,arg_idx);
                         pushed_arg.insert(std::make_pair(arg_idx, std::make_pair(width,arg)));
+                        //sanity check
+                        assert(callInst->getOperand(callInst->getNumArgOperands() - 1)->getType() == runtime.symIntT);
                     }
                 }
                 if(toRemove.find(calleeName) != toRemove.end()){
@@ -1163,9 +1165,9 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                      incoming < totalIncoming; incoming++) {
                     BasicBlock *incomingBB = phi->getIncomingBlock(incoming);
 
-                    unsigned incomingBBID = cast<ConstantInt>(
-                            cast<CallInst>(incomingBB->getFirstNonPHI())->getOperand(0))->getZExtValue();
+                    unsigned incomingBBID = GetBBID(incomingBB);
                     Value *incomingValue = phi->getIncomingValue(incoming);
+
                     unsigned incomingValueSymID = getSymIDFromSym(incomingValue);
 
                     //assert(incomingValueSymID != 0); // incoming symid could be zero
@@ -1195,7 +1197,7 @@ void Symbolizer::outputCFG(llvm::Function & F, std::string filename) {
 
     raw_fd_ostream file(name, error);
     for (Function::iterator B_iter = F.begin(); B_iter != F.end(); ++B_iter){
-        unsigned long blockID = cast<ConstantInt>(cast<CallInst>(B_iter->getFirstNonPHI())->getOperand(0))->getZExtValue();
+        unsigned long blockID = GetBBID(&*B_iter);
         basicBlockMap.insert(std::make_pair(&*B_iter,blockID));
     }
     file << "digraph \"CFG for'" + F.getName() + "\' function\" {\n";
