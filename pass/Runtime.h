@@ -39,6 +39,9 @@ struct Runtime {
     llvm::StringRef symIDTyName;
     std::vector<SymFnT*> SymOperators;
     std::map<std::string, std::vector<unsigned> > isSymArgNo;
+    std::map<std::string, std::vector<unsigned> > runtimeArgNo;
+    std::map<std::string, std::vector<unsigned> > constArgNo;
+    std::map<std::string, std::vector<unsigned> > symIdArgNo;
 
     SymFnT buildInteger{};
     SymFnT buildInteger128{};

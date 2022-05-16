@@ -429,7 +429,7 @@ void Symbolizer::visitStoreInst(StoreInst &I) {
 
     //tryAlternative(IRB, I.getPointerOperand());
 
-    Value * dataSymExpr = getSymbolicExpressionOrCreate(I.getValueOperand(),IRB);
+    Value * dataSymExpr = getSymbolicExpression(I.getValueOperand());
     auto *dataType = I.getValueOperand()->getType();
     if (dataType->isFloatingPointTy()) {
         dataSymExpr = IRB.CreateCall(runtime.buildFloatToBits, {dataSymExpr});
@@ -1095,7 +1095,6 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
             if(toKeep.find(calleeName) != toKeep.end()){
                 continue;
             }else if(contextSetting.find(calleeName) != contextSetting.end()){
-
                 if(calleeName.equals("_sym_get_parameter_expression") ){
                     g.AddSymVertice(getSymIDFromSym(callInst), calleeName.str(),blockID);
                 }else if(calleeName.equals("_sym_get_return_expression")){
@@ -1123,7 +1122,8 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                     if(isSymStatusType(arg_idx, calleeName)){
                         unsigned arg_symid = getSymIDFromSym(arg);
                         g.AddEdge(arg_symid,userSymID, arg_idx);
-                    }else if(isa<Constant>(arg)){
+                    }else if(isConstantType(arg_idx, calleeName)){
+                        assert(isa<Constant>(arg));
                         if(ConstantInt * cont_int = dyn_cast<ConstantInt>(arg)){
                             unsigned int conWidth = dataLayout.getTypeAllocSize(cont_int->getType());
                             int64_t contValue = cont_int->getSExtValue();
@@ -1137,15 +1137,26 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                             auto conVert = g.AddConstVertice(contValue, conWidth);
                             g.AddEdge(conVert,userNode, arg_idx);
                         }
-                    }else{
-                        //runtime values
+                    }else if(isRuntimeType(arg_idx, calleeName)){
+                        // TODO:: this could also be constant
                         Type* val_type = arg->getType();
                         unsigned int width = getTypeWidth(val_type,dataLayout);
                         auto runtimeVert = g.AddRuntimeVertice(width,blockID);
                         g.AddEdge(runtimeVert,userNode,arg_idx);
                         pushed_arg.insert(std::make_pair(arg_idx, std::make_pair(width,arg)));
                         //sanity check
-                        assert(callInst->getOperand(callInst->getNumArgOperands() - 1)->getType() == runtime.symIntT);
+                        if(toRemove.find(calleeName) == toRemove.end()){
+                            assert(callInst->getOperand(callInst->getNumArgOperands() - 1)->getType() == runtime.symIntT);
+                        }
+
+                    }
+                    else if(isSymIdType(arg_idx, calleeName)){
+                        // no nothing
+                    }else{
+                        errs()<<"callinst:"<<*callInst<<'\n';
+                        errs()<<"argid:"<<arg_idx<<'\n';
+                        errs()<<"arg:"<<*arg<<'\n';
+                        llvm_unreachable("un-annoated arg");
                     }
                 }
                 if(toRemove.find(calleeName) != toRemove.end()){

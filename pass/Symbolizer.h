@@ -281,7 +281,42 @@ public:
             return false;
         }
     }
-
+    bool isConstantType(unsigned arg_idx, llvm::StringRef calleename){
+        if(runtime.constArgNo.find(calleename.str()) != runtime.constArgNo.end()){
+            auto constant_args = runtime.constArgNo.at(calleename.str());
+            if(std::find(constant_args.begin(), constant_args.end(), arg_idx) != constant_args.end()){
+                return true;
+            }else{
+                return false;
+            }
+        }else{
+            return false;
+        }
+    }
+    bool isRuntimeType(unsigned arg_idx, llvm::StringRef calleename){
+        if(runtime.runtimeArgNo.find(calleename.str()) != runtime.runtimeArgNo.end()){
+            auto runtime_args = runtime.runtimeArgNo.at(calleename.str());
+            if(std::find(runtime_args.begin(), runtime_args.end(), arg_idx) != runtime_args.end()){
+                return true;
+            }else{
+                return false;
+            }
+        }else{
+            return false;
+        }
+    }
+    bool isSymIdType(unsigned arg_idx, llvm::StringRef calleename){
+        if(runtime.symIdArgNo.find(calleename.str()) != runtime.symIdArgNo.end()){
+            auto symid_args = runtime.symIdArgNo.at(calleename.str());
+            if(std::find(symid_args.begin(), symid_args.end(), arg_idx) != symid_args.end()){
+                return true;
+            }else{
+                return false;
+            }
+        }else{
+            return false;
+        }
+    }
     bool isInterpretedFunc(llvm::StringRef f){
         for(auto each_f : interpretedFunctionNames){
             if(each_f.equals(f))
@@ -315,14 +350,6 @@ public:
             return false;
         }else{
             return true;
-        }
-    }
-    llvm::Value *getSymbolicExpressionOrCreate(llvm::Value *V,llvm::IRBuilder<> &IRB) {
-        auto expr = getSymbolicExpression(V);
-        if (auto symExpr = llvm::dyn_cast<llvm::ConstantInt>(expr); symExpr != nullptr && symExpr->isZero() ){
-            return createValueExpression(V, IRB);
-        }else{
-            return expr;
         }
     }
   bool isLittleEndian(llvm::Type *type) {
