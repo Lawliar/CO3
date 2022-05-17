@@ -42,6 +42,10 @@ struct Runtime {
     std::map<std::string, std::vector<unsigned> > runtimeArgNo;
     std::map<std::string, std::vector<unsigned> > constArgNo;
     std::map<std::string, std::vector<unsigned> > symIdArgNo;
+    std::vector<std::string> replaceToFalse;
+    std::vector<std::string> replaceToTrue;
+    std::vector<std::string> replaceToInput;
+    std::vector<std::string> replaceToLogicOr;
 
     SymFnT buildInteger{};
     SymFnT buildInteger128{};
