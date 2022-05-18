@@ -24,7 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "ddg/DataDepGraph.h"
+#include "dfg/DataFlowGraph.h"
 #include "Runtime.h"
 
 

@@ -34,7 +34,7 @@ public:
     {
         unsigned arg_no;
     };
-    typedef boost::adjacency_list<boost::listS, boost::vecS,  boost::directedS,
+    typedef boost::adjacency_list<boost::listS, boost::vecS,  boost::bidirectionalS,
             Vertex_Properties,Edge_Properties> Graph;
     typedef boost::graph_traits<Graph>::vertex_descriptor vertex_t;
     typedef boost::graph_traits<Graph>::vertex_iterator vertex_it;

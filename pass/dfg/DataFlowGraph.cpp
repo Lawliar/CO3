@@ -2,7 +2,7 @@
 // Created by charl on 4/8/2022.
 //
 
-#include "DataDepGraph.h"
+#include "DataFlowGraph.h"
 #include "boost/graph/graphviz.hpp"
 
 SymDepGraph::SymDepGraph(){

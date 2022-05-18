@@ -55,10 +55,10 @@ set(SERIAL_PORT_SOURCES
 set(SERIAL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/serialport)
 
 set(GRAPH_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/../pass/ddg/DataDepGraph.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/graph/RuntimeDataDepGraph.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../pass/dfg/DataFlowGraph.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/graph/RuntimeDataFlowGraph.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/graph/RuntimeCFG.cpp)
-set(GRAPH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../pass/ddg)
+set(GRAPH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../pass/dfg)
 set(RUNTIME_GRAPH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/graph)
 if (${QSYM_BACKEND})
   add_subdirectory(qsym_backend)
