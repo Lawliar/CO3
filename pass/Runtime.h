@@ -48,12 +48,15 @@ struct Runtime {
     std::vector<std::string> replaceToLogicOr;
 
     SymFnT buildInteger{};
+    SymFnT buildInteger1{};
     SymFnT buildInteger128{};
     SymFnT buildFloat{};
+    SymFnT buildFloat1{};
     SymFnT buildNullPointer{};
     SymFnT buildTrue{};
     SymFnT buildFalse{};
     SymFnT buildBool{};
+    SymFnT buildBool1{};
     SymFnT buildSExt{};
     SymFnT buildZExt{};
     SymFnT buildTrunc{};

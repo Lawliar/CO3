@@ -64,7 +64,7 @@ Runtime::Runtime(Module &M) {
     constArgNo["_sym_build_integer"] = {1};
     symIdArgNo["_sym_build_integer"] = {2};
 
-    buildInteger = import(M, "_sym_build_integer1", isSymT, int_type, int8T, symIntT);
+    buildInteger1 = import(M, "_sym_build_integer1", isSymT, int_type, int8T, symIntT);
     SymOperators.push_back(&buildInteger);
     constArgNo["_sym_build_integer1"] = {0,1};
     symIdArgNo["_sym_build_integer1"] = {2};
@@ -81,7 +81,7 @@ Runtime::Runtime(Module &M) {
     constArgNo["_sym_build_float"] = {1};
     symIdArgNo["_sym_build_float"] = {2};
 
-    buildFloat = import(M, "_sym_build_float1", isSymT, IRB.getDoubleTy(), IRB.getInt1Ty(), symIntT);
+    buildFloat1 = import(M, "_sym_build_float1", isSymT, IRB.getDoubleTy(), IRB.getInt1Ty(), symIntT);
     SymOperators.push_back(&buildFloat);
     constArgNo["_sym_build_float1"] = {0,1};
     symIdArgNo["_sym_build_float1"] = {2};
@@ -108,7 +108,7 @@ Runtime::Runtime(Module &M) {
     runtimeArgNo["_sym_build_bool"] = {0};
     symIdArgNo["_sym_build_bool"] = {1};
 
-    buildBool = import(M, "_sym_build_bool1", isSymT, IRB.getInt1Ty(), symIntT);
+    buildBool1 = import(M, "_sym_build_bool1", isSymT, IRB.getInt1Ty(), symIntT);
     SymOperators.push_back(&buildBool);
     constArgNo["_sym_build_bool1"] = {0};
     symIdArgNo["_sym_build_bool1"] = {1};

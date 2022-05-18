@@ -42,6 +42,7 @@ void Symbolizer::initializeFunctions(Function &F) {
 }
 
 void Symbolizer::insertBasicBlockNotification(llvm::BasicBlock &B) {
+
     IRBuilder<> IRB(&*B.getFirstInsertionPt());
     llvm::ConstantInt * valueToInsert = ConstantInt::get(runtime.intPtrType, BBID);
     BBID++;
@@ -1123,7 +1124,12 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                         unsigned arg_symid = getSymIDFromSym(arg);
                         g.AddEdge(arg_symid,userSymID, arg_idx);
                     }else if(isConstantType(arg_idx, calleeName)){
-                        assert(isa<Constant>(arg));
+                        if(!isa<Constant>(arg)){
+                            errs()<<"callinst:"<<*callInst<<'\n';
+                            errs()<<"argid:"<<arg_idx<<'\n';
+                            errs()<<"arg:"<<*arg<<'\n';
+                            llvm_unreachable("annotated constant is not constant\n");
+                        }
                         if(ConstantInt * cont_int = dyn_cast<ConstantInt>(arg)){
                             unsigned int conWidth = dataLayout.getTypeAllocSize(cont_int->getType());
                             int64_t contValue = cont_int->getSExtValue();
