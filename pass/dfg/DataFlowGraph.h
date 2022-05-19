@@ -53,23 +53,24 @@ public:
     template <class symIDMap,class opMap, class nodeTypeMap, class constValueMap, class bitWidthMap,class BBMap>
     class node_writer {
     public:
-        node_writer(symIDMap s, opMap o,nodeTypeMap n,constValueMap c ,bitWidthMap b, BBMap bb) : sm(s),om(o),nm(n),cm(c),bm(b),bbm(bb){}
+        node_writer(symIDMap s, opMap o,nodeTypeMap n,constValueMap c ,bitWidthMap b, BBMap bb, bool visualize) : sm(s),om(o),nm(n),cm(c),bm(b),bbm(bb), visualize(visualize){}
         template <class Node>
-
-         void operator()(std::ostream &out, const Node& n) const {
-            out << "[label=\"" << symIDPrefix << ":"<<sm[n] <<'|'<< opPrefix <<":"<<om[n] <<'\n' \
+        void operator()(std::ostream &out, const Node& n) const {
+            if(visualize){
+                out << "[label=\"" << symIDPrefix << ":"<<sm[n] <<'|'<< opPrefix <<":"<<om[n] <<'\n' \
                                     <<nodeTPrefix<<":"<<nm[n] <<'|' <<constantValuePrefix<<":"<<cm[n] <<'|' <<widthPrefix<<":"<<bm[n] <<'\n' \
                                     <<BasicBlockPrefix<<":"<<bbm[n]<< "\"]";
-        }/*
-        void operator()(std::ostream &out, const Node& n) const {
-            out << "["                            \
+            }else{
+                out << "["                            \
                     << symIDPrefix           <<"="  <<sm[n] <<',' \
                     << opPrefix           <<"="  <<om[n] <<','  \
                     <<nodeTPrefix         <<"="  <<nm[n] <<',' \
                     <<constantValuePrefix <<"="  <<cm[n] <<','  \
                     <<widthPrefix         <<"="  <<bm[n] <<',' \
                     <<BasicBlockPrefix    <<"="  <<bbm[n] << "]";
-        }*/
+            }
+
+        }
 
     private:
         symIDMap sm;
@@ -78,12 +79,13 @@ public:
         constValueMap cm;
         bitWidthMap bm;
         BBMap bbm;
+        bool visualize;
     };
 
     template <class symIDMap,class opMap, class nodeTypeMap, class constValueMap, class bitWidthMap,class BBMap>
     inline node_writer<symIDMap,opMap,nodeTypeMap,constValueMap,bitWidthMap,BBMap>
-    make_node_writer(symIDMap s, opMap o,nodeTypeMap n,constValueMap c ,bitWidthMap b, BBMap bb) {
-        return node_writer<symIDMap,opMap,nodeTypeMap,constValueMap,bitWidthMap,BBMap>(s,o,n,c,b,bb);
+    make_node_writer(symIDMap s, opMap o,nodeTypeMap n,constValueMap c ,bitWidthMap b, BBMap bb, bool v) {
+        return node_writer<symIDMap,opMap,nodeTypeMap,constValueMap,bitWidthMap,BBMap>(s,o,n,c,b,bb,v);
     }
 
 

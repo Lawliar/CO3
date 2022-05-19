@@ -83,8 +83,8 @@ void SymDepGraph::writeToFile(std::string filename){
                                            boost::get(&Vertex_Properties::nodeType,graph),
                                            boost::get(&Vertex_Properties::const_value,graph),
                                            boost::get(&Vertex_Properties::bitwidth,graph),
-                                           boost::get(&Vertex_Properties::BBID,graph)
-                                           ),
+                                           boost::get(&Vertex_Properties::BBID,graph),
+                                           false),
                           boost::make_label_writer(boost::get(&Edge_Properties::arg_no,graph))
                           );
 
