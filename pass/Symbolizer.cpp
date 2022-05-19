@@ -323,8 +323,7 @@ void Symbolizer::visitSelectInst(SelectInst &I) {
     IRBuilder<> IRB(&I);
     auto runtimeCall = buildRuntimeCall(IRB, runtime.pushPathConstraint,
                                         {{I.getCondition(), true},
-                                         {I.getCondition(), false},
-                                         {getTargetPreferredInt(&I), false}});
+                                         {I.getCondition(), false}});
     registerSymbolicComputation(runtimeCall);
 }
 
@@ -368,8 +367,7 @@ void Symbolizer::visitBranchInst(BranchInst &I) {
   IRBuilder<> IRB(&I);
   auto runtimeCall = buildRuntimeCall(IRB, runtime.pushPathConstraint,
                                       {{I.getCondition(), true},
-                                       {I.getCondition(), false},
-                                       {getTargetPreferredInt(&I), false}});
+                                       {I.getCondition(), false}});
   registerSymbolicComputation(runtimeCall);
 }
 
@@ -760,7 +758,7 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
         assignSymID(caseConstraint, getNextID());
         auto pushConstraintId = getNextID();
         auto callToPushConstraint = IRB.CreateCall(runtime.pushPathConstraint,
-                       {caseConstraint, caseTaken, getTargetPreferredInt(&I), ConstantHelper(runtime.symIntT, pushConstraintId)});
+                       {caseConstraint, caseTaken, ConstantHelper(runtime.symIntT, pushConstraintId)});
         assignSymID(callToPushConstraint, pushConstraintId);
     }
 }

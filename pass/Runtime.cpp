@@ -219,12 +219,12 @@ Runtime::Runtime(Module &M) {
     replaceToInput.push_back("_sym_build_bool_to_bits");
 
     // no ret
-    pushPathConstraint = import(M, "_sym_build_path_constraint", voidT, isSymT, IRB.getInt1Ty(), intPtrType, symIntT);
+    pushPathConstraint = import(M, "_sym_build_path_constraint", voidT, isSymT, IRB.getInt1Ty(), symIntT);
     SymOperators.push_back(&pushPathConstraint);
     isSymArgNo["_sym_build_path_constraint"] = {0};
     runtimeArgNo["_sym_build_path_constraint"] = {1};
-    constArgNo["_sym_build_path_constraint"] = {2};
-    symIdArgNo["_sym_build_path_constraint"] = {3};
+    //constArgNo["_sym_build_path_constraint"] = {2};
+    symIdArgNo["_sym_build_path_constraint"] = {2};
 
 
     // no ret
