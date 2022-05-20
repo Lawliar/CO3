@@ -120,7 +120,7 @@ public:
   void handleFunctionCall(llvm::CallBase &I, llvm::Instruction *returnPoint);
 
 
-  void createDDGAndReplace(llvm::Function&,std::string);
+  void createDFGAndReplace(llvm::Function&,std::string);
   void outputCFG(llvm::Function&,std::string);
   //
   // Implementation of InstVisitor
@@ -492,7 +492,7 @@ public:
   /// Compute the offset of a member in a (possibly nested) aggregate.
   uint64_t aggregateMemberOffset(llvm::Type *aggregateType,
                                  llvm::ArrayRef<unsigned> indices) const;
-
+  void addTryAlternativeToTheGraph();
   const Runtime& runtime;
   const llvm::LoopInfo & loopinfo;
   /// The data layout of the currently processed module.
@@ -541,9 +541,10 @@ public:
     std::map<llvm::BasicBlock*, llvm::BasicBlock*> splited2OriginalBB;
     std::map<llvm::BasicBlock*, int> originalBB2ID;
 
+    std::map<std::pair<unsigned, unsigned>, std::pair<llvm::Value*, llvm::Value *> > tryAlternativePairs;
     SymDepGraph g;
-
-    unsigned int BBID = 1;
+    const unsigned initialBBID = 1;
+    unsigned int BBID = initialBBID;
     unsigned int callID = 1;
     std::set<llvm::StringRef> interpretedFunctionNames;
     void addSymIDToCall(llvm::CallBase&);

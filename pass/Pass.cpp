@@ -86,7 +86,7 @@ bool SymbolizePass::runOnFunction(Function &F) {
         errs()<< outDir<<'\n';
         llvm_unreachable("output dir does not exist");
     }
-    boost::filesystem::path ddgFile = dir / (F.getName() + "_ddg.dot").str();
+    boost::filesystem::path ddgFile = dir / (F.getName() + "_dfg.dot").str();
     boost::filesystem::path cfgFile = dir / (F.getName() + "_cfg.dot").str();
     boost::filesystem::path intermediateFile = dir / (F.getName() + "_intermediate.ll").str();
 
@@ -121,7 +121,7 @@ bool SymbolizePass::runOnFunction(Function &F) {
 
     // end of output intermediate info
 
-    symbolizer.createDDGAndReplace(F,ddgFile.string());
+    symbolizer.createDFGAndReplace(F,ddgFile.string());
 
 
     assert(!verifyFunction(F, &errs()) &&

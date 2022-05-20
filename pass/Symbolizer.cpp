@@ -416,7 +416,7 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
     IRBuilder<> IRB(&I);
 
     auto *addr = I.getPointerOperand();
-    //tryAlternative(IRB, addr);
+    tryAlternative(IRB, addr);
 
     auto *dataType = I.getType();
     auto readMemSymID = getNextID();
@@ -438,7 +438,7 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
 void Symbolizer::visitStoreInst(StoreInst &I) {
     IRBuilder<> IRB(&I);
 
-    //tryAlternative(IRB, I.getPointerOperand());
+    tryAlternative(IRB, I.getPointerOperand());
 
     Value * dataSymExpr = getSymbolicExpression(I.getValueOperand());
     auto *dataType = I.getValueOperand()->getType();
@@ -916,10 +916,15 @@ Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
 
 void Symbolizer::tryAlternative(IRBuilder<> &IRB, Value *V) {
     auto *destExpr = getSymbolicExpression(V);
-    if (destExpr != nullptr) {
+
+    if (auto tmpExpr = dyn_cast<llvm::ConstantInt>(destExpr); !(tmpExpr != nullptr && tmpExpr->isZero()) ) {
+        unsigned tryAlternativeSymID =  getNextID();
         // this call is just a place holder for DDG construction, will be removed later
-        auto *destAssertion = IRB.CreateCall(runtime.tryAlternative,{destExpr, V});
-        assignSymID(destAssertion, getNextID());
+        //auto *destAssertion = IRB.CreateCall(runtime.tryAlternative,{destExpr, V});
+        //assignSymID(destAssertion,tryAlternativeID);
+        (void)IRB;
+        unsigned tryAlternativeBBID = GetBBID(IRB.GetInsertBlock());
+        tryAlternativePairs[std::make_pair(tryAlternativeSymID,tryAlternativeBBID)] = std::make_pair(destExpr, V);
     }
 }
 
@@ -1059,7 +1064,51 @@ void Symbolizer::shortCircuitExpressionUses() {
     }
 }
 
-void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
+void Symbolizer::addTryAlternativeToTheGraph(){
+    for(auto eachTryAlternative: tryAlternativePairs){
+        unsigned tryAlterntiveSymID = eachTryAlternative.first.first;
+        unsigned tryAlternativeBBID = eachTryAlternative.first.second;
+        auto tryAlternativeVertice = g.AddSymVertice(tryAlterntiveSymID,"_sym_try_alternative", tryAlternativeBBID);
+
+        unsigned operandSymID = getSymIDFromSym(eachTryAlternative.second.first);
+        assert(operandSymID != 0);// we've already passed this
+        auto symOperandVertice = g.GetVerticeBySymID(operandSymID);
+        g.AddEdge(*symOperandVertice,tryAlternativeVertice, 1);
+        Value* concreteVal = eachTryAlternative.second.second;
+        if(isa<Constant>(concreteVal)){
+            if(ConstantInt * cont_int = dyn_cast<ConstantInt>(concreteVal)){
+                unsigned int conWidth = dataLayout.getTypeAllocSize(cont_int->getType());
+                int64_t contValue = cont_int->getSExtValue();
+                // constant's BBID is the same with its user(maybe we can merge?)
+                auto conVert = g.AddConstVertice(contValue, conWidth);
+                g.AddEdge(conVert,tryAlternativeVertice, 1);
+            }else if(ConstantFP* const_fp = dyn_cast<ConstantFP>(concreteVal)){
+                unsigned int conWidth = dataLayout.getTypeAllocSize(const_fp->getType());
+                double contValue = const_fp->getValueAPF().convertToDouble();
+                // constant's BBID is the same with its user(maybe we can merge?)
+                auto conVert = g.AddConstVertice(contValue, conWidth);
+                g.AddEdge(conVert,tryAlternativeVertice, 1);
+            }
+        }else{
+            Type* val_type = concreteVal->getType();
+            unsigned runtimeValueBBID = 0;
+            if(isa<Argument>(concreteVal)){
+                runtimeValueBBID = initialBBID;
+            }else if(isa<Instruction>(concreteVal)){
+                runtimeValueBBID = GetBBID(cast<Instruction>(concreteVal)->getParent());
+            }else{
+                errs()<<"argid:"<<1<<'\n';
+                errs()<<"arg:"<<*concreteVal<<'\n';
+                llvm_unreachable("runtime value is neither a parameter nor an instruction. \n");
+            }
+            unsigned int width = getTypeWidth(val_type,dataLayout);
+            auto runtimeVert = g.AddRuntimeVertice(width,runtimeValueBBID);
+            g.AddEdge(runtimeVert,tryAlternativeVertice,1);
+        }
+    }
+}
+
+void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
     std::set<StringRef> symOperators;
     for(auto eachSymOperation: runtime.SymOperators){
         symOperators.insert(eachSymOperation->getCallee()->getName());
@@ -1125,7 +1174,6 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
 
                 unsigned userSymID = getSymIDFromSym(callInst);
                 auto userNode = g.AddSymVertice(userSymID, calleeName.str(),blockID);
-                std::map<unsigned,std::pair<unsigned,Value*> > pushed_arg;
                 for(auto arg_it = callInst->arg_begin() ; arg_it != callInst->arg_end() ; arg_it++){
                     Value * arg = *arg_it ;
                     unsigned arg_idx = callInst->getArgOperandNo(arg_it);
@@ -1155,7 +1203,12 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                     }else if(isRuntimeType(arg_idx, calleeName)){
                         if(isa<Constant>(arg)){
                             // even if it's annotated as runtime val, it still can be constant.
-                            assert(calleeName.equals("_sym_build_integer") || calleeName.equals("_sym_build_float") || calleeName.equals("_sym_build_bool") );
+                            if( not(calleeName.equals("_sym_build_integer") || calleeName.equals("_sym_build_float") || calleeName.equals("_sym_build_bool") ) ){
+                                errs()<<"callinst:"<<*callInst<<'\n';
+                                errs()<<"argid:"<<arg_idx<<'\n';
+                                errs()<<"arg:"<<*arg<<'\n';
+                                llvm_unreachable("annotated runtime is unexpectedly a constant. \n");
+                            }
                             if(ConstantInt * cont_int = dyn_cast<ConstantInt>(arg)){
                                 unsigned int conWidth = dataLayout.getTypeAllocSize(cont_int->getType());
                                 int64_t contValue = cont_int->getSExtValue();
@@ -1172,17 +1225,26 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                             toReplaceToTrue.push_back(callInst);
                         }else{
                             Type* val_type = arg->getType();
+                            unsigned runtimeValueBBID = 0;
+                            if(isa<Argument>(arg)){
+                                runtimeValueBBID = initialBBID;
+                            }else if(isa<Instruction>(arg)){
+                                runtimeValueBBID = GetBBID(cast<Instruction>(arg)->getParent());
+                            }else{
+                                errs()<<"callinst:"<<*callInst<<'\n';
+                                errs()<<"argid:"<<arg_idx<<'\n';
+                                errs()<<"arg:"<<*arg<<'\n';
+                                llvm_unreachable("runtime value is neither a parameter nor an instruction. \n");
+                            }
+
                             unsigned int width = getTypeWidth(val_type,dataLayout);
-                            auto runtimeVert = g.AddRuntimeVertice(width,blockID);
+                            auto runtimeVert = g.AddRuntimeVertice(width,runtimeValueBBID);
                             g.AddEdge(runtimeVert,userNode,arg_idx);
-                            pushed_arg.insert(std::make_pair(arg_idx, std::make_pair(width,arg)));
                             //sanity check
                             if(find(runtime.replaceToNone.begin(), runtime.replaceToNone.end(), calleeName) == runtime.replaceToNone.end()){
                                 assert(callInst->getOperand(callInst->getNumArgOperands() - 1)->getType() == runtime.symIntT);
                             }
                         }
-
-
                     }
                     else if(isSymIdType(arg_idx, calleeName)){
                         // no nothing
@@ -1205,6 +1267,7 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
             }
         }
     }
+    addTryAlternativeToTheGraph();
     //finish phi nodes
     for (auto &basicBlock : F){
         for(auto & eachInst : basicBlock) {
@@ -1230,8 +1293,6 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                                 ConstantHelper(runtime.int8T, incoming),
                                 incomingBB);
                     }
-
-
 
                     unsigned incomingValueSymID = getSymIDFromSym(incomingValue);
                     //assert(incomingValueSymID != 0); // incoming symid could be zero
