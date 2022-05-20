@@ -20,8 +20,13 @@ constantValuePrefix = "cv"
 widthPrefix         = "bw"
 BasicBlockPrefix    = "BB"
 
-setLabel = False
+setLabel = True
 
+def ifOutEdge(node, edges):
+    for eachEdge in edges:
+        if node == eachEdge[0]:
+            return True
+    return False
 def nodeAttrsToLabel(d):
     return symIDPrefix + ":" + d[symIDPrefix] +'|'+ opPrefix +":"+d[opPrefix] +'\n' +nodeTPrefix+":"+d[nodeTPrefix] +'|' +constantValuePrefix+":"+d[constantValuePrefix] +'|' +widthPrefix+":"+d[widthPrefix] +'\n' +BasicBlockPrefix+":"+d[BasicBlockPrefix]
 def main():
@@ -46,11 +51,15 @@ def main():
             cur_bbid = each_dfg_node.attr['BB']
             if(cur_bbid == bbid):
                 nodes.append(each_dfg_node)
-        sub = cdfg.subgraph(nodes, name="cluster"+bbid,label="BB:"+bbid)
+        try:
+            sub = cdfg.subgraph(nodes, name="cluster"+bbid,label="BB:"+bbid)
+        except:
+            embed()
         for each_dfg_node in nodes:
             cdfg.add_node(each_dfg_node)
             if setLabel:
-                cdfg.get_node(each_dfg_node).attr["label"] = nodeAttrsToLabel(dfg.get_node(each_dfg_node).attr)
+                if(not ifOutEdge(each_dfg_node, cdfg.edges())):
+                    cdfg.get_node(each_dfg_node).attr["label"] = nodeAttrsToLabel(dfg.get_node(each_dfg_node).attr)
             for each_original_attr in dfg.get_node(each_dfg_node).attr:
                 cdfg.get_node(each_dfg_node).attr[each_original_attr] = dfg.get_node(each_dfg_node).attr[each_original_attr]
     
