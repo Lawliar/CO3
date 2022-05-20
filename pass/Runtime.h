@@ -42,6 +42,7 @@ struct Runtime {
     std::map<std::string, std::vector<unsigned> > runtimeArgNo;
     std::map<std::string, std::vector<unsigned> > constArgNo;
     std::map<std::string, std::vector<unsigned> > symIdArgNo;
+    std::vector<std::string> replaceToNone;
     std::vector<std::string> replaceToFalse;
     std::vector<std::string> replaceToTrue;
     std::vector<std::string> replaceToInput;
@@ -86,6 +87,7 @@ struct Runtime {
     SymFnT buildExtract{};
     SymFnT notifyCall{};
     SymFnT notifyRet{};
+    SymFnT notifyPhi{};
     SymFnT notifyBasicBlock{};
     SymFnT tryAlternative{};
 

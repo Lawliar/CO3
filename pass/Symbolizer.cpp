@@ -43,10 +43,14 @@ void Symbolizer::initializeFunctions(Function &F) {
 
 void Symbolizer::insertBasicBlockNotification(llvm::BasicBlock &B) {
 
-    IRBuilder<> IRB(&*B.getFirstInsertionPt());
-    llvm::ConstantInt * valueToInsert = ConstantInt::get(runtime.intPtrType, BBID);
+    originalBB2ID[&B] = BBID;
     BBID++;
-    IRB.CreateCall(runtime.notifyBasicBlock,valueToInsert);
+    if(loopinfo.getLoopFor(&B) != nullptr){
+        IRBuilder<> IRB(&*B.getFirstInsertionPt());
+        llvm::ConstantInt * valueToInsert = ConstantInt::get(runtime.intPtrType, BBID);
+        IRB.CreateCall(runtime.notifyBasicBlock,valueToInsert);
+    }
+
 }
 
 void Symbolizer::finalizePHINodes() {
@@ -229,6 +233,7 @@ void Symbolizer::addSymIDToCall(CallBase  & I){
     assignSymID(symcall, symID);
     //I.replaceAllUsesWith(symcall);
     replaceAllUseWith(&I, symcall);
+    I.eraseFromParent();
 }
 void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
     auto *callee = I.getCalledFunction();
@@ -690,7 +695,7 @@ void Symbolizer::visitPHINode(PHINode &I) {
     IRBuilder<> IRB(&I);
     unsigned numIncomingValues = I.getNumIncomingValues();
     auto *exprPHI = IRB.CreatePHI(runtime.isSymT, numIncomingValues);
-    assignSymIDPhi(exprPHI, getNextID());
+    assignSymIDPhi(exprPHI, getNextID(), true);
     for (unsigned incoming = 0; incoming < numIncomingValues; incoming++) {
         exprPHI->addIncoming(
                 // The null pointer will be replaced in finalizePHINodes.
@@ -1017,7 +1022,7 @@ void Symbolizer::shortCircuitExpressionUses() {
             if (needRuntimeCheck) {
                 IRB.SetInsertPoint(symbolicComputation.firstInstruction);
                 auto *argPHI = IRB.CreatePHI(runtime.isSymT, 2);
-                assignSymIDPhi(argPHI, getNextID());
+                assignSymIDPhi(argPHI, getNextID(), false);
                 argPHI->addIncoming(originalArgExpression, argCheckBlock);
                 argPHI->addIncoming(newArgExpression, newArgExpression->getParent());
                 finalArgExpression = argPHI;
@@ -1034,7 +1039,7 @@ void Symbolizer::shortCircuitExpressionUses() {
         if (!symbolicComputation.lastInstruction->use_empty()) {
             IRB.SetInsertPoint(&tail->front());
             auto *finalExpression = IRB.CreatePHI(runtime.isSymT, 2);
-            assignSymIDPhi(finalExpression, getNextID());
+            assignSymIDPhi(finalExpression, getNextID(),false);
             //symbolicComputation.lastInstruction->replaceAllUsesWith(finalExpression);
             replaceAllUseWith(symbolicComputation.lastInstruction, finalExpression);
 
@@ -1048,31 +1053,28 @@ void Symbolizer::shortCircuitExpressionUses() {
 }
 
 void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
-    std::set<StringRef> toKeep{"_sym_notify_call", "_sym_notify_ret","_sym_notify_basic_block"};
-    std::set<StringRef> contextSetting{"_sym_set_parameter_expression", "_sym_get_parameter_expression",
-                                       "_sym_set_return_expression","_sym_get_return_expression"};
-    std::set<StringRef> toRemove{"_sym_try_alternative"};
-    std::vector<CallInst*> toBeRemoved;
-    std::set<StringRef> toExamine;
-
+    std::set<StringRef> symOperators;
     for(auto eachSymOperation: runtime.SymOperators){
-        if(eachSymOperation->getCallee()->getName().startswith("_sym_build")){
-            toExamine.insert(eachSymOperation->getCallee()->getName());
-        }
+        symOperators.insert(eachSymOperation->getCallee()->getName());
     }
     for(auto eachSymOperation:runtime.comparisonHandlers){
         if(eachSymOperation.getCallee() == nullptr)
             continue;
-        toExamine.insert(eachSymOperation.getCallee()->getName());
+        symOperators.insert(eachSymOperation.getCallee()->getName());
     }
     for(auto eachSymOperation:runtime.binaryOperatorHandlers){
         if(eachSymOperation.getCallee() == nullptr)
             continue;
-        toExamine.insert(eachSymOperation.getCallee()->getName());
+        symOperators.insert(eachSymOperation.getCallee()->getName());
     }
     for(auto eachInterpretedFunction: interpretedFunctionNames){
-        toExamine.insert(eachInterpretedFunction);
+        symOperators.insert(eachInterpretedFunction);
     }
+
+    std::vector<CallInst*> toReplaceToNone;
+    std::vector<CallInst*> toReplaceToTrue;
+    std::vector<CallInst*> toReplaceToInput;
+    std::vector<CallInst*> toReplaceToOr;
     for (auto &basicBlock : F){
         unsigned blockID = GetBBID(&basicBlock);
         for(auto & eachInst : basicBlock){
@@ -1091,9 +1093,11 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                 continue;
             auto calleeName = callee->getName();
             IRBuilder<> IRB(callInst);
-            if(toKeep.find(calleeName) != toKeep.end()){
-                continue;
-            }else if(contextSetting.find(calleeName) != contextSetting.end()){
+            if(symOperators.find(calleeName) != symOperators.end()){
+                // some special case
+                if(calleeName.equals("_sym_notify_basic_block") || calleeName.equals("_sym_notify_call") || calleeName.equals("_sym_notify_ret") ){
+                    continue;
+                }
                 if(calleeName.equals("_sym_get_parameter_expression") ){
                     g.AddSymVertice(getSymIDFromSym(callInst), calleeName.str(),blockID);
                 }else if(calleeName.equals("_sym_get_return_expression")){
@@ -1111,7 +1115,7 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                     assert(arg_size == 1);
                     g.AddEdge(getSymIDFromSym(callInst->getArgOperand(0)),getSymIDFromSym(callInst), 0);
                 }
-            }else if(toExamine.find(calleeName) != toExamine.end() || toRemove.find(calleeName) != toRemove.end()){
+
                 unsigned userSymID = getSymIDFromSym(callInst);
                 auto userNode = g.AddSymVertice(userSymID, calleeName.str(),blockID);
                 std::map<unsigned,std::pair<unsigned,Value*> > pushed_arg;
@@ -1142,16 +1146,35 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                             g.AddEdge(conVert,userNode, arg_idx);
                         }
                     }else if(isRuntimeType(arg_idx, calleeName)){
-                        // TODO:: this could also be constant
-                        Type* val_type = arg->getType();
-                        unsigned int width = getTypeWidth(val_type,dataLayout);
-                        auto runtimeVert = g.AddRuntimeVertice(width,blockID);
-                        g.AddEdge(runtimeVert,userNode,arg_idx);
-                        pushed_arg.insert(std::make_pair(arg_idx, std::make_pair(width,arg)));
-                        //sanity check
-                        if(toRemove.find(calleeName) == toRemove.end()){
-                            assert(callInst->getOperand(callInst->getNumArgOperands() - 1)->getType() == runtime.symIntT);
+                        if(isa<Constant>(arg)){
+                            // even if it's annotated as runtime val, it still can be constant.
+                            assert(calleeName.equals("_sym_build_integer") || calleeName.equals("_sym_build_float") || calleeName.equals("_sym_build_bool") );
+                            if(ConstantInt * cont_int = dyn_cast<ConstantInt>(arg)){
+                                unsigned int conWidth = dataLayout.getTypeAllocSize(cont_int->getType());
+                                int64_t contValue = cont_int->getSExtValue();
+                                // constant's BBID is the same with its user(maybe we can merge?)
+                                auto conVert = g.AddConstVertice(contValue, conWidth);
+                                g.AddEdge(conVert,userNode, arg_idx);
+                            }else if(ConstantFP* const_fp = dyn_cast<ConstantFP>(arg)){
+                                unsigned int conWidth = dataLayout.getTypeAllocSize(const_fp->getType());
+                                double contValue = const_fp->getValueAPF().convertToDouble();
+                                // constant's BBID is the same with its user(maybe we can merge?)
+                                auto conVert = g.AddConstVertice(contValue, conWidth);
+                                g.AddEdge(conVert,userNode, arg_idx);
+                            }
+                            toReplaceToTrue.push_back(callInst);
+                        }else{
+                            Type* val_type = arg->getType();
+                            unsigned int width = getTypeWidth(val_type,dataLayout);
+                            auto runtimeVert = g.AddRuntimeVertice(width,blockID);
+                            g.AddEdge(runtimeVert,userNode,arg_idx);
+                            pushed_arg.insert(std::make_pair(arg_idx, std::make_pair(width,arg)));
+                            //sanity check
+                            if(find(runtime.replaceToNone.begin(), runtime.replaceToNone.end(), calleeName) == runtime.replaceToNone.end()){
+                                assert(callInst->getOperand(callInst->getNumArgOperands() - 1)->getType() == runtime.symIntT);
+                            }
                         }
+
 
                     }
                     else if(isSymIdType(arg_idx, calleeName)){
@@ -1163,8 +1186,14 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
                         llvm_unreachable("un-annoated arg");
                     }
                 }
-                if(toRemove.find(calleeName) != toRemove.end()){
-                    toBeRemoved.push_back(callInst);
+                if(find(runtime.replaceToNone.begin(), runtime.replaceToNone.end(), calleeName) != runtime.replaceToNone.end()){
+                    toReplaceToNone.push_back(callInst);
+                }else if(find(runtime.replaceToTrue.begin(), runtime.replaceToTrue.end(), calleeName) != runtime.replaceToTrue.end()){
+                    toReplaceToTrue.push_back(callInst);
+                }else if(find(runtime.replaceToInput.begin(), runtime.replaceToInput.end(), calleeName) != runtime.replaceToInput.end()){
+                    toReplaceToInput.push_back(callInst);
+                }else if(find(runtime.replaceToLogicOr.begin(), runtime.replaceToLogicOr.end(), calleeName) != runtime.replaceToLogicOr.end()){
+                    toReplaceToOr.push_back(callInst);
                 }
             }
         }
@@ -1175,16 +1204,29 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
             if (PHINode *symPhi = dyn_cast<PHINode>(&eachInst); symPhi != nullptr &&
                                                                 phiSymbolicIDs.find(symPhi) != phiSymbolicIDs.end()) {
                 PHINode *phi = phiSymbolicIDs.find(symPhi)->first;
+                PHINode* reportingPhi = nullptr;
+                unsigned numIncomingValue = phi->getNumIncomingValues();
                 unsigned userSymID = getSymIDFromSymPhi(phi);
-                for (unsigned incoming = 0, totalIncoming = phi->getNumIncomingValues();
-                     incoming < totalIncoming; incoming++) {
-                    BasicBlock *incomingBB = phi->getIncomingBlock(incoming);
 
+                if(phiSymbolicIDs.find(symPhi)->second.second){
+                    IRBuilder<> IRB(&*phi->getParent()->getFirstInsertionPt());
+                    reportingPhi = IRB.CreatePHI(runtime.int8T, numIncomingValue);
+                    IRB.CreateCall(runtime.notifyPhi,
+                                   {reportingPhi, ConstantHelper(runtime.symIntT, userSymID)});
+                }
+                for (unsigned incoming = 0, totalIncoming =numIncomingValue;incoming < totalIncoming; incoming++) {
+                    BasicBlock *incomingBB = phi->getIncomingBlock(incoming);
                     unsigned incomingBBID = GetBBID(incomingBB);
                     Value *incomingValue = phi->getIncomingValue(incoming);
+                    if(reportingPhi != nullptr){
+                        reportingPhi->addIncoming(
+                                ConstantHelper(runtime.int8T, incoming),
+                                incomingBB);
+                    }
+
+
 
                     unsigned incomingValueSymID = getSymIDFromSym(incomingValue);
-
                     //assert(incomingValueSymID != 0); // incoming symid could be zero
                     // add incoming BBID as edge property just to double check
                     g.AddEdge(incomingValueSymID, userSymID, incomingBBID);
@@ -1192,8 +1234,33 @@ void Symbolizer::createDDGAndReplace(llvm::Function& F, std::string filename){
             }
         }
     }
-    for(auto eachToBeRemoved: toBeRemoved){
+    for(auto eachToBeRemoved: toReplaceToNone){
         eachToBeRemoved->eraseFromParent();
+    }
+    for(auto eachToReplaceToTrue : toReplaceToTrue){
+        replaceAllUseWith(eachToReplaceToTrue, ConstantHelper(runtime.isSymT,1));
+        eachToReplaceToTrue->eraseFromParent();
+    }
+    for(auto eachToReplaceToInput : toReplaceToInput){
+        // although different functions in this category has different number of parameters
+        // but the input is always the first parameter, and that is the only thing that matters
+        Value * input = eachToReplaceToInput->getArgOperand(0);
+        assert(input->getType() == runtime.isSymT);
+        replaceAllUseWith(eachToReplaceToInput, input);
+        eachToReplaceToInput->eraseFromParent();
+    }
+    for(auto eachToReplaceWithOr: toReplaceToOr){
+        // although different functions in this category has different number of parameters
+        // but the inputs are always the first and the 2nd parameter, and that is the only thing that matters
+        Value * input1 = eachToReplaceWithOr->getArgOperand(0);
+        assert(input1->getType() == runtime.isSymT);
+        Value * input2 = eachToReplaceWithOr->getArgOperand(1);
+        assert(input2->getType() == runtime.isSymT);
+
+        IRBuilder<> IRB(eachToReplaceWithOr);
+        Value * orExpression = IRB.CreateOr(input1, input2);
+        replaceAllUseWith(eachToReplaceWithOr, orExpression);
+        eachToReplaceWithOr->eraseFromParent();
     }
     g.writeToFile(filename);
     // Replacing all uses has fixed uses of the symbolic PHI nodes in existing

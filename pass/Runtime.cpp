@@ -64,12 +64,13 @@ Runtime::Runtime(Module &M) {
     constArgNo["_sym_build_integer"] = {1};
     symIdArgNo["_sym_build_integer"] = {2};
 
+    /*
     buildInteger1 = import(M, "_sym_build_integer1", isSymT, int_type, int8T, symIntT);
     SymOperators.push_back(&buildInteger);
     constArgNo["_sym_build_integer1"] = {0,1};
     symIdArgNo["_sym_build_integer1"] = {2};
     replaceToTrue.push_back("_sym_build_integer1");
-
+    */
     // sshould always return true(not used for embedded application)
     buildInteger128 = import(M, "_sym_build_integer128", isSymT, IRB.getInt64Ty(), IRB.getInt64Ty());
     SymOperators.push_back(&buildInteger128);
@@ -81,11 +82,13 @@ Runtime::Runtime(Module &M) {
     constArgNo["_sym_build_float"] = {1};
     symIdArgNo["_sym_build_float"] = {2};
 
+    /*
     buildFloat1 = import(M, "_sym_build_float1", isSymT, IRB.getDoubleTy(), IRB.getInt1Ty(), symIntT);
     SymOperators.push_back(&buildFloat);
     constArgNo["_sym_build_float1"] = {0,1};
     symIdArgNo["_sym_build_float1"] = {2};
     replaceToTrue.push_back("_sym_build_float1");
+    */
 
     // should always return true
     buildNullPointer = import(M, "_sym_build_null_pointer",isSymT);
@@ -108,12 +111,13 @@ Runtime::Runtime(Module &M) {
     runtimeArgNo["_sym_build_bool"] = {0};
     symIdArgNo["_sym_build_bool"] = {1};
 
+    /*
     buildBool1 = import(M, "_sym_build_bool1", isSymT, IRB.getInt1Ty(), symIntT);
     SymOperators.push_back(&buildBool);
     constArgNo["_sym_build_bool1"] = {0};
     symIdArgNo["_sym_build_bool1"] = {1};
     replaceToTrue.push_back("_sym_build_bool1");
-
+    */
 
     // functions that need a sym id
     // should always be the same with the input
@@ -302,10 +306,18 @@ Runtime::Runtime(Module &M) {
 
     // just a place-holder, will be removed before lowered to machine code
     tryAlternative = import(M,"_sym_try_alternative",voidT, isSymT, intPtrType );
+    SymOperators.push_back(&tryAlternative);
     isSymArgNo["_sym_try_alternative"] = {0};
     runtimeArgNo["_sym_try_alternative"] = {1};
+    replaceToNone.push_back("_sym_try_alternative");
 
+    notifyPhi = import(M, "_sym_notify_phi", voidT, int8T, symIntT);
+    SymOperators.push_back(&notifyPhi);
+    runtimeArgNo["_sym_notify_phi"] = {0};
+    symIdArgNo["_sym_notify_phi"] = {1};
     // control-flow related
+
+
     notifyCall = import(M, "_sym_notify_call", voidT, intPtrType);
     SymOperators.push_back(&notifyCall);
     runtimeArgNo["_sym_notify_call"] = {0};

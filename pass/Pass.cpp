@@ -35,6 +35,7 @@ using namespace llvm;
 #define DEBUG(X) ((void)0)
 #endif
 
+
 #include <llvm/Support/CommandLine.h>
 #include <boost/filesystem.hpp>
 
@@ -78,6 +79,8 @@ bool SymbolizePass::runOnFunction(Function &F) {
         return false;
     llvm::errs() << "Symbolizing function " << functionName << '\n';
 
+    LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
+
     boost::filesystem::path dir (outDir.getValue());
     if(! boost::filesystem::exists(dir)){
         errs()<< outDir<<'\n';
@@ -91,11 +94,12 @@ bool SymbolizePass::runOnFunction(Function &F) {
 
     SmallVector<Instruction *, 0> allInstructions;
     allInstructions.reserve(F.getInstructionCount());
+
     for (auto &I : instructions(F)){
         allInstructions.push_back(&I);
     }
 
-    Symbolizer symbolizer(*F.getParent(),r);
+    Symbolizer symbolizer(*F.getParent(),r, LI);
     symbolizer.initializeFunctions(F);
 
     for (auto &basicBlock : F){

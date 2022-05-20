@@ -20,6 +20,8 @@
 #include <llvm/IR/InstVisitor.h>
 #include <llvm/IR/ValueMap.h>
 #include <llvm/Support/raw_ostream.h>
+#include <llvm/Analysis/LoopInfo.h>
+
 #include <optional>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,8 +32,8 @@
 
 class Symbolizer : public llvm::InstVisitor<Symbolizer> {
 public:
-  explicit Symbolizer(llvm::Module &M, Runtime*r)
-      : runtime(*r), dataLayout(M.getDataLayout()),
+  explicit Symbolizer(llvm::Module &M, Runtime*r,llvm::LoopInfo& li)
+      : runtime(*r), loopinfo(li), dataLayout(M.getDataLayout()),
         ptrBits(M.getDataLayout().getPointerSizeInBits()),
         maxNumSymVars((1 << r->symIntT->getBitWidth()) - 1),
         intPtrType(M.getDataLayout().getIntPtrType(M.getContext())),g()
@@ -246,12 +248,12 @@ public:
             llvm::errs()<<*phi <<"does not have a sym id\n";
             llvm_unreachable("");
         }
-        return it->second;
+        return it->second.first;
     }
     void replaceAllUseWith(llvm::Instruction * i, llvm::Value * v){
         unsigned numUser1 = 0;
         unsigned numUser2 = 0;
-        while(i->getNumUses() > 0) {
+        while( ! i->use_empty()) {
             llvm::User* u = i->user_back();
             u->replaceUsesOfWith(i, v);
             numUser1++;
@@ -339,10 +341,10 @@ public:
         assert(exprIt == symbolicIDs.end());
         symbolicIDs[symcall] = ID;
     }
-    void assignSymIDPhi(llvm::PHINode* symPhi, unsigned int ID){
+    void assignSymIDPhi(llvm::PHINode* symPhi, unsigned int ID, bool is_authentic){
         auto exprIt = phiSymbolicIDs.find(symPhi);
         assert(exprIt == phiSymbolicIDs.end());
-        phiSymbolicIDs[symPhi] = ID;
+        phiSymbolicIDs[symPhi] = std::make_pair(ID, is_authentic);
     }
     bool tryGetSymExpr(llvm::Value * V){
         auto expr = getSymbolicExpression(V);
@@ -360,19 +362,16 @@ public:
       while(splited2OriginalBB.find(realOriginal) != splited2OriginalBB.end()){
           realOriginal = splited2OriginalBB.at(realOriginal);
       }
-      llvm::CallInst * call_to_notify_bb= llvm::cast<llvm::CallInst>(realOriginal->getFirstNonPHI());
-      llvm::ConstantInt * bbid = llvm::cast<llvm::ConstantInt>(call_to_notify_bb->getOperand(0));
-      return bbid->getZExtValue();
+      return originalBB2ID.at(realOriginal);
     }
   void MapOriginalBlock(llvm::BasicBlock * splitted, llvm::BasicBlock* original){
         llvm::BasicBlock* realOriginal = original;
         while(splited2OriginalBB.find(realOriginal) != splited2OriginalBB.end()){
             realOriginal = splited2OriginalBB.at(realOriginal);
         }
-        llvm::Instruction * originalFirstNonPhi = realOriginal->getFirstNonPHI();
-        if(  auto callInst = llvm::dyn_cast<llvm::CallInst>(originalFirstNonPhi); callInst == nullptr ||  ! (callInst->getCalledFunction()->getName().equals("_sym_notify_basic_block"))){
+        if( originalBB2ID.find(realOriginal) == originalBB2ID.end()){
             llvm::errs()<<*original<<'\n'<<*original->getParent()<<'\n';
-            llvm_unreachable("original BB does not have a notify BB");
+            llvm_unreachable("original BB does not have a ID");
         }
 
         splited2OriginalBB[splitted] = original;
@@ -465,7 +464,7 @@ public:
           output<<eachSymOp->second<<"|"<<*eachSymOp->first<<'\n';
       }
       for(auto eachSymOp : phiSymbolicIDs){
-          output<<eachSymOp->second<<"|"<<*eachSymOp->first<<'\n';
+          output<<eachSymOp->second.first<<"|"<<*eachSymOp->first<<"|"<< eachSymOp->second.second <<'\n';
       }
       for(auto it = splited2OriginalBB.begin(); it != splited2OriginalBB.end();it++){
           output<< "BB:"<<it->first->getName() <<"->BB"<<it->second->getName()<<'\n';
@@ -477,7 +476,7 @@ public:
                                  llvm::ArrayRef<unsigned> indices) const;
 
   const Runtime& runtime;
-
+  const llvm::LoopInfo & loopinfo;
   /// The data layout of the currently processed module.
   const llvm::DataLayout &dataLayout;
 
@@ -501,7 +500,7 @@ public:
   /// Maps symbolic value to its IDs
   llvm::ValueMap<llvm::CallInst *, unsigned int> symbolicIDs;
   /// Maps phi nodes to its IDs
-  llvm::ValueMap<llvm::PHINode* , unsigned int> phiSymbolicIDs;
+  llvm::ValueMap<llvm::PHINode* , std::pair<unsigned int, bool> > phiSymbolicIDs;
   /// A record of all PHI nodes in this function.
   ///
   /// PHI nodes may refer to themselves, in which case we run into an infinite
@@ -522,6 +521,8 @@ public:
   /// and insert the fast path later.
     std::vector<SymbolicComputation> expressionUses;
     std::map<llvm::BasicBlock*, llvm::BasicBlock*> splited2OriginalBB;
+    std::map<llvm::BasicBlock*, int> originalBB2ID;
+
     SymDepGraph g;
 
     unsigned int BBID = 1;
