@@ -30,6 +30,7 @@
 struct Runtime {
     Runtime(llvm::Module &M);
     llvm::IntegerType* int8T;
+    llvm::IntegerType* int16T;
     llvm::IntegerType* int32T;
     llvm::StructType* symIDT;
     llvm::IntegerType* symIntT;
@@ -89,6 +90,7 @@ struct Runtime {
     SymFnT notifyRet{};
     SymFnT notifyPhi{};
     SymFnT notifyBasicBlock{};
+    SymFnT notifyBasicBlock1{};
     SymFnT tryAlternative{};
 
     /// Mapping from icmp predicates to the functions that build the corresponding

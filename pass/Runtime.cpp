@@ -53,6 +53,7 @@ Runtime::Runtime(Module &M) {
     int8T = IRB.getInt8Ty();
     int32T = IRB.getInt32Ty();
     symIntT = IRB.getInt16Ty();
+    int16T = IRB.getInt16Ty();
     isSymT = IRB.getInt1Ty();
     symIDTyName = StringRef("SymIDTy");
     symIDT = llvm::StructType::create(M.getContext(),{symIntT},symIDTyName);
@@ -318,17 +319,21 @@ Runtime::Runtime(Module &M) {
     // control-flow related
 
 
-    notifyCall = import(M, "_sym_notify_call", voidT, intPtrType);
+    notifyCall = import(M, "_sym_notify_call", voidT, int8T);
     SymOperators.push_back(&notifyCall);
     runtimeArgNo["_sym_notify_call"] = {0};
 
-    notifyRet = import(M, "_sym_notify_ret", voidT, intPtrType);
+    notifyRet = import(M, "_sym_notify_ret", voidT, int8T);
     SymOperators.push_back(&notifyRet);
     runtimeArgNo["_sym_notify_ret"] = {0};
 
-    notifyBasicBlock = import(M, "_sym_notify_basic_block", voidT, intPtrType);
+    notifyBasicBlock = import(M, "_sym_notify_basic_block", voidT, int8T);
     SymOperators.push_back(&notifyBasicBlock);
     runtimeArgNo["_sym_notify_basic_block"] = {0};
+
+    notifyBasicBlock1 = import(M, "_sym_notify_basic_block1", voidT, int16T);
+    SymOperators.push_back(&notifyBasicBlock1);
+    runtimeArgNo["_sym_notify_basic_block1"] = {0};
 
 #define LOAD_BINARY_OPERATOR_HANDLER(constant, name)                           \
   binaryOperatorHandlers[Instruction::constant] =                              \

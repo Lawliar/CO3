@@ -332,7 +332,25 @@ public:
         id = availableSymID;
         availableSymID++;
         if(availableSymID > maxNumSymVars){
-            llvm_unreachable("current function has too many in memory variables");
+            llvm_unreachable("current function has too many in memory sym variables");
+        }
+        return id;
+    }
+    unsigned int getNextBBID(){
+        unsigned id;
+        id = BBID;
+        BBID++;
+        if(BBID > 65535){
+            llvm_unreachable("current function has too many basic blocks");
+        }
+        return id;
+    }
+    unsigned int getNextCallID(){
+        unsigned id;
+        id = callID;
+        callID++;
+        if(callID > 255){
+            llvm_unreachable("current function has too many call inst");
         }
         return id;
     }
@@ -526,6 +544,7 @@ public:
     SymDepGraph g;
 
     unsigned int BBID = 1;
+    unsigned int callID = 1;
     std::set<llvm::StringRef> interpretedFunctionNames;
     void addSymIDToCall(llvm::CallBase&);
     void interpretedFuncSanityCheck(llvm::CallBase&);

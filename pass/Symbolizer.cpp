@@ -43,12 +43,18 @@ void Symbolizer::initializeFunctions(Function &F) {
 
 void Symbolizer::insertBasicBlockNotification(llvm::BasicBlock &B) {
 
-    originalBB2ID[&B] = BBID;
-    BBID++;
+    originalBB2ID[&B] = getNextBBID();
     if(loopinfo.getLoopFor(&B) != nullptr){
         IRBuilder<> IRB(&*B.getFirstInsertionPt());
-        llvm::ConstantInt * valueToInsert = ConstantInt::get(runtime.intPtrType, BBID);
-        IRB.CreateCall(runtime.notifyBasicBlock,valueToInsert);
+        unsigned bbID = originalBB2ID.at(&B);
+        if(bbID <= 255){
+            llvm::ConstantInt * valueToInsert = ConstantInt::get(runtime.int8T, bbID);
+            IRB.CreateCall(runtime.notifyBasicBlock,valueToInsert);
+        }else{
+            llvm::ConstantInt * valueToInsert = ConstantInt::get(runtime.int16T, bbID);
+            IRB.CreateCall(runtime.notifyBasicBlock1,valueToInsert);
+        }
+
     }
 
 }
@@ -242,9 +248,10 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
         return;
     }
     IRBuilder<> IRB(returnPoint);
-    IRB.CreateCall(runtime.notifyRet, getTargetPreferredInt(&I));
+    unsigned int callInstID = getNextCallID();
+    IRB.CreateCall(runtime.notifyRet, ConstantHelper(runtime.int8T, callInstID));
     IRB.SetInsertPoint(&I);
-    IRB.CreateCall(runtime.notifyCall, getTargetPreferredInt(&I));
+    IRB.CreateCall(runtime.notifyCall, ConstantHelper(runtime.int8T, callInstID));
 
     if (callee == nullptr){
         tryAlternative(IRB, I.getCalledOperand());
