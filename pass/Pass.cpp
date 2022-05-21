@@ -107,6 +107,7 @@ bool SymbolizePass::runOnFunction(Function &F) {
     }
     symbolizer.outputCFG(F,cfgFile.string());
 
+
     for (auto *instPtr : allInstructions){
         symbolizer.visit(instPtr);
     }

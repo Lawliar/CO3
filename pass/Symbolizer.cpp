@@ -1073,7 +1073,7 @@ void Symbolizer::addTryAlternativeToTheGraph(){
         unsigned operandSymID = getSymIDFromSym(eachTryAlternative.second.first);
         assert(operandSymID != 0);// we've already passed this
         auto symOperandVertice = g.GetVerticeBySymID(operandSymID);
-        g.AddEdge(*symOperandVertice,tryAlternativeVertice, 1);
+        g.AddEdge(*symOperandVertice,tryAlternativeVertice, 0);
         Value* concreteVal = eachTryAlternative.second.second;
         if(isa<Constant>(concreteVal)){
             if(ConstantInt * cont_int = dyn_cast<ConstantInt>(concreteVal)){
@@ -1156,8 +1156,10 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                 }
                 if(calleeName.equals("_sym_get_parameter_expression") ){
                     g.AddSymVertice(getSymIDFromSym(callInst), calleeName.str(),blockID);
+                    continue;
                 }else if(calleeName.equals("_sym_get_return_expression")){
                     g.AddSymVertice(getSymIDFromSym(callInst), calleeName.str(),blockID);
+                    continue;
                 }else if(calleeName.equals("_sym_set_parameter_expression")){
                     g.AddSymVertice(getSymIDFromSym(callInst), calleeName.str(),blockID);
                     size_t arg_size = callInst->arg_size();
@@ -1165,11 +1167,13 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                     ConstantInt * idx_const = cast<ConstantInt>(callInst->getArgOperand(0));
                     Value * sym_arg = callInst->getArgOperand(1);
                     g.AddEdge(getSymIDFromSym(sym_arg),getSymIDFromSym(callInst), idx_const->getZExtValue()); //idx_const is the nth para that is set
+                    continue;
                 }else if(calleeName.equals("_sym_set_return_expression")){
                     g.AddSymVertice(getSymIDFromSym(callInst), calleeName.str(),blockID);
                     size_t arg_size = callInst->arg_size();
                     assert(arg_size == 1);
                     g.AddEdge(getSymIDFromSym(callInst->getArgOperand(0)),getSymIDFromSym(callInst), 0);
+                    continue;
                 }
 
                 unsigned userSymID = getSymIDFromSym(callInst);
