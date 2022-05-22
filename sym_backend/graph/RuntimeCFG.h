@@ -14,6 +14,7 @@ public:
     {
         std::string name;
         unsigned int id;
+        unsigned char inloop;
     };
     struct Edge_Properties                                    // property bundle for vertices
     {
@@ -26,6 +27,7 @@ public:
     typedef boost::graph_traits<Graph>::edge_iterator edge_it;
 
     inline static const std::string idPrefix         = "id";
+    inline static const std::string loopPrefix         = "loop";
 
     RuntimeCFG(){}
     void readGraphViz(std::string filename);

@@ -14,9 +14,9 @@ unsigned int receiveBufSize = 16 * 1024;
 FILE *read_num_File = NULL;
 
 #endif
-typedef unsigned int u32;
-typedef unsigned char u8;
-typedef unsigned long long u64;
+typedef uint32_t u32;
+typedef uint8_t u8;
+typedef uint64_t u64;
 
 unsigned long long exec_tmout = 1000;
 u32 write_timeout = 1000;
@@ -55,6 +55,9 @@ void flush_rx_tx_buffers(struct sp_port* port){
 
 OpenedSP initSerialPort(const char * port_name, int baud_rate){
     OpenedSP ret = {.port = NULL, .events=NULL};
+    if(strcmp(port_name,"dummy") == 0){
+        return ret;
+    }
     printf("Looking for port %s.\n", port_name);
     check(sp_get_port_by_name(port_name, &ret.port));
 
@@ -79,12 +82,22 @@ OpenedSP initSerialPort(const char * port_name, int baud_rate){
     return ret;
 }
 
-void freeSerialPort(OpenedSP port){
-    sp_free_event_set(port.events);
-    check(sp_close(port.port));
-    sp_free_port(port.port);
+void freeSerialPort(OpenedSP sp){
+    sp_free_event_set(sp.events);
+    check(sp_close(sp.port));
+    sp_free_port(sp.port);
 }
 
+
+int GetNumBytesWaiting(OpenedSP sp){
+    int bytes_waiting = check(sp_input_waiting(sp.port));
+    return bytes_waiting;
+}
+
+
+void setRXReadyEvent(OpenedSP sp){
+    check(sp_add_port_events(sp.events, sp.port, SP_EVENT_RX_READY));
+}
 inline void sendDataSerialPort(struct sp_port* port, uint8_t * buf, uint32_t size ){
     int result = check(sp_blocking_write(port, buf, size, write_timeout));
     if (result != size){
@@ -94,56 +107,17 @@ inline void sendDataSerialPort(struct sp_port* port, uint8_t * buf, uint32_t siz
 }
 
 
-ReceivedBuf receiveDataSerial(struct sp_port* port){
-	ReceivedBuf ret = {.buf = NULL, .len = 0};
+ReceivedBuf receiveData(struct sp_port* port, unsigned numBytesWaiting, unsigned timeout){
+    ReceivedBuf ret = {.buf = NULL, .len = 0};
+    if(numBytesWaiting == 0 ){
+        return ret;
+    }
 
-	u32 unfilled_bf_sz = sizeof(u8) * receiveBufSize;
-	u8 * buf = (u8 *)malloc(unfilled_bf_sz);
+    u8 * buf = (u8 *)malloc(numBytesWaiting + 1);
 
-	// read in the header first
-	u32 single_transfer = 0;
-	u32 total_transfer = 0;
-	u64 start_read_8bytes_time = get_cur_time_us_1();
-	total_transfer = single_transfer = check(sp_blocking_read(port, buf, 8, exec_tmout));
-	if(single_transfer < 8){
-		fprintf(stderr,"cannot read anything from usb timed out %lld ms\n", exec_tmout);
-		free(buf);
-		return ret;
-	}
-	u64 end_read_8bytes_time = get_cur_time_us_1();
-	
-#ifdef MEASSURE_READ_ATTEMPTS
-	if (read_num_File == NULL){
-		read_num_File = fopen("read_attempts.txt", "a");
-	}
-	fprintf(read_num_File, "read 8 bytes : %lld us\n", end_read_8bytes_time - start_read_8bytes_time);
-#endif
-	// get the payload length
-	u32 exit_code = *((u32*)buf);
-	u32 bm_sz = *((u32*)buf + 1);
-	u32 rectified_bf_sz = bm_sz + 8;
-	// some sanity check
-	if(rectified_bf_sz < total_transfer){
-		fprintf(stderr,"rectified length is less than already transferred?\n");
-		free(buf);
-		return ret;
-	}
-	
-	buf = (u8 *)realloc(buf, rectified_bf_sz);
-	if(buf == NULL){
-        fprintf(stderr, "realloc the receiving buffer failed");
-	}
-	// adjust unfilled buf size 
-	unfilled_bf_sz = rectified_bf_sz - total_transfer;
-
-	int result = check(sp_blocking_read(port, buf + total_transfer, unfilled_bf_sz, exec_tmout));
-	if(result != unfilled_bf_sz){
-		fprintf(stderr,"only read the header but the payload timed out  %lld\n", exec_tmout);
-		free(buf);
-		return ret;
-	}
-	total_transfer += unfilled_bf_sz;
-	ret.buf = buf;
-	ret.len = total_transfer;
-	return ret;
+    int result = check(sp_blocking_read(port, buf, numBytesWaiting, timeout));
+    buf[result] = '\0';
+    ret.len = result;
+    ret.buf = buf;
+    return ret;
 }

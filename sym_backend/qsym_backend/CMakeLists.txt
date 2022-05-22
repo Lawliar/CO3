@@ -78,7 +78,7 @@ add_executable(orchestrator
   ${SHARED_RUNTIME_SOURCES}
   ${SERIAL_PORT_SOURCES}
   ${GRAPH_SOURCES}
-  Runtime.cpp)
+  Runtime.cpp ../serialport/Message.cpp ../serialport/Message.h ../serialport/MsgQueue.cpp ../serialport/MsgQueue.h)
 
 ## even when LIBSERIALPORT is found by pkg_check_modules, no related variables are set, so we have to do this in this ugly way, thanks cmake!!
 ## when i tried to manually run pkg-config with execute_process, and find_library. While libserialport is literally under /usr/local/lib, and I specify this as hints to the find_library , it gave me NOTFOUND, this has been truly amazing.

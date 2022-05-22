@@ -10,8 +10,9 @@
 void RuntimeCFG::readGraphViz(std::string filename) {
     boost::dynamic_properties dp(boost::ignore_other_properties);
 
-    dp.property("node_id",           boost::get(&Vertex_Properties::name,         graph));
-    dp.property(idPrefix,            boost::get(&Vertex_Properties::id,              graph));
+    dp.property("node_id",             boost::get(&Vertex_Properties::name,                graph));
+    dp.property(idPrefix,              boost::get(&Vertex_Properties::id,                  graph));
+    dp.property(loopPrefix,            boost::get(&Vertex_Properties::inloop,              graph));
     std::ifstream myfile (filename);
     boost::read_graphviz(myfile, graph, dp);
     myfile.close();

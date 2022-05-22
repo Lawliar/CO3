@@ -6,9 +6,12 @@
 #define SYMBACKEND_ORCHESTRATOR_H
 
 #include <string>
-#include "Runtime.h"
+
+
 #include "RuntimeCFG.h"
-#include "RuntimeDataDepGraph.h"
+#include "RuntimeDataFlowGraph.h"
+#include "MsgQueue.h"
+
 extern "C" {
 #include "serialport.h"
 }
@@ -25,5 +28,13 @@ public:
     RuntimeSymDepGraph ddg;
     RuntimeCFG cfg;
     OpenedSP sp;
+
+    MsgQueue msgQueue;
+
+
+
+    // for debugging purpose
+    std::deque<uint32_t> BBTrace;
+
 };
 #endif //SYMBACKEND_ORCHESTRATOR_H
