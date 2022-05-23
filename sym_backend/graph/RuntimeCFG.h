@@ -32,10 +32,32 @@ public:
     inline static const std::string loopPrefix          = "loop";
     inline static const std::string entryPrefix         = "entry";
     inline static const std::string exitPrefix          = "exit";
+    inline static const std::string pdLevelPrefix          = "level";
+    struct PD_Vertex_Properties                                    // property bundle for vertices
+    {
+        std::string name;
+        unsigned int id;
+        unsigned int level;
+    };
+    struct PD_Edge_Properties                                    // property bundle for vertices
+    {
+    };
 
-    RuntimeCFG(std::string filename){ readGraphViz(filename);}
-    void readGraphViz(std::string filename);
+    typedef boost::adjacency_list<boost::listS, boost::vecS,  boost::directedS,
+            PD_Vertex_Properties,PD_Edge_Properties> PDTree;
+    typedef boost::graph_traits<PDTree>::vertex_descriptor pd_vertex_t;
+    typedef boost::graph_traits<PDTree>::vertex_iterator pd_vertex_it;
+    typedef boost::graph_traits<PDTree>::edge_descriptor pd_edge_t;
+    typedef boost::graph_traits<PDTree>::edge_iterator pd_edge_it;
+
+    std::set<std::pair<unsigned, unsigned> > post_dominance; // 1st id post-dominates 2nd id
+
+    RuntimeCFG(std::string cfg_filename, std::string pd_filename){ readGraphViz(cfg_filename, pd_filename);preparePostDominance();}
+    void readGraphViz(std::string cfg, std::string pd);
+    std::set<unsigned> postDominatedBy(pd_vertex_t src);
+    void preparePostDominance();
 
     Graph graph;                                                // the boost graph
+    PDTree postDomTree;
 };
 #endif //SYMBACKEND_RUNTIMECFG_H

@@ -83,9 +83,14 @@ OpenedSP initSerialPort(const char * port_name, int baud_rate){
 }
 
 void freeSerialPort(OpenedSP sp){
-    sp_free_event_set(sp.events);
-    check(sp_close(sp.port));
-    sp_free_port(sp.port);
+    if(sp.events != NULL){
+        sp_free_event_set(sp.events);
+    }
+    if(sp.port != NULL){
+        check(sp_close(sp.port));
+        sp_free_port(sp.port);
+    }
+
 }
 
 

@@ -1342,16 +1342,32 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
     // after this point.
     symbolicExpressions.clear();
 }
+void RecursivePrintEdges(std::map<BasicBlock*, unsigned long>& basicBlockMap, raw_fd_ostream & O, DomTreeNodeBase<BasicBlock> * root, unsigned level){
+    unsigned cur_bbid = basicBlockMap.at(root->getBlock());
+    O << std::string(level, '\t') << cur_bbid << " [shape=record, label=\"";
+    O  << cur_bbid << "\",id=" << cur_bbid;
+    O <<",level="<< level;
+    O << "];\n";
+    for (auto I = root->begin(),E = root->end(); I != E; ++I){
+        unsigned child_bbid = basicBlockMap.at((*I)->getBlock());
+        O << std::string(level, '\t') << cur_bbid <<" -> " << child_bbid<<";\n";
+        RecursivePrintEdges(basicBlockMap, O, *I, level + 1);
+    }
+}
 
-void Symbolizer::outputCFG(llvm::Function & F, std::string filename) {
+void Symbolizer::outputCFG(llvm::Function & F, PostDominatorTree& pdTree, std::string cfg_file, std::string postDom_file) {
     std::string buffer_str;
     std::error_code error;
     raw_string_ostream rso(buffer_str);
-    StringRef name(filename);
-    std::map<BasicBlock*, unsigned long> basicBlockMap;
-
-
+    StringRef name(cfg_file);
     raw_fd_ostream file(name, error);
+
+    std::string pd_buffer_str;
+    raw_string_ostream pd_rso(pd_buffer_str);
+    StringRef pd_name(postDom_file);
+    raw_fd_ostream pd_file(pd_name, error);
+
+    std::map<BasicBlock*, unsigned long> basicBlockMap;
     for (Function::iterator B_iter = F.begin(); B_iter != F.end(); ++B_iter){
         unsigned long blockID = GetBBID(&*B_iter);
         basicBlockMap.insert(std::make_pair(&*B_iter,blockID));
@@ -1410,4 +1426,24 @@ void Symbolizer::outputCFG(llvm::Function & F, std::string filename) {
     }
     file << "}\n";
     file.close();
+
+    pd_file << "digraph \"post dom tree for'" + F.getName() + "\' function\" {\n";
+
+    auto tree_root = pdTree.getRootNode();
+    BasicBlock * pd_root = tree_root->getBlock();
+    if(pd_root != nullptr){
+        llvm_unreachable("virtual exit should not have a corresponding BB");
+    }
+    if(tree_root->getNumChildren() != 1){
+        llvm_unreachable("virtual exit should only have one child which is the real exit");
+    }
+    BasicBlock* real_exit = tree_root->back()->getBlock();
+    if(real_exit != exit_bb){
+        llvm_unreachable("real exit does not match");
+    }
+
+    RecursivePrintEdges(basicBlockMap,pd_file,tree_root->back(), 1);
+    pd_file<<"}\n";
+    pd_file.close();
+
 }

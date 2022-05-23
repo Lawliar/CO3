@@ -21,6 +21,7 @@
 #include <llvm/IR/ValueMap.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Analysis/LoopInfo.h>
+#include <llvm/Analysis/PostDominators.h>
 
 #include <optional>
 #include <stdio.h>
@@ -32,8 +33,8 @@
 
 class Symbolizer : public llvm::InstVisitor<Symbolizer> {
 public:
-  explicit Symbolizer(llvm::Module &M, Runtime*r,llvm::LoopInfo& li)
-      : runtime(*r), loopinfo(li), dataLayout(M.getDataLayout()),
+  explicit Symbolizer(llvm::Module &M, Runtime*r, llvm::LoopInfo& LI)
+      : runtime(*r), loopinfo(LI), dataLayout(M.getDataLayout()),
         ptrBits(M.getDataLayout().getPointerSizeInBits()),
         maxNumSymVars((1 << r->symIntT->getBitWidth()) - 1),
         intPtrType(M.getDataLayout().getIntPtrType(M.getContext())),g()
@@ -121,7 +122,7 @@ public:
 
 
   void createDFGAndReplace(llvm::Function&,std::string);
-  void outputCFG(llvm::Function&,std::string);
+  void outputCFG(llvm::Function&, llvm::PostDominatorTree&,std::string,std::string);
   //
   // Implementation of InstVisitor
   //
@@ -494,7 +495,7 @@ public:
                                  llvm::ArrayRef<unsigned> indices) const;
   void addTryAlternativeToTheGraph();
   const Runtime& runtime;
-  const llvm::LoopInfo & loopinfo;
+  const llvm::LoopInfo& loopinfo;
   /// The data layout of the currently processed module.
   const llvm::DataLayout &dataLayout;
 

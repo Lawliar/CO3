@@ -81,6 +81,7 @@ bool SymbolizePass::runOnFunction(Function &F) {
 
     LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
 
+    PostDominatorTree& pdTree = getAnalysis<PostDominatorTreeWrapperPass>().getPostDomTree();
     boost::filesystem::path dir (outDir.getValue());
     if(! boost::filesystem::exists(dir)){
         errs()<< outDir<<'\n';
@@ -88,6 +89,7 @@ bool SymbolizePass::runOnFunction(Function &F) {
     }
     boost::filesystem::path ddgFile = dir / (F.getName() + "_dfg.dot").str();
     boost::filesystem::path cfgFile = dir / (F.getName() + "_cfg.dot").str();
+    boost::filesystem::path postDomTreeFile = dir / (F.getName() + "_postDom.dot").str();
     boost::filesystem::path intermediateFile = dir / (F.getName() + "_intermediate.ll").str();
 
 
@@ -105,7 +107,7 @@ bool SymbolizePass::runOnFunction(Function &F) {
     for (auto &basicBlock : F){
         symbolizer.insertBasicBlockNotification(basicBlock);
     }
-    symbolizer.outputCFG(F,cfgFile.string());
+    symbolizer.outputCFG(F, pdTree, cfgFile.string(), postDomTreeFile.string());
 
 
     for (auto *instPtr : allInstructions){
