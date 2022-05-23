@@ -18,6 +18,7 @@
 #include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/ValueMap.h>
 #include <llvm/Pass.h>
+#include <llvm/Transforms/Utils/UnifyFunctionExitNodes.h>
 #include <llvm/Analysis/LoopInfo.h>
 
 class SymbolizePass : public llvm::FunctionPass {
@@ -31,7 +32,9 @@ public:
   bool doFinalization(llvm::Module &M) override;
 
   void getAnalysisUsage(llvm::AnalysisUsage &AU) const override  {
+      AU.addRequired<llvm::UnifyFunctionExitNodesLegacyPass>();
       AU.addRequired<llvm::LoopInfoWrapperPass>();
+
   }
 private:
   static constexpr char kSymCtorName[] = "__sym_ctor";

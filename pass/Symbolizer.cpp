@@ -1282,6 +1282,7 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                 unsigned numIncomingValue = phi->getNumIncomingValues();
                 unsigned userSymID = getSymIDFromSymPhi(phi);
 
+
                 if(phiSymbolicIDs.find(symPhi)->second.second){
                     IRBuilder<> IRB(&*phi->getParent()->getFirstInsertionPt());
                     reportingPhi = IRB.CreatePHI(runtime.int8T, numIncomingValue);
@@ -1356,9 +1357,29 @@ void Symbolizer::outputCFG(llvm::Function & F, std::string filename) {
         basicBlockMap.insert(std::make_pair(&*B_iter,blockID));
     }
     file << "digraph \"CFG for'" + F.getName() + "\' function\" {\n";
+
+    //get entry bb
+    BasicBlock * entry_bb = &F.getEntryBlock();
+    //get exit bb
+    BasicBlock * exit_bb = nullptr;
+    for (Function::iterator B_iter = F.begin(); B_iter != F.end(); ++B_iter){
+        BasicBlock* curBB = &*B_iter;
+        for(auto ins = curBB->begin(); ins != curBB->end(); ins ++){
+            if(isa<ReturnInst>(&*ins)){
+                if(exit_bb == nullptr){
+                    exit_bb = curBB;
+                }else{
+                    llvm_unreachable("multiple exit BB found\n");
+                }
+            }
+        }
+    }
+
     for (Function::iterator B_iter = F.begin(); B_iter != F.end(); ++B_iter){
         BasicBlock* curBB = &*B_iter;
         unsigned long from_num = basicBlockMap.find(curBB)->second;
+
+        // check loop
         bool isLoop = loopinfo.getLoopFor(curBB) != nullptr ? true : false;
         file << "\t" << from_num << " [shape=record, label=\"";
         file  << from_num << "\",id=" << from_num;
@@ -1367,7 +1388,21 @@ void Symbolizer::outputCFG(llvm::Function & F, std::string filename) {
         }else{
             file<<",loop=0";
         }
+
+        //check entry point
+        if(curBB == entry_bb){
+            file << ",entry=1";
+        }else{
+            file << ",entry=0";
+        }
+        //check exit
+        if(curBB == exit_bb){
+            file << ",exit=1";
+        }else{
+            file << ",exit=0";
+        }
         file << "];\n";
+
         for (BasicBlock *SuccBB : successors(curBB)){
             unsigned long to_num = basicBlockMap.find(SuccBB)->second;
             file << "\t" << from_num<< "-> " << to_num << ";\n";
