@@ -17,11 +17,11 @@ public:
         IntRuntimeValMsg,
         FloatRuntimeValMsg,
         BoolRuntimeValMsg,
+        ReadMemRuntimeMsg,
         ConstraintRuntimeValMsg,
         MemCpyRuntimeMsg,
         MemsetRuntimeMsg,
         MemmoveRuntimeMsg,
-        ReadMemRuntimeMsg,
         WriteMemRuntimeMsg,
     } MessageType;
     MessageType type;
@@ -33,7 +33,7 @@ class ControlMessgaes : public Message{
 public:
     ControlMessgaes(MessageType t, uint32_t id, uint32_t symid);
     uint32_t id;
-    uint32_t symid;//optional
+    uint32_t symid;//needed only for phi
 };
 
 class RuntimeValueMessage: public Message{
@@ -44,6 +44,12 @@ public:
     int64_t value;
 };
 
+class CallToSolverMessage: public Message{
+public:
+    CallToSolverMessage(uint32_t symID, bool runtimeVal);
+    uint32_t symID;
+    bool runtimeVal;
+};
 class MemOpMessage: public Message{
 public:
     MemOpMessage(MessageType , uint32_t src_ptr, uint32_t dst_ptr, uint32_t length, uint32_t symID);

@@ -29,7 +29,7 @@ public:
     inline static const std::string idPrefix         = "id";
     inline static const std::string loopPrefix         = "loop";
 
-    RuntimeCFG(){}
+    RuntimeCFG(std::string filename){ readGraphViz(filename);}
     void readGraphViz(std::string filename);
 
     Graph graph;                                                // the boost graph

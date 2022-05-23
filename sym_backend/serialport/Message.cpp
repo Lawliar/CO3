@@ -11,12 +11,13 @@ ControlMessgaes::ControlMessgaes(MessageType t, unsigned int id, uint32_t symid)
 
 RuntimeValueMessage::RuntimeValueMessage(MessageType t , uint32_t symid, uint8_t width, int64_t value): \
 Message(t),symid(symid),width(width),value(value){
-    assert(t >= IntRuntimeValMsg && t <= ConstraintRuntimeValMsg);
+    assert(t >= IntRuntimeValMsg && t <= ReadMemRuntimeMsg);
 }
 
+CallToSolverMessage::CallToSolverMessage(uint32_t symID, bool runtimeV):\
+Message(ConstraintRuntimeValMsg), symID(symID), runtimeVal(runtimeV){};
 
-
-MemOpMessage::MemOpMessage(MessageType t, uint32_t src_ptr, uint32_t dst_ptr, uint32_t length, uint32_t symID):
+MemOpMessage::MemOpMessage(MessageType t, uint32_t src_ptr, uint32_t dst_ptr, uint32_t length, uint32_t symID):\
 Message(t), src_ptr(src_ptr), dst_ptr(dst_ptr), length(length), symID(symID){
     assert(t >= MemCpyRuntimeMsg && t<= WriteMemRuntimeMsg);
 }

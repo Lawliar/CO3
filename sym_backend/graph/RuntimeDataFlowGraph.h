@@ -6,27 +6,38 @@
 #define SYMBACKEND_RUNTIMEDATAFLOWGRAPH_H
 
 #include "DataFlowGraph.h"
+#include "RuntimeCFG.h"
+#include "Runtime.h"
 #include <map>
-#include <vector>
-class RuntimeSymDepGraph: public SymDepGraph{
+#include <set>
+class RuntimeSymFlowGraph: public SymDepGraph{
 public:
     class BasicBlockTask{
     public:
+        BasicBlockTask(unsigned id):BBID(id){}
+        const unsigned BBID;
         // leaves are the "inputs" to this basic block
-        std::vector<vertex_t> leaves;
-        // nonLeaves are the operations that need to be done within this BB
-        std::vector<vertex_t> nonLeaves;
-
-        // outEdges are the connections between these nodes
-        std::map<vertex_t, std::vector<edge_t> > outEdges;
+        std::set<vertex_t> leaves;
+        // roots are the non-out vertices and the direct out vertices
+        std::set<vertex_t> roots;
     };
 
+    typedef enum _SymStatus{
+        SymDummy,
+        SymConcrete,
+        SymSymbolic,
+    }SymStatus;
    typedef boost::graph_traits<Graph>::in_edge_iterator in_edge_it;
 
-    RuntimeSymDepGraph(){}
+    RuntimeSymFlowGraph(std::string, RuntimeCFG&);
     void readGraphViz(std::string filename);
     void loopCheck();
     void PrepareTask();
-    std::map<uint32_t, BasicBlockTask*> tasks;
+
+    const RuntimeCFG& cfg;
+
+    std::map<uint32_t, BasicBlockTask*> bbTasks;
+    std::map<uint32_t, std::pair<SymStatus, SymExpr>> SymbolicStatus;
+
 };
 #endif //SYMBACKEND_RUNTIMEDATAFLOWGRAPH_H

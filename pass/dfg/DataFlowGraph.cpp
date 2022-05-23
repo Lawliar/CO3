@@ -12,7 +12,7 @@ SymDepGraph::SymDepGraph(){
 SymDepGraph::vertex_t SymDepGraph::AddVertice(int symID,std::string op,NodeType nodeType,long const_value,unsigned int bitwidth,unsigned long BBID){
     vertex_t u = boost::add_vertex(graph);
     graph[u].symID = symID;
-    //make a copy
+    //make a copy of the string
     graph[u].op = std::string(op);
     graph[u].nodeType = nodeType;
     graph[u].const_value = const_value;

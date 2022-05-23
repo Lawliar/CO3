@@ -19,18 +19,19 @@ extern "C" {
 
 class Orchestrator{
 public:
-    Orchestrator(std::string cfg_filename, std::string ddg_filename, std::string sp_port, int);
+    Orchestrator(std::string cfg_filename, std::string dfg_filename, std::string sp_port, int);
     int StartListen();
     int Run();
 
     ~Orchestrator();
 
-    RuntimeSymDepGraph ddg;
-    RuntimeCFG cfg;
+
+
     OpenedSP sp;
 
     MsgQueue msgQueue;
-
+    RuntimeCFG cfg;
+    RuntimeSymFlowGraph dfg;
 
 
     // for debugging purpose
