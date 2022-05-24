@@ -49,8 +49,9 @@ public:
     typedef boost::graph_traits<PDTree>::vertex_iterator pd_vertex_it;
     typedef boost::graph_traits<PDTree>::edge_descriptor pd_edge_t;
     typedef boost::graph_traits<PDTree>::edge_iterator pd_edge_it;
+    typedef boost::graph_traits<PDTree>::out_edge_iterator pd_oedge_it;
 
-    std::set<std::pair<unsigned, unsigned> > post_dominance; // 1st id post-dominates 2nd id
+    std::map<unsigned, std::set<unsigned >> post_dominance; // 1st id post-dominates 2nd id, trade memory for speed
 
     RuntimeCFG(std::string cfg_filename, std::string pd_filename){ readGraphViz(cfg_filename, pd_filename);preparePostDominance();}
     void readGraphViz(std::string cfg, std::string pd);

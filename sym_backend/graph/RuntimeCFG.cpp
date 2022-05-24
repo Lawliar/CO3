@@ -55,13 +55,13 @@ std::set<unsigned> RuntimeCFG::postDominatedBy(pd_vertex_t src){
     while(!work_stack.empty()) {
         pd_vertex_t cur_node = work_stack.top();
         work_stack.pop();
-
-        pd_vertex_it pd_it, pd_it_end;
-        for(boost::tie(pd_it,pd_it_end) = boost::vertices(postDomTree); pd_it!= pd_it_end; ++pd_it){
-            unsigned next_id = postDomTree[*pd_it].id;
-            if (boost::edge(cur_node, *pd_it, postDomTree).second) {
+        pd_oedge_it pd_eit, pd_eit_end;
+        for(boost::tie(pd_eit,pd_eit_end) = boost::out_edges(cur_node,postDomTree); pd_eit!= pd_eit_end; ++pd_eit){
+            pd_vertex_t  target_node = boost::target(*pd_eit, postDomTree);
+            unsigned next_id = postDomTree[target_node].id;
+            if(visited.find(next_id) == visited.end()){
                 visited.insert(next_id);
-                work_stack.push(*pd_it);
+                work_stack.push(target_node);
             }
         }
     }
@@ -71,9 +71,6 @@ void RuntimeCFG::preparePostDominance() {
     boost::graph_traits<PDTree>::vertex_iterator it, it_end;
     for(boost::tie(it, it_end) = boost::vertices(postDomTree); it != it_end; ++it){
         unsigned it_id = graph[*it].id;
-        auto reachable_ids = postDominatedBy(*it);
-        for(auto each_reachable_id : reachable_ids){
-            post_dominance.insert(std::make_pair(it_id, each_reachable_id));
-        }
+        post_dominance[it_id] = postDominatedBy(*it);
     }
 }
