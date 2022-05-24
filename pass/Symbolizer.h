@@ -120,7 +120,9 @@ public:
   void handleInlineAssembly(llvm::CallInst &I);
   void handleFunctionCall(llvm::CallBase &I, llvm::Instruction *returnPoint);
 
-
+    SymDepGraph::vertex_t addConstantIntVertice(llvm::ConstantInt*);
+    SymDepGraph::vertex_t addConstantFloatVertice(llvm::ConstantFP*);
+    SymDepGraph::vertex_t addRuntimeVertice(llvm::Value*, unsigned);
   void createDFGAndReplace(llvm::Function&,std::string);
   void outputCFG(llvm::Function&, llvm::PostDominatorTree&,std::string,std::string);
   //

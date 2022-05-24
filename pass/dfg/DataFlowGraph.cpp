@@ -36,18 +36,20 @@ SymDepGraph::vertex_t SymDepGraph::AddPhiVertice(unsigned int symID, unsigned lo
     return AddVertice(symID,VoidStr,NodePhi, 0, 0,BBID);
 }
 
-SymDepGraph::vertex_t SymDepGraph::AddConstVertice(long value, unsigned int bit_width){
+SymDepGraph::vertex_t SymDepGraph::AddConstVertice(std::string type, long value, unsigned int bit_width){
     vertex_it vi, vi_end;
+    assert(type == NodeConstInt || type == NodeConstFloat || type == NodeConstDouble);
     for (boost::tie(vi, vi_end) = vertices(graph); vi != vi_end; ++vi) {
-        if(graph[*vi].symID == -1 && graph[*vi].nodeType == NodeConst && graph[*vi].const_value == value && graph[*vi].bitwidth == bit_width){
+        if(graph[*vi].symID == -1 && graph[*vi].nodeType == type && graph[*vi].const_value == value && graph[*vi].bitwidth == bit_width){
             return *vi;
         }
     }
-    return AddVertice(-1,VoidStr,NodeConst, value,bit_width,0);
+    return AddVertice(-1,VoidStr,type, value,bit_width,0);
 }
 
-SymDepGraph::vertex_t SymDepGraph::AddRuntimeVertice(unsigned int bit_width,unsigned long BBID){
-    return AddVertice(-1,VoidStr,NodeRuntime, 0,bit_width,BBID);
+SymDepGraph::vertex_t SymDepGraph::AddRuntimeVertice(std::string type, unsigned int bit_width,unsigned long BBID){
+    assert(type == NodeRuntimeInt || type == NodeRuntimeFloat || type == NodeRuntimeDouble || type == NodeRuntimePtr);
+    return AddVertice(-1,VoidStr,type, 0,bit_width,BBID);
 }
 
 void SymDepGraph::AddEdge(unsigned from_symid, unsigned to_symid, unsigned arg_no){

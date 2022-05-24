@@ -10,10 +10,15 @@
 
 
 typedef std::string NodeType;
-#define NodeConst          "const"
+#define NodeConstInt       "constantInt"
+#define NodeConstFloat     "constantFloat"
+#define NodeConstDouble    "constantDouble"
 #define NodeSym            "sym"
 #define NodeIntepretedFunc "symFunc"
-#define NodeRuntime        "runtime"
+#define NodeRuntimeInt     "runtimeInt"
+#define NodeRuntimeFloat   "runtimeFloat"
+#define NodeRuntimeDouble  "runtimeDouble"
+#define NodeRuntimePtr      "runtimePtr"
 #define NodePhi            "phi"
 
 #define VoidStr            "NaS"
@@ -93,8 +98,8 @@ public:
     SymDepGraph::vertex_t AddSymVertice(unsigned symID, std::string op,unsigned long);
     SymDepGraph::vertex_t AddPhiVertice(unsigned symID, unsigned long);
     SymDepGraph::vertex_t AddInterFuncVertice(unsigned symID, std::string op,unsigned long);
-    SymDepGraph::vertex_t AddConstVertice( long value, unsigned int bit_width);
-    SymDepGraph::vertex_t AddRuntimeVertice(unsigned int bit_width,unsigned long);
+    SymDepGraph::vertex_t AddConstVertice(std::string, long value, unsigned int bit_width);
+    SymDepGraph::vertex_t AddRuntimeVertice(std::string, unsigned int bit_width,unsigned long);
     SymDepGraph::vertex_t AddVertice(int symID,std::string op,NodeType nodeType,long const_value,unsigned int, unsigned long);
 
     void AddEdge(unsigned from_symid, unsigned to_symid, unsigned arg_no);

@@ -1064,6 +1064,52 @@ void Symbolizer::shortCircuitExpressionUses() {
     }
 }
 
+SymDepGraph::vertex_t Symbolizer::addConstantIntVertice(ConstantInt* cont_int){
+    unsigned int conWidth = dataLayout.getTypeAllocSize(cont_int->getType());
+    int64_t contValue = cont_int->getSExtValue();
+    // constant's BBID is the same with its user(maybe we can merge?)
+    auto conVert = g.AddConstVertice(NodeConstInt, contValue, conWidth);
+    return conVert;
+}
+
+SymDepGraph::vertex_t Symbolizer::addConstantFloatVertice(llvm::ConstantFP * const_fp) {
+    unsigned int conWidth = dataLayout.getTypeAllocSize(const_fp->getType());
+    Type * arg_type = const_fp->getType();
+    double contValue = const_fp->getValueAPF().convertToDouble();
+    bool isDouble = true;
+    if(arg_type->isDoubleTy()){
+        isDouble = true;
+    }else if(arg_type->isFloatTy()){
+        isDouble = false;
+    }else{
+        errs()<<*const_fp << "\n" << * arg_type<<'\n';
+        llvm_unreachable("constant float is neither float ty nor double ty");
+    }
+    auto conVert = g.AddConstVertice( isDouble ? NodeConstDouble : NodeConstFloat ,contValue, conWidth);
+    return conVert;
+}
+
+SymDepGraph::vertex_t Symbolizer::addRuntimeVertice(llvm::Value * v, unsigned bid) {
+    Type* ty = v->getType();
+    unsigned int width = getTypeWidth(ty,dataLayout);
+    std::string vertType;
+    if(ty->isIntegerTy()){
+        vertType = NodeRuntimeInt;
+    }else if(ty->isFloatTy()){
+        vertType = NodeRuntimeFloat;
+    }else if(ty->isDoubleTy()){
+        vertType = NodeRuntimeDouble;
+    }else if(ty->isPointerTy()){
+        vertType = NodeRuntimePtr;
+    }else{
+        errs()<< * v<<'\n';
+        errs() << * ty<<'\n';
+        llvm_unreachable("unhandled runtime val type");
+    }
+    auto vert = g.AddRuntimeVertice(vertType, width, bid);
+    return vert;
+}
+
 void Symbolizer::addTryAlternativeToTheGraph(){
     for(auto eachTryAlternative: tryAlternativePairs){
         unsigned tryAlterntiveSymID = eachTryAlternative.first.first;
@@ -1077,20 +1123,16 @@ void Symbolizer::addTryAlternativeToTheGraph(){
         Value* concreteVal = eachTryAlternative.second.second;
         if(isa<Constant>(concreteVal)){
             if(ConstantInt * cont_int = dyn_cast<ConstantInt>(concreteVal)){
-                unsigned int conWidth = dataLayout.getTypeAllocSize(cont_int->getType());
-                int64_t contValue = cont_int->getSExtValue();
-                // constant's BBID is the same with its user(maybe we can merge?)
-                auto conVert = g.AddConstVertice(contValue, conWidth);
+                auto conVert = addConstantIntVertice(cont_int);
                 g.AddEdge(conVert,tryAlternativeVertice, 1);
             }else if(ConstantFP* const_fp = dyn_cast<ConstantFP>(concreteVal)){
-                unsigned int conWidth = dataLayout.getTypeAllocSize(const_fp->getType());
-                double contValue = const_fp->getValueAPF().convertToDouble();
-                // constant's BBID is the same with its user(maybe we can merge?)
-                auto conVert = g.AddConstVertice(contValue, conWidth);
+                auto conVert = addConstantFloatVertice(const_fp);
                 g.AddEdge(conVert,tryAlternativeVertice, 1);
+            }else{
+                errs()<<*concreteVal<<'\n';
+                llvm_unreachable("unhandled constant");
             }
         }else{
-            Type* val_type = concreteVal->getType();
             unsigned runtimeValueBBID = 0;
             if(isa<Argument>(concreteVal)){
                 runtimeValueBBID = initialBBID;
@@ -1101,8 +1143,7 @@ void Symbolizer::addTryAlternativeToTheGraph(){
                 errs()<<"arg:"<<*concreteVal<<'\n';
                 llvm_unreachable("runtime value is neither a parameter nor an instruction. \n");
             }
-            unsigned int width = getTypeWidth(val_type,dataLayout);
-            auto runtimeVert = g.AddRuntimeVertice(width,runtimeValueBBID);
+            auto runtimeVert = addRuntimeVertice(concreteVal,runtimeValueBBID);
             g.AddEdge(runtimeVert,tryAlternativeVertice,1);
         }
     }
@@ -1178,6 +1219,7 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
 
                 unsigned userSymID = getSymIDFromSym(callInst);
                 auto userNode = g.AddSymVertice(userSymID, calleeName.str(),blockID);
+
                 for(auto arg_it = callInst->arg_begin() ; arg_it != callInst->arg_end() ; arg_it++){
                     Value * arg = *arg_it ;
                     unsigned arg_idx = callInst->getArgOperandNo(arg_it);
@@ -1192,17 +1234,14 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                             llvm_unreachable("annotated constant is not constant\n");
                         }
                         if(ConstantInt * cont_int = dyn_cast<ConstantInt>(arg)){
-                            unsigned int conWidth = dataLayout.getTypeAllocSize(cont_int->getType());
-                            int64_t contValue = cont_int->getSExtValue();
-                            // constant's BBID is the same with its user(maybe we can merge?)
-                            auto conVert = g.AddConstVertice(contValue, conWidth);
+                            auto conVert = addConstantIntVertice(cont_int);
                             g.AddEdge(conVert,userNode, arg_idx);
                         }else if(ConstantFP* const_fp = dyn_cast<ConstantFP>(arg)){
-                            unsigned int conWidth = dataLayout.getTypeAllocSize(const_fp->getType());
-                            double contValue = const_fp->getValueAPF().convertToDouble();
-                            // constant's BBID is the same with its user(maybe we can merge?)
-                            auto conVert = g.AddConstVertice(contValue, conWidth);
+                            auto conVert = addConstantFloatVertice(const_fp);
                             g.AddEdge(conVert,userNode, arg_idx);
+                        }else{
+                            errs()<<*arg<<'\n';
+                            llvm_unreachable("unhandled constant");
                         }
                     }else if(isRuntimeType(arg_idx, calleeName)){
                         if(isa<Constant>(arg)){
@@ -1214,17 +1253,15 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                                 llvm_unreachable("annotated runtime is unexpectedly a constant. \n");
                             }
                             if(ConstantInt * cont_int = dyn_cast<ConstantInt>(arg)){
-                                unsigned int conWidth = dataLayout.getTypeAllocSize(cont_int->getType());
-                                int64_t contValue = cont_int->getSExtValue();
-                                // constant's BBID is the same with its user(maybe we can merge?)
-                                auto conVert = g.AddConstVertice(contValue, conWidth);
+                                auto conVert = addConstantIntVertice(cont_int);
                                 g.AddEdge(conVert,userNode, arg_idx);
                             }else if(ConstantFP* const_fp = dyn_cast<ConstantFP>(arg)){
-                                unsigned int conWidth = dataLayout.getTypeAllocSize(const_fp->getType());
-                                double contValue = const_fp->getValueAPF().convertToDouble();
-                                // constant's BBID is the same with its user(maybe we can merge?)
-                                auto conVert = g.AddConstVertice(contValue, conWidth);
+                                auto conVert = addConstantFloatVertice(const_fp);
                                 g.AddEdge(conVert,userNode, arg_idx);
+                            }else{
+                                errs()<<*arg<<'\n';
+                                errs()<<*arg->getType()<<'\n';
+                                llvm_unreachable("unhandled constant");
                             }
                             toReplaceToTrue.push_back(callInst);
                         }else{
@@ -1240,9 +1277,10 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                                 errs()<<"arg:"<<*arg<<'\n';
                                 llvm_unreachable("runtime value is neither a parameter nor an instruction. \n");
                             }
-
-                            unsigned int width = getTypeWidth(val_type,dataLayout);
-                            auto runtimeVert = g.AddRuntimeVertice(width,runtimeValueBBID);
+                            if( !val_type->isIntegerTy() && !val_type->isDoubleTy() && !val_type->isFloatTy()){
+                                llvm_unreachable("type unhandled");
+                            }
+                            auto runtimeVert = addRuntimeVertice(arg,runtimeValueBBID);
                             g.AddEdge(runtimeVert,userNode,arg_idx);
                             //sanity check
                             if(find(runtime.replaceToNone.begin(), runtime.replaceToNone.end(), calleeName) == runtime.replaceToNone.end()){

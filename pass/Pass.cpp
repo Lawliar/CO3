@@ -114,9 +114,9 @@ bool SymbolizePass::runOnFunction(Function &F) {
         symbolizer.visit(instPtr);
     }
     symbolizer.finalizePHINodes();
-    breakConstantExpr(F);
     symbolizer.shortCircuitExpressionUses();
     // output some intermediate info for debugging purpose
+    breakConstantExpr(F);
     std::error_code ec;
     raw_fd_ostream intermediate_file(StringRef(intermediateFile.string()),ec);
     symbolizer.DisplaySymbolicIDs(intermediate_file);
