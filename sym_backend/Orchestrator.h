@@ -11,6 +11,7 @@
 #include "RuntimeCFG.h"
 #include "RuntimeDataFlowGraph.h"
 #include "MsgQueue.h"
+#include "SymGraph.h"
 
 extern "C" {
 #include "serialport.h"
@@ -30,8 +31,7 @@ public:
     OpenedSP sp;
 
     MsgQueue msgQueue;
-    RuntimeCFG cfg;
-    RuntimeSymFlowGraph dfg;
+    SymGraph symGraph;
 
 
     // for debugging purpose

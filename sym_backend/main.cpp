@@ -35,5 +35,5 @@ int main(int argc, const char *argv[])
     int baud_rate = vm["baudrate"].as<int>();
 
     Orchestrator orc(cfg_path,pdt_path, dfg_path,serial_port,baud_rate);
-    orc.dfg.loopCheck();
+    orc.symGraph.dfg.loopCheck();
 }

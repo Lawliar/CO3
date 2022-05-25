@@ -15,7 +15,7 @@ void RuntimeSymFlowGraph::readGraphViz(std::string filename) {
     dp.property(opPrefix,            boost::get(&Vertex_Properties::op,           graph));
     dp.property(nodeTPrefix,         boost::get(&Vertex_Properties::nodeType,     graph));
     dp.property(constantValuePrefix, boost::get(&Vertex_Properties::const_value,  graph));
-    dp.property(widthPrefix,         boost::get(&Vertex_Properties::bitwidth,     graph));
+    dp.property(widthPrefix,         boost::get(&Vertex_Properties::byteWidth,     graph));
     dp.property(BasicBlockPrefix,    boost::get(&Vertex_Properties::BBID,         graph));
     dp.property("label",             boost::get(&Edge_Properties::arg_no,         graph));
     std::ifstream myfile (filename);
@@ -64,10 +64,38 @@ RuntimeSymFlowGraph::RuntimeSymFlowGraph(std::string filename, RuntimeCFG & cfg)
             SymbolicStatus[symid] = make_pair(SymDummy, nullptr);
         }
     }
+
+    edge_it ei, ei_end;
+    set<unsigned> arg_nos;
+    for(boost::tie(ei, ei_end) = boost::edges(graph); ei != ei_end ; ei++){
+        vertex_t s = boost::source(*ei, graph);
+        vertex_t d = boost::target(*ei, graph);
+        if(graph[s].nodeType== "phi" || graph[d].nodeType =="phi")
+            continue;
+
+        unsigned label = graph[*ei].arg_no;
+        arg_nos.insert(label);
+
+    }
+    for(auto each_arg: arg_nos){
+        cout << each_arg<<" ";
+        cout.flush();
+    }
     // prepare the task
-    PrepareTask();
+    PreparePerBBTask();
 }
-void RuntimeSymFlowGraph::PrepareTask(){
+
+void RuntimeSymFlowGraph::addToTaskDependents(vertex_t root){
+    std::set<vertex_t> visited;
+    // src_id post dominates itself
+    visited.insert(root);
+    std::stack<vertex_t> work_stack;
+    work_stack.push(root);
+
+
+
+}
+void RuntimeSymFlowGraph::PreparePerBBTask(){
     loopCheck();
     RuntimeCFG::vertex_it cfg_vi,cfg_vi_end;
     std::set<unsigned long> allBBs;
@@ -105,4 +133,8 @@ void RuntimeSymFlowGraph::PrepareTask(){
         }
         bbTasks.insert(make_pair(cur_bbid, task));
     }
+}
+
+void RuntimeSymFlowGraph::PreparePerRootTask(){
+
 }

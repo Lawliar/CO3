@@ -32,12 +32,15 @@ public:
     RuntimeSymFlowGraph(std::string, RuntimeCFG&);
     void readGraphViz(std::string filename);
     void loopCheck();
-    void PrepareTask();
+    void PreparePerBBTask();
+    void PreparePerRootTask();
+    void addToTaskDependents(vertex_t);
 
     const RuntimeCFG& cfg;
 
     std::map<uint32_t, BasicBlockTask*> bbTasks;
     std::map<uint32_t, std::pair<SymStatus, SymExpr>> SymbolicStatus;
 
+    std::map<vertex_t, set<vertex_t> > taskDependents;
 };
 #endif //SYMBACKEND_RUNTIMEDATAFLOWGRAPH_H
