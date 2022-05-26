@@ -1195,28 +1195,6 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                 if(calleeName.equals("_sym_notify_basic_block") || calleeName.equals("_sym_notify_call") || calleeName.equals("_sym_notify_ret") ){
                     continue;
                 }
-                if(calleeName.equals("_sym_get_parameter_expression") ){
-                    g.AddSymVertice(getSymIDFromSym(callInst), calleeName.str(),blockID);
-                    continue;
-                }else if(calleeName.equals("_sym_get_return_expression")){
-                    g.AddSymVertice(getSymIDFromSym(callInst), calleeName.str(),blockID);
-                    continue;
-                }else if(calleeName.equals("_sym_set_parameter_expression")){
-                    g.AddSymVertice(getSymIDFromSym(callInst), calleeName.str(),blockID);
-                    size_t arg_size = callInst->arg_size();
-                    assert(arg_size == 2);
-                    ConstantInt * idx_const = cast<ConstantInt>(callInst->getArgOperand(0));
-                    Value * sym_arg = callInst->getArgOperand(1);
-                    g.AddEdge(getSymIDFromSym(sym_arg),getSymIDFromSym(callInst), idx_const->getZExtValue()); //idx_const is the nth para that is set
-                    continue;
-                }else if(calleeName.equals("_sym_set_return_expression")){
-                    g.AddSymVertice(getSymIDFromSym(callInst), calleeName.str(),blockID);
-                    size_t arg_size = callInst->arg_size();
-                    assert(arg_size == 1);
-                    g.AddEdge(getSymIDFromSym(callInst->getArgOperand(0)),getSymIDFromSym(callInst), 0);
-                    continue;
-                }
-
                 unsigned userSymID = getSymIDFromSym(callInst);
                 auto userNode = g.AddSymVertice(userSymID, calleeName.str(),blockID);
 
