@@ -13,6 +13,7 @@
 #include "MsgQueue.h"
 #include "SymGraph.h"
 
+#include "boost/filesystem.hpp"
 extern "C" {
 #include "serialport.h"
 }
@@ -20,7 +21,7 @@ extern "C" {
 
 class Orchestrator{
 public:
-    Orchestrator(std::string cfg_filename, std::string dt_filename,std::string pdt_filename, std::string dfg_filename, std::string sp_port, int);
+    Orchestrator(std::string inputDir, std::string sp_port, int);
     int StartListen();
     int Run();
 
@@ -31,7 +32,7 @@ public:
     OpenedSP sp;
 
     MsgQueue msgQueue;
-    SymGraph symGraph;
+    map<unsigned, SymGraph*> symGraphs;
 
 
     // for debugging purpose

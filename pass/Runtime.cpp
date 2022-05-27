@@ -323,6 +323,9 @@ Runtime::Runtime(Module &M) {
     SymOperators.push_back(&notifyCall);
     runtimeArgNo["_sym_notify_call"] = {0};
 
+    notifyFunc = import(M,"_sym_notify_func",voidT,int8T);
+
+
     notifyRet = import(M, "_sym_notify_ret", voidT, int8T);
     SymOperators.push_back(&notifyRet);
     runtimeArgNo["_sym_notify_ret"] = {0};

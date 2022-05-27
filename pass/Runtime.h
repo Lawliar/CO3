@@ -87,6 +87,7 @@ struct Runtime {
     SymFnT buildInsert{};
     SymFnT buildExtract{};
     SymFnT notifyCall{};
+    SymFnT notifyFunc{};
     SymFnT notifyRet{};
     SymFnT notifyPhi{};
     SymFnT notifyBasicBlock{};

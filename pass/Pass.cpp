@@ -38,6 +38,7 @@ using namespace llvm;
 
 #include <llvm/Support/CommandLine.h>
 #include <boost/filesystem.hpp>
+#include <iostream>
 
 char SymbolizePass::ID = 0;
 
@@ -93,8 +94,11 @@ bool SymbolizePass::runOnFunction(Function &F) {
     boost::filesystem::path postDomTreeFile = dir / (F.getName() + "_postDom.dot").str();
     boost::filesystem::path domTreeFile = dir / (F.getName() + "_dom.dot").str();
     boost::filesystem::path intermediateFile = dir / (F.getName() + "_intermediate.ll").str();
-
-
+    boost::filesystem::path funcIDFile = dir / "spear_func_id.txt";
+    if(!boost::filesystem::exists(funcIDFile)){
+        std::ofstream touchfile(funcIDFile.string());
+        touchfile.close();
+    }
 
     SmallVector<Instruction *, 0> allInstructions;
     allInstructions.reserve(F.getInstructionCount());
@@ -128,7 +132,7 @@ bool SymbolizePass::runOnFunction(Function &F) {
 
     symbolizer.createDFGAndReplace(F,ddgFile.string());
 
-
+    symbolizer.addNotifyFunc(F, funcIDFile.string());
     assert(!verifyFunction(F, &errs()) &&
          "SymbolizePass produced invalid bitcode");
 

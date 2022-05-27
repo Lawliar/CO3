@@ -63,7 +63,7 @@ SymGraph::SymGraph(std::string cfg_filename,std::string dt_filename, std::string
         }else if ( nodeType == NodeSym){
             //std::cout<< in_degree <<','<< op  <<'\n';
             //std::cout.flush();
-        }else if( nodeType == NodePhi){
+        }else if( nodeType == NodeTruePhi){
             // some special case
         }
         Nodes[index_map.at(cur_ver)] = cur_node;

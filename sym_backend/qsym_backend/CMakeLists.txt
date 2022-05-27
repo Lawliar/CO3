@@ -92,6 +92,7 @@ target_include_directories(orchestrator PRIVATE ${RUNTIME_GRAPH_INCLUDE_DIR})
 TARGET_LINK_LIBRARIES( orchestrator ${Boost_LIBRARIES} )
 target_link_libraries( orchestrator boost_program_options)
 TARGET_LINK_LIBRARIES( orchestrator boost_graph )
+TARGET_LINK_LIBRARIES( orchestrator boost_filesystem )
 
 target_include_directories(orchestrator PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}     # for our fake pin.H and Runtime.h

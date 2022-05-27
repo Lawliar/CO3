@@ -15,6 +15,7 @@
 #include "Symbolizer.h"
 
 #include <cstdint>
+#include <fstream>
 #include <llvm/ADT/SmallPtrSet.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/GetElementPtrTypeIterator.h>
@@ -1362,6 +1363,49 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
     // after this point.
     symbolicExpressions.clear();
 }
+
+void Symbolizer::addNotifyFunc(llvm::Function& F, std::string file_name){
+
+    std::string func_name = F.getName().str();
+    std::string line;
+    std::ifstream funcIDFileR (file_name);
+    unsigned id = 0;
+    assert(funcIDFileR.is_open());
+    bool dup = false;
+    while ( getline (funcIDFileR,line) )
+    {
+        size_t tab_pos = line.find('\t');
+        assert(tab_pos != std::string::npos);
+        std::string cur_funcname =  line.substr(0, tab_pos);
+        if(cur_funcname == func_name){
+            dup = true;
+        }
+        unsigned cur_id = stoi(line.substr(tab_pos + 1));
+        if(cur_id >= id){
+            id = cur_id + 1;
+        }
+    }
+    funcIDFileR.close();
+
+    std::ofstream funcIDFileW;
+    if(dup){
+        funcIDFileW.open(file_name,std::ios_base::out);
+        id = 0;
+    }else{
+        funcIDFileW.open(file_name,std::ios_base::app);
+    }
+
+    IRBuilder<> IRB(&*(F.getEntryBlock()).getFirstInsertionPt());
+    if(id > 255){
+        llvm_unreachable("total number of functions exceeds 255");
+    }
+    IRB.CreateCall(runtime.notifyFunc, ConstantHelper(runtime.int8T,id));
+
+    assert(funcIDFileW.is_open());
+    funcIDFileW << func_name <<'\t' << id<<'\n';
+    funcIDFileW.close();
+}
+
 void RecursivePrintEdges(std::map<BasicBlock*, unsigned long>& basicBlockMap, raw_fd_ostream & O, DomTreeNodeBase<BasicBlock> * root, unsigned level){
     unsigned cur_bbid = basicBlockMap.at(root->getBlock());
     O << std::string(level, '\t') << cur_bbid << " [shape=record, label=\"";

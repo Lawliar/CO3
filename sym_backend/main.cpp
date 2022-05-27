@@ -9,10 +9,7 @@ boost::program_options::variables_map ParseCommand(int argc, const char *argv[])
     {
         boost::program_options::options_description desc{"Options"};
         desc.add_options()
-                ("cfg,c",  boost::program_options::value<std::string>()->required(), "path of the control-flow graph")
-                ("dfg,d",  boost::program_options::value<std::string>()->required(), "path of the data-flow graph")
-                ("dt,D",  boost::program_options::value<std::string>()->required(), "path of the dominance tree")
-                ("pdt,p",  boost::program_options::value<std::string>()->required(), "path of the post dominance tree")
+                ("inputDir,i",  boost::program_options::value<std::string>()->required(), "path to the intermediate folder")
                 ("sp,s",   boost::program_options::value<std::string>()->required(), "sp")
                 ("baudrate,b",boost::program_options::value<int>()->required(), "baudrate");
 
@@ -29,13 +26,16 @@ boost::program_options::variables_map ParseCommand(int argc, const char *argv[])
 int main(int argc, const char *argv[])
 {
     boost::program_options::variables_map vm = ParseCommand(argc, argv);
-    std::string dfg_path = vm["dfg"].as<std::string>();
-    std::string cfg_path = vm["cfg"].as<std::string>();
-    std::string dt_path = vm["dt"].as<std::string>();
-    std::string pdt_path = vm["pdt"].as<std::string>();
+    std::string input_path = vm["inputDir"].as<std::string>();
     std::string serial_port = vm["sp"].as<std::string>();
     int baud_rate = vm["baudrate"].as<int>();
 
-    Orchestrator orc(cfg_path,dt_path,pdt_path, dfg_path,serial_port,baud_rate);
-    orc.symGraph.dfg.loopCheck();
+    boost::filesystem::path dir (input_path);
+    if(! boost::filesystem::exists(dir)){
+        cerr << "input dir:"<<input_path<<" does not exist";
+        assert(false);
+    }
+
+    Orchestrator orc(input_path,serial_port,baud_rate);
+    __asm__("nop");
 }

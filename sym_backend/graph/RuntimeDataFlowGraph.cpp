@@ -30,7 +30,7 @@ struct cycle_detector : public boost::dfs_visitor<>
 
     template <class Edge, class Graph>
     void back_edge(Edge e, Graph& g) {
-        assert(g[e.m_target].nodeType == "phi" || g[e.m_source].nodeType == "phi");
+        assert(g[e.m_target].nodeType == NodeTruePhi || g[e.m_target].nodeType == NodeFalsePhi || g[e.m_source].nodeType == NodeTruePhi || g[e.m_source].nodeType == NodeFalsePhi);
         _has_cycle = true;
     }
 protected:
@@ -65,6 +65,7 @@ RuntimeSymFlowGraph::RuntimeSymFlowGraph(std::string filename, RuntimeCFG & cfg)
         }
     }
 
+    /*
     edge_it ei, ei_end;
     set<unsigned> arg_nos;
     for(boost::tie(ei, ei_end) = boost::edges(graph); ei != ei_end ; ei++){
@@ -81,6 +82,7 @@ RuntimeSymFlowGraph::RuntimeSymFlowGraph(std::string filename, RuntimeCFG & cfg)
         cout << each_arg<<" ";
         cout.flush();
     }
+     */
     // prepare the task
     PreparePerBBTask();
 }

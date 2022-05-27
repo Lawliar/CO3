@@ -552,6 +552,7 @@ public:
     std::set<llvm::StringRef> interpretedFunctionNames;
     void addSymIDToCall(llvm::CallBase&);
     void interpretedFuncSanityCheck(llvm::CallBase&);
+    void addNotifyFunc(llvm::Function& func, std::string file_name);
 };
 
 #endif
