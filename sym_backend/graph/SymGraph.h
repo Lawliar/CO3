@@ -115,7 +115,7 @@ public:
 class SymVal##OP : public SymVal{                      \
 public:                                                    \
     static const unsigned numOps = 0;                                                       \
-    SymVal##OP(BasicBlockIdType bid,std::string op): SymVal(bid, op){}                         \
+    SymVal##OP(BasicBlockIdType bid): SymVal(bid, #OP){}                         \
     ~SymVal##OP(){In_edges.clear();}                        \
 };
 
@@ -123,7 +123,7 @@ public:                                                    \
 class SymVal##OP : public SymVal{                      \
 public:                                                    \
     static const unsigned numOps = 1;                                                       \
-    SymVal##OP(BasicBlockIdType bid,std::string op, ValVertexType dep): SymVal(bid, op){ \
+    SymVal##OP(BasicBlockIdType bid, ValVertexType dep): SymVal(bid, #OP){ \
                In_edges[0] = dep;}                         \
     ~SymVal##OP(){In_edges.clear();}                        \
 };
@@ -132,9 +132,9 @@ public:                                                    \
 class SymVal##OP : public SymVal{                      \
 public:                                                    \
     static const unsigned numOps = 2;                    \
-    SymVal##OP(BasicBlockIdType bid,std::string op,     \
+    SymVal##OP(BasicBlockIdType bid,     \
                  ValVertexType dep1, ValVertexType dep2 ): \
-                 SymVal(bid, op){                          \
+                 SymVal(bid, #OP){                          \
                In_edges[0] = dep1;                          \
                In_edges[1] = dep2;}                        \
     ~SymVal##OP(){In_edges.clear();}                        \
@@ -144,9 +144,9 @@ public:                                                    \
 class SymVal##OP : public SymVal{                      \
 public:                                                    \
     static const unsigned numOps = 3;                   \
-    SymVal##OP(BasicBlockIdType bid,std::string op,     \
+    SymVal##OP(BasicBlockIdType bid,     \
                   ValVertexType dep1, ValVertexType dep2,  \
-                  ValVertexType dep3 ): SymVal(bid, op){    \
+                  ValVertexType dep3 ): SymVal(bid, #OP){    \
                In_edges[0] = dep1;                          \
                In_edges[1] = dep2;                         \
                In_edges[2] = dep3;}                        \
@@ -157,19 +157,32 @@ public:                                                    \
 class SymVal##OP : public SymVal{                      \
 public:                                                    \
     static const unsigned numOps = 4;                 \
-    SymVal##OP(BasicBlockIdType bid,std::string op,    \
+    SymVal##OP(BasicBlockIdType bid,    \
           ValVertexType dep1, ValVertexType dep2,         \
           ValVertexType dep3, ValVertexType dep4):        \
-          SymVal(bid, op){                                 \
+          SymVal(bid, #OP){                                 \
                In_edges[0] = dep1;                          \
                In_edges[1] = dep2;                         \
                In_edges[2] = dep3;                         \
                In_edges[3] = dep4;}                        \
     ~SymVal##OP(){In_edges.clear();}                        \
 };
+DECLARE_SYMVAL_TYPE0(_NULL) // NULL valued symval found from compile time
 
-DECLARE_SYMVAL_TYPE1(_sym_build_integer)
-DECLARE_SYMVAL_TYPE1(_sym_build_float)
+// try_alternative is different.
+class SymVal_sym_try_alternative: public SymVal{
+public:
+    static const unsigned numOps = 2;
+    SymVal_sym_try_alternative(BasicBlockIdType bid,
+                 ValVertexType dep1, ValVertexType dep2 ):
+                 SymVal(bid, "_sym_try_alternative"){
+               In_edges[0] = dep1;
+               In_edges[1] = dep2;}
+    ~SymVal_sym_try_alternative(){In_edges.clear();}
+};
+
+DECLARE_SYMVAL_TYPE2(_sym_build_integer)
+DECLARE_SYMVAL_TYPE2(_sym_build_float)
 DECLARE_SYMVAL_TYPE0(_sym_build_null_pointer)
 DECLARE_SYMVAL_TYPE0(_sym_build_true)
 DECLARE_SYMVAL_TYPE0(_sym_build_false)
@@ -244,6 +257,18 @@ DECLARE_SYMVAL_TYPE2(_sym_set_parameter_expression)
 DECLARE_SYMVAL_TYPE1(_sym_get_parameter_expression)
 DECLARE_SYMVAL_TYPE1(_sym_set_return_expression)
 DECLARE_SYMVAL_TYPE0(_sym_get_return_expression)
+
+DECLARE_SYMVAL_TYPE2(_sym_build_path_constraint)//sym id will be added later
+
+DECLARE_SYMVAL_TYPE3(_sym_build_read_memory)
+DECLARE_SYMVAL_TYPE4(_sym_build_write_memory)
+DECLARE_SYMVAL_TYPE3(_sym_build_memcpy)
+DECLARE_SYMVAL_TYPE3(_sym_build_memset)
+DECLARE_SYMVAL_TYPE3(_sym_build_memmove)
+
+DECLARE_SYMVAL_TYPE4(_sym_build_insert)
+DECLARE_SYMVAL_TYPE4(_sym_build_extract)
+
 
 
 class SymGraph {

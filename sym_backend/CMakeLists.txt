@@ -51,13 +51,16 @@ set(SHARED_RUNTIME_SOURCES
 
 set(SERIAL_PORT_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/serialport/serialport.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/serialport/Message.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/serialport/MsgQueue.cpp
 )
 set(SERIAL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/serialport)
 
 set(GRAPH_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/../pass/dfg/DataFlowGraph.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/graph/RuntimeDataFlowGraph.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/graph/RuntimeCFG.cpp)
+        ${CMAKE_CURRENT_SOURCE_DIR}/graph/RuntimeCFG.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/graph/SymGraph.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../pass/dfg/DataFlowGraph.cpp)
 set(GRAPH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../pass/dfg)
 set(RUNTIME_GRAPH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/graph)
 if (${QSYM_BACKEND})

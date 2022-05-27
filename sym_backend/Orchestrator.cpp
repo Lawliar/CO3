@@ -18,7 +18,6 @@ sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
     }
 
     std::ifstream funcIDFile (funcIDFilePath);
-    unsigned id = 0;
     assert(funcIDFile.is_open());
     string line;
     while ( getline (funcIDFile,line) )
@@ -51,8 +50,6 @@ sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
         SymGraph* cur_symgraph = new SymGraph(cfg_file.string(),dom_file.string(),postDom_file.string(),dfg_file.string());
         symGraphs[cur_id] = cur_symgraph;
     }
-
-
 }
 Orchestrator::~Orchestrator() {
     freeSerialPort(sp);
