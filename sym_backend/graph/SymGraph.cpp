@@ -33,7 +33,7 @@ SymGraph::SymGraph(std::string cfg_filename,std::string dt_filename, std::string
 :cfg(cfg_filename,dt_filename, pdt_filename),dfg(dfg_filename, cfg) {
 
     unsigned numNodes = boost::num_vertices(dfg.graph);
-    Nodes.reserve(numNodes);
+    Nodes.assign(numNodes, nullptr);
     RuntimeSymFlowGraph::vertex_it dfg_vi, dfg_vi_end;
     map<RuntimeSymFlowGraph::vertex_t, unsigned> index_map;
     unsigned cur = 0;// must start from 0
