@@ -124,7 +124,7 @@ public:
     SymDepGraph::vertex_t addConstantFloatVertice(llvm::ConstantFP*);
     SymDepGraph::vertex_t addRuntimeVertice(llvm::Value*, unsigned);
   void createDFGAndReplace(llvm::Function&,std::string);
-  void outputCFG(llvm::Function&, llvm::PostDominatorTree&,std::string,std::string);
+  void outputCFG(llvm::Function&,llvm::DominatorTree&, llvm::PostDominatorTree&,std::string,std::string,std::string);
   //
   // Implementation of InstVisitor
   //

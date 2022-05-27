@@ -20,7 +20,7 @@ extern "C" {
 
 class Orchestrator{
 public:
-    Orchestrator(std::string cfg_filename, std::string pdt_filename, std::string dfg_filename, std::string sp_port, int);
+    Orchestrator(std::string cfg_filename, std::string dt_filename,std::string pdt_filename, std::string dfg_filename, std::string sp_port, int);
     int StartListen();
     int Run();
 

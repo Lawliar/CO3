@@ -19,7 +19,8 @@ typedef std::string NodeType;
 #define NodeRuntimeFloat   "runtimeFloat"
 #define NodeRuntimeDouble  "runtimeDouble"
 #define NodeRuntimePtr      "runtimePtr"
-#define NodePhi            "phi"
+#define NodeTruePhi         "truePhi"
+#define NodeFalsePhi        "falsePhi"
 
 #define VoidStr            "NaS"
 class SymDepGraph
@@ -96,7 +97,7 @@ public:
 
     SymDepGraph();
     SymDepGraph::vertex_t AddSymVertice(unsigned symID, std::string op,unsigned long);
-    SymDepGraph::vertex_t AddPhiVertice(unsigned symID, unsigned long);
+    SymDepGraph::vertex_t AddPhiVertice(std::string, unsigned symID, unsigned long);
     SymDepGraph::vertex_t AddInterFuncVertice(unsigned symID, std::string op,unsigned long);
     SymDepGraph::vertex_t AddConstVertice(std::string, long value, unsigned int byte_width);
     SymDepGraph::vertex_t AddRuntimeVertice(std::string, unsigned int byte_width,unsigned long);

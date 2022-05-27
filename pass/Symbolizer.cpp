@@ -1178,7 +1178,11 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
             if (PHINode *symPhi = dyn_cast<PHINode>(&eachInst); symPhi != nullptr &&
                                                                 phiSymbolicIDs.find(symPhi) != phiSymbolicIDs.end()) {
                 unsigned userSymID = getSymIDFromSym(symPhi);
-                g.AddPhiVertice(userSymID, blockID);
+                if(phiSymbolicIDs.find(symPhi)->second.second){
+                    g.AddPhiVertice(NodeTruePhi,userSymID, blockID );
+                }else{
+                    g.AddPhiVertice(NodeFalsePhi,userSymID, blockID );
+                }
             }
             if(!isa<CallInst>(&eachInst)){
                 continue;
@@ -1371,17 +1375,24 @@ void RecursivePrintEdges(std::map<BasicBlock*, unsigned long>& basicBlockMap, ra
     }
 }
 
-void Symbolizer::outputCFG(llvm::Function & F, PostDominatorTree& pdTree, std::string cfg_file, std::string postDom_file) {
+void Symbolizer::outputCFG(llvm::Function & F, DominatorTree& dTree, PostDominatorTree& pdTree, std::string cfg_file,std::string dom_file, std::string postDom_file) {
     std::string buffer_str;
     std::error_code error;
     raw_string_ostream rso(buffer_str);
     StringRef name(cfg_file);
     raw_fd_ostream file(name, error);
 
+    std::string d_buffer_str;
+    raw_string_ostream d_rso(d_buffer_str);
+    StringRef d_name(dom_file);
+    raw_fd_ostream d_file(d_name, error);
+
     std::string pd_buffer_str;
     raw_string_ostream pd_rso(pd_buffer_str);
     StringRef pd_name(postDom_file);
     raw_fd_ostream pd_file(pd_name, error);
+
+
 
     std::map<BasicBlock*, unsigned long> basicBlockMap;
     for (Function::iterator B_iter = F.begin(); B_iter != F.end(); ++B_iter){
@@ -1443,6 +1454,19 @@ void Symbolizer::outputCFG(llvm::Function & F, PostDominatorTree& pdTree, std::s
     file << "}\n";
     file.close();
 
+    //output d_file
+    d_file << "digraph \"dom tree for'" + F.getName() + "\' function\" {\n";
+
+    auto dtree_root = dTree.getRootNode();
+    BasicBlock * d_root = dtree_root->getBlock();
+    if(d_root != entry_bb){
+        llvm_unreachable("entry block does not match");
+    }
+    RecursivePrintEdges(basicBlockMap,d_file,dtree_root, 1);
+    d_file<<"}\n";
+    d_file.close();
+
+    //output pd_file
     pd_file << "digraph \"post dom tree for'" + F.getName() + "\' function\" {\n";
 
     auto tree_root = pdTree.getRootNode();

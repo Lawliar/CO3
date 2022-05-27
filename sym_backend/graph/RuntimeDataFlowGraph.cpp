@@ -103,11 +103,6 @@ void RuntimeSymFlowGraph::PreparePerBBTask(){
     // prepare per-BB task
     for(boost::tie(cfg_vi, cfg_vi_end) = boost::vertices(cfg.graph); cfg_vi != cfg_vi_end; cfg_vi++){
         unsigned cur_bbid = cfg.graph[*cfg_vi].id;
-        bool in_loop = cfg.graph[*cfg_vi].inloop == '1' ? true : false;
-        // we only do per-BB task for in loop BB
-        if(!in_loop){
-            continue;
-        }
         BasicBlockTask* task = new BasicBlockTask(cur_bbid);
         edge_it ei, ei_end;
         for(boost::tie(ei,ei_end) = boost::edges(graph); ei != ei_end ; ei++){

@@ -240,11 +240,15 @@ DECLARE_SYMVAL_TYPE2(_sym_build_float_to_unsigned_integer)
 DECLARE_SYMVAL_TYPE2(_sym_build_bool_to_bits)
 
 
+DECLARE_SYMVAL_TYPE2(_sym_set_parameter_expression)
+DECLARE_SYMVAL_TYPE1(_sym_get_parameter_expression)
+DECLARE_SYMVAL_TYPE1(_sym_set_return_expression)
+DECLARE_SYMVAL_TYPE0(_sym_get_return_expression)
 
 
 class SymGraph {
 public:
-    SymGraph(std::string cfg, std::string pdt, std::string dfg );
+    SymGraph(std::string cfg, std::string dt, std::string pdt, std::string dfg );
 
     vector<Val*> Nodes;
     RuntimeCFG cfg;

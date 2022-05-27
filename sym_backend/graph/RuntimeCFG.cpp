@@ -7,7 +7,7 @@
 #include "boost/graph/graphviz.hpp"
 #include "fstream"
 
-void RuntimeCFG::readGraphViz(std::string cfg_filename, std::string dp_filename) {
+void RuntimeCFG::readGraphViz(std::string cfg_filename, std::string p_filename, std::string dp_filename) {
     boost::dynamic_properties dp(boost::ignore_other_properties);
     dp.property("node_id",             boost::get(&Vertex_Properties::name,                graph));
     dp.property(idPrefix,              boost::get(&Vertex_Properties::id,                  graph));
@@ -18,13 +18,22 @@ void RuntimeCFG::readGraphViz(std::string cfg_filename, std::string dp_filename)
     boost::read_graphviz(cfg_file, graph, dp);
     cfg_file.close();
 
+    boost::dynamic_properties d_dp(boost::ignore_other_properties);
+    d_dp.property("node_id",               boost::get(&Dominance_Vertex_Properties::name,                domTree));
+    d_dp.property(idPrefix,                boost::get(&Dominance_Vertex_Properties::id,                domTree));
+    d_dp.property(pdLevelPrefix,           boost::get(&Dominance_Vertex_Properties::level,                domTree));
+    std::ifstream d_file (p_filename);
+    boost::read_graphviz(d_file, domTree, d_dp);
+    d_file.close();
+
     boost::dynamic_properties pd_dp(boost::ignore_other_properties);
-    pd_dp.property("node_id",               boost::get(&PD_Vertex_Properties::name,                postDomTree));
-    pd_dp.property(idPrefix,                boost::get(&PD_Vertex_Properties::id,                postDomTree));
-    pd_dp.property(pdLevelPrefix,           boost::get(&PD_Vertex_Properties::level,                postDomTree));
+    pd_dp.property("node_id",               boost::get(&Dominance_Vertex_Properties::name,                postDomTree));
+    pd_dp.property(idPrefix,                boost::get(&Dominance_Vertex_Properties::id,                postDomTree));
+    pd_dp.property(pdLevelPrefix,           boost::get(&Dominance_Vertex_Properties::level,                postDomTree));
     std::ifstream dp_file (dp_filename);
     boost::read_graphviz(dp_file, postDomTree, pd_dp);
     dp_file.close();
+
 
     // some sanity check
     assert(graph.m_vertices.size() == postDomTree.m_vertices.size());
@@ -68,7 +77,7 @@ std::set<unsigned> RuntimeCFG::postDominatedBy(pd_vertex_t src){
     return visited;
 }
 void RuntimeCFG::preparePostDominance() {
-    boost::graph_traits<PDTree>::vertex_iterator it, it_end;
+    boost::graph_traits<DominanceTree>::vertex_iterator it, it_end;
     for(boost::tie(it, it_end) = boost::vertices(postDomTree); it != it_end; ++it){
         unsigned it_id = graph[*it].id;
         post_dominance[it_id] = postDominatedBy(*it);

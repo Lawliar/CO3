@@ -6,8 +6,8 @@
 
 #include "SymGraph.h"
 
-SymGraph::SymGraph(std::string cfg_filename, std::string pdt_filename, std::string dfg_filename) \
-:cfg(cfg_filename, pdt_filename),dfg(dfg_filename, cfg) {
+SymGraph::SymGraph(std::string cfg_filename,std::string dt_filename, std::string pdt_filename, std::string dfg_filename) \
+:cfg(cfg_filename,dt_filename, pdt_filename),dfg(dfg_filename, cfg) {
 
     unsigned numNodes = boost::num_vertices(dfg.graph);
     Nodes.reserve(numNodes);
@@ -35,47 +35,34 @@ SymGraph::SymGraph(std::string cfg_filename, std::string pdt_filename, std::stri
         unsigned in_degree = boost::in_degree(cur_ver, dfg.graph);
 
         Val* cur_node = nullptr;
-        if(nodeType == NodeConstInt){
+        if(nodeType == NodeConstInt ||nodeType == NodeConstFloat || nodeType == NodeConstDouble){
             assert(symid == -1);
             assert(bbid == 0);
             assert(op == VoidStr);
             assert(in_degree == 0);
-            cur_node = new ConstantIntVal(bbid, const_val, width);
-        } else if(nodeType == NodeConstFloat){
-            assert(symid == -1);
-            assert(bbid == 0);
-            assert(op == VoidStr);
-            assert(in_degree == 0);
-            cur_node = new ConstantFloatVal(bbid, static_cast< float >(const_val));
-        }else if(nodeType == NodeConstDouble){
-            assert(symid == -1);
-            assert(bbid == 0);
-            assert(op == VoidStr);
-            assert(in_degree == 0);
-            cur_node = new ConstantDoubleVal(bbid, static_cast< double >(const_val));
-        }else if(nodeType == NodeRuntimeInt){
+            if(nodeType == NodeConstInt){
+                cur_node = new ConstantIntVal(bbid, const_val, width);
+            }else if(nodeType == NodeConstFloat){
+                cur_node = new ConstantFloatVal(bbid, static_cast< float >(const_val));
+            }else if(nodeType == NodeConstDouble){
+                cur_node = new ConstantDoubleVal(bbid, static_cast< double >(const_val));
+            }
+        }else if(nodeType == NodeRuntimeInt || nodeType == NodeRuntimeFloat || nodeType == NodeRuntimeDouble || nodeType == NodeRuntimePtr ){
             assert(symid == -1);
             assert(op == VoidStr);
             assert(in_degree == 0);
-            cur_node = new RuntimeIntVal(bbid, width);
-        }else if(nodeType == NodeRuntimeFloat){
-            assert(symid == -1);
-            assert(op == VoidStr);
-            assert(in_degree == 0);
-            cur_node = new RuntimeFloatVal(bbid);
-        }else if(nodeType == NodeRuntimeDouble){
-            assert(symid == -1);
-            assert(op == VoidStr);
-            assert(in_degree == 0);
-            cur_node = new RuntimeDoubleVal(bbid);
-        }else if(nodeType == NodeRuntimePtr){
-            assert(symid == -1);
-            assert(op == VoidStr);
-            assert(in_degree == 0);
-            cur_node = new RuntimePtrVal(bbid);
+            if(nodeType == NodeRuntimeInt){
+                cur_node = new RuntimeIntVal(bbid, width);
+            }else if(nodeType == NodeRuntimeFloat){
+                cur_node = new RuntimeFloatVal(bbid);
+            }else if(nodeType == NodeRuntimeDouble){
+                cur_node = new RuntimeDoubleVal(bbid);
+            }else if(nodeType == NodeRuntimePtr){
+                cur_node = new RuntimePtrVal(bbid);
+            }
         }else if ( nodeType == NodeSym){
-            std::cout<< in_degree <<','<< op  <<'\n';
-            std::cout.flush();
+            //std::cout<< in_degree <<','<< op  <<'\n';
+            //std::cout.flush();
         }else if( nodeType == NodePhi){
             // some special case
         }

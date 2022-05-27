@@ -33,32 +33,34 @@ public:
     inline static const std::string entryPrefix         = "entry";
     inline static const std::string exitPrefix          = "exit";
     inline static const std::string pdLevelPrefix          = "level";
-    struct PD_Vertex_Properties                                    // property bundle for vertices
+    struct Dominance_Vertex_Properties                                    // property bundle for vertices
     {
         std::string name;
         unsigned int id;
         unsigned int level;
     };
-    struct PD_Edge_Properties                                    // property bundle for vertices
+    struct Dominance_Edge_Properties                                    // property bundle for vertices
     {
     };
 
     typedef boost::adjacency_list<boost::listS, boost::vecS,  boost::directedS,
-            PD_Vertex_Properties,PD_Edge_Properties> PDTree;
-    typedef boost::graph_traits<PDTree>::vertex_descriptor pd_vertex_t;
-    typedef boost::graph_traits<PDTree>::vertex_iterator pd_vertex_it;
-    typedef boost::graph_traits<PDTree>::edge_descriptor pd_edge_t;
-    typedef boost::graph_traits<PDTree>::edge_iterator pd_edge_it;
-    typedef boost::graph_traits<PDTree>::out_edge_iterator pd_oedge_it;
+            Dominance_Vertex_Properties,Dominance_Edge_Properties> DominanceTree;
+    typedef boost::graph_traits<DominanceTree>::vertex_descriptor pd_vertex_t;
+    typedef boost::graph_traits<DominanceTree>::vertex_iterator pd_vertex_it;
+    typedef boost::graph_traits<DominanceTree>::edge_descriptor pd_edge_t;
+    typedef boost::graph_traits<DominanceTree>::edge_iterator pd_edge_it;
+    typedef boost::graph_traits<DominanceTree>::out_edge_iterator pd_oedge_it;
 
     std::map<unsigned, std::set<unsigned >> post_dominance; // 1st id post-dominates 2nd id, trade memory for speed
 
-    RuntimeCFG(std::string cfg_filename, std::string pd_filename){ readGraphViz(cfg_filename, pd_filename);preparePostDominance();}
-    void readGraphViz(std::string cfg, std::string pd);
+    RuntimeCFG(std::string cfg_filename, std::string d_filename, std::string pd_filename){ readGraphViz(cfg_filename,d_filename, pd_filename);preparePostDominance();}
+    void readGraphViz(std::string cfg,std::string, std::string pd);
     std::set<unsigned> postDominatedBy(pd_vertex_t src);
     void preparePostDominance();
 
-    Graph graph;                                                // the boost graph
-    PDTree postDomTree;
+    Graph graph;
+    DominanceTree domTree;
+    DominanceTree postDomTree;
+
 };
 #endif //SYMBACKEND_RUNTIMECFG_H

@@ -7,8 +7,8 @@
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "UnreachableCode"
-Orchestrator::Orchestrator(std::string cfg_filename,std::string pdt_filename, std::string dfg_filename, std::string sp_port, int baud_rate): \
-sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp), symGraph(cfg_filename, pdt_filename, dfg_filename)
+Orchestrator::Orchestrator(std::string cfg_filename,std::string dt_filename, std::string pdt_filename, std::string dfg_filename, std::string sp_port, int baud_rate): \
+sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp), symGraph(cfg_filename, dt_filename, pdt_filename, dfg_filename)
 {
 }
 Orchestrator::~Orchestrator() {
