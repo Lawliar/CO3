@@ -52,7 +52,7 @@ void RuntimeSymFlowGraph::loopCheck() {
     */
 }
 
-RuntimeSymFlowGraph::RuntimeSymFlowGraph(std::string filename, RuntimeCFG & cfg): cfg(cfg){
+RuntimeSymFlowGraph::RuntimeSymFlowGraph(std::string filename, RuntimeCFG & cfg): SymDepGraph(false),cfg(cfg){
     readGraphViz(filename);
 
     // initialize the global status map

@@ -5,8 +5,11 @@
 #include "DataFlowGraph.h"
 #include "boost/graph/graphviz.hpp"
 
-SymDepGraph::SymDepGraph(){
-    AddVertice(0,VoidStr,NodeSym, 0,0,0);
+SymDepGraph::SymDepGraph(bool AddNullSym){
+    if(AddNullSym){
+        AddVertice(0,VoidStr,NodeSym, 0,0,0);
+    }
+
 }
 
 SymDepGraph::vertex_t SymDepGraph::AddVertice(int symID,std::string op,NodeType nodeType,long const_value,unsigned int byteWidth,unsigned long BBID){

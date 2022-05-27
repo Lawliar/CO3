@@ -43,6 +43,7 @@ SymGraph::SymGraph(std::string cfg_filename,std::string dt_filename, std::string
         index_map[*dfg_vi] = cur;
         cur ++;
     }
+    unsigned NULL_sym =0; // just for sanity check
     for (boost::tie(dfg_vi, dfg_vi_end) = boost::vertices(dfg.graph); dfg_vi != dfg_vi_end; ++dfg_vi){
         RuntimeSymFlowGraph::vertex_t cur_ver = *dfg_vi;
         //unpack the info
@@ -94,7 +95,10 @@ SymGraph::SymGraph(std::string cfg_filename,std::string dt_filename, std::string
                 in_paras[arg_index] = index_map.at(source);
             }
             if(op == VoidStr){
+                assert(bbid == 0);
                 cur_node = new SymVal_NULL(bbid);
+                NULL_sym++;
+                assert(NULL_sym == 1);
             } CHECK_SYM_OP2(_sym_try_alternative)
             CHECK_SYM_OP2(_sym_build_integer)
             CHECK_SYM_OP2(_sym_build_float)

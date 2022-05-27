@@ -37,7 +37,7 @@ public:
       : runtime(*r), loopinfo(LI), dataLayout(M.getDataLayout()),
         ptrBits(M.getDataLayout().getPointerSizeInBits()),
         maxNumSymVars((1 << r->symIntT->getBitWidth()) - 1),
-        intPtrType(M.getDataLayout().getIntPtrType(M.getContext())),g()
+        intPtrType(M.getDataLayout().getIntPtrType(M.getContext())),g(true)
         {
       for(auto eachIntFunction : kInterceptedFunctions){
           std::string newFuncName = kInterceptedFunctionPrefix.str() + eachIntFunction.str() ;
