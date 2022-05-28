@@ -35,12 +35,11 @@ SymGraph::SymGraph(std::string cfg_filename,std::string dt_filename, std::string
     unsigned numNodes = boost::num_vertices(dfg.graph);
     Nodes.assign(numNodes, nullptr);
     RuntimeSymFlowGraph::vertex_it dfg_vi, dfg_vi_end;
-    map<RuntimeSymFlowGraph::vertex_t, unsigned> index_map;
     unsigned cur = 0;// must start from 0
     for (boost::tie(dfg_vi, dfg_vi_end) = boost::vertices(dfg.graph); dfg_vi != dfg_vi_end; ++dfg_vi){
         // SINCE in vecS, Vertex_t is also unsigned int, so this part of code is just mapping N to N, but we do this just in case
-        assert(index_map.find(*dfg_vi) == index_map.end());
-        index_map[*dfg_vi] = cur;
+        assert(ver2offMap.find(*dfg_vi) == ver2offMap.end());
+        ver2offMap[*dfg_vi] = cur;
         cur ++;
     }
     unsigned NULL_sym =0; // just for sanity check
@@ -92,7 +91,7 @@ SymGraph::SymGraph(std::string cfg_filename,std::string dt_filename, std::string
                 unsigned arg_index = dfg.graph[*in_eit].arg_no;
                 RuntimeSymFlowGraph::vertex_t source = boost::source(*in_eit,dfg.graph);
                 assert(in_paras.find(arg_index) == in_paras.end());
-                in_paras[arg_index] = index_map.at(source);
+                in_paras[arg_index] = ver2offMap.at(source);
             }
             if(op == VoidStr){
                 assert(bbid == 0);
@@ -184,8 +183,68 @@ SymGraph::SymGraph(std::string cfg_filename,std::string dt_filename, std::string
 
 
         }else if( nodeType == NodeTruePhi || nodeType == NodeFalsePhi){
-            // some special case
+            if(nodeType == NodeTruePhi){
+                map<unsigned short, unsigned short> in_paras;
+                for(;in_eit != in_eit_end; in_eit++ ){
+                    unsigned arg_index = dfg.graph[*in_eit].arg_no;
+                    RuntimeSymFlowGraph::vertex_t source = boost::source(*in_eit,dfg.graph);
+                    assert(in_paras.find(arg_index) == in_paras.end());
+                    in_paras[arg_index] = ver2offMap.at(source);
+                }
+                cur_node = new SymVal_sym_TruePhi(bbid, in_paras);
+            }else{
+                vector<pair<unsigned short, unsigned short>> in_paras;
+                for(;in_eit != in_eit_end; in_eit++ ){
+                    unsigned arg_index = dfg.graph[*in_eit].arg_no;
+                    RuntimeSymFlowGraph::vertex_t source = boost::source(*in_eit,dfg.graph);
+                    in_paras.push_back(make_pair(arg_index, ver2offMap.at(source)));
+                }
+                cur_node = new SymVal_sym_FalsePhi(bbid, in_paras);
+            }
         }
-        Nodes[index_map.at(cur_ver)] = cur_node;
+        Nodes[ver2offMap.at(cur_ver)] = cur_node;
+    }
+    for(unsigned index = 0 ; index < Nodes.size() ; index++){
+        assert(Nodes[index]!= nullptr);// make sure every node is parsed.
+        for(auto each_in_edge : Nodes[index]->In_edges){
+            Nodes[each_in_edge.second]->UsedBy.insert(index);
+        }
+    }
+
+    prepareBBTask();
+}
+
+void SymGraph::prepareBBTask() {
+    RuntimeCFG::vertex_it cfg_vi,cfg_vi_end;
+
+    // prepare per-BB task
+    for(boost::tie(cfg_vi, cfg_vi_end) = boost::vertices(cfg.graph); cfg_vi != cfg_vi_end; cfg_vi++){
+        unsigned cur_bbid = cfg.graph[*cfg_vi].id;
+        BasicBlockTask* task = new BasicBlockTask(cur_bbid);
+        RuntimeSymFlowGraph::edge_it ei, ei_end;
+        for(boost::tie(ei,ei_end) = boost::edges(dfg.graph); ei != ei_end ; ei++){
+            RuntimeSymFlowGraph::vertex_t from = boost::source(*ei, dfg.graph);
+            RuntimeSymFlowGraph::vertex_t to = boost::target(*ei, dfg.graph);
+            if(dfg.graph[from].BBID == cur_bbid && dfg.graph[to].BBID != cur_bbid){
+                task->roots.insert(ver2offMap.at(from));
+            }
+            if(dfg.graph[from].BBID != cur_bbid && dfg.graph[to].BBID == cur_bbid){
+                task->leaves.insert(ver2offMap.at(from));
+            }
+        }
+        RuntimeSymFlowGraph::vertex_it  vi,vi_end;
+        for(boost::tie(vi, vi_end) = boost::vertices(dfg.graph) ; vi != vi_end ; vi++){
+            if(dfg.graph[*vi].BBID == cur_bbid){
+                if(boost::in_degree(*vi, dfg.graph) == 0){
+                    task->leaves.insert(*vi);
+                    assert(Nodes[ver2offMap.at(*vi)]->In_edges.size() == 0);
+                }
+                if(boost::out_degree(*vi, dfg.graph) == 0){
+                    task->roots.insert(*vi);
+                    assert(Nodes[ver2offMap.at(*vi)]->UsedBy.size() == 0);
+                }
+            }
+        }
+        bbTasks.insert(make_pair(cur_bbid, task));
     }
 }

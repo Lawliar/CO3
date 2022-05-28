@@ -12,21 +12,7 @@
 #include <set>
 class RuntimeSymFlowGraph: public SymDepGraph{
 public:
-    class BasicBlockTask{
-    public:
-        BasicBlockTask(unsigned id):BBID(id){}
-        const unsigned BBID;
-        // leaves are the "inputs" to this basic block
-        std::set<vertex_t> leaves;
-        // roots are the non-out vertices and the direct out vertices
-        std::set<vertex_t> roots;
-    };
 
-    typedef enum _SymStatus{
-        SymDummy,
-        SymConcrete,
-        SymSymbolic,
-    }SymStatus;
    typedef boost::graph_traits<Graph>::in_edge_iterator in_edge_it;
 
     RuntimeSymFlowGraph(std::string, RuntimeCFG&);
@@ -38,8 +24,6 @@ public:
 
     const RuntimeCFG& cfg;
 
-    std::map<uint32_t, BasicBlockTask*> bbTasks;
-    std::map<uint32_t, std::pair<SymStatus, SymExpr>> SymbolicStatus;
 
     std::map<vertex_t, set<vertex_t> > taskDependents;
 };

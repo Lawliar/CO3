@@ -36,6 +36,7 @@ public:
     BasicBlockIdType BBID;
     ReadyType ready;
     std::map<ArgIndexType, ValVertexType> In_edges;
+    std::set<ValVertexType> UsedBy;
 
     Val(ValType t, BasicBlockIdType bid): type(t), BBID(bid), ready(0){}
     virtual ~Val(){};
@@ -269,15 +270,64 @@ DECLARE_SYMVAL_TYPE3(_sym_build_memmove)
 DECLARE_SYMVAL_TYPE4(_sym_build_insert)
 DECLARE_SYMVAL_TYPE4(_sym_build_extract)
 
+class SymVal_sym_TruePhi: public SymVal{
+public:
+    unsigned numOps;
+    SymVal_sym_TruePhi(BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges):
+            SymVal(bid, "_sym_TruePhi"){
+        numOps = PhiEdges.size();
+        for(auto eachPhiEdge : PhiEdges){
+            In_edges[eachPhiEdge.first] = eachPhiEdge.second;
+        }
+    }
+    ~SymVal_sym_TruePhi(){In_edges.clear();}
+};
 
+class SymVal_sym_FalsePhi: public SymVal{
+public:
+    unsigned numOps;
+    vector<pair<ArgIndexType, ValVertexType> > falsePhiNodes;
+    SymVal_sym_FalsePhi(BasicBlockIdType bid, vector<pair<ArgIndexType, ValVertexType> > falsePhiNodes):
+            SymVal(bid, "_sym_FalsePhi"), falsePhiNodes(falsePhiNodes){
+
+    }
+    ~SymVal_sym_FalsePhi(){In_edges.clear();}
+};
 
 class SymGraph {
+private:
+    void prepareBBTask();
 public:
-    SymGraph(std::string cfg, std::string dt, std::string pdt, std::string dfg );
 
-    vector<Val*> Nodes;
+    SymGraph(std::string cfg, std::string dt, std::string pdt, std::string dfg );
+    ~SymGraph(){
+        ver2offMap.clear();
+        for(auto eachBBTask: bbTasks){
+            delete eachBBTask.second;
+            bbTasks[eachBBTask.first] = nullptr;
+        }
+        for(int i = 0 ; i < Nodes.size(); i ++){
+            delete Nodes[i];
+            Nodes[i] = nullptr;
+        }
+    }
+    class BasicBlockTask{
+    public:
+        BasicBlockTask(unsigned id):BBID(id){}
+        Val::BasicBlockIdType BBID;
+        // leaves are the "inputs" to this basic block
+        std::set<Val::ValVertexType> leaves;
+        // roots are the non-out vertices and the direct out vertices
+        std::set<Val::ValVertexType> roots;
+    };
+
+
     RuntimeCFG cfg;
     RuntimeSymFlowGraph dfg;
+
+    map<RuntimeSymFlowGraph::vertex_t, unsigned> ver2offMap;
+    std::map<Val::BasicBlockIdType, BasicBlockTask*> bbTasks;
+    vector<Val*> Nodes;
 };
 
 
