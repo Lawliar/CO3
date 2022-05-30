@@ -28,10 +28,12 @@ enum {
 };
 
 
+void _sym_initialization();
+
 
 // all the following functions return true
-bool _sym_build_integer(uint16_t int_val, uint8_t numBits, uint16_t symID);
-bool _sym_build_float(uint64_t double_val, bool is_double, uint16_t symID);
+bool _sym_build_integer(uint16_t int_val, uint8_t numBits, uint16_t symID); // numBits is constant, thus need not to be reported, and return true
+bool _sym_build_float(uint64_t double_val, bool is_double, uint16_t symID); // is_double is constant; and always return true.
 bool _sym_build_bool(bool bool_val, uint16_t symID);
 //bool _sym_build_integer128(uint64_t higher, uint64_t lower); // leave empty, this function will not be called
 //bool _sym_build_null_pointer();
@@ -65,6 +67,7 @@ void _sym_set_return_expression(bool input);
 bool _sym_get_return_expression();
 
 
+// shadow-memory related
 void _sym_build_memcpy(char * dest, char * src, size_t length, uint16_t symID);
 void _sym_build_memset(char * mem, bool input, size_t length, uint16_t symID);
 void _sym_build_memmove(char * dest, char * src, size_t length, uint16_t symID);
@@ -73,15 +76,18 @@ bool _sym_build_read_memory(char * addr, size_t length, bool is_little_edian, ui
 void _sym_build_write_memory(char * addr, size_t length, bool input, uint16_t symID );
 
 
+
+void _sym_notify_phi(uint8_t branchNo, uint16_t symID);
 //bool _sym_build_insert(bool target, bool to_insert, uint32_t offset, bool is_little_edian);
 //bool _sym_build_extract(bool expr, uint32_t offset uint32_t length, bool is_little_edian);
 
-void _sym_notify_call(uint32_t call_inst_id);
-void _sym_notify_ret(uint32_t call_inst_id);
-void _sym_notify_basic_block(uint16_t bbid);
+void _sym_notify_call(uint8_t call_inst_id);
+void _sym_notify_ret(uint8_t call_inst_id);
+void _sym_notify_basic_block(uint8_t bbid);
+void _sym_notify_basic_block1(uint16_t bbid);
 /*
  *
- * https://github.com/RiS3-Lab/spear-writeup/blob/master/log.md?plain=1#L170
+ * https://github.com/RiS3-Lab/spear-writeup/blob/master/log.md?plain=1#L229
  *
  * | arg_idx | byte width | real value ... \
    | 1 byte  |  1 byte    |  x bytes
