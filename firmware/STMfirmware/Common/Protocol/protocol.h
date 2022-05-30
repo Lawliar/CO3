@@ -16,23 +16,6 @@
 #include "runtime.h"
 
 
-#define SIZE_SYM_INIT   1
-#define SIZE_SPEAR_RPT1 10
-#define SIZE_SPEAR_RPT2 15
-#define SIZE_SPEAR_RPT3 20
-#define SIZE_SPEAR_RPT4 25
-#define SIZE_SPEAR_SYM  9
-#define SIZE_SYM_N_CALL 5
-#define SIZE_SYM_N_RET  5
-#define SIZE_SYM_N_BB   5
-
-
-
-
-
-
-
-
 
 union ubytes_t{
 	 uint8_t vbytes [4];

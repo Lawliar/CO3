@@ -19,6 +19,7 @@ void testprotocol(uint8_t numberfunc)
 	}
 
     _sym_initialize();
+    /*
     _spear_report1(0xDEADBEE1, (char*) &buffer[0]);
     _spear_report2(0xDEADBEE2, (char*) &buffer[0], (char*)&buffer[10]);
     _spear_report3(0xDEADBEE3, (char*)&buffer[0], (char*)&buffer[10], (char*)&buffer[20]);
@@ -27,5 +28,6 @@ void testprotocol(uint8_t numberfunc)
     _sym_notify_call(0xDEADBEE5);
     _sym_notify_ret(0xDEADBEE6);
     _sym_notify_basic_block(0xDEADBEE7);
+    */
 
 }
