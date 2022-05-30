@@ -111,9 +111,9 @@ bool SymbolizePass::runOnFunction(Function &F) {
     symbolizer.initializeFunctions(F);
 
     for (auto &basicBlock : F){
-        symbolizer.insertBasicBlockNotification(basicBlock);
+        symbolizer.recordBasicBlockMapping(basicBlock);
     }
-    symbolizer.outputCFG(F,dTree, pdTree, cfgFile.string(),domTreeFile.string(), postDomTreeFile.string());
+    symbolizer.OutputCFG(F,dTree, pdTree, cfgFile.string(),domTreeFile.string(), postDomTreeFile.string());
 
 
     for (auto *instPtr : allInstructions){
@@ -132,7 +132,9 @@ bool SymbolizePass::runOnFunction(Function &F) {
 
     symbolizer.createDFGAndReplace(F,ddgFile.string());
 
-    symbolizer.addNotifyFunc(F, funcIDFile.string());
+
+    symbolizer.insertNotifyFunc(F, funcIDFile.string());
+    symbolizer.insertNotifyBasicBlock(F);
     assert(!verifyFunction(F, &errs()) &&
          "SymbolizePass produced invalid bitcode");
 

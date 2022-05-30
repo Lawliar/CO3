@@ -57,7 +57,7 @@ public:
 
   /// Insert a call to the run-time library to notify it of the basic block
   /// entry.
-  void insertBasicBlockNotification(llvm::BasicBlock &B);
+  void recordBasicBlockMapping(llvm::BasicBlock &B);
 
   /// Finish the processing of PHI nodes.
   ///
@@ -124,7 +124,8 @@ public:
     SymDepGraph::vertex_t addConstantFloatVertice(llvm::ConstantFP*);
     SymDepGraph::vertex_t addRuntimeVertice(llvm::Value*, unsigned);
   void createDFGAndReplace(llvm::Function&,std::string);
-  void outputCFG(llvm::Function&,llvm::DominatorTree&, llvm::PostDominatorTree&,std::string,std::string,std::string);
+  void insertNotifyBasicBlock(llvm::Function&);
+  void OutputCFG(llvm::Function&,llvm::DominatorTree&, llvm::PostDominatorTree&,std::string,std::string,std::string);
   //
   // Implementation of InstVisitor
   //
@@ -378,6 +379,8 @@ public:
   bool isLittleEndian(llvm::Type *type) {
     return (!type->isAggregateType() && dataLayout.isLittleEndian());
   }
+  llvm::BasicBlock* findExistingBB(unsigned,std::set<llvm::BasicBlock*>&);
+  void outputDebugCFG(llvm::Function*);
   unsigned GetBBID(llvm::BasicBlock* BB){
       llvm::BasicBlock* realOriginal = BB;
       while(splited2OriginalBB.find(realOriginal) != splited2OriginalBB.end()){
@@ -542,7 +545,7 @@ public:
   /// and insert the fast path later.
     std::vector<SymbolicComputation> expressionUses;
     std::map<llvm::BasicBlock*, llvm::BasicBlock*> splited2OriginalBB;
-    std::map<llvm::BasicBlock*, int> originalBB2ID;
+    std::map<llvm::BasicBlock*, unsigned> originalBB2ID;
 
     std::map<std::pair<unsigned, unsigned>, std::pair<llvm::Value*, llvm::Value *> > tryAlternativePairs;
     SymDepGraph g;
@@ -552,7 +555,7 @@ public:
     std::set<llvm::StringRef> interpretedFunctionNames;
     void addSymIDToCall(llvm::CallBase&);
     void interpretedFuncSanityCheck(llvm::CallBase&);
-    void addNotifyFunc(llvm::Function& func, std::string file_name);
+    void insertNotifyFunc(llvm::Function& func, std::string file_name);
 };
 
 #endif
