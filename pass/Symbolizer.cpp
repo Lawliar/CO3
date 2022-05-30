@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <fstream>
+#include <queue>
 #include <llvm/ADT/SmallPtrSet.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/GetElementPtrTypeIterator.h>
@@ -42,22 +43,8 @@ void Symbolizer::initializeFunctions(Function &F) {
     }
 }
 
-void Symbolizer::insertBasicBlockNotification(llvm::BasicBlock &B) {
-
+void Symbolizer::recordBasicBlockMapping(llvm::BasicBlock &B) {
     originalBB2ID[&B] = getNextBBID();
-    if(loopinfo.getLoopFor(&B) != nullptr){
-        IRBuilder<> IRB(&*B.getFirstInsertionPt());
-        unsigned bbID = originalBB2ID.at(&B);
-        if(bbID <= 255){
-            llvm::ConstantInt * valueToInsert = ConstantInt::get(runtime.int8T, bbID);
-            IRB.CreateCall(runtime.notifyBasicBlock,valueToInsert);
-        }else{
-            llvm::ConstantInt * valueToInsert = ConstantInt::get(runtime.int16T, bbID);
-            IRB.CreateCall(runtime.notifyBasicBlock1,valueToInsert);
-        }
-
-    }
-
 }
 
 void Symbolizer::finalizePHINodes() {
@@ -1363,8 +1350,108 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
     // after this point.
     symbolicExpressions.clear();
 }
+/*
+void JustCuriousNoBackEdge(std::set<BasicBlock*> & bbs){
 
-void Symbolizer::addNotifyFunc(llvm::Function& F, std::string file_name){
+}*/
+
+BasicBlock* Symbolizer::findExistingBB(unsigned bbid, std::set<BasicBlock*> & bbs){
+    //errs() << "start\n";
+    // I'm just curious if there will be any back edge
+    std::set<BasicBlock*> existingBBs;
+    for(auto curBB : bbs){
+        std::queue<BasicBlock*> workQ;
+        workQ.push(curBB);
+        std::set<BasicBlock*>visitedNode;
+        //errs()<<"working on:"<<curBB->getName()<<'\n';
+        while(!workQ.empty()){
+            BasicBlock* work_bb = workQ.front();
+            workQ.pop();
+            if (succ_empty(work_bb)){
+                existingBBs.insert(work_bb);
+            }
+            for (BasicBlock *SuccBB : successors(work_bb)){
+                unsigned succ_id = GetBBID(SuccBB);
+                if(succ_id != bbid){
+                    // this work bb is the point where these whole set of BBs exist to other group of BB
+                    existingBBs.insert(work_bb);
+                }else{
+                    //errs() << work_bb->getName()<<"->"<<SuccBB->getName()<<'\n';
+                    if(visitedNode.find(SuccBB) == visitedNode.end()){
+                        workQ.push(SuccBB);
+                    }
+                }
+            }
+            visitedNode.insert(work_bb);
+        }
+    }
+    assert(existingBBs.size() == 1);
+    return *existingBBs.begin();
+}
+
+void Symbolizer::outputDebugCFG(llvm::Function * F) {
+    std::string buffer_str;
+    std::error_code error;
+    raw_string_ostream rso(buffer_str);
+    StringRef name("debugcfg.dot");
+    raw_fd_ostream file(name, error);
+
+    file << "digraph \"CFG for'" + F->getName() + "\' function\" {\n";
+
+    for(auto & cur_bb : *F){
+        BasicBlock* curBB = &cur_bb;
+        unsigned cur_bbid = GetBBID(curBB);
+        uintptr_t from_num = reinterpret_cast<std::uintptr_t>(curBB);
+        file << "\t" << from_num << " [shape=record, label=\"";
+        file  << curBB->getName()<<"|"<< cur_bbid << "\"]\n";
+        for (BasicBlock *SuccBB : successors(curBB)){
+            uintptr_t to_num = reinterpret_cast<std::uintptr_t>(SuccBB);
+            file << "\t" << from_num<< "-> " << to_num << ";\n";
+        }
+    }
+    file<<"}\n";
+}
+void Symbolizer::insertNotifyBasicBlock(Function& F) {
+    std::map<unsigned, std::set<BasicBlock*> > splittedBBs;
+    // group these BBs according to their ID
+    for(auto& eachBB : F){
+        BasicBlock* cur_bb = &eachBB;
+        int bbid = GetBBID(cur_bb);
+        if(splittedBBs.find(bbid) == splittedBBs.end()){
+            splittedBBs[bbid] = std::set<BasicBlock*>{cur_bb};
+        }else{
+            splittedBBs[bbid].insert(cur_bb);
+        }
+    }
+
+    // for each group of BBs, if the original BB is in the loop, add notify BB to the loop
+    for(auto eachGroupOfBBs : splittedBBs){
+        unsigned original_bbid = eachGroupOfBBs.first;
+        BasicBlock* original_bb = nullptr;
+        for(auto eachOriginalBB : originalBB2ID){
+            if(eachOriginalBB.second == original_bbid){
+                original_bb = eachOriginalBB.first;
+                break;
+            }
+        }
+        assert(original_bb != nullptr);
+        if(loopinfo.getLoopFor(original_bb) != nullptr){
+
+            BasicBlock* existing_bb = findExistingBB(original_bbid, eachGroupOfBBs.second);
+            Instruction* terminator = existing_bb->getTerminator();
+            IRBuilder<> irb(terminator);
+
+            if(original_bbid <= 255){
+                llvm::ConstantInt * valueToInsert = ConstantInt::get(runtime.int8T, original_bbid);
+                irb.CreateCall(runtime.notifyBasicBlock,valueToInsert);
+            }else{
+                llvm::ConstantInt * valueToInsert = ConstantInt::get(runtime.int16T, original_bbid);
+                irb.CreateCall(runtime.notifyBasicBlock1,valueToInsert);
+            }
+        }
+    }
+}
+void Symbolizer::insertNotifyFunc(llvm::Function& F, std::string file_name){
 
     std::string func_name = F.getName().str();
     std::string line;
@@ -1419,7 +1506,7 @@ void RecursivePrintEdges(std::map<BasicBlock*, unsigned long>& basicBlockMap, ra
     }
 }
 
-void Symbolizer::outputCFG(llvm::Function & F, DominatorTree& dTree, PostDominatorTree& pdTree, std::string cfg_file,std::string dom_file, std::string postDom_file) {
+void Symbolizer::OutputCFG(llvm::Function & F, DominatorTree& dTree, PostDominatorTree& pdTree, std::string cfg_file,std::string dom_file, std::string postDom_file) {
     std::string buffer_str;
     std::error_code error;
     raw_string_ostream rso(buffer_str);

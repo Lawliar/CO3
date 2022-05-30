@@ -4,7 +4,6 @@
  *  Created on: Apr 29, 2022
  *      Author: alejandro
  */
-
 #ifndef RUNTIME_H_
 #define RUNTIME_H_
 
@@ -126,7 +125,5 @@ void _sym_initialize();// allocate the shadow memory, and the space for the retu
  * | arg_idx | byte width | real value ... \
    | 1 byte  |  1 byte    |  x bytes
  * */
-
-// some functions that are used internally(not called by the instrumentation)
 
 #endif /* RUNTIME_H_ */
