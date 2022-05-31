@@ -125,6 +125,7 @@ public:
     SymDepGraph::vertex_t addRuntimeVertice(llvm::Value*, unsigned);
   void createDFGAndReplace(llvm::Function&,std::string);
   void insertNotifyBasicBlock(llvm::Function&);
+    void RecursivePrintEdges(std::map<llvm::BasicBlock*, unsigned long>& basicBlockMap, llvm::raw_fd_ostream & O, llvm::DomTreeNodeBase<llvm::BasicBlock> * root, unsigned level);
   void OutputCFG(llvm::Function&,llvm::DominatorTree&, llvm::PostDominatorTree&,std::string,std::string,std::string);
   //
   // Implementation of InstVisitor

@@ -1493,11 +1493,16 @@ void Symbolizer::insertNotifyFunc(llvm::Function& F, std::string file_name){
     funcIDFileW.close();
 }
 
-void RecursivePrintEdges(std::map<BasicBlock*, unsigned long>& basicBlockMap, raw_fd_ostream & O, DomTreeNodeBase<BasicBlock> * root, unsigned level){
+void Symbolizer::RecursivePrintEdges(std::map<BasicBlock*, unsigned long>& basicBlockMap, raw_fd_ostream & O, DomTreeNodeBase<BasicBlock> * root, unsigned level){
     unsigned cur_bbid = basicBlockMap.at(root->getBlock());
+    bool isLoop = loopinfo.getLoopFor(root->getBlock()) != nullptr ? true : false;
     O << std::string(level, '\t') << cur_bbid << " [shape=record, label=\"";
     O  << cur_bbid << "\",id=" << cur_bbid;
     O <<",level="<< level;
+
+    if(isLoop){
+        O <<",color=red";
+    }
     O << "];\n";
     for (auto I = root->begin(),E = root->end(); I != E; ++I){
         unsigned child_bbid = basicBlockMap.at((*I)->getBlock());
@@ -1558,7 +1563,7 @@ void Symbolizer::OutputCFG(llvm::Function & F, DominatorTree& dTree, PostDominat
         file << "\t" << from_num << " [shape=record, label=\"";
         file  << from_num << "\",id=" << from_num;
         if(isLoop){
-            file <<",loop=1";
+            file <<",loop=1,color=red";
         }else{
             file<<",loop=0";
         }
