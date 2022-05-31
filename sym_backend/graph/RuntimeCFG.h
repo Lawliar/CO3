@@ -53,10 +53,8 @@ public:
 
     std::map<unsigned, std::set<unsigned >> post_dominance; // 1st id post-dominates 2nd id, trade memory for speed
 
-    RuntimeCFG(std::string cfg_filename, std::string d_filename, std::string pd_filename){ readGraphViz(cfg_filename,d_filename, pd_filename);preparePostDominance();}
+    RuntimeCFG(std::string cfg_filename, std::string d_filename, std::string pd_filename){ readGraphViz(cfg_filename,d_filename, pd_filename);}
     void readGraphViz(std::string cfg,std::string, std::string pd);
-    std::set<unsigned> postDominatedBy(pd_vertex_t src);
-    void preparePostDominance();
 
     Graph graph;
     DominanceTree domTree;

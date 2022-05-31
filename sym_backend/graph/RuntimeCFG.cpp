@@ -52,34 +52,3 @@ void RuntimeCFG::readGraphViz(std::string cfg_filename, std::string p_filename, 
         pd_ids.insert(node_id);
     }
 }
-
-std::set<unsigned> RuntimeCFG::postDominatedBy(pd_vertex_t src){
-    std::set<unsigned> visited;
-    unsigned src_id = postDomTree[src].id;
-    // src_id post dominates itself
-    visited.insert(src_id);
-    std::stack<pd_vertex_t> work_stack;
-    work_stack.push(src);
-
-    while(!work_stack.empty()) {
-        pd_vertex_t cur_node = work_stack.top();
-        work_stack.pop();
-        pd_oedge_it pd_eit, pd_eit_end;
-        for(boost::tie(pd_eit,pd_eit_end) = boost::out_edges(cur_node,postDomTree); pd_eit!= pd_eit_end; ++pd_eit){
-            pd_vertex_t  target_node = boost::target(*pd_eit, postDomTree);
-            unsigned next_id = postDomTree[target_node].id;
-            if(visited.find(next_id) == visited.end()){
-                visited.insert(next_id);
-                work_stack.push(target_node);
-            }
-        }
-    }
-    return visited;
-}
-void RuntimeCFG::preparePostDominance() {
-    boost::graph_traits<DominanceTree>::vertex_iterator it, it_end;
-    for(boost::tie(it, it_end) = boost::vertices(postDomTree); it != it_end; ++it){
-        unsigned it_id = graph[*it].id;
-        post_dominance[it_id] = postDominatedBy(*it);
-    }
-}

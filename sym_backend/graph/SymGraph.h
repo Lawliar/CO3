@@ -16,6 +16,7 @@ public:
     typedef unsigned short      ArgIndexType;
     typedef unsigned short      ValVertexType;
     typedef unsigned short      BasicBlockIdType;
+    typedef unsigned short      SymIDType;
     typedef unsigned int        ReadyType;
     typedef unsigned int        IntValType;
     typedef unsigned char       ByteWidthType;
@@ -109,14 +110,15 @@ public:
 class SymVal: public Val{
 public:
     std::string Op;
-    SymVal(BasicBlockIdType bid, std::string op):Val( SymValTy,  bid), Op(op){}
+    SymIDType symID;
+    SymVal(SymIDType symid, std::string op, BasicBlockIdType bid):Val( SymValTy,  bid), Op(op), symID(symid){}
 };
 
 #define DECLARE_SYMVAL_TYPE0(OP)                           \
 class SymVal##OP : public SymVal{                      \
 public:                                                    \
     static const unsigned numOps = 0;                                                       \
-    SymVal##OP(BasicBlockIdType bid): SymVal(bid, #OP){}                         \
+    SymVal##OP(SymIDType symid, BasicBlockIdType bid): SymVal(symid, #OP, bid){}                         \
     ~SymVal##OP(){In_edges.clear();}                        \
 };
 
@@ -124,7 +126,7 @@ public:                                                    \
 class SymVal##OP : public SymVal{                      \
 public:                                                    \
     static const unsigned numOps = 1;                                                       \
-    SymVal##OP(BasicBlockIdType bid, ValVertexType dep): SymVal(bid, #OP){ \
+    SymVal##OP(SymIDType symid, BasicBlockIdType bid, ValVertexType dep): SymVal(symid, #OP,bid){ \
                In_edges[0] = dep;}                         \
     ~SymVal##OP(){In_edges.clear();}                        \
 };
@@ -133,9 +135,9 @@ public:                                                    \
 class SymVal##OP : public SymVal{                      \
 public:                                                    \
     static const unsigned numOps = 2;                    \
-    SymVal##OP(BasicBlockIdType bid,     \
+    SymVal##OP(SymIDType symid, BasicBlockIdType bid,     \
                  ValVertexType dep1, ValVertexType dep2 ): \
-                 SymVal(bid, #OP){                          \
+                 SymVal(symid, #OP, bid){                          \
                In_edges[0] = dep1;                          \
                In_edges[1] = dep2;}                        \
     ~SymVal##OP(){In_edges.clear();}                        \
@@ -145,9 +147,9 @@ public:                                                    \
 class SymVal##OP : public SymVal{                      \
 public:                                                    \
     static const unsigned numOps = 3;                   \
-    SymVal##OP(BasicBlockIdType bid,     \
+    SymVal##OP(SymIDType symid, BasicBlockIdType bid,     \
                   ValVertexType dep1, ValVertexType dep2,  \
-                  ValVertexType dep3 ): SymVal(bid, #OP){    \
+                  ValVertexType dep3 ): SymVal(symid,#OP, bid){    \
                In_edges[0] = dep1;                          \
                In_edges[1] = dep2;                         \
                In_edges[2] = dep3;}                        \
@@ -158,10 +160,10 @@ public:                                                    \
 class SymVal##OP : public SymVal{                      \
 public:                                                    \
     static const unsigned numOps = 4;                 \
-    SymVal##OP(BasicBlockIdType bid,    \
+    SymVal##OP(SymIDType symid, BasicBlockIdType bid,    \
           ValVertexType dep1, ValVertexType dep2,         \
           ValVertexType dep3, ValVertexType dep4):        \
-          SymVal(bid, #OP){                                 \
+          SymVal(symid, #OP,bid){                                 \
                In_edges[0] = dep1;                          \
                In_edges[1] = dep2;                         \
                In_edges[2] = dep3;                         \
@@ -174,9 +176,9 @@ DECLARE_SYMVAL_TYPE0(_NULL) // NULL valued symval found from compile time
 class SymVal_sym_try_alternative: public SymVal{
 public:
     static const unsigned numOps = 2;
-    SymVal_sym_try_alternative(BasicBlockIdType bid,
+    SymVal_sym_try_alternative(SymIDType symid, BasicBlockIdType bid,
                  ValVertexType dep1, ValVertexType dep2 ):
-                 SymVal(bid, "_sym_try_alternative"){
+                 SymVal(symid,"_sym_try_alternative",bid){
                In_edges[0] = dep1;
                In_edges[1] = dep2;}
     ~SymVal_sym_try_alternative(){In_edges.clear();}
@@ -273,8 +275,8 @@ DECLARE_SYMVAL_TYPE4(_sym_build_extract)
 class SymVal_sym_TruePhi: public SymVal{
 public:
     unsigned numOps;
-    SymVal_sym_TruePhi(BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges):
-            SymVal(bid, "_sym_TruePhi"){
+    SymVal_sym_TruePhi(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges):
+            SymVal(symid, "_sym_TruePhi", bid){
         numOps = PhiEdges.size();
         for(auto eachPhiEdge : PhiEdges){
             In_edges[eachPhiEdge.first] = eachPhiEdge.second;
@@ -287,8 +289,8 @@ class SymVal_sym_FalsePhi: public SymVal{
 public:
     unsigned numOps;
     vector<pair<ArgIndexType, ValVertexType> > falsePhiNodes;
-    SymVal_sym_FalsePhi(BasicBlockIdType bid, vector<pair<ArgIndexType, ValVertexType> > falsePhiNodes):
-            SymVal(bid, "_sym_FalsePhi"), falsePhiNodes(falsePhiNodes){
+    SymVal_sym_FalsePhi(SymIDType symid, BasicBlockIdType bid, vector<pair<ArgIndexType, ValVertexType> > falsePhiNodes):
+            SymVal(symid, "_sym_FalsePhi", bid), falsePhiNodes(falsePhiNodes){
 
     }
     ~SymVal_sym_FalsePhi(){In_edges.clear();}
@@ -296,38 +298,57 @@ public:
 
 class SymGraph {
 private:
+    std::set<Val::ValVertexType> dataDependentsOf(Val::ValVertexType);
+    std::set<Val::BasicBlockIdType> domChildrenOf(Val::BasicBlockIdType, map<Val::BasicBlockIdType, RuntimeCFG::pd_vertex_t>, RuntimeCFG::DominanceTree&);
     void prepareBBTask();
+    bool sortNonLoopBB(Val::BasicBlockIdType, Val::BasicBlockIdType);
+    list<Val::BasicBlockIdType> sortNonLoopBBs(set<Val::BasicBlockIdType>);
 public:
 
-    SymGraph(std::string cfg, std::string dt, std::string pdt, std::string dfg );
+    SymGraph(std::string funcname, std::string cfg, std::string dt, std::string pdt, std::string dfg );
     ~SymGraph(){
         ver2offMap.clear();
         for(auto eachBBTask: bbTasks){
             delete eachBBTask.second;
             bbTasks[eachBBTask.first] = nullptr;
         }
-        for(int i = 0 ; i < Nodes.size(); i ++){
+        for(unsigned i = 0 ; i < Nodes.size(); i ++){
             delete Nodes[i];
             Nodes[i] = nullptr;
         }
     }
     class BasicBlockTask{
     public:
-        BasicBlockTask(unsigned id):BBID(id){}
+
+        BasicBlockTask(unsigned id, bool loop):BBID(id),inLoop(loop),ready(0){}
+        ~BasicBlockTask(){
+            dominance.clear();
+            post_dominance.clear();
+            leaves.clear();
+            roots.clear();
+        }
         Val::BasicBlockIdType BBID;
+        bool inLoop;
+        Val::ReadyType ready;
+        std::set<Val::BasicBlockIdType> dominance;
+        std::set<Val::BasicBlockIdType > post_dominance;// this BB post dominate these BBs
         // leaves are the "inputs" to this basic block
         std::set<Val::ValVertexType> leaves;
         // roots are the non-out vertices and the direct out vertices
         std::set<Val::ValVertexType> roots;
+
+        // map the root to its Dependent BBs that are not in the loop(because we already make sure loop is properly executed)
+        std::map<Val::ValVertexType, vector<Val::BasicBlockIdType> > nonLoopBBDependents;
     };
 
-
+    std::string funcname;
     RuntimeCFG cfg;
     RuntimeSymFlowGraph dfg;
 
-    map<RuntimeSymFlowGraph::vertex_t, unsigned> ver2offMap;
+    map<RuntimeSymFlowGraph::vertex_t, Val::ValVertexType> ver2offMap;
     std::map<Val::BasicBlockIdType, BasicBlockTask*> bbTasks;
     vector<Val*> Nodes;
+
 };
 
 

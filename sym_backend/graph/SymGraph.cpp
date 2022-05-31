@@ -3,34 +3,34 @@
 //
 
 #include "SymGraph.h"
-
+#include <stack>
 #define CHECK_SYM_OP0(OP)               \
     else if(op == #OP){                          \
     assert(in_degree == 0);                           \
-    cur_node = new SymVal##OP(bbid);}
+    cur_node = new SymVal##OP(symid, bbid);}
 
 #define CHECK_SYM_OP1(OP)               \
     else if(op == #OP){                          \
     assert(in_degree == 1);             \
-    cur_node = new SymVal##OP(bbid, in_paras.at(0));}
+    cur_node = new SymVal##OP(symid, bbid, in_paras.at(0));}
 
 #define CHECK_SYM_OP2(OP)               \
     else if(op == #OP){                          \
     assert(in_degree == 2);             \
-    cur_node = new SymVal##OP(bbid, in_paras.at(0),in_paras.at(1));}
+    cur_node = new SymVal##OP(symid, bbid, in_paras.at(0),in_paras.at(1));}
 
 #define CHECK_SYM_OP3(OP)               \
     else if(op == #OP){                          \
     assert(in_degree == 3);             \
-    cur_node = new SymVal##OP(bbid, in_paras.at(0),in_paras.at(1),in_paras.at(2));}
+    cur_node = new SymVal##OP(symid, bbid, in_paras.at(0),in_paras.at(1),in_paras.at(2));}
 
 #define CHECK_SYM_OP4(OP)               \
     else if(op == #OP){                          \
     assert(in_degree == 4);             \
-    cur_node = new SymVal##OP(bbid, in_paras.at(0),in_paras.at(1),in_paras.at(2),in_paras.at(3));}
+    cur_node = new SymVal##OP(symid, bbid, in_paras.at(0),in_paras.at(1),in_paras.at(2),in_paras.at(3));}
 
-SymGraph::SymGraph(std::string cfg_filename,std::string dt_filename, std::string pdt_filename, std::string dfg_filename) \
-:cfg(cfg_filename,dt_filename, pdt_filename),dfg(dfg_filename, cfg) {
+SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_filename, std::string pdt_filename, std::string dfg_filename) \
+:funcname(funcname),cfg(cfg_filename,dt_filename, pdt_filename),dfg(dfg_filename, cfg) {
 
     unsigned numNodes = boost::num_vertices(dfg.graph);
     Nodes.assign(numNodes, nullptr);
@@ -95,7 +95,7 @@ SymGraph::SymGraph(std::string cfg_filename,std::string dt_filename, std::string
             }
             if(op == VoidStr){
                 assert(bbid == 0);
-                cur_node = new SymVal_NULL(bbid);
+                cur_node = new SymVal_NULL(symid, bbid);
                 NULL_sym++;
                 assert(NULL_sym == 1);
             } CHECK_SYM_OP2(_sym_try_alternative)
@@ -191,7 +191,7 @@ SymGraph::SymGraph(std::string cfg_filename,std::string dt_filename, std::string
                     assert(in_paras.find(arg_index) == in_paras.end());
                     in_paras[arg_index] = ver2offMap.at(source);
                 }
-                cur_node = new SymVal_sym_TruePhi(bbid, in_paras);
+                cur_node = new SymVal_sym_TruePhi(symid, bbid, in_paras);
             }else{
                 vector<pair<unsigned short, unsigned short>> in_paras;
                 for(;in_eit != in_eit_end; in_eit++ ){
@@ -199,7 +199,7 @@ SymGraph::SymGraph(std::string cfg_filename,std::string dt_filename, std::string
                     RuntimeSymFlowGraph::vertex_t source = boost::source(*in_eit,dfg.graph);
                     in_paras.push_back(make_pair(arg_index, ver2offMap.at(source)));
                 }
-                cur_node = new SymVal_sym_FalsePhi(bbid, in_paras);
+                cur_node = new SymVal_sym_FalsePhi(symid, bbid, in_paras);
             }
         }
         Nodes[ver2offMap.at(cur_ver)] = cur_node;
@@ -214,14 +214,106 @@ SymGraph::SymGraph(std::string cfg_filename,std::string dt_filename, std::string
     prepareBBTask();
 }
 
+std::set<Val::BasicBlockIdType> SymGraph::domChildrenOf(Val::BasicBlockIdType src_id, map<Val::BasicBlockIdType, RuntimeCFG::pd_vertex_t> id2vertMap, RuntimeCFG::DominanceTree& dGraph) {
+
+    std::set<Val::BasicBlockIdType> visited;
+    std::stack<Val::BasicBlockIdType> work_stack;
+    // src_id  dominates/post dominates itself
+    visited.insert(src_id);
+    work_stack.push(src_id);
+
+    while(!work_stack.empty()) {
+        Val::BasicBlockIdType bbid = work_stack.top();
+        RuntimeCFG::pd_vertex_t cur_vert = id2vertMap.at(bbid);
+        work_stack.pop();
+        RuntimeCFG::pd_oedge_it pd_eit, pd_eit_end;
+        for(boost::tie(pd_eit,pd_eit_end) = boost::out_edges(cur_vert,dGraph); pd_eit!= pd_eit_end; ++pd_eit){
+            RuntimeCFG::pd_vertex_t  target_node = boost::target(*pd_eit, dGraph);
+            unsigned next_id = dGraph[target_node].id;
+            if(visited.find(next_id) == visited.end()){
+                visited.insert(next_id);
+                work_stack.push(next_id);
+            }
+        }
+    }
+    return visited;
+}
+
+std::set<Val::ValVertexType> SymGraph::dataDependentsOf(Val::ValVertexType root){
+    std::set<Val::ValVertexType> visited;
+    std::stack<Val::ValVertexType> work_stack;
+    for(auto eachRootDep : Nodes[root]->In_edges){
+        visited.insert(eachRootDep.second);
+        work_stack.push(eachRootDep.second);
+    }
+    while(!work_stack.empty()){
+        Val::ValVertexType cur_ver = work_stack.top();
+        work_stack.pop();
+        for(auto eachWorkDep : Nodes[cur_ver]->In_edges){
+            if(visited.find(eachWorkDep.second) == visited.end()){
+                visited.insert(eachWorkDep.second);
+                work_stack.push(eachWorkDep.second);
+            }
+        }
+    }
+    return visited;
+}
+
+bool SymGraph::sortNonLoopBB(Val::BasicBlockIdType a, Val::BasicBlockIdType b) {
+    BasicBlockTask* a_task = bbTasks.at(a);
+    BasicBlockTask* b_task = bbTasks.at(b);
+    if(a_task->dominance.find(b) != a_task->dominance.end()){
+        // a dominate b
+        return true;
+    } else if (b_task->post_dominance.find(a) != b_task->post_dominance.end()){
+        // b post-dominate a
+        return true;
+    }else{
+        //b dominate a OR a post-dominate b
+        assert(b_task->dominance.find(a) != b_task->dominance.end() || a_task->post_dominance.find(b) != a_task->post_dominance.end());
+
+        return false;
+    }
+}
+
+list<Val::BasicBlockIdType> SymGraph::sortNonLoopBBs(set<Val::BasicBlockIdType> unsorted) {
+    list<Val::BasicBlockIdType> sortedBBs;
+    sortedBBs.push_back(*unsorted.begin());
+    unsorted.erase(unsorted.begin());
+
+    for(auto eachUnsorted : unsorted){
+
+    }
+}
+
+
+
 void SymGraph::prepareBBTask() {
     RuntimeCFG::vertex_it cfg_vi,cfg_vi_end;
+
+    // dominance BBID 2 Vert Map
+    map<Val::BasicBlockIdType, RuntimeCFG::pd_vertex_t> dID2VertMap;
+    RuntimeCFG::pd_vertex_it pd_v_it, pd_v_it_end;
+    boost::tie(pd_v_it, pd_v_it_end) = boost::vertices(cfg.domTree);
+    for(;pd_v_it != pd_v_it_end ; pd_v_it++){
+        Val::BasicBlockIdType cur_bbid = cfg.domTree[*pd_v_it].id;
+        dID2VertMap[cur_bbid] = *pd_v_it;
+    }
+    //postDom BBID 2 Vert Map
+    map<Val::BasicBlockIdType, RuntimeCFG::pd_vertex_t> pdId2VertMap;
+    boost::tie(pd_v_it, pd_v_it_end) = boost::vertices(cfg.postDomTree);
+    for(;pd_v_it != pd_v_it_end ; pd_v_it++){
+        Val::BasicBlockIdType cur_bbid = cfg.postDomTree[*pd_v_it].id;
+        pdId2VertMap[cur_bbid] = *pd_v_it;
+    }
 
     // prepare per-BB task
     for(boost::tie(cfg_vi, cfg_vi_end) = boost::vertices(cfg.graph); cfg_vi != cfg_vi_end; cfg_vi++){
         unsigned cur_bbid = cfg.graph[*cfg_vi].id;
-        BasicBlockTask* task = new BasicBlockTask(cur_bbid);
+        bool inLoop = cfg.graph[*cfg_vi].inloop == '1' ? true : false;
+        BasicBlockTask* task = new BasicBlockTask(cur_bbid, inLoop);
         RuntimeSymFlowGraph::edge_it ei, ei_end;
+        //prepare leaves and roots
         for(boost::tie(ei,ei_end) = boost::edges(dfg.graph); ei != ei_end ; ei++){
             RuntimeSymFlowGraph::vertex_t from = boost::source(*ei, dfg.graph);
             RuntimeSymFlowGraph::vertex_t to = boost::target(*ei, dfg.graph);
@@ -245,6 +337,29 @@ void SymGraph::prepareBBTask() {
                 }
             }
         }
+        // post-dom relation
+        task->dominance = domChildrenOf(cur_bbid, dID2VertMap, cfg.domTree);
+        task->post_dominance = domChildrenOf(cur_bbid, pdId2VertMap, cfg.postDomTree);
+        // construct bbid to postDomTree Ver Map
         bbTasks.insert(make_pair(cur_bbid, task));
+    }
+    for(auto eachBBTask : bbTasks){
+        for(auto eachRoot : eachBBTask.second->roots){
+            vector<Val::BasicBlockIdType> dependentBBs;
+            Val::BasicBlockIdType root_bbid = eachBBTask.first;
+            for(auto eachDependentSymNode : dataDependentsOf(eachRoot)){
+                Val::BasicBlockIdType nodeBBID = Nodes[eachDependentSymNode]->BBID;
+                if(nodeBBID == 0 || nodeBBID == root_bbid){
+                    // not interested in constants(which are in 0-numbered BB) and self
+                    continue;
+                }
+                if(std::find(dependentBBs.begin(),dependentBBs.end(),nodeBBID) == dependentBBs.end() && bbTasks.at(nodeBBID)->inLoop == false){
+                    dependentBBs.push_back(nodeBBID);// we only deal with the non-loop BB
+                }
+            }
+            //std::sort(dependentBBs.begin(), dependentBBs.end(), [this] (Val::BasicBlockIdType a, Val::BasicBlockIdType b) {
+                return sortNonLoopBB(a, b);});
+            eachBBTask.second->nonLoopBBDependents[eachRoot] = dependentBBs;
+        }
     }
 }
