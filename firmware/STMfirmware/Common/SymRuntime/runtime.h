@@ -12,17 +12,17 @@
 #include "stdbool.h"
 #include "stddef.h"
 
-#define RAM_ADDR_START           0x24000000
-#define RAM_SIZE                 1024*512
-#define SHADOW_RAM_START         0x30000000
-#define SHADOW_RAM_LENGTH        1024*64
-#define SHADOW_RAM_OFFSET        0x2B800000
+#define SYM_RAM_ADDR_START           0x24000000
+#define SYM_RAM_SIZE                 1024*512
+#define SYM_SHADOW_RAM_START         0x30000000
+#define SYM_SHADOW_RAM_LENGTH        1024*64
+#define SYM_SHADOW_RAM_OFFSET        0x2B800000
 
-#define FLASH_ADDR_START         0x24000000
-#define FLASH_SIZE               1024*2048
+#define SYM_FLASH_ADDR_START         0x24000000
+#define SYM_FLASH_SIZE               1024*2048
 
-#define PERIPHERAL_ADDR_START    0x40000000
-#define PERIPHERAL_SIZE          0x1FFFFFFF
+#define SYM_PERIPHERAL_ADDR_START    0x40000000
+#define SYM_PERIPHERAL_SIZE          0x1FFFFFFF
 
 
 //types and enums
@@ -85,7 +85,7 @@ extern uint32_t *shadowram;
 extern bool parameter_exp[NUMBER_PARAMETER_EXP];
 extern bool return_exp;
 
-bool _sym_peripheral_symb(uint32_t *addr);
+bool _sym_peripheral_symb(uint32_t *addr);   // call this function for each peripheral register that will be symbolized, addr: peripheral address register
 //void _sym_peripheral_conc(uint32_t *addr);
 
 // all the following functions return true

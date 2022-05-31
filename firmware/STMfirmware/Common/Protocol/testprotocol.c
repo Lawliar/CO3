@@ -19,6 +19,10 @@ void testprotocol(uint8_t numberfunc)
 	}
 
     _sym_initialize();
+
+
+    _sym_build_write_memory(buffer, 4, true, 125);
+    _sym_build_write_memory(buffer, 4, false, 125);
     /*
     _spear_report1(0xDEADBEE1, (char*) &buffer[0]);
     _spear_report2(0xDEADBEE2, (char*) &buffer[0], (char*)&buffer[10]);

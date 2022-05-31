@@ -1,9 +1,27 @@
-
+/*
+ * runtime.h
+ *
+ *  Created on: Apr 29, 2022
+ *      Author: alejandro
+ */
 
 #include "runtime.h"
 #include "protocol.h"
 #include "stdlib.h"
 #include "string.h"
+
+
+#define bitRead(value, bit) (((value) >> (bit)) & 0x01)
+#define bitSet(value, bit) ((value) |= (1UL << (bit)))
+#define bitClear(value, bit) ((value) &= ~(1UL << (bit)))
+#define bitToggle(value, bit) ((value) ^= (1UL << (bit)))
+#define bitWrite(value, bit, bitvalue) ((bitvalue) ? bitSet(value, bit) : bitClear(value, bit))
+
+
+#define lowByte(w) ((w) & 0xff)
+#define highByte(w) ((w) >> 8)
+
+
 
 Symex_t AFLfuzzer;
 uint32_t *sym_peripherals[NUMBER_SYM_PERI];
@@ -11,6 +29,13 @@ uint8_t total_sym_peripherals;
 uint32_t *shadowram;
 bool parameter_exp[NUMBER_PARAMETER_EXP];
 bool return_exp;
+
+
+//return address
+uint32_t AddressToShadow(char *addr);
+
+//return true if byte is symbolic
+bool checkSymbolic(char *addr);
 
 
 bool _sym_peripheral_symb(uint32_t *addr)
@@ -40,9 +65,9 @@ void _sym_initialize()
 {
     int i;
 	total_sym_peripherals = 0;
-	shadowram = (uint32_t *)SHADOW_RAM_START;
+	shadowram = (uint32_t *)SYM_SHADOW_RAM_START;
 
-	memset((void*)shadowram,0x00,SHADOW_RAM_LENGTH);
+	memset((void*)shadowram,0x00,SYM_SHADOW_RAM_LENGTH);
 
 	for(i=0; i<NUMBER_PARAMETER_EXP; i++)
 	{
@@ -164,19 +189,432 @@ bool _sym_build_integer(uint32_t int_val, uint8_t numBits, uint16_t symID)
 	}
 
 	return true;
+}
+
+
+bool _sym_build_float(uint64_t double_val, bool is_double, uint16_t symID)
+{
+	int msgSize=0;
+	uint8_t msgCode;
+    uint8_t *byteval;
+    int numBits;
+
+    if(is_double)
+    {
+    	msgSize = SIZE_SYM_BLD_FLOAT_DBL;
+    	msgCode = SYM_BLD_FLOAT_DBL;
+    	numBits = 8;
+    }
+    else
+    {
+    	msgSize = SIZE_SYM_BLD_FLOAT;
+    	msgCode = SYM_BLD_FLOAT;
+    	numBits = 4;
+    }
+
+    txCommandtoMonitor(msgSize);                              //check if we have space otherwise send the buffer
+    AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
+    //set the ID
+    byteval = (uint8_t *)(&symID);
+    AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval++;
+    AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval;
+   	//set the val
+   	byteval = (uint8_t *)(&double_val);
+   	for(int i=0;i<numBits;i++)
+   	{
+   		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval++; //set the function in the buffer
+   	}
+   	return true;
+
+
+}
+
+bool _sym_build_bool(bool bool_val, uint16_t symID)
+{
+	int msgSize=0;
+	uint8_t msgCode;
+    uint8_t *byteval;
+
+
+    msgSize = SIZE_SYM_BLD_BOOL;
+    msgCode = SYM_BLD_BOOL;
+
+    txCommandtoMonitor(msgSize);                              //check if we have space otherwise send the buffer
+    AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
+    //set the ID
+    byteval = (uint8_t *)(&symID);
+    AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval++;
+    AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval;
+   	//set the val
+    AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = (uint8_t) bool_val;
+   	return true;
+
+}
+
+void _sym_build_path_constraint(bool input, bool runtimeVal, uint16_t symID)
+{
+	int msgSize=0;
+	uint8_t msgCode;
+	uint8_t *byteval;
+
+	if(!input) return;
+
+	msgSize = SIZE_SYM_BLD_PATH_CNSTR;
+    msgCode = SYM_BLD_PATH_CNSTR;
+
+	txCommandtoMonitor(msgSize);                              //check if we have space otherwise send the buffer
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
+	//set the ID
+	byteval = (uint8_t *)(&symID);
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval++;
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval;
+	//set the val
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = (uint8_t) runtimeVal;
+
+}
+
+void _sym_notify_phi(uint8_t branchNo, uint16_t symID)
+{
+	int msgSize=0;
+	uint8_t msgCode;
+	uint8_t *byteval;
+
+
+	msgSize = SIZE_SYM_NTFY_PHI;
+	msgCode = SYM_NTFY_PHI;
+
+    txCommandtoMonitor(msgSize);                              //check if we have space otherwise send the buffer
+    AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
+    //set the ID
+    byteval = (uint8_t *)(&symID);
+    AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval++;
+    AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval;
+    //set the val
+    AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = (uint8_t) branchNo;
+}
+
+void _sym_notify_call(uint8_t call_inst_id)
+{
+	int msgSize=0;
+    uint8_t msgCode;
+
+    msgSize = SIZE_SYM_NTFY_CALL;
+    msgCode = SYM_NTFY_CALL;
+	txCommandtoMonitor(msgSize);                              //check if we have space otherwise send the buffer
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
+	//set the val
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = (uint8_t) call_inst_id;
+}
+
+void _sym_notify_ret(uint8_t call_inst_id)
+{
+	int msgSize=0;
+    uint8_t msgCode;
+
+    msgSize = SIZE_SYM_NTFY_RET;
+    msgCode = SYM_NTFY_RET;
+	txCommandtoMonitor(msgSize);                              //check if we have space otherwise send the buffer
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
+	//set the val
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = (uint8_t) call_inst_id;
+}
+
+void _sym_notify_basic_block(uint8_t bbid)
+{
+	int msgSize=0;
+    uint8_t msgCode;
+
+    msgSize = SIZE_SYM_NTFY_BBLK;
+    msgCode = SYM_NTFY_BBLK;
+	txCommandtoMonitor(msgSize);                              //check if we have space otherwise send the buffer
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
+	//set the val
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = (uint8_t) bbid;
+
+}
+
+void _sym_notify_basic_block1(uint16_t bbid)
+{
+	int msgSize=0;
+    uint8_t msgCode;
+	uint8_t *byteval;
+
+    msgSize = SIZE_SYM_NTFY_BBLK;
+    msgCode = SYM_NTFY_BBLK;
+	txCommandtoMonitor(msgSize);                              //check if we have space otherwise send the buffer
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
+	//set the val
+	byteval = (uint8_t *)(&bbid);
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval++;
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval;
+}
+
+
+//return shadow address
+uint32_t AddressToShadow(char *addr)
+{
+	uint32_t adr32 = (uint32_t)addr;
+	return  ((adr32>>3) + SYM_SHADOW_RAM_OFFSET);
+}
+
+//return true if byte is symbolic
+bool checkSymbolic(char *addr)
+{
+   char *addrShadow = (char *)AddressToShadow(addr);
+   char val = *addrShadow;
+   uint32_t bitnum = ((uint32_t)addr) & 0x07;
+   return bitRead(val,bitnum);
+}
+
+
+//return true if byte was symbolic and convert it to concrete
+bool checkSymbolicSetConcrete(char *addr)
+{
+   char *addrShadow = (char *)AddressToShadow(addr);
+   char val = *addrShadow;
+   uint32_t bitnum = ((uint32_t)addr) & 0x07;
+   bool symbolic  = bitRead(val,bitnum);
+   if(symbolic) bitClear(*addrShadow,  bitnum);
+   return symbolic;
+}
+
+
+//return true if byte was symbolic and convert it to symbolic
+bool checkSymbolicSetSymbolic(char *addr)
+{
+   char *addrShadow =  (char *)AddressToShadow(addr);
+   char val = *addrShadow;
+   uint32_t bitnum = ((uint32_t)addr) & 0x07;
+   bool symbolic  = bitRead(val,bitnum);
+   if(!symbolic)bitSet(*addrShadow,  bitnum);
+   return symbolic;
+}
+
+
+void SetSymbolic(char *addr)
+{
+   char *addrShadow =  (char *)AddressToShadow (addr);
+   uint32_t bitnum = ((uint32_t)addr) & 0x07;
+   bitSet(*addrShadow,  bitnum);
+}
+
+void SetConcrete(char *addr)
+{
+   char *addrShadow =  (char *)AddressToShadow (addr);
+   uint32_t bitnum = ((uint32_t)addr) & 0x07;
+   bitClear(*addrShadow,  bitnum);
+}
+
+
+void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t length, uint16_t symID)
+{
+
+	int msgSize=0;
+	msgSize = size;
+	uint32_t addr;
+	uint8_t *byteval;
+
+
+	txCommandtoMonitor(msgSize);                              //check if we have space otherwise send the buffer
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
+
+	byteval = (uint8_t*)(&symID);
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
+
+
+	addr = (uint32_t) dest;
+	byteval = (uint8_t*)(&addr);
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
+
+
+	if(msgCode == SYM_BLD_MEMCPY || msgCode == SYM_BLD_MEMMOVE)
+	{
+		addr = (uint32_t) src;
+		byteval = (uint8_t*)(&addr);
+		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
+	}
+
+	byteval = (uint8_t*)(&length);
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
+
+}
+
+
+void _sym_build_memcpy(char * dest, char * src, size_t length, uint16_t symID)
+{
+	char *pCharDest = dest;
+	char *pCharSrc = src;
+    bool report;
+    report =false;
+
+    for(size_t i=0; i<length; i++)
+    {
+    	if(!checkSymbolic(pCharSrc))
+    	{
+    		if(checkSymbolicSetConcrete(pCharDest))
+    		{
+    			report=true;
+    		}
+    	}
+    	else
+    	{
+    		SetSymbolic(pCharDest);
+    		report=true;
+    	}
+
+    	pCharDest++;
+    	pCharSrc++;
+    }
+
+    if(report)
+    {
+    	reportSymHelper( SYM_BLD_MEMCPY, SIZE_SYM_BLD_MEMCPY, dest, src, length, symID);
+    }
+
+}
+
+void _sym_build_memset(char * mem, bool input, size_t length, uint16_t symID)
+{
+	char *pChar=mem;
+    bool report;
+    report =false;
+
+    for(size_t i=0; i<length; i++)
+    {
+    	if(!input)
+    	{
+    		if(checkSymbolicSetConcrete(pChar)) // if input is concrete and at least one byte is symbolic
+    		{
+    			report=true;
+    		}
+    	}
+    	else
+    	{
+    		SetSymbolic(pChar);
+    		report=true;
+    	}
+
+    	pChar++;
+    }
+
+    if(report)
+    {
+    	reportSymHelper( SYM_BLD_MENSET, SIZE_SYM_BLD_MENSET,mem,NULL, length, symID);
+    }
+}
+
+void _sym_build_memmove(char * dest, char * src, size_t length, uint16_t symID)
+{
+	char *pCharDest = dest;
+	char *pCharSrc = src;
+    bool report;
+    report =false;
+
+    for(size_t i=0; i<length; i++)
+    {
+    	if(!checkSymbolic(pCharSrc))
+    	{
+    		if(checkSymbolicSetConcrete(pCharDest))
+    		{
+    			report=true;
+    		}
+    	}
+    	else
+    	{
+    		SetSymbolic(pCharDest);
+    		report=true;
+    	}
+
+    	pCharDest++;
+    	pCharSrc++;
+    }
+
+    if(report)
+    {
+    	reportSymHelper( SYM_BLD_MEMMOVE, SIZE_SYM_BLD_MEMMOVE, dest, src, length, symID);
+    }
+}
+
+
+
+bool _sym_build_read_memory(char * addr, size_t length, bool is_little_edian, uint16_t symID)
+{
+	if((uint32_t)addr>= SYM_PERIPHERAL_ADDR_START && (uint32_t)addr <=(SYM_PERIPHERAL_ADDR_START + SYM_PERIPHERAL_SIZE)  )
+	{
+		//address is a peripheral
+		//here check the list of addresses in the initialization
+		//we only check the first byte TODO: check if this works with the instrumentation
+		for(int i=0; i<total_sym_peripherals; i++)
+		{
+			if((uint32_t*)addr == sym_peripherals[i])
+			{
+				reportSymHelper( SYM_BLD_READ_MEM, SIZE_SYM_BLD_READ_MEM, addr, NULL, length, symID);
+				return true;
+			}
+		}
+		return false;
+	}
+	if((uint32_t)addr>= SYM_FLASH_ADDR_START && (uint32_t)addr <=(SYM_FLASH_ADDR_START + SYM_FLASH_SIZE)  )
+	{
+		//flash is always concrete
+		return false;
+	}
+
+	char *pChar=addr;
+	for(size_t i=0; i<length; i++)
+	{
+		if(checkSymbolic(pChar))
+		{
+			reportSymHelper( SYM_BLD_READ_MEM, SIZE_SYM_BLD_READ_MEM, addr, NULL, length, symID);
+			return true;
+		}
+		pChar++;
+	}
+	return false;
+
+}
+
+void _sym_build_write_memory(char * addr, size_t length, bool input, uint16_t symID )
+{
+	char *pChar=addr;
+	bool report;
+	report =false;
+
+	for(size_t i=0; i<length; i++)
+	{
+		if(!input)
+		{
+			if(checkSymbolicSetConcrete(pChar)) // if input is concrete and at least one byte is symbolic
+			{
+				report=true;
+			}
+		}
+		else
+		{
+			SetSymbolic(pChar);
+			report=true;
+		}
+
+		pChar++;
+	}
+
+	if(report)
+	{
+		reportSymHelper( SYM_BLD_WRITE_MEM, SIZE_SYM_BLD_WRITE_MEM ,addr,NULL,length, symID);
+	}
 
 }
 
 
 /*
-bool _sym_build_float(uint64_t double_val, bool is_double, uint16_t symID);
-bool _sym_build_bool(bool bool_val, uint16_t symID);
-void _sym_build_path_constraint(bool input, bool runtimeVal, uint16_t symID);
-*/
-
-
-/*
-
 void _spear_report1(uint32_t userID, char * arg1)
 {
 
