@@ -137,6 +137,5 @@ bool SymbolizePass::runOnFunction(Function &F) {
     symbolizer.insertNotifyBasicBlock(F);
     assert(!verifyFunction(F, &errs()) &&
          "SymbolizePass produced invalid bitcode");
-
     return true;
 }

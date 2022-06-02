@@ -1310,7 +1310,7 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                     unsigned incomingValueSymID = getSymIDFromSym(incomingValue);
                     //assert(incomingValueSymID != 0); // incoming symid could be zero
                     // add incoming BBID as edge property just to double check
-                    g.AddEdge(incomingValueSymID, userSymID, incomingBBID);
+                    g.AddPhiEdge(incomingValueSymID, userSymID,incoming, incomingBBID);
                 }
             }
         }

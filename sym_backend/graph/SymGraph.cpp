@@ -183,23 +183,20 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
 
 
         }else if( nodeType == NodeTruePhi || nodeType == NodeFalsePhi){
+            map<unsigned short, unsigned short> in_paras;
+            map<unsigned short, unsigned short> argNo2BBMap;
+            for(;in_eit != in_eit_end; in_eit++ ){
+                unsigned arg_index = dfg.graph[*in_eit].arg_no;
+                RuntimeSymFlowGraph::vertex_t source = boost::source(*in_eit,dfg.graph);
+                assert(in_paras.find(arg_index) == in_paras.end());
+                in_paras[arg_index] = ver2offMap.at(source);
+                assert(dfg.graph[*in_eit].incomingBB > 0);
+                argNo2BBMap[arg_index] = dfg.graph[*in_eit].incomingBB;
+            }
             if(nodeType == NodeTruePhi){
-                map<unsigned short, unsigned short> in_paras;
-                for(;in_eit != in_eit_end; in_eit++ ){
-                    unsigned arg_index = dfg.graph[*in_eit].arg_no;
-                    RuntimeSymFlowGraph::vertex_t source = boost::source(*in_eit,dfg.graph);
-                    assert(in_paras.find(arg_index) == in_paras.end());
-                    in_paras[arg_index] = ver2offMap.at(source);
-                }
-                cur_node = new SymVal_sym_TruePhi(symid, bbid, in_paras);
+                cur_node = new SymVal_sym_TruePhi(symid, bbid, in_paras,argNo2BBMap);
             }else{
-                vector<pair<unsigned short, unsigned short>> in_paras;
-                for(;in_eit != in_eit_end; in_eit++ ){
-                    unsigned arg_index = dfg.graph[*in_eit].arg_no;
-                    RuntimeSymFlowGraph::vertex_t source = boost::source(*in_eit,dfg.graph);
-                    in_paras.push_back(make_pair(arg_index, ver2offMap.at(source)));
-                }
-                cur_node = new SymVal_sym_FalsePhi(symid, bbid, in_paras);
+                cur_node = new SymVal_sym_FalsePhi(symid, bbid, in_paras,argNo2BBMap);
             }
         }
         Nodes[ver2offMap.at(cur_ver)] = cur_node;
@@ -358,7 +355,7 @@ void SymGraph::prepareBBTask() {
                 }
             }
             //std::sort(dependentBBs.begin(), dependentBBs.end(), [this] (Val::BasicBlockIdType a, Val::BasicBlockIdType b) {
-                return sortNonLoopBB(a, b);});
+            //    return sortNonLoopBB(a, b);});
             eachBBTask.second->nonLoopBBDependents[eachRoot] = dependentBBs;
         }
     }

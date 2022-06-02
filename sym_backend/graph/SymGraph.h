@@ -275,8 +275,9 @@ DECLARE_SYMVAL_TYPE4(_sym_build_extract)
 class SymVal_sym_TruePhi: public SymVal{
 public:
     unsigned numOps;
-    SymVal_sym_TruePhi(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges):
-            SymVal(symid, "_sym_TruePhi", bid){
+    map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap;// not really used
+    SymVal_sym_TruePhi(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges, map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap):
+            SymVal(symid, "_sym_TruePhi", bid), ArgNo2BBMap(ArgNo2BBMap){
         numOps = PhiEdges.size();
         for(auto eachPhiEdge : PhiEdges){
             In_edges[eachPhiEdge.first] = eachPhiEdge.second;
@@ -288,10 +289,13 @@ public:
 class SymVal_sym_FalsePhi: public SymVal{
 public:
     unsigned numOps;
-    vector<pair<ArgIndexType, ValVertexType> > falsePhiNodes;
-    SymVal_sym_FalsePhi(SymIDType symid, BasicBlockIdType bid, vector<pair<ArgIndexType, ValVertexType> > falsePhiNodes):
-            SymVal(symid, "_sym_FalsePhi", bid), falsePhiNodes(falsePhiNodes){
-
+    map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap;// not really used
+    SymVal_sym_FalsePhi(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges,map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap):
+            SymVal(symid, "_sym_FalsePhi", bid), ArgNo2BBMap(ArgNo2BBMap){
+        numOps = PhiEdges.size();
+        for(auto eachPhiEdge : PhiEdges){
+            In_edges[eachPhiEdge.first] = eachPhiEdge.second;
+        }
     }
     ~SymVal_sym_FalsePhi(){In_edges.clear();}
 };
@@ -317,6 +321,14 @@ public:
             Nodes[i] = nullptr;
         }
     }
+    class DataDependents{
+    public:
+        Val::ValVertexType root;
+        SymGraph& parent;
+        DataDependents(Val::ValVertexType root, SymGraph& parent): root(root), parent(parent){
+
+        }
+    };
     class BasicBlockTask{
     public:
 

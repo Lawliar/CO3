@@ -17,7 +17,8 @@ void RuntimeSymFlowGraph::readGraphViz(std::string filename) {
     dp.property(constantValuePrefix, boost::get(&Vertex_Properties::const_value,  graph));
     dp.property(widthPrefix,         boost::get(&Vertex_Properties::byteWidth,     graph));
     dp.property(BasicBlockPrefix,    boost::get(&Vertex_Properties::BBID,         graph));
-    dp.property("label",             boost::get(&Edge_Properties::arg_no,         graph));
+    dp.property(argNoPrefix,         boost::get(&Edge_Properties::arg_no,         graph));
+    dp.property(incomingBBPrefix,    boost::get(&Edge_Properties::incomingBB,         graph));
     std::ifstream myfile (filename);
     boost::read_graphviz(myfile, graph, dp);
     myfile.close();

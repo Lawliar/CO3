@@ -7,7 +7,7 @@
 
 #include "boost/graph/graph_traits.hpp"
 #include "boost/graph/adjacency_list.hpp"
-
+#include <iostream>
 
 typedef std::string NodeType;
 #define NodeConstInt       "constantInt"
@@ -39,6 +39,7 @@ public:
     struct Edge_Properties                                    // property bundle for vertices
     {
         unsigned arg_no;
+        unsigned incomingBB;    // used by phi only, also this field is not really used, just for debugging
     };
     typedef boost::adjacency_list<boost::listS, boost::vecS,  boost::bidirectionalS,
             Vertex_Properties,Edge_Properties> Graph;
@@ -94,6 +95,31 @@ public:
         return node_writer<symIDMap,opMap,nodeTypeMap,constValueMap,byteWidthMap,BBMap>(s,o,n,c,b,bb,v);
     }
 
+    inline static const std::string argNoPrefix              = "label";
+    inline static const std::string incomingBBPrefix         = "bb";
+
+    template <class argNoMap,class incomingBBMap>
+    class edge_writer {
+    public:
+        edge_writer(argNoMap a, incomingBBMap i) : am(a),im(i){}
+        template <class Edge>
+        void operator()(std::ostream &out, const Edge& e) const {
+            out << "["                            \
+                    << argNoPrefix           <<"="  <<am[e] <<',' \
+                    << incomingBBPrefix           <<"="  <<im[e] << "]";
+        }
+
+    private:
+        argNoMap am;
+        incomingBBMap im;
+    };
+
+    template <class argNoMap,class incomingBBMap>
+    inline edge_writer<argNoMap,incomingBBMap>
+    make_edge_writer(argNoMap a, incomingBBMap i) {
+        return edge_writer<argNoMap, incomingBBMap>(a,i);
+    }
+
 
     SymDepGraph(bool AddNullSym);
     SymDepGraph::vertex_t AddSymVertice(unsigned symID, std::string op,unsigned long);
@@ -105,6 +131,7 @@ public:
 
     void AddEdge(unsigned from_symid, unsigned to_symid, unsigned arg_no);
     void AddEdge(vertex_t, vertex_t, unsigned);
+    void AddPhiEdge(unsigned from_symid, unsigned to_symid, unsigned,unsigned);
     SymDepGraph::vertex_it GetVerticeBySymID(unsigned symID);
 
     SymDepGraph::vertex_it GetVerticeEndIt();

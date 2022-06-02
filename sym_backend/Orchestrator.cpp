@@ -47,7 +47,8 @@ sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
             cerr << dfg_file.string() <<" does not exist";
             assert(false);
         }
-        SymGraph* cur_symgraph = new SymGraph(cfg_file.string(),dom_file.string(),postDom_file.string(),dfg_file.string());
+        cout << "processing func:"<< cur_funcname<<'\n';
+        SymGraph* cur_symgraph = new SymGraph(cur_funcname, cfg_file.string(),dom_file.string(),postDom_file.string(),dfg_file.string());
         symGraphs[cur_id] = cur_symgraph;
     }
 }

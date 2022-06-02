@@ -57,15 +57,27 @@ SymDepGraph::vertex_t SymDepGraph::AddRuntimeVertice(std::string type, unsigned 
 }
 
 void SymDepGraph::AddEdge(unsigned from_symid, unsigned to_symid, unsigned arg_no){
+
     auto from = GetVerticeBySymID(from_symid);
     auto to = GetVerticeBySymID(to_symid);
     assert(from != GetVerticeEndIt());
     assert(to != GetVerticeEndIt());
-    boost::add_edge(*from,*to,Edge_Properties{arg_no},graph);
+    assert(graph[*to].nodeType != NodeTruePhi && graph[*to].nodeType != NodeFalsePhi );
+    boost::add_edge(*from,*to,Edge_Properties{arg_no, 0},graph);
 }
 
 void SymDepGraph::AddEdge( vertex_t from, vertex_t to, unsigned arg_no){
-    boost::add_edge(from,to,Edge_Properties{arg_no},graph);
+    assert(graph[to].nodeType != NodeTruePhi && graph[to].nodeType != NodeFalsePhi );
+    boost::add_edge(from,to,Edge_Properties{arg_no, 0},graph);
+}
+
+void SymDepGraph::AddPhiEdge(unsigned from_symid, unsigned to_symid, unsigned arg_no, unsigned incomingBB) {
+    auto from = GetVerticeBySymID(from_symid);
+    auto to = GetVerticeBySymID(to_symid);
+    assert(from != GetVerticeEndIt());
+    assert(to != GetVerticeEndIt());
+    assert(graph[*to].nodeType == NodeTruePhi || graph[*to].nodeType == NodeFalsePhi );
+    boost::add_edge(*from, *to, Edge_Properties{arg_no, incomingBB}, graph );
 }
 
 SymDepGraph::vertex_it SymDepGraph::GetVerticeBySymID(unsigned int symID) {
@@ -91,7 +103,7 @@ void SymDepGraph::writeToFile(std::string filename){
                                            boost::get(&Vertex_Properties::byteWidth,graph),
                                            boost::get(&Vertex_Properties::BBID,graph),
                                            false),
-                          boost::make_label_writer(boost::get(&Edge_Properties::arg_no,graph))
+                          make_edge_writer(boost::get(&Edge_Properties::arg_no,graph), boost::get(&Edge_Properties::incomingBB,graph))
                           );
 
     f.close();

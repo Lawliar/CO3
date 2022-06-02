@@ -12,7 +12,7 @@ void RuntimeCFG::readGraphViz(std::string cfg_filename, std::string p_filename, 
     dp.property("node_id",             boost::get(&Vertex_Properties::name,                graph));
     dp.property(idPrefix,              boost::get(&Vertex_Properties::id,                  graph));
     dp.property(loopPrefix,            boost::get(&Vertex_Properties::inloop,              graph));
-    dp.property(entryPrefix,           boost::get(&Vertex_Properties::entry,              graph));
+    dp.property(entryPrefix,           boost::get(&Vertex_Properties::entry,               graph));
     dp.property(exitPrefix,            boost::get(&Vertex_Properties::exit,              graph));
     std::ifstream cfg_file (cfg_filename);
     boost::read_graphviz(cfg_file, graph, dp);
