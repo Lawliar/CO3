@@ -23,16 +23,22 @@ void notifyTXfinish()
 
 
 	//cleaning the packet buffer to receive new messages
+	/*
 	AFLfuzzer.txTotalFunctions=0;
 	for(uint8_t i=1; i<8; i++)
 	{
 		AFLfuzzer.txbuffer[i]=0;
 	}
-	AFLfuzzer.txCurrentIndex=8;
+	}*/
+
+	AFLfuzzer.txCurrentIndex=1;  //we reserve the first byte for size
+	//clean the tx buffer
 	for(uint8_t j = 0; j<MAX_USB_FRAME; j++ )
 	{
 		AFLfuzzer.txbuffer[j]=0;
 	}
+
+
 
 	//notify the target to continue execution
 	xTaskNotifyIndexedFromISR(AFLfuzzer.xTaskTarget,

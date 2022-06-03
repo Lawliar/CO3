@@ -95,12 +95,15 @@ static void MonitorTask( void * pvParameters )
 		// we will wait for a notification on index 1 when fuzzing data has arrived
 		//ulTaskNotifyTakeIndexed(1,pdTRUE, portMAX_DELAY);
 		//cleaning the packet buffer
-		AFLfuzzer.txTotalFunctions=0;
-		for(uint8_t i=1; i<8; i++)
+		//AFLfuzzer.txTotalFunctions=0;
+		/*
+    	for(uint8_t i=1; i<8; i++)
 		{
 			AFLfuzzer.txbuffer[i]=0;
 		}
-		AFLfuzzer.txCurrentIndex=8;
+		*/
+
+    	AFLfuzzer.txCurrentIndex=1; //Index Zero is reserved for the total length of the message, which  includes the first byte
 
 
 
