@@ -14,7 +14,7 @@
 class Val{
 public:
     typedef unsigned short      ArgIndexType;
-    typedef unsigned short      ValVertexType;
+    typedef unsigned short       ValVertexType;// even phi node (99.9%) won't have incoming edges exceed 255
     typedef unsigned short      BasicBlockIdType;
     typedef unsigned short      SymIDType;
     typedef unsigned int        ReadyType;
@@ -300,9 +300,30 @@ public:
     ~SymVal_sym_FalsePhi(){In_edges.clear();}
 };
 
+class DataDependents{
+public:
+    Val::ValVertexType root;
+    vector<Val*>& allNodes;
+    set<Val::ValVertexType> deps;
+    map<Val::ValVertexType, map<Val::ArgIndexType, DataDependents* > > truePhiDependences;
+
+    DataDependents(Val::ValVertexType root, vector<Val*>&  nodes): root(root), allNodes(nodes){}
+    ~DataDependents(){
+        deps.clear();
+        for(auto eachTruePhi: truePhiDependences){
+            for(auto eachTruePhiVal: eachTruePhi.second){
+                delete eachTruePhiVal.second;
+            }
+            eachTruePhi.second.clear();
+        }
+        truePhiDependences.clear();
+    }
+    void nonTruePhiDataDependentsOf(set<Val::ValVertexType> ancesters);
+    void allPossibleDataDependencies(set<Val::ValVertexType>, vector<set<Val::ValVertexType> >& );
+};
+
 class SymGraph {
 private:
-    std::set<Val::ValVertexType> dataDependentsOf(Val::ValVertexType);
     std::set<Val::BasicBlockIdType> domChildrenOf(Val::BasicBlockIdType, map<Val::BasicBlockIdType, RuntimeCFG::pd_vertex_t>, RuntimeCFG::DominanceTree&);
     void prepareBBTask();
     bool sortNonLoopBB(Val::BasicBlockIdType, Val::BasicBlockIdType);
@@ -321,14 +342,7 @@ public:
             Nodes[i] = nullptr;
         }
     }
-    class DataDependents{
-    public:
-        Val::ValVertexType root;
-        SymGraph& parent;
-        DataDependents(Val::ValVertexType root, SymGraph& parent): root(root), parent(parent){
 
-        }
-    };
     class BasicBlockTask{
     public:
 
@@ -338,6 +352,10 @@ public:
             post_dominance.clear();
             leaves.clear();
             roots.clear();
+            for(auto eachRootDep:nonLoopRootDependents){
+                delete eachRootDep.second;
+            }
+            nonLoopRootDependents.clear();
         }
         Val::BasicBlockIdType BBID;
         bool inLoop;
@@ -350,7 +368,7 @@ public:
         std::set<Val::ValVertexType> roots;
 
         // map the root to its Dependent BBs that are not in the loop(because we already make sure loop is properly executed)
-        std::map<Val::ValVertexType, vector<Val::BasicBlockIdType> > nonLoopBBDependents;
+        std::map<Val::ValVertexType, DataDependents* > nonLoopRootDependents;
     };
 
     std::string funcname;
@@ -362,6 +380,7 @@ public:
     vector<Val*> Nodes;
 
 };
+
 
 
 #endif //SYMBACKEND_SYMGRAPH_H

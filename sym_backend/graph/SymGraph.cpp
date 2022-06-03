@@ -194,7 +194,7 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
                 argNo2BBMap[arg_index] = dfg.graph[*in_eit].incomingBB;
             }
             if(nodeType == NodeTruePhi){
-                cur_node = new SymVal_sym_TruePhi(symid, bbid, in_paras,argNo2BBMap);
+                cur_node = new  SymVal_sym_TruePhi(symid, bbid, in_paras,argNo2BBMap);
             }else{
                 cur_node = new SymVal_sym_FalsePhi(symid, bbid, in_paras,argNo2BBMap);
             }
@@ -236,24 +236,64 @@ std::set<Val::BasicBlockIdType> SymGraph::domChildrenOf(Val::BasicBlockIdType sr
     return visited;
 }
 
-std::set<Val::ValVertexType> SymGraph::dataDependentsOf(Val::ValVertexType root){
-    std::set<Val::ValVertexType> visited;
+void DataDependents::nonTruePhiDataDependentsOf( set<Val::ValVertexType> ancesters){
+    ancesters.insert(root);
+    if(SymVal_sym_TruePhi * true_phi = dynamic_cast<SymVal_sym_TruePhi*>(allNodes[root]); true_phi != nullptr){
+        truePhiDependences[root] = map<Val::ArgIndexType, DataDependents* >{};
+        for(auto eachTruePhiDep: dynamic_cast<SymVal_sym_TruePhi*>(allNodes[root])->In_edges){
+            Val::ValVertexType new_root = eachTruePhiDep.second;
+            if(ancesters.find(new_root) == ancesters.end()){
+                DataDependents* child_node = new DataDependents(eachTruePhiDep.second, allNodes);
+                truePhiDependences.at(root)[eachTruePhiDep.first] = child_node;
+                child_node->nonTruePhiDataDependentsOf(ancesters);
+            }
+        }
+        return;
+    }
+
     std::stack<Val::ValVertexType> work_stack;
-    for(auto eachRootDep : Nodes[root]->In_edges){
-        visited.insert(eachRootDep.second);
+    vector<Val::ValVertexType> truePhis;
+    for(auto eachRootDep : allNodes[root]->In_edges){
+        deps.insert(eachRootDep.second);
         work_stack.push(eachRootDep.second);
     }
     while(!work_stack.empty()){
         Val::ValVertexType cur_ver = work_stack.top();
         work_stack.pop();
-        for(auto eachWorkDep : Nodes[cur_ver]->In_edges){
-            if(visited.find(eachWorkDep.second) == visited.end()){
-                visited.insert(eachWorkDep.second);
+        if(SymVal_sym_TruePhi * true_phi = dynamic_cast<SymVal_sym_TruePhi*>(allNodes[cur_ver]); true_phi != nullptr){
+            truePhis.push_back(cur_ver);
+        }
+        for(auto eachWorkDep : allNodes[cur_ver]->In_edges){
+            if(deps.find(eachWorkDep.second) == deps.end() && ancesters.find(eachWorkDep.second) == ancesters.end()){
+                deps.insert(eachWorkDep.second);
+                ancesters.insert(eachWorkDep.second);
                 work_stack.push(eachWorkDep.second);
             }
         }
     }
-    return visited;
+    for(auto eachTruePhi: truePhis){
+        truePhiDependences[eachTruePhi] = map<Val::ArgIndexType, DataDependents* >{};
+        for(auto eachTruePhiDep: dynamic_cast<SymVal_sym_TruePhi*>(allNodes[eachTruePhi])->In_edges){
+            Val::ValVertexType new_root = eachTruePhiDep.second;
+            if(ancesters.find(new_root) == ancesters.end()){
+                DataDependents* child_node = new DataDependents(eachTruePhiDep.second, allNodes);
+                truePhiDependences.at(eachTruePhi)[eachTruePhiDep.first] = child_node;
+                child_node->nonTruePhiDataDependentsOf(ancesters);
+            }
+        }
+    }
+}
+
+void DataDependents::allPossibleDataDependencies(set<Val::ValVertexType> parent, vector<set<Val::ValVertexType> >& all) {
+    parent.insert(deps.begin(), deps.end());
+    if(truePhiDependences.empty()){
+        all.push_back(parent);
+    }
+    for(auto eachTruePhi : truePhiDependences){
+        for(auto eachValueOfTruePhi : eachTruePhi.second){
+            eachValueOfTruePhi.second->allPossibleDataDependencies(parent, all);
+        }
+    }
 }
 
 bool SymGraph::sortNonLoopBB(Val::BasicBlockIdType a, Val::BasicBlockIdType b) {
@@ -282,6 +322,7 @@ list<Val::BasicBlockIdType> SymGraph::sortNonLoopBBs(set<Val::BasicBlockIdType> 
 
     }
 }
+
 
 
 
@@ -341,22 +382,32 @@ void SymGraph::prepareBBTask() {
         bbTasks.insert(make_pair(cur_bbid, task));
     }
     for(auto eachBBTask : bbTasks){
+        Val::BasicBlockIdType root_bbid = eachBBTask.first;
         for(auto eachRoot : eachBBTask.second->roots){
-            vector<Val::BasicBlockIdType> dependentBBs;
-            Val::BasicBlockIdType root_bbid = eachBBTask.first;
-            for(auto eachDependentSymNode : dataDependentsOf(eachRoot)){
-                Val::BasicBlockIdType nodeBBID = Nodes[eachDependentSymNode]->BBID;
-                if(nodeBBID == 0 || nodeBBID == root_bbid){
-                    // not interested in constants(which are in 0-numbered BB) and self
-                    continue;
+            set<Val::ValVertexType> visited;
+            eachBBTask.second->nonLoopRootDependents[eachRoot] = new DataDependents(eachRoot, Nodes);
+            eachBBTask.second->nonLoopRootDependents[eachRoot]->nonTruePhiDataDependentsOf(visited);
+            //just for sanity check
+            vector<set<Val::ValVertexType> > allDependencies;
+            set<Val::ValVertexType> parent;
+            eachBBTask.second->nonLoopRootDependents[eachRoot]->allPossibleDataDependencies(parent, allDependencies);
+            for(auto eachPossibleDataDep : allDependencies){
+                vector<Val::BasicBlockIdType> dependentBBs;
+                for(auto eachDependentSymNode : eachPossibleDataDep){
+                    Val::BasicBlockIdType nodeBBID = Nodes[eachDependentSymNode]->BBID;
+                    if(nodeBBID == 0 || nodeBBID == root_bbid){
+                        // not interested in constants(which are in 0-numbered BB) and self
+                        continue;
+                    }
+                    if(std::find(dependentBBs.begin(),dependentBBs.end(),nodeBBID) == dependentBBs.end() && bbTasks.at(nodeBBID)->inLoop == false){
+                        dependentBBs.push_back(nodeBBID);// we only deal with the non-loop BB
+                    }
                 }
-                if(std::find(dependentBBs.begin(),dependentBBs.end(),nodeBBID) == dependentBBs.end() && bbTasks.at(nodeBBID)->inLoop == false){
-                    dependentBBs.push_back(nodeBBID);// we only deal with the non-loop BB
-                }
+                // just ensure the order between those BB exists
+                std::sort(dependentBBs.begin(), dependentBBs.end(), [this] (Val::BasicBlockIdType a, Val::BasicBlockIdType b) {
+                    return sortNonLoopBB(a, b);});
+                //eachBBTask.second->nonLoopRootDependents[eachRoot] = dependentBBs;
             }
-            //std::sort(dependentBBs.begin(), dependentBBs.end(), [this] (Val::BasicBlockIdType a, Val::BasicBlockIdType b) {
-            //    return sortNonLoopBB(a, b);});
-            eachBBTask.second->nonLoopBBDependents[eachRoot] = dependentBBs;
         }
     }
 }
