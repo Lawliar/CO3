@@ -14,9 +14,10 @@ public:
         CallMsg,
         RetMsg,
         PhiMsg,
+        BoolRuntimeValMsg,
         IntRuntimeValMsg,
         FloatRuntimeValMsg,
-        BoolRuntimeValMsg,
+        DoubleRuntimeValMsg,
         ReadMemRuntimeMsg,
         ConstraintRuntimeValMsg,
         MemCpyRuntimeMsg,
@@ -31,32 +32,112 @@ public:
 
 class ControlMessgaes : public Message{
 public:
-    ControlMessgaes(MessageType t, uint32_t id, uint32_t symid);
+    ControlMessgaes(MessageType t, uint32_t id, uint16_t symid);
     uint32_t id;
-    uint32_t symid;//needed only for phi
+    uint16_t symid;//needed only for phi
 };
 
-class RuntimeValueMessage: public Message{
+class RuntimeBoolValueMessage: public Message{
 public:
-    RuntimeValueMessage(MessageType,uint32_t symid, uint8_t width, int64_t value);
-    uint32_t symid;
+    RuntimeBoolValueMessage(uint16_t symid,bool value):Message(BoolRuntimeValMsg), symid(symid), value(value){};
+    uint16_t symid;
+    bool value;
+};
+
+class RuntimePhiValueMessage: public Message{
+public:
+    RuntimePhiValueMessage(uint16_t symid,uint8_t value):Message(PhiMsg), symid(symid), value(value){};
+    uint16_t symid;
+    uint8_t value;
+};
+
+class RuntimeIntValueMessage: public Message{
+public:
+    RuntimeIntValueMessage(uint16_t symid, uint8_t width, int32_t value):Message(IntRuntimeValMsg), symid(symid),width(width), value(value){};
+    uint16_t symid;
     uint8_t width;
-    int64_t value;
+    int32_t value;
 };
 
-class CallToSolverMessage: public Message{
+class RuntimeFloatValueMessage: public Message{
 public:
-    CallToSolverMessage(uint32_t symID, bool runtimeVal);
-    uint32_t symID;
+    RuntimeFloatValueMessage(uint16_t symid,float value):Message(FloatRuntimeValMsg), symid(symid), value(value){};
+    uint16_t symid;
+    float value;
+};
+
+class RuntimeDoubleValueMessage: public Message{
+public:
+    RuntimeDoubleValueMessage(uint16_t symid,double value):Message(DoubleRuntimeValMsg), symid(symid), value(value){};
+    uint16_t symid;
+    double value;
+};
+
+class PushConstraintMessage: public Message{
+public:
+    PushConstraintMessage(uint16_t symID, bool runtimeVal):Message(ConstraintRuntimeValMsg), symID(symID), runtimeVal(runtimeVal){};
+    uint16_t symID;
     bool runtimeVal;
 };
-class MemOpMessage: public Message{
+
+class MemCpyMessage: public Message{
 public:
-    MemOpMessage(MessageType , uint32_t src_ptr, uint32_t dst_ptr, uint32_t length, uint32_t symID);
-    uint32_t src_ptr;
+    MemCpyMessage(uint16_t symID, uint32_t dst_ptr, uint32_t src_ptr, uint32_t length): Message(MemCpyRuntimeMsg),symID(symID), dst_ptr(dst_ptr), src_ptr(src_ptr),length(length){};
+    uint16_t symID;
     uint32_t dst_ptr;
+    uint32_t src_ptr;
     uint32_t length;
-    uint32_t symID;
+};
+
+class MemSetMessage: public Message{
+public:
+    MemSetMessage(uint16_t symID, uint32_t ptr, uint32_t length): Message(MemsetRuntimeMsg),symID(symID),  ptr(ptr),length(length){};
+    uint16_t symID;
+    uint32_t ptr;
+    uint16_t length;
+};
+
+class MemMoveMessage: public Message{
+public:
+    MemMoveMessage(uint16_t symID, uint32_t dst_ptr, uint32_t src_ptr, uint32_t length): Message(MemmoveRuntimeMsg),symID(symID), dst_ptr(dst_ptr), src_ptr(src_ptr),length(length){};
+    uint16_t symID;
+    uint32_t dst_ptr;
+    uint32_t src_ptr;
+    uint32_t length;
+};
+
+class ReadMemMessage: public Message{
+public:
+    ReadMemMessage(uint16_t symID, uint32_t ptr, uint32_t length): Message(ReadMemRuntimeMsg),symID(symID), ptr(ptr),length(length){}
+    uint16_t symID;
+    uint32_t ptr;
+    uint16_t length;
+};
+
+class WriteMemMessage: public Message{
+public:
+    WriteMemMessage(uint16_t symID, uint32_t ptr, uint32_t length): Message(WriteMemRuntimeMsg),symID(symID), ptr(ptr),length(length){}
+    uint16_t symID;
+    uint32_t ptr;
+    uint16_t length;
+};
+
+class NotifyCallMessage: public Message{
+public:
+    NotifyCallMessage(uint8_t id): Message(CallMsg), id(id){};
+    uint8_t id;
+};
+
+class NotifyRetMessage: public Message{
+public:
+    NotifyRetMessage(uint8_t id): Message(RetMsg), id(id){};
+    uint8_t id;
+};
+
+class NotifyBasicBlockMessage: public Message{
+public:
+    NotifyBasicBlockMessage(uint16_t id): Message(BasicBlockMsg), id(id){};
+    uint16_t id;
 };
 
 #endif //SYMBACKEND_MESSAGE_H

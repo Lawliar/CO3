@@ -41,18 +41,20 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # There is list(TRANSFORM ... PREPEND ...), but it's not available before CMake 3.12.
 set(SHARED_RUNTIME_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/Config.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/RuntimeCommon.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/LibcWrappers.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/Shadow.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/GarbageCollection.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/Orchestrator.cpp)
+        ${CMAKE_CURRENT_SOURCE_DIR}/Config.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/RuntimeCommon.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/LibcWrappers.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/Shadow.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/GarbageCollection.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/Orchestrator.cpp)
 
 set(SERIAL_PORT_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/serialport/serialport.c
-  ${CMAKE_CURRENT_SOURCE_DIR}/serialport/Message.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/serialport/MsgQueue.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/serialport/serialport.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/serialport/ring.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/serialport/ring.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/serialport/MsgQueue.cpp
+
 )
 set(SERIAL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/serialport)
 
@@ -60,6 +62,7 @@ set(GRAPH_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/graph/RuntimeDataFlowGraph.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/graph/RuntimeCFG.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/graph/SymGraph.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/graph/SymGraph.h
         ${CMAKE_CURRENT_SOURCE_DIR}/../pass/dfg/DataFlowGraph.cpp)
 set(GRAPH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../pass/dfg)
 set(RUNTIME_GRAPH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/graph)

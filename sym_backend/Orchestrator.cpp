@@ -62,25 +62,7 @@ int Orchestrator::StartListen() {
 }
 int Orchestrator::Run() {
     while(true){
-        Message* cur_msg = msgQueue.Pop();
-        if(cur_msg == nullptr){
-            //TODO: do checking
-            break;
-        }else{
-            if(RuntimeValueMessage * rv_msg = dynamic_cast<RuntimeValueMessage*>(cur_msg)){
-                //
-            }else if(ControlMessgaes* ctrl_msg = dynamic_cast<ControlMessgaes*>(cur_msg)){
-                if(ctrl_msg->type == Message::BasicBlockMsg){
-                    // for dbg purpose
-                    BBTrace.push_back(ctrl_msg->id);
 
-                }else if(ctrl_msg->type == Message::CallMsg){
-
-                }else if(ctrl_msg->type == Message::RetMsg){
-
-                }
-            }
-        }
     }
     return 0;
 }

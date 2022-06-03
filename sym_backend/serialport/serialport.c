@@ -5,7 +5,6 @@
 #include <stdio.h>
 
 
-unsigned int receiveBufSize = 16 * 1024;
 
 //#define MEASSURE_READ_ATTEMPTS
 
@@ -21,6 +20,8 @@ typedef uint64_t u64;
 unsigned long long exec_tmout = 1000;
 u32 write_timeout = 1000;
 
+
+ring_buffer_t RingBuffer;
 
 /* Helper function for error handling. */
 int check(enum sp_return result)
@@ -79,6 +80,8 @@ OpenedSP initSerialPort(const char * port_name, int baud_rate){
 
     sp_new_event_set(&ret.events);
     check(sp_add_port_events(ret.events, ret.port, SP_EVENT_RX_READY));
+    //init the ring buffer as well
+    ring_buffer_init(&RingBuffer);
     return ret;
 }
 
@@ -112,17 +115,14 @@ inline void sendDataSerialPort(struct sp_port* port, uint8_t * buf, uint32_t siz
 }
 
 
-ReceivedBuf receiveData(struct sp_port* port, unsigned numBytesWaiting, unsigned timeout){
-    ReceivedBuf ret = {.buf = NULL, .len = 0};
+void receiveData(struct sp_port* port, unsigned numBytesWaiting, unsigned timeout){
     if(numBytesWaiting == 0 ){
-        return ret;
+        return;
     }
-
     u8 * buf = (u8 *)malloc(numBytesWaiting + 1);
-
     int result = check(sp_blocking_read(port, buf, numBytesWaiting, timeout));
     buf[result] = '\0';
-    ret.len = result;
-    ret.buf = buf;
-    return ret;
+    while(ring_buffer_num_empty_items(&RingBuffer) < numBytesWaiting){ usleep(100);}
+    ring_buffer_queue_arr(&RingBuffer, buf, numBytesWaiting);
+    return;
 }

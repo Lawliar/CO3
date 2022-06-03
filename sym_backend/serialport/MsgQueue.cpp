@@ -3,17 +3,20 @@
 //
 
 #include "MsgQueue.h"
+#include <assert.h>
+#include <iostream>
+extern ring_buffer_t RingBuffer;
 
 size_t MsgQueue::GetQueueSize(){
     size_t ret = 0;
-    msgQMutex.lock();
+    //msgQMutex.lock();
     ret = msgQueue.size();
-    msgQMutex.unlock();
+    //msgQMutex.unlock();
     return ret;
 }
 Message* MsgQueue::Pop(){
     Message* ret;
-    msgQMutex.lock();
+    //msgQMutex.lock();
     size_t size = msgQueue.size();
     if(size == 0){
         ret = nullptr;
@@ -21,7 +24,7 @@ Message* MsgQueue::Pop(){
         ret = msgQueue.front();
         msgQueue.pop_front();
     }
-    msgQMutex.unlock();
+    //msgQMutex.unlock();
     return ret;
 }
 
@@ -29,11 +32,128 @@ Message* MsgQueue::Pop(){
     while(true){
         int bytesWaiting = GetNumBytesWaiting(sp);
         if(bytesWaiting > 0){
-            ReceivedBuf buf = receiveData(sp.port, bytesWaiting, 1000);
+            receiveData(sp.port, bytesWaiting, 1000);
         }else{
             // maybe sleep, but we can designate a core, so who cares
         }
         bytesWaiting = GetNumBytesWaiting(sp);
     }
+}
 
+void MsgQueue::RenderAndPush(char * buf, char size){
+    char cur = 0;
+    while(cur < size ){
+        if(buf[cur] == SYM_BLD_INT_1){
+            uint16_t symid = *(uint16_t*)(buf + cur + 1);
+            uint8_t val = *(uint8_t *)(buf + cur + 3);
+            msgQueue.push_back(new RuntimeIntValueMessage(symid, 1, val ));
+            cur += MsgLen.at(SYM_BLD_INT_1);
+        }else if(buf[cur] == SYM_BLD_INT_2){
+            uint16_t symid = *(uint16_t*)(buf + cur + 1);
+            uint16_t val = *(uint16_t *)(buf + cur + 3);
+            msgQueue.push_back(new RuntimeIntValueMessage(symid, 2, val ));
+            cur += MsgLen.at(SYM_BLD_INT_2);
+        }else if(buf[cur] == SYM_BLD_INT_4){
+            uint16_t symid = *(uint16_t*)(buf + cur + 1);
+            uint32_t val = *(uint32_t *)(buf + cur + 3);
+            msgQueue.push_back(new RuntimeIntValueMessage(symid, 4, val ));
+            cur += MsgLen.at(SYM_BLD_INT_4);
+        }else if(buf[cur] == SYM_BLD_FLOAT){
+            uint16_t symid = *(uint16_t*)(buf + cur + 1);
+            uint32_t val = *(uint32_t*)(buf + cur + 3);
+            msgQueue.push_back(new RuntimeFloatValueMessage(symid, static_cast<float>(val)));
+            cur += MsgLen.at(SYM_BLD_FLOAT);
+        }else if(buf[cur] == SYM_BLD_FLOAT_DBL){
+            uint16_t symid = *(uint16_t*)(buf + cur + 1);
+            uint64_t val = *(uint64_t*)(buf + cur + 3);
+            msgQueue.push_back(new RuntimeDoubleValueMessage(symid, static_cast<double>(val) ));
+            cur += MsgLen.at(SYM_BLD_FLOAT_DBL);
+        }else if(buf[cur] == SYM_BLD_BOOL){
+            uint16_t symid = *(uint16_t*)(buf + cur + 1);
+            uint8_t val = *(uint64_t*)(buf + cur + 3);
+            msgQueue.push_back(new RuntimeBoolValueMessage(symid, static_cast<bool>(val)));
+            cur += MsgLen.at(SYM_BLD_BOOL);
+        }else if(buf[cur] == SYM_BLD_PATH_CNSTR){
+            uint16_t symid = *(uint16_t*)(buf + cur + 1);
+            uint8_t val = *(uint64_t*)(buf + cur + 3);
+            msgQueue.push_back(new PushConstraintMessage(symid, static_cast<bool>(val)));
+            cur += MsgLen.at(SYM_BLD_PATH_CNSTR);
+        }else if(buf[cur] == SYM_BLD_MEMCPY){
+            uint16_t symid = *(uint16_t*)(buf + cur + 1);
+            uint32_t dest_ptr = *(uint32_t*)(buf + cur + 3);
+            uint32_t src_ptr = *(uint32_t*)(buf + cur + 7);
+            uint16_t len = *(uint16_t*)(buf + cur + 11);
+            msgQueue.push_back(new MemCpyMessage(symid, dest_ptr, src_ptr, len));
+            cur += MsgLen.at(SYM_BLD_MEMCPY);
+        }else if(buf[cur] == SYM_BLD_MEMSET){
+            uint16_t symid = *(uint16_t*)(buf + cur + 1);
+            uint32_t ptr = *(uint32_t*)(buf + cur + 3);
+            uint16_t len = *(uint16_t*)(buf + cur + 7);
+            msgQueue.push_back(new MemSetMessage(symid, ptr, len));
+            cur += MsgLen.at(SYM_BLD_MEMSET);
+        }else if(buf[cur] == SYM_BLD_MEMMOVE){
+            uint16_t symid = *(uint16_t*)(buf + cur + 1);
+            uint32_t dest_ptr = *(uint32_t*)(buf + cur + 3);
+            uint32_t src_ptr = *(uint32_t*)(buf + cur + 7);
+            uint16_t len = *(uint16_t*)(buf + cur + 11);
+            msgQueue.push_back(new MemMoveMessage(symid, dest_ptr, src_ptr, len));
+            cur += MsgLen.at(SYM_BLD_MEMMOVE);
+        }else if(buf[cur] == SYM_BLD_READ_MEM){
+            uint16_t symid = *(uint16_t*)(buf + cur + 1);
+            uint32_t ptr = *(uint32_t*)(buf + cur + 3);
+            uint16_t len = *(uint16_t*)(buf + cur + 7);
+            msgQueue.push_back(new ReadMemMessage(symid,ptr,len));
+            cur += MsgLen.at(SYM_BLD_READ_MEM);
+        }else if(buf[cur] == SYM_BLD_WRITE_MEM){
+            uint16_t symid = *(uint16_t*)(buf + cur + 1);
+            uint32_t ptr = *(uint32_t*)(buf + cur + 3);
+            uint16_t len = *(uint16_t*)(buf + cur + 7);
+            msgQueue.push_back(new WriteMemMessage(symid,ptr,len));
+            cur += MsgLen.at(SYM_BLD_WRITE_MEM);
+        }else if(buf[cur] == SYM_NTFY_PHI){
+            uint16_t symid = *(uint16_t*)(buf + cur + 1);
+            uint8_t val = *(uint64_t*)(buf + cur + 3);
+            msgQueue.push_back(new RuntimePhiValueMessage(symid, val));
+            cur += MsgLen.at(SYM_NTFY_PHI);
+        }else if(buf[cur] == SYM_NTFY_CALL){
+            uint8_t id = *(uint8_t*)(buf + cur + 1);
+            msgQueue.push_back(new NotifyCallMessage(id));
+            cur += MsgLen.at(SYM_NTFY_CALL);
+        }else if(buf[cur] == SYM_NTFY_RET){
+            uint8_t id = *(uint8_t*)(buf + cur + 1);
+            msgQueue.push_back(new NotifyRetMessage(id));
+            cur += MsgLen.at(SYM_NTFY_RET);
+        }else if(buf[cur] == SYM_NTFY_BBLK){
+            uint8_t id = *(uint8_t*)(buf + cur + 1);
+            msgQueue.push_back(new NotifyBasicBlockMessage(static_cast<uint16_t>(id)));
+            cur += MsgLen.at(SYM_NTFY_RET);
+        }else if(buf[cur] == SYM_NTFY_BBLK1){
+            uint16_t  id = *(uint16_t*)(buf + cur + 1);
+            msgQueue.push_back(new NotifyBasicBlockMessage(id));
+            cur += MsgLen.at(SYM_NTFY_BBLK1);
+        }else{
+            std::cerr <<"unhandled msg type:"<< buf[cur] <<", the connection is corrupted";
+            assert(false);
+        }
+    }
+    assert(cur == size);
+}
+
+void MsgQueue::ProcessMsgs() {
+    ring_buffer_size_t avaiNumBytes = ring_buffer_num_items(&RingBuffer);
+    assert(avaiNumBytes > 0);
+
+    int processedBytes = 0;
+    char numBytesForPacket;
+    char tempBuffer[64];
+
+    ring_buffer_dequeue(&RingBuffer, &numBytesForPacket);
+    numBytesForPacket -= 1;//remove the header byte itself
+    processedBytes += 1;
+
+
+    while(numBytesForPacket < (avaiNumBytes - processedBytes)){
+        ring_buffer_dequeue_arr(&RingBuffer,tempBuffer, numBytesForPacket);
+        RenderAndPush(tempBuffer, numBytesForPacket);
+    }
 }
