@@ -35,7 +35,7 @@ enum {
  SYM_BLD_BOOL          ,
  SYM_BLD_PATH_CNSTR    ,
  SYM_BLD_MEMCPY        ,
- SYM_BLD_MENSET        ,
+ SYM_BLD_MEMSET        ,
  SYM_BLD_MEMMOVE       ,
  SYM_BLD_READ_MEM      ,
  SYM_BLD_WRITE_MEM     ,

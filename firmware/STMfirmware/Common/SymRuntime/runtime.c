@@ -507,7 +507,7 @@ void _sym_build_memset(char * mem, bool input, size_t length, uint16_t symID)
 
     if(report)
     {
-    	reportSymHelper( SYM_BLD_MENSET, SIZE_SYM_BLD_MENSET,mem,NULL, length, symID);
+    	reportSymHelper( SYM_BLD_MEMSET, SIZE_SYM_BLD_MENSET,mem,NULL, length, symID);
     }
 }
 
