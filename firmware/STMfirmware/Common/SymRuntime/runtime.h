@@ -47,6 +47,7 @@ enum {
 
  SYM_NTFY_PHI          ,
  SYM_NTFY_CALL         ,
+ SYM_NTFY_FUNC         ,
  SYM_NTFY_RET          ,
  SYM_NTFY_BBLK         ,
  SYM_NTFY_BBLK1        ,
@@ -69,6 +70,7 @@ enum {
 #define SIZE_SYM_BLD_WRITE_MEM      9      // | FCODE(1) | symID(2)         | addr(4)     | length(2) |
 #define SIZE_SYM_NTFY_PHI           4      // | FCODE(1) | symID(2)         | branchNo(1) |
 #define SIZE_SYM_NTFY_CALL          2      // | FCODE(1) | call_inst_id(1)  |
+#define SIZE_SYM_NTFY_FUNC          2      // | FCODE(1) | func_id(1)       |
 #define SIZE_SYM_NTFY_RET           2      // | FCODE(1) | call_inst_id(1)  |
 #define SIZE_SYM_NTFY_BBLK          2      // | FCODE(1) | bbid(1)          |
 #define SIZE_SYM_NTFY_BBLK1         3      // | FCODE(1) | bbid(2)          |
@@ -110,6 +112,7 @@ bool _sym_get_return_expression();
 //needs report
 void _sym_notify_phi(uint8_t branchNo, uint16_t symID);
 void _sym_notify_call(uint8_t call_inst_id);
+void _sym_notify_func(uint8_t func_id);
 void _sym_notify_ret(uint8_t call_inst_id);
 void _sym_notify_basic_block(uint8_t bbid);
 void _sym_notify_basic_block1(uint16_t bbid);
