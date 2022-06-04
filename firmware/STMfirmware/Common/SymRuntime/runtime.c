@@ -306,6 +306,21 @@ void _sym_notify_call(uint8_t call_inst_id)
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = (uint8_t) call_inst_id;
 }
 
+
+void _sym_notify_func(uint8_t call_inst_id)
+{
+	int msgSize=0;
+    uint8_t msgCode;
+
+    msgSize = SIZE_SYM_NTFY_FUNC;
+    msgCode = SYM_NTFY_FUNC;
+	txCommandtoMonitor(msgSize);                              //check if we have space otherwise send the buffer
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
+	//set the val
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = (uint8_t) call_inst_id;
+}
+
+
 void _sym_notify_ret(uint8_t call_inst_id)
 {
 	int msgSize=0;
