@@ -3,7 +3,7 @@
 //
 
 #include "Orchestrator.h"
-
+#include <iostream>
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "UnreachableCode"
@@ -62,7 +62,29 @@ int Orchestrator::StartListen() {
 }
 int Orchestrator::Run() {
     while(true){
+        Message* msg = msgQueue.Pop();
+        if(ControlMessgaes * cnt_msg = dynamic_cast<ControlMessgaes*>(msg); cnt_msg != nullptr){
+            if(NotifyBasicBlockMessage * bb_msg = dynamic_cast<NotifyBasicBlockMessage*>(msg) ; bb_msg != nullptr){
 
+            }else if(NotifyFuncMessage * func_msg = dynamic_cast<NotifyFuncMessage*>(msg); func_msg != nullptr){
+                func_msg->id;
+            }else if(NotifyCallMessage * call_msg = dynamic_cast<NotifyCallMessage*>(msg) ; call_msg != nullptr){
+
+            }else if(NotifyRetMessage * ret_msg = dynamic_cast<NotifyRetMessage*>(msg) ; ret_msg != nullptr){
+
+            }else{
+                std::cerr<<"seriously?";
+                assert(false);
+            }
+
+        }else if (SymSourceMessage* sym_source_msg = dynamic_cast<SymSourceMessage*>(msg) ; sym_source_msg != nullptr){
+
+        }else if (SymSinkMessage* sym_sink_msg = dynamic_cast<SymSinkMessage*>(msg) ; sym_sink_msg != nullptr){
+
+        }else{
+            std::cerr<<"seriously?";
+            assert(false);
+        }
     }
     return 0;
 }

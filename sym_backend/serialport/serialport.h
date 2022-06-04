@@ -29,6 +29,7 @@ enum {
 
     SYM_NTFY_PHI          ,
     SYM_NTFY_CALL         ,
+    SYM_NTFY_FUNC         ,
     SYM_NTFY_RET          ,
     SYM_NTFY_BBLK         ,
     SYM_NTFY_BBLK1        ,

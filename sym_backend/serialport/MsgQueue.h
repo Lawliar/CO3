@@ -32,6 +32,7 @@ public:
                 {SYM_BLD_WRITE_MEM  , 9 },
                 {SYM_NTFY_PHI       ,4 },
                 {SYM_NTFY_CALL      ,2 },
+                {SYM_NTFY_FUNC      ,2 },
                 {SYM_NTFY_RET       ,2 },
                 {SYM_NTFY_BBLK      ,2 },
                 {SYM_NTFY_BBLK1     ,3 }

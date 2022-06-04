@@ -119,6 +119,10 @@ void MsgQueue::RenderAndPush(char * buf, char size){
             uint8_t id = *(uint8_t*)(buf + cur + 1);
             msgQueue.push_back(new NotifyCallMessage(id));
             cur += MsgLen.at(SYM_NTFY_CALL);
+        }else if(buf[cur] == SYM_NTFY_FUNC){
+            uint8_t id = *(uint8_t*)(buf + cur + 1);
+            msgQueue.push_back(new NotifyFuncMessage(id));
+            cur += MsgLen.at(SYM_NTFY_FUNC);
         }else if(buf[cur] == SYM_NTFY_RET){
             uint8_t id = *(uint8_t*)(buf + cur + 1);
             msgQueue.push_back(new NotifyRetMessage(id));
@@ -126,7 +130,7 @@ void MsgQueue::RenderAndPush(char * buf, char size){
         }else if(buf[cur] == SYM_NTFY_BBLK){
             uint8_t id = *(uint8_t*)(buf + cur + 1);
             msgQueue.push_back(new NotifyBasicBlockMessage(static_cast<uint16_t>(id)));
-            cur += MsgLen.at(SYM_NTFY_RET);
+            cur += MsgLen.at(SYM_NTFY_BBLK);
         }else if(buf[cur] == SYM_NTFY_BBLK1){
             uint16_t  id = *(uint16_t*)(buf + cur + 1);
             msgQueue.push_back(new NotifyBasicBlockMessage(id));
