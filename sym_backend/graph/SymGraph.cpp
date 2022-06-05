@@ -208,6 +208,22 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
         }
     }
 
+    Val::BasicBlockIdType entryBBID = static_cast<Val::BasicBlockIdType>(cfg.graph[cfg.cfgEntry].id);
+    Val::BasicBlockIdType exitBBID = static_cast<Val::BasicBlockIdType>(cfg.graph[cfg.cfgExit].id);
+    for(auto nodeIt = Nodes.begin(); nodeIt != Nodes.end(); nodeIt ++){
+        if((*nodeIt)->BBID == entryBBID && (*nodeIt)->type == Val::SymValTy){
+            if(SymVal_sym_get_parameter_expression * getPara = dynamic_cast<SymVal_sym_get_parameter_expression*>((*nodeIt)); getPara !=
+                    nullptr){
+                getParametersSym.push_back(static_cast<Val::ValVertexType>(nodeIt - Nodes.begin()));
+            }
+        }
+        if((*nodeIt)->BBID == exitBBID && (*nodeIt)->type == Val::SymValTy){
+            if(SymVal_sym_set_return_expression * setRet = dynamic_cast<SymVal_sym_set_return_expression*>((*nodeIt)); setRet !=
+                                                                                                                              nullptr){
+                setRetSym = static_cast<Val::ValVertexType>(nodeIt - Nodes.begin());
+            }
+        }
+    }
     prepareBBTask();
 }
 

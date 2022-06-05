@@ -378,7 +378,8 @@ public:
     map<RuntimeSymFlowGraph::vertex_t, Val::ValVertexType> ver2offMap;
     std::map<Val::BasicBlockIdType, BasicBlockTask*> bbTasks;
     vector<Val*> Nodes;
-
+    vector<Val::ValVertexType> getParametersSym;
+    Val::ValVertexType setRetSym;
 };
 
 

@@ -25,12 +25,10 @@ public:
     ~Orchestrator();
 
 
-
     OpenedSP sp;
-
     MsgQueue msgQueue;
+    stack<SymGraph*> callStack;
     map<unsigned, SymGraph*> symGraphs;
-
 
     // for debugging purpose
     std::deque<uint32_t> BBTrace;

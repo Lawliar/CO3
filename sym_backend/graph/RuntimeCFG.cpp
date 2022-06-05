@@ -52,3 +52,21 @@ void RuntimeCFG::readGraphViz(std::string cfg_filename, std::string p_filename, 
         pd_ids.insert(node_id);
     }
 }
+
+RuntimeCFG::RuntimeCFG(std::string cfg_filename, std::string d_filename, std::string pd_filename){
+    readGraphViz(cfg_filename,d_filename, pd_filename);
+    vertex_it vt, vt_end;
+    unsigned numExit = 0;
+    unsigned numEntry = 0;
+    for(boost::tie(vt, vt_end) = boost::vertices(graph); vt != vt_end ; vt ++){
+        if(graph[*vt].entry == '1'){
+            cfgEntry = *vt;
+            numEntry++;
+        }
+        if(graph[*vt].exit == '1'){
+            cfgExit = *vt;
+            numExit++;
+        }
+    }
+    assert(numEntry == 1 && numExit == 1);
+}
