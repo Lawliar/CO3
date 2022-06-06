@@ -1,5 +1,6 @@
 ROOT_DIR := $(abspath ..)
 PROJ_DIR := $(abspath .)
+PROJ_NAME := $(notdir $(PROJ_DIR))
 BUILD_DIR  := $(PROJ_DIR)/build
 OUTPUT_DIR := $(PROJ_DIR)/intermediate_results
 Q ?= @
@@ -14,10 +15,11 @@ CLI_LDFLAG_OVERRIDES ?=
 # our path by default but allow things to be easily overridden, i.e:
 #
 # COMPILER=<PATH_TO_OTHER_GCC_VERSION>/arm-none-eabi-gcc make
-GCC_COMPILER := arm-none-eabi-gcc
-CLANG_COMPILER := /home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/clang
-OPT      	   := /home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/opt
-LLC      	   := /home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/llc
+GCC_COMPILER        := arm-none-eabi-gcc
+CLANG_COMPILER      := /home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/clang
+OPT                 := /home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/opt
+LLC                 := /home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/llc
+INSTRUMENTATION_LIB := /home/lcm/github/spear/spear-code/pass/cmake-build-debug/libSymbolize.so 
 #COMPILER ?= arm-none-eabi-gcc
 CC := $(CLANG_COMPILER)
 
@@ -236,7 +238,7 @@ ARM_CORTEXM_BUILTINS ?= \
 COMPILER_SPECIFIC_CFLAGS += \
   --target=arm-none-eabi \
   --sysroot=$(ARM_CORTEXM_SYSROOT) \
-  -O3
+  -Oz
 
 
 #-Wthread-safety \
@@ -308,7 +310,9 @@ LINKER_OVERRIDE ?=
 DEP_DIR = $(BUILD_DIR)/dep
 DEP_CFLAGS = -MT $@ -MMD -MP -MF $(DEP_DIR)/$(*F).d
 
+
 all: $(TARGET_ELF)
+	 
 
 -include $(wildcard $(DEP_DIR)/*.d)
 
@@ -365,7 +369,7 @@ $(OBJ_FILES): $(SRC_FILES) makefile
 
 # build Middleware
 
-$(BUILD_DIR)/SpearRuntime/Middlewares/%.o: $(PROJ_DIR)/Middlewares/%.c | $(BUILD_DIR) $(DEP_DIR) 
+$(BUILD_DIR)/$(PROJ_NAME)/Middlewares/%.o: $(PROJ_DIR)/Middlewares/%.c | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
 	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
@@ -373,27 +377,27 @@ $(BUILD_DIR)/SpearRuntime/Middlewares/%.o: $(PROJ_DIR)/Middlewares/%.c | $(BUILD
 
 # build USB_DEVICES
 
-$(BUILD_DIR)/SpearRuntime/USB_DEVICE/%.o: $(PROJ_DIR)/USB_DEVICE/%.c | $(BUILD_DIR) $(DEP_DIR) 
+$(BUILD_DIR)/$(PROJ_NAME)/USB_DEVICE/%.o: $(PROJ_DIR)/USB_DEVICE/%.c | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
 	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
 # build core files
-$(BUILD_DIR)/SpearRuntime/Core/Src/%.o:  $(PROJ_DIR)/Core/Src/%.c | $(BUILD_DIR) $(DEP_DIR) 
+$(BUILD_DIR)/$(PROJ_NAME)/Core/Src/%.o:  $(PROJ_DIR)/Core/Src/%.c | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
 	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
 
 # build drivers
-$(BUILD_DIR)/SpearRuntime/Drivers/%.o: $(PROJ_DIR)/Drivers/%.c  | $(BUILD_DIR) $(DEP_DIR) 
+$(BUILD_DIR)/$(PROJ_NAME)/Drivers/%.o: $(PROJ_DIR)/Drivers/%.c  | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
 	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
 
 # build Assembly startup code
-$(BUILD_DIR)/SpearRuntime/Core/Startup/%.o: $(PROJ_DIR)/Core/Startup/%.s | $(BUILD_DIR) $(DEP_DIR) 
+$(BUILD_DIR)/$(PROJ_NAME)/Core/Startup/%.o: $(PROJ_DIR)/Core/Startup/%.s | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
 	$(Q) $(CC) $(DEP_CFLAGS) $(ASFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
@@ -416,20 +420,20 @@ $(BUILD_DIR)/Common/SymRuntime/%.o: $(ROOT_DIR)/Common/SymRuntime/%.c  | $(BUILD
 	@mkdir -p $(dir $@)
 	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
-$(BUILD_DIR)/SpearRuntime/Target/%.o: $(PROJ_DIR)/Target/%.c| $(BUILD_DIR) $(DEP_DIR) 
-	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
-	@mkdir -p $(dir $@)
-	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
-
-
-# build instrumented coremark
-#$(BUILD_DIR)/SpearRuntime/coremark_stm32_hal/%.o: $(PROJ_DIR)/coremark_stm32_hal/%.c| $(BUILD_DIR) $(DEP_DIR) 
+#$(BUILD_DIR)/$(PROJ_NAME)/Target/%.o: $(PROJ_DIR)/Target/%.c| $(BUILD_DIR) $(DEP_DIR) 
 #	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 #	@mkdir -p $(dir $@)
-#	@mkdir -p $(OUTPUT_DIR)
-#	$(Q) $(CLANG_COMPILER) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -S -emit-llvm -o $@_raw.ll $<
-#	$(Q) $(OPT) -load /home/lcm/github/spear/spear-code/pass/cmake-build-debug/libSymbolize.so --symbolize -out $(OUTPUT_DIR) -o $@_ins.ll $@_raw.ll
-#	$(Q) $(LLC) -filetype=obj -o $@ $@_ins.ll
+#	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
+
+
+#build instrumented coremark
+$(BUILD_DIR)/$(PROJ_NAME)/Target/%.o: $(PROJ_DIR)/Target/%.c | $(BUILD_DIR) $(DEP_DIR) 
+	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
+	@mkdir -p $(dir $@)
+	@mkdir -p $(OUTPUT_DIR)
+	$(Q) $(CLANG_COMPILER) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -S -emit-llvm -o $@_raw.ll $<
+	$(Q) $(OPT) -load ${INSTRUMENTATION_LIB} --symbolize -out $(OUTPUT_DIR) -o $@_ins.ll $@_raw.ll
+	$(Q) $(LLC) -filetype=obj -o $@ $@_ins.ll
 
 
 #$(CC) -mcpu=cortex-m3 -g3 -DDEBUG -c -x assembler-with-cpp -MMD -MP -MF"$(DEP_DIR)/startup_stm32l152retx.d" -MT"$(BUILD_DIR)/Core/Startup/startup_stm32l152retx.o" --specs=nano.specs -mfloat-abi=soft -mthumb  -o $@ $< 
