@@ -14,8 +14,8 @@
 
 cmake_minimum_required(VERSION 3.5)
 project(SymInstrumentation)
-set(llvm_hints "/home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04/lib/cmake")
-#set(llvm_hints "/home/lcm/github/toolchains/x86_64/llvm-project-10.0.0/build/lib/cmake")
+
+set(llvm_hints ${LLVM_HINTS})
 set(boost_hints "../deps/boost/install/lib/cmake")
 
 find_package(LLVM REQUIRED CONFIG HINTS ${llvm_hints})
