@@ -114,6 +114,16 @@ public:
     SymVal(SymIDType symid, std::string op, BasicBlockIdType bid):Val( SymValTy,  bid), Op(op), symID(symid){}
 };
 
+class SymVal_sym_notify_call: public SymVal {
+public:
+    SymVal_sym_notify_call(SymIDType symid, BasicBlockIdType bid, std::map<unsigned , unsigned>& paras): SymVal(symid, "_sym_notify_call", bid) {
+        for(auto eachPara: paras) {
+            In_edges.insert(make_pair(eachPara.first, eachPara.second));
+        }
+    }
+    ~SymVal_sym_notify_call(){In_edges.clear();}
+};
+
 #define DECLARE_SYMVAL_TYPE0(OP)                           \
 class SymVal##OP : public SymVal{                      \
 public:                                                    \

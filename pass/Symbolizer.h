@@ -369,6 +369,15 @@ public:
         assert(exprIt == phiSymbolicIDs.end());
         phiSymbolicIDs[symPhi] = std::make_pair(ID, is_authentic);
     }
+
+    void addSetParaToNotifyCall(llvm::CallInst* notifyCall, llvm::CallInst* setPara){
+        if( callToSetParaMap.find(notifyCall) == callToSetParaMap.end() ){
+            callToSetParaMap[notifyCall] = llvm::SmallVector<llvm::CallInst*, 8>();
+            callToSetParaMap[notifyCall].push_back(setPara);
+        }else{
+            callToSetParaMap[notifyCall].push_back(setPara);
+        }
+    }
     bool tryGetSymExpr(llvm::Value * V){
         auto expr = getSymbolicExpression(V);
         if (auto symExpr = llvm::dyn_cast<llvm::ConstantInt>(expr); symExpr != nullptr && symExpr->isZero() ){
@@ -526,6 +535,8 @@ public:
   llvm::ValueMap<llvm::CallInst *, unsigned int> symbolicIDs;
   /// Maps phi nodes to its IDs
   llvm::ValueMap<llvm::PHINode* , std::pair<unsigned int, bool> > phiSymbolicIDs;
+  //map call inst to its corresponding set paras
+  std::map<llvm::CallInst*, llvm::SmallVector<llvm::CallInst*, 8> > callToSetParaMap;
   /// A record of all PHI nodes in this function.
   ///
   /// PHI nodes may refer to themselves, in which case we run into an infinite

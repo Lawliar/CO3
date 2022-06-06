@@ -239,7 +239,7 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
     unsigned int callInstID = getNextCallID();
     IRB.CreateCall(runtime.notifyRet, ConstantHelper(runtime.int8T, callInstID));
     IRB.SetInsertPoint(&I);
-    IRB.CreateCall(runtime.notifyCall, ConstantHelper(runtime.int8T, callInstID));
+
 
     if (callee == nullptr){
         tryAlternative(IRB, I.getCalledOperand());
@@ -257,14 +257,19 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
             addSymIDToCall(I);
         }
     }
+    SmallVector<CallInst*, 8> setParas;
     for (Use &arg : I.args()){
         auto argSymExpr = getSymbolicExpression(arg);
         CallInst * call_to_set_para = IRB.CreateCall(runtime.setParameterExpression,
                      {ConstantInt::get(IRB.getInt8Ty(), arg.getOperandNo()), argSymExpr});
         assignSymID(call_to_set_para,getNextID());
+        setParas.push_back(call_to_set_para);
     }
-
-
+    auto notifyCall = IRB.CreateCall(runtime.notifyCall, ConstantHelper(runtime.int8T, callInstID));
+    assignSymID(notifyCall, getNextID());
+    for(auto eachSetPara: setParas){
+        addSetParaToNotifyCall(notifyCall, eachSetPara);
+    }
 
     if (!I.user_empty()) {
         // The result of the function is used somewhere later on. Since we have no
@@ -1184,11 +1189,21 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
             IRBuilder<> IRB(callInst);
             if(symOperators.find(calleeName) != symOperators.end()){
                 // some special case
-                if(calleeName.equals("_sym_notify_basic_block") || calleeName.equals("_sym_notify_call") || calleeName.equals("_sym_notify_ret") ){
+                if(calleeName.equals("_sym_notify_basic_block") || calleeName.equals("_sym_notify_ret") ){
                     continue;
                 }
                 unsigned userSymID = getSymIDFromSym(callInst);
                 auto userNode = g.AddSymVertice(userSymID, calleeName.str(),blockID);
+                if(calleeName.equals("_sym_notify_call")){
+                    unsigned counter = 0;
+                    if(callToSetParaMap.find(callInst) != callToSetParaMap.end()){
+                        for(auto eachSetPara : callToSetParaMap.at(callInst)){
+                            unsigned arg_symid = getSymIDFromSym(eachSetPara);
+                            g.AddEdge(arg_symid,userSymID, counter++);//this is just some random counter, which won't be used anyway
+                        }
+                    }
+                    continue;
+                }
 
                 for(auto arg_it = callInst->arg_begin() ; arg_it != callInst->arg_end() ; arg_it++){
                     Value * arg = *arg_it ;

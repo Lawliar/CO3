@@ -98,7 +98,10 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
                 cur_node = new SymVal_NULL(symid, bbid);
                 NULL_sym++;
                 assert(NULL_sym == 1);
-            } CHECK_SYM_OP2(_sym_try_alternative)
+            } else if(op == "_sym_notify_call"){
+                cur_node = new SymVal_sym_notify_call(symid, bbid, in_paras);
+            }
+            CHECK_SYM_OP2(_sym_try_alternative)
             CHECK_SYM_OP2(_sym_build_integer)
             CHECK_SYM_OP2(_sym_build_float)
             CHECK_SYM_OP0(_sym_build_null_pointer)
