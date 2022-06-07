@@ -3,6 +3,7 @@
     - `sudo apt install pkg-config`
 2. building the pass:
     - build boost library
+        - if you have boost library installed from apt, please considering removing them. Check out if there is any input from `apt list --installed | grep boost` we apologize for the inconvenience.
         - at the same dir as the README.md
             - `git submodule init`
             - `git submodule update`

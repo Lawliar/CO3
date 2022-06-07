@@ -19,6 +19,7 @@ option(TARGET_32BIT "Make the compiler work correctly with -m32" OFF)
 option(QSYM_BACKEND "Use the Qsym backend instead of our own" ON)
 option(Z3_TRUST_SYSTEM_VERSION "Use the system-provided Z3 without a version check" ON)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 if(NOT Z3_DIR)
   set(Z3_DIR "/home/lcm/github/tools/z3/install/lib/cmake")
 endif()

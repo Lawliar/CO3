@@ -15,7 +15,7 @@
 # Build the parts of the Qsym backend that are relevant for us
 
 set(QSYM_SOURCE_DIR "qsym/qsym/pintool")
-set(boost_hints "/home/lcm/github/spear/spear-code/deps/boost/install/lib/cmake")
+set(boost_hints "/usr/local/lib/cmake")
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/expr__gen.cpp
   COMMAND python2 gen_expr.py ${CMAKE_CURRENT_BINARY_DIR}
@@ -52,7 +52,13 @@ configure CMake with -DZ3_TRUST_SYSTEM_VERSION=on (see also docs/Configuration.t
 endif()
 
 ## BOOST
+set(Boost_DEBUG 1)
 find_package( Boost REQUIRED HINTS ${boost_hints})
+if(NOT Boost_FOUND)
+  message( SEND_ERROR "Boost Library not found" )
+endif()
+message(STATUS "Boost_INCLUDE_DIR=${Boost_INCLUDE_DIR}")
+
 include_directories( ${Boost_INCLUDE_DIR} )
 
 ## Serial Port Source
@@ -90,10 +96,11 @@ target_link_libraries(orchestrator "/usr/local/lib/libserialport.so")
 target_include_directories(orchestrator PRIVATE ${GRAPH_INCLUDE_DIR})
 target_include_directories(orchestrator PRIVATE ${RUNTIME_GRAPH_INCLUDE_DIR})
 ## link boost
-TARGET_LINK_LIBRARIES( orchestrator ${Boost_LIBRARIES} )
+target_link_libraries( orchestrator LINK_PUBLIC ${Boost_LIBRARIES} )
+target_link_libraries( orchestrator boost_graph )
+target_link_libraries( orchestrator boost_filesystem )
 target_link_libraries( orchestrator boost_program_options)
-TARGET_LINK_LIBRARIES( orchestrator boost_graph )
-TARGET_LINK_LIBRARIES( orchestrator boost_filesystem )
+
 
 target_include_directories(orchestrator PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}     # for our fake pin.H and Runtime.h
