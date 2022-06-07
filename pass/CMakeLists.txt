@@ -16,7 +16,7 @@ cmake_minimum_required(VERSION 3.5)
 project(SymInstrumentation)
 
 set(llvm_hints ${LLVM_HINTS})
-set(boost_hints "../deps/boost/install/lib/cmake")
+set(boost_hints ${BOOST_HINTS})
 
 find_package(LLVM REQUIRED CONFIG HINTS ${llvm_hints})
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
@@ -31,8 +31,11 @@ message(STATUS "LLVM_INCLUDE_DIRS ${LLVM_INCLUDE_DIRS}")
 include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 
 
-
+set(Boost_DEBUG 1)
 FIND_PACKAGE( Boost REQUIRED HINTS ${boost_hints})
+if(NOT Boost_FOUND)
+  message( SEND_ERROR "Boost Library not found" )
+endif()
 INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 
 

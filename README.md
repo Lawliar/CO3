@@ -16,7 +16,7 @@
         - under ./pass/
             - `mkdir build`
             - `cd build`
-            - `cmake -DLLVM_HINTS=<abs path to llvm you just download>/lib/cmake ..`
+            - `cmake .. -DLLVM_HINTS=<abs path to llvm you just download>/lib/cmake -DBOOST_HINTS=<abs path to the boost install dir>/lib/cmake `
             - `make`
 3. instrument the firmware
     - `make LLVM_TOOLCHAIN=<llvm folder you just unzip> INSTRUMENTATION_LIB=<llvm pass generated>`
