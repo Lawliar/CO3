@@ -16,8 +16,8 @@ cmake_minimum_required(VERSION 3.5)
 project(SymInstrumentation)
 
 set(llvm_hints ${LLVM_HINTS})
-set(boost_hints ${BOOST_HINTS})
-
+set(boost_hints "/usr/local/lib/cmake")
+set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 find_package(LLVM REQUIRED CONFIG HINTS ${llvm_hints})
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake from ${LLVM_DIR}")
@@ -36,8 +36,7 @@ FIND_PACKAGE( Boost REQUIRED HINTS ${boost_hints})
 if(NOT Boost_FOUND)
   message( SEND_ERROR "Boost Library not found" )
 endif()
-INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
-
+message(STATUS "${Boost_INCLUDE_DIR}=${${Boost_INCLUDE_DIR}}")
 
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 \
@@ -66,6 +65,8 @@ if (NOT LLVM_ENABLE_RTTI)
   set_source_files_properties(Runtime.cpp PROPERTIES COMPILE_FLAGS "-fno-rtti")
   set_source_files_properties(Main.cpp PROPERTIES COMPILE_FLAGS "-fno-rtti")
 endif()
+
+target_include_directories(Symbolize PUBLIC ${Boost_INCLUDE_DIR} )
 
 TARGET_LINK_LIBRARIES( Symbolize LINK_PUBLIC ${Boost_LIBRARIES} )
 TARGET_LINK_LIBRARIES( Symbolize boost_graph )
