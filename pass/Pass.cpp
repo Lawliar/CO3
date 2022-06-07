@@ -13,16 +13,18 @@
 // SymCC. If not, see <https://www.gnu.org/licenses/>.
 
 #include "Pass.h"
+#include "Runtime.h"
+#include "Symbolizer.h"
+#include "Lower.h"
 
+#include <fstream>
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/IR/InstIterator.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Transforms/Utils/ModuleUtils.h>
 
-#include "Runtime.h"
-#include "Symbolizer.h"
-#include "Lower.h"
+
 
 using namespace llvm;
 
