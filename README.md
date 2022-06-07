@@ -10,7 +10,7 @@
             - `git submodule init`
             - `git submodule update`
             - `./bootstrap.sh`
-            - `./b2 install --with-filesystem --with-graph --with-program_options`
+            - `sudo ./b2 install --with-filesystem --with-graph --with-program_options`
     - download llvm 12.0:
         - download from https://github.com/llvm/llvm-project/releases/download/llvmorg-12.0.0/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04.tar.xz and unzip it
         - under ./pass/

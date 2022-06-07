@@ -13,7 +13,7 @@
 
 uint32_t bufferGlobal[10]; // accessing this buffer should trigger a memfault since there is no MPU region for it
 
-int test(uint8_t *buf, uint32_t size)
+int test1(uint8_t *buf, uint32_t size)
 {
 
 	uint8_t *localbuff;
