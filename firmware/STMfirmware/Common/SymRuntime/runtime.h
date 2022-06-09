@@ -18,11 +18,13 @@
 #define SYM_SHADOW_RAM_LENGTH        1024*64
 #define SYM_SHADOW_RAM_OFFSET        0x2B800000
 
-#define SYM_FLASH_ADDR_START         0x24000000
+#define SYM_FLASH_ADDR_START         0x08000000
 #define SYM_FLASH_SIZE               1024*2048
 
 #define SYM_PERIPHERAL_ADDR_START    0x40000000
 #define SYM_PERIPHERAL_SIZE          0x1FFFFFFF
+
+#define DEBUGPRINT 1
 
 
 //types and enums
@@ -55,7 +57,11 @@ enum {
  SYM_INIT
 };
 
-                                           //legend FIELDNAME (SIZE in bytes)
+
+
+
+
+//legend FIELDNAME (SIZE in bytes)
 #define SIZE_SYM_BLD_INT_1          4      // | FCODE(1) | symID(2)         | val(1)      |
 #define SIZE_SYM_BLD_INT_2          5      // | FCODE(1) | symID(2)         | val(2)      |
 #define SIZE_SYM_BLD_INT_4          7      // | FCODE(1) | symID(2)         | val(4)      |
@@ -117,6 +123,9 @@ void _sym_notify_ret(uint8_t call_inst_id);
 void _sym_notify_basic_block(uint8_t bbid);
 void _sym_notify_basic_block1(uint16_t bbid);
 
+
+//symbolize buffer
+void _sym_symbolize_memory(char * addr, size_t length);
 
 void _sym_initialize();// allocate the shadow memory, and the space for the return values, parameters
 

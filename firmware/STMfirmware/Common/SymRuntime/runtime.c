@@ -9,6 +9,7 @@
 #include "protocol.h"
 #include "stdlib.h"
 #include "string.h"
+#include "stdio.h"
 
 
 #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
@@ -20,6 +21,78 @@
 
 #define lowByte(w) ((w) & 0xff)
 #define highByte(w) ((w) >> 8)
+
+
+#if DEBUGPRINT==1
+#define txCommandtoMonitorF  txCommandtoMonitor(msgSize,msgCode)
+
+#else
+
+#define txCommandtoMonitorF  txCommandtoMonitor(msgSize)
+
+#endif
+
+
+
+
+#if DEBUGPRINT ==1
+
+ char S_SYM_DUMMY           []="SYM_DUMMY         ";
+ char S_SYM_BLD_INT_1       []="SYM_BLD_INT_1     ";
+ char S_SYM_BLD_INT_2       []="SYM_BLD_INT_2     ";
+ char S_SYM_BLD_INT_4       []="SYM_BLD_INT_4     ";
+ char S_SYM_BLD_FLOAT       []="SYM_BLD_FLOAT     ";
+ char S_SYM_BLD_FLOAT_DBL   []="SYM_BLD_FLOAT_DBL ";
+ char S_SYM_BLD_BOOL        []="SYM_BLD_BOOL      ";
+ char S_SYM_BLD_PATH_CNSTR  []="SYM_BLD_PATH_CNSTR";
+ char S_SYM_BLD_MEMCPY      []="SYM_BLD_MEMCPY    ";
+ char S_SYM_BLD_MEMSET      []="SYM_BLD_MEMSET    ";
+ char S_SYM_BLD_MEMMOVE     []="SYM_BLD_MEMMOVE   ";
+ char S_SYM_BLD_READ_MEM    []="SYM_BLD_READ_MEM  ";
+ char S_SYM_BLD_WRITE_MEM   []="SYM_BLD_WRITE_MEM ";
+ char S_SYM_SET_PAR_EXP     []="SYM_SET_PAR_EXP   ";
+ char S_SYM_GET_PAR_EXP     []="SYM_GET_PAR_EXP   ";
+ char S_SYM_SET_RET_EXP     []="SYM_SET_RET_EXP   ";
+ char S_SYM_GET_RET_EXP     []="SYM_GET_RET_EXP   ";
+ char S_SYM_NTFY_PHI        []="SYM_NTFY_PHI      ";
+ char S_SYM_NTFY_CALL       []="SYM_NTFY_CALL     ";
+ char S_SYM_NTFY_FUNC       []="SYM_NTFY_FUNC     ";
+ char S_SYM_NTFY_RET        []="SYM_NTFY_RET      ";
+ char S_SYM_NTFY_BBLK       []="SYM_NTFY_BBLK     ";
+ char S_SYM_NTFY_BBLK1      []="SYM_NTFY_BBLK1    ";
+ char S_SYM_INIT            []="SYM_INIT          ";
+
+ char *fstrings[]={
+
+		 S_SYM_DUMMY          ,
+		 S_SYM_BLD_INT_1      ,
+		 S_SYM_BLD_INT_2      ,
+		 S_SYM_BLD_INT_4      ,
+		 S_SYM_BLD_FLOAT      ,
+		 S_SYM_BLD_FLOAT_DBL  ,
+		 S_SYM_BLD_BOOL       ,
+		 S_SYM_BLD_PATH_CNSTR ,
+		 S_SYM_BLD_MEMCPY     ,
+		 S_SYM_BLD_MEMSET     ,
+		 S_SYM_BLD_MEMMOVE    ,
+		 S_SYM_BLD_READ_MEM   ,
+		 S_SYM_BLD_WRITE_MEM  ,
+		 S_SYM_SET_PAR_EXP    ,
+		 S_SYM_GET_PAR_EXP    ,
+		 S_SYM_SET_RET_EXP    ,
+		 S_SYM_GET_RET_EXP    ,
+		 S_SYM_NTFY_PHI       ,
+		 S_SYM_NTFY_CALL      ,
+		 S_SYM_NTFY_FUNC      ,
+		 S_SYM_NTFY_RET       ,
+		 S_SYM_NTFY_BBLK      ,
+		 S_SYM_NTFY_BBLK1     ,
+		 S_SYM_INIT
+ };
+
+#endif
+
+
 
 
 
@@ -48,17 +121,30 @@ bool _sym_peripheral_symb(uint32_t *addr)
    return false;
 }
 
-
-static inline void txCommandtoMonitor(uint8_t size)
+#if DEBUGPRINT ==1
+void txCommandtoMonitor(uint8_t size, uint8_t func)
+#else
+void txCommandtoMonitor(uint8_t size)
+#endif
 {
 	//If we don't have more space in the buffer TX the packet
 	if (AFLfuzzer.txCurrentIndex + size >= MAX_USB_FRAME  )
 	{
-	    xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,3,1,eSetValueWithOverwrite); //notify the Monitor to transmit
-	    ulTaskNotifyTake(pdTRUE, portMAX_DELAY); //get notification when transmission finishes to continue execution
+
+    #if DEBUGPRINT ==1
+	    printf("TX Nbytes: %d\n",(int)AFLfuzzer.txCurrentIndex );
+    #endif
+		xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,3,1,eSetValueWithOverwrite); //notify the Monitor to transmit
+	    ulTaskNotifyTakeIndexed(1,pdTRUE, portMAX_DELAY); //get notification when transmission finishes to continue execution
 	    //Note: the TxComplete callback will clean buffer after transmission so we will have space for the next function.
 	    //It also notifies the target to continue execution
+
+
 	}
+#if DEBUGPRINT ==1
+	printf("F.: %s, C.I.: %d\n",fstrings[func], (int)AFLfuzzer.txCurrentIndex );
+#endif
+	AFLfuzzer.txTotalFunctions++;
 }
 
 void _sym_initialize()
@@ -105,7 +191,7 @@ bool _sym_get_return_expression()
 	return return_exp;
 }
 
-static inline void set_id(uint32_t userID)
+inline void set_id(uint32_t userID)
 {
 	union ubytes_t aux;
 	aux.vuint32 = userID;
@@ -115,7 +201,7 @@ static inline void set_id(uint32_t userID)
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= aux.vbytes[3];
 }
 
-static inline void get_report(uint8_t * arg)
+inline void get_report(uint8_t * arg)
 {
 
 	uint8_t arg_id, width;
@@ -174,7 +260,7 @@ bool _sym_build_integer(uint32_t int_val, uint8_t numBits, uint16_t symID)
 	}
 
 
-	txCommandtoMonitor(msgSize);                              //check if we have space otherwise send the buffer
+	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
 	//set the ID
 	byteval = (uint8_t *)(&symID);
@@ -212,7 +298,7 @@ bool _sym_build_float(uint64_t double_val, bool is_double, uint16_t symID)
     	numBits = 4;
     }
 
-    txCommandtoMonitor(msgSize);                              //check if we have space otherwise send the buffer
+    txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
     AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
     //set the ID
     byteval = (uint8_t *)(&symID);
@@ -239,7 +325,7 @@ bool _sym_build_bool(bool bool_val, uint16_t symID)
     msgSize = SIZE_SYM_BLD_BOOL;
     msgCode = SYM_BLD_BOOL;
 
-    txCommandtoMonitor(msgSize);                              //check if we have space otherwise send the buffer
+    txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
     AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
     //set the ID
     byteval = (uint8_t *)(&symID);
@@ -262,7 +348,7 @@ void _sym_build_path_constraint(bool input, bool runtimeVal, uint16_t symID)
 	msgSize = SIZE_SYM_BLD_PATH_CNSTR;
     msgCode = SYM_BLD_PATH_CNSTR;
 
-	txCommandtoMonitor(msgSize);                              //check if we have space otherwise send the buffer
+	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
 	//set the ID
 	byteval = (uint8_t *)(&symID);
@@ -283,7 +369,7 @@ void _sym_notify_phi(uint8_t branchNo, uint16_t symID)
 	msgSize = SIZE_SYM_NTFY_PHI;
 	msgCode = SYM_NTFY_PHI;
 
-    txCommandtoMonitor(msgSize);                              //check if we have space otherwise send the buffer
+    txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
     AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
     //set the ID
     byteval = (uint8_t *)(&symID);
@@ -300,7 +386,7 @@ void _sym_notify_call(uint8_t call_inst_id)
 
     msgSize = SIZE_SYM_NTFY_CALL;
     msgCode = SYM_NTFY_CALL;
-	txCommandtoMonitor(msgSize);                              //check if we have space otherwise send the buffer
+	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
 	//set the val
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = (uint8_t) call_inst_id;
@@ -314,7 +400,7 @@ void _sym_notify_func(uint8_t call_inst_id)
 
     msgSize = SIZE_SYM_NTFY_FUNC;
     msgCode = SYM_NTFY_FUNC;
-	txCommandtoMonitor(msgSize);                              //check if we have space otherwise send the buffer
+	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
 	//set the val
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = (uint8_t) call_inst_id;
@@ -328,7 +414,7 @@ void _sym_notify_ret(uint8_t call_inst_id)
 
     msgSize = SIZE_SYM_NTFY_RET;
     msgCode = SYM_NTFY_RET;
-	txCommandtoMonitor(msgSize);                              //check if we have space otherwise send the buffer
+	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
 	//set the val
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = (uint8_t) call_inst_id;
@@ -341,7 +427,7 @@ void _sym_notify_basic_block(uint8_t bbid)
 
     msgSize = SIZE_SYM_NTFY_BBLK;
     msgCode = SYM_NTFY_BBLK;
-	txCommandtoMonitor(msgSize);                              //check if we have space otherwise send the buffer
+	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
 	//set the val
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = (uint8_t) bbid;
@@ -356,7 +442,7 @@ void _sym_notify_basic_block1(uint16_t bbid)
 
     msgSize = SIZE_SYM_NTFY_BBLK;
     msgCode = SYM_NTFY_BBLK;
-	txCommandtoMonitor(msgSize);                              //check if we have space otherwise send the buffer
+	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
 	//set the val
 	byteval = (uint8_t *)(&bbid);
@@ -430,7 +516,7 @@ void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t 
 	uint8_t *byteval;
 
 
-	txCommandtoMonitor(msgSize);                              //check if we have space otherwise send the buffer
+	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
 
 	byteval = (uint8_t*)(&symID);
@@ -627,6 +713,20 @@ void _sym_build_write_memory(char * addr, size_t length, bool input, uint16_t sy
 	}
 
 }
+
+
+void _sym_symbolize_memory(char * addr, size_t length)
+{
+	char *pChar=addr;
+
+	for(size_t i=0; i<length; i++)
+	{
+		SetSymbolic(pChar);
+		pChar++;
+	}
+
+}
+
 
 
 /*

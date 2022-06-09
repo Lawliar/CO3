@@ -13,17 +13,22 @@
 #include  "ring.h"
 #include "stdio.h"
 #include "string.h"
-#include "testprotocol.h"
+#include "test.h"
+#include "runtime.h"
 
-static uint32_t start_time_val, stop_time_val;
+
+//static uint32_t start_time_val, stop_time_val;
 
 // for getting time
-#include "stm32h7xx_hal.h"
+//#include "stm32h7xx_hal.h"
 
 void vStartMonitor( void );
 void spawnNewTarget( void );
 static void MonitorTask( void * pvParameters );
 static void TargetTask( void * pvParameters );
+
+
+extern Symex_t AFLfuzzer;
 
 void app_main( void )
 {
@@ -58,7 +63,7 @@ void spawnNewTarget( void )
 {
 	xTaskCreate(TargetTask,
 				    "Target",
-					configMINIMAL_STACK_SIZE*16,
+					configMINIMAL_STACK_SIZE*8,
 					NULL,
 					10,
 					&AFLfuzzer.xTaskTarget);
@@ -86,6 +91,8 @@ static void MonitorTask( void * pvParameters )
     	AFLfuzzer.txbuffer[j]=0;
     }
 
+    _sym_initialize();
+
     //enable the cycle counter
     DWT->CYCCNT = 0;
     DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
@@ -93,7 +100,7 @@ static void MonitorTask( void * pvParameters )
     while(1)
 	{
 		// we will wait for a notification on index 1 when fuzzing data has arrived
-		//ulTaskNotifyTakeIndexed(1,pdTRUE, portMAX_DELAY);
+		ulTaskNotifyTakeIndexed(1,pdTRUE, portMAX_DELAY);
 		//cleaning the packet buffer
 		//AFLfuzzer.txTotalFunctions=0;
 		/*
@@ -115,11 +122,14 @@ static void MonitorTask( void * pvParameters )
 		notificationvalue = ulTaskNotifyTakeIndexed(3,pdTRUE, TARGET_TIMEOUT);
 		while(notificationvalue)
 		{
+			notiTarget = NOTI_TARGET;
 			TransmitPack();
 			notificationvalue = ulTaskNotifyTakeIndexed(3,pdTRUE, TARGET_TIMEOUT);
 		}
+		notiTarget = NOTI_MONITOR;
 		TransmitPack(); //transmit any remaining package in the buffer if any
 
+		ulTaskNotifyTakeIndexed(2,pdTRUE, TARGET_TIMEOUT); // wait for TX finish
 
 		//delete the target
 		vTaskDelete(AFLfuzzer.xTaskTarget);
@@ -129,6 +139,9 @@ static void MonitorTask( void * pvParameters )
 		spawnNewTarget();
 		// wait for the target to start
 		ulTaskNotifyTakeIndexed(0,pdTRUE, TARGET_TIMEOUT/2);
+
+
+		_sym_initialize();
 
 
 		//clean the buffers
@@ -157,19 +170,23 @@ static void TargetTask( void * pvParameters )
 	xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,1,eSetValueWithOverwrite); //notify the monitor task the target is ready
 	while(1){
 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // wait for the notification coming from the Monitor task
-		HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
+		//HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
 		//here we should call the instrumented code
         printf("\nStart\n");
 
-		//char * buf = "12312312113";
-    	//uint32_t size = strlen(buf);
-        DWT->CYCCNT=0;
-		start_time_val = DWT->CYCCNT;
-        //test((unsigned char*)buf,size);
-		testprotocol(10); // this function will call instrumentation callbacks for testing
-		stop_time_val = DWT->CYCCNT;
+
+
+        _sym_symbolize_memory((char*)(AFLfuzzer.inputAFL.uxBuffer+1),AFLfuzzer.inputAFL.u32available);
+
+        test((unsigned char*)(AFLfuzzer.inputAFL.uxBuffer+1),AFLfuzzer.inputAFL.u32available);
+
+		//testprotocol(10); // this function will call instrumentation callbacks for testing
+		//stop_time_val = DWT->CYCCNT;
+
+
+
 		printf("\nFinish\n");
-		printf("clocks:%lu\n\n", stop_time_val - start_time_val);
+		//printf("clocks:%u\n\n", stop_time_val - start_time_val);
 
 		//xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,10,eSetValueWithOverwrite);//notify that the test finished
         //vTaskDelay(10);

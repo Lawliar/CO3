@@ -7,34 +7,39 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "test.h"
+#include "main.h"
 #include "stdlib.h"
+
+
+#define FAULT_NONE_RTOS 0
+
+
 
 
 
 uint32_t bufferGlobal[10]; // accessing this buffer should trigger a memfault since there is no MPU region for it
 
-int test1(uint8_t *buf, uint32_t size)
+int test(uint8_t *buf, uint32_t size)
 {
 
 	uint8_t *localbuff;
     uint32_t arr32[4];
 	uint16_t *ptr16;
 
-    
 
 
 	if(size<7)
 	{
-		return 0; //normal execution does not trigger any bug
+		return FAULT_NONE_RTOS; //normal execution does not trigger any bug
 	}
-
+/*
 	if(buf[0] == 'H' && buf[1] == 'A' && buf[2] == 'N' && buf[3] == 'G' )
 	{
 
 		buf[100]='T';
-		//while(1);  //Hang the task will be killed  by FreeRTOS
+		while(1);  //Hang the task will be killed  by FreeRTOS
 	}
-
+*/
 	/***** MPU specific *******/
 	else if(buf[0] == 'S' && buf[1] == 'E' && buf[2] == 'G' )
 	{
@@ -56,7 +61,7 @@ int test1(uint8_t *buf, uint32_t size)
 	}
 	else if(buf[0] == 'U' && buf[1] == 'D' && buf[2] == 'F')
 	{
-		
+		//__asm volatile("udf"); //this should trigger an undefined instruction exception
 	}
 
 	else if(buf[0] == 'U' && buf[1] == 'N' && buf[2] == 'A' )
@@ -114,7 +119,7 @@ int test1(uint8_t *buf, uint32_t size)
 
     else if(buf[0] == 'O' && buf[1] == 'F' && buf[2] == 'S') //overflow in stack
     {
-
+    	arr32[0]=0;
     	buf[0] = arr32[buf[4]];
 
     }
@@ -129,7 +134,7 @@ int test1(uint8_t *buf, uint32_t size)
 
     }
 
-	return 0; //normal execution does not trigger any bug
+	return FAULT_NONE_RTOS; //normal execution does not trigger any bug
 
 
 }
