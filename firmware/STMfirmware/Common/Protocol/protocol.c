@@ -15,6 +15,8 @@
 
 extern Symex_t AFLfuzzer;
 
+uint8_t notiTarget;
+
 // Callback executed on USB TX complete ISR
 void notifyTXfinish()
 {
@@ -37,15 +39,27 @@ void notifyTXfinish()
 	{
 		AFLfuzzer.txbuffer[j]=0;
 	}
+	AFLfuzzer.txTotalFunctions=0;
 
 
 
 	//notify the target to continue execution
+	if (notiTarget == NOTI_TARGET)
+	{
 	xTaskNotifyIndexedFromISR(AFLfuzzer.xTaskTarget,
-  	  	    				0, //index
+  	  	    				1, //index
   							1, //value = 1 data TX complete
   							eSetBits,
   							&xHigherPriorityTaskWoken);
+	}
+	else
+	{
+		xTaskNotifyIndexedFromISR(AFLfuzzer.xTaskMonitor,
+		  	  	    				2, //index
+		  							1, //value = 1 data TX complete
+		  							eSetBits,
+		  							&xHigherPriorityTaskWoken);
+	}
 
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 
@@ -58,7 +72,8 @@ void TransmitPack(void)
     // Transmit all functions in output buffer if any
 	if(AFLfuzzer.txTotalFunctions)
 	{
-		AFLfuzzer.txbuffer[0]= AFLfuzzer.txCurrentIndex; //set the total length
+		printf("TX buffer f. num: %d\n", AFLfuzzer.txTotalFunctions);
+		AFLfuzzer.txbuffer[0]= AFLfuzzer.txCurrentIndex-1; //set the total length of the payload without considering size itself
 		CDC_Transmit_FS(AFLfuzzer.txbuffer, AFLfuzzer.txCurrentIndex); //transmit data
 	}
 

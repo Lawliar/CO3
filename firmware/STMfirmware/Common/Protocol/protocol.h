@@ -15,7 +15,8 @@
 #include "ProtocolConfig.h"
 #include "runtime.h"
 
-
+#define NOTI_TARGET 0
+#define NOTI_MONITOR 1
 
 union ubytes_t{
 	 uint8_t vbytes [4];
@@ -51,6 +52,7 @@ typedef struct
 }Symex_t;
 
 extern Symex_t AFLfuzzer;
+extern uint8_t notiTarget;
 
 void FuzzingInputHandler(uint8_t* Buf, uint32_t *Len);
 void PackFunction(uint8_t *Buf, uint32_t Len);
