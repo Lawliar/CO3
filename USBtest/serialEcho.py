@@ -13,4 +13,7 @@ data =  pack('B', inputLen) + data
 ser.write(data)
 r = ser.read(240)
 print(r)
+f=open("data",'wb')
+f.write(r)
+f.close()
 ser.close()             # close port
