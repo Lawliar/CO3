@@ -15,7 +15,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(SymBackend)
 
-option(TARGET_32BIT "Make the compiler work correctly with -m32" OFF)
 option(QSYM_BACKEND "Use the Qsym backend instead of our own" ON)
 option(Z3_TRUST_SYSTEM_VERSION "Use the system-provided Z3 without a version check" ON)
 

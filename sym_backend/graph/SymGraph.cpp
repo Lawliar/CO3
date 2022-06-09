@@ -199,18 +199,30 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
             if(nodeType == NodeTruePhi){
                 cur_node = new  SymVal_sym_TruePhi(symid, bbid, in_paras,argNo2BBMap);
             }else{
+                assert(in_paras.size() == 2);
+                SymVal_NULL * op1 = dynamic_cast<SymVal_NULL*>(Nodes.at(in_paras.at(0)));
+                SymVal_NULL * op2 = dynamic_cast<SymVal_NULL*>(Nodes.at(in_paras.at(1)));
+                assert(op2==nullptr);//op2 should never be null
                 cur_node = new SymVal_sym_FalsePhi(symid, bbid, in_paras,argNo2BBMap);
             }
         }
         Nodes[ver2offMap.at(cur_ver)] = cur_node;
     }
     for(unsigned index = 0 ; index < Nodes.size() ; index++){
-        assert(Nodes[index]!= nullptr);// make sure every node is parsed.
+        // make sure every node is parsed.
+        assert(Nodes[index]!= nullptr);
+        // complete the use relation
         for(auto each_in_edge : Nodes[index]->In_edges){
-            Nodes[each_in_edge.second]->UsedBy.insert(index);
+            Nodes[each_in_edge.second]->UsedBy.insert(static_cast<Val::ValVertexType>(index));
+        }
+        //complete the symid to off map
+        if(SymVal* symval = dynamic_cast<SymVal*>(Nodes[index]) ; symval != nullptr){
+            Val::SymIDType symid = symval->symID;
+            assert(symID2offMap.find(symid) == symID2offMap.end());
+            symID2offMap[symid] = static_cast<Val::ValVertexType>(index);
         }
     }
-
+    // get the getPara setRet for this function
     Val::BasicBlockIdType entryBBID = static_cast<Val::BasicBlockIdType>(cfg.graph[cfg.cfgEntry].id);
     Val::BasicBlockIdType exitBBID = static_cast<Val::BasicBlockIdType>(cfg.graph[cfg.cfgExit].id);
     for(auto nodeIt = Nodes.begin(); nodeIt != Nodes.end(); nodeIt ++){
@@ -343,7 +355,46 @@ list<Val::BasicBlockIdType> SymGraph::sortNonLoopBBs(set<Val::BasicBlockIdType> 
 }
 
 
+set<string> SinkOps;
+set<string> leaveOps;
 
+void SymGraph::dbgBBLeaves(Val::ValVertexType v) {
+    SymVal*         tmpSymVal = dynamic_cast<SymVal*>(Nodes.at(ver2offMap.at(ver2offMap.at(v))));
+    RuntimeVal* tmpRuntime =  dynamic_cast<RuntimeVal*>(Nodes.at(ver2offMap.at(ver2offMap.at(v))));
+    ConstantVal* tmpConst =  dynamic_cast<ConstantVal*>(Nodes.at(ver2offMap.at(ver2offMap.at(v))));
+    if(tmpSymVal != nullptr){
+        leaveOps.insert(tmpSymVal->Op);
+        if(tmpSymVal->Op == "_sym_FalsePhi"){
+            __asm__("nop");
+        }
+        if(tmpSymVal->Op == "_sym_TruePhi"){
+            __asm__("nop");
+        }
+    }else if (tmpRuntime != nullptr){
+        leaveOps.insert("Runtime");
+    }else if(tmpConst != nullptr){
+        leaveOps.insert("Const");
+    }else{
+        assert(false);
+    }
+}
+
+void SymGraph::dbgBBRoot(Val::ValVertexType v) {
+    SymVal* tmpSymVal = dynamic_cast<SymVal*>(Nodes.at(ver2offMap.at(v)));
+    if(tmpSymVal != nullptr){
+        SinkOps.insert(tmpSymVal->Op);
+        if(tmpSymVal->Op == "_sym_FalsePhi"){
+            __asm__("nop");
+        }
+        if(tmpSymVal->Op == "_sym_TruePhi"){
+            __asm__("nop");
+        }
+    }else{
+        RuntimeVal* tmpRuntime =  dynamic_cast<RuntimeVal*>(Nodes.at(ver2offMap.at(v)));
+        assert( tmpRuntime != nullptr);
+        SinkOps.insert("Runtime");
+    }
+}
 
 void SymGraph::prepareBBTask() {
     RuntimeCFG::vertex_it cfg_vi,cfg_vi_end;
@@ -376,21 +427,35 @@ void SymGraph::prepareBBTask() {
             RuntimeSymFlowGraph::vertex_t to = boost::target(*ei, dfg.graph);
             if(dfg.graph[from].BBID == cur_bbid && dfg.graph[to].BBID != cur_bbid){
                 task->roots.insert(ver2offMap.at(from));
+                //for debug purpose only
+                dbgBBRoot(ver2offMap.at(from));
+                //end of debug
             }
             if(dfg.graph[from].BBID != cur_bbid && dfg.graph[to].BBID == cur_bbid){
                 task->leaves.insert(ver2offMap.at(from));
+                //for debug purpose only
+                dbgBBLeaves(ver2offMap.at(from));
+                //end of debug
+
             }
         }
         RuntimeSymFlowGraph::vertex_it  vi,vi_end;
         for(boost::tie(vi, vi_end) = boost::vertices(dfg.graph) ; vi != vi_end ; vi++){
             if(dfg.graph[*vi].BBID == cur_bbid){
                 if(boost::in_degree(*vi, dfg.graph) == 0){
-                    task->leaves.insert(*vi);
+                    task->leaves.insert(ver2offMap.at(*vi));
                     assert(Nodes[ver2offMap.at(*vi)]->In_edges.size() == 0);
+                    //for debug purpose only
+                    dbgBBLeaves(ver2offMap.at(*vi));
+                    //end of debug
+
                 }
                 if(boost::out_degree(*vi, dfg.graph) == 0){
-                    task->roots.insert(*vi);
+                    task->roots.insert(ver2offMap.at(*vi));
                     assert(Nodes[ver2offMap.at(*vi)]->UsedBy.size() == 0);
+                    //for debug purpose only
+                    dbgBBRoot(ver2offMap.at(*vi));
+                    //end of debug
                 }
             }
         }

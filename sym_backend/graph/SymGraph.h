@@ -286,6 +286,9 @@ class SymVal_sym_TruePhi: public SymVal{
 public:
     unsigned numOps;
     map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap;// not really used
+
+    // at given time of execution, which branch this true phi took and what symExpr it represents
+    vector<pair<Val::ArgIndexType, SymExpr*> > historyValues;
     SymVal_sym_TruePhi(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges, map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap):
             SymVal(symid, "_sym_TruePhi", bid), ArgNo2BBMap(ArgNo2BBMap){
         numOps = PhiEdges.size();
@@ -335,6 +338,8 @@ public:
 class SymGraph {
 private:
     std::set<Val::BasicBlockIdType> domChildrenOf(Val::BasicBlockIdType, map<Val::BasicBlockIdType, RuntimeCFG::pd_vertex_t>, RuntimeCFG::DominanceTree&);
+    void dbgBBLeaves(Val::ValVertexType);
+    void dbgBBRoot(Val::ValVertexType);
     void prepareBBTask();
     bool sortNonLoopBB(Val::BasicBlockIdType, Val::BasicBlockIdType);
     list<Val::BasicBlockIdType> sortNonLoopBBs(set<Val::BasicBlockIdType>);
@@ -343,6 +348,7 @@ public:
     SymGraph(std::string funcname, std::string cfg, std::string dt, std::string pdt, std::string dfg );
     ~SymGraph(){
         ver2offMap.clear();
+        symID2offMap.clear();
         for(auto eachBBTask: bbTasks){
             delete eachBBTask.second;
             bbTasks[eachBBTask.first] = nullptr;
@@ -370,6 +376,8 @@ public:
         Val::BasicBlockIdType BBID;
         bool inLoop;
         Val::ReadyType ready;
+
+        std::set<string> fakeRoots{"_sym_notify_call", "_sym_try_alternative"};
         std::set<Val::BasicBlockIdType> dominance;
         std::set<Val::BasicBlockIdType > post_dominance;// this BB post dominate these BBs
         // leaves are the "inputs" to this basic block
@@ -386,6 +394,7 @@ public:
     RuntimeSymFlowGraph dfg;
 
     map<RuntimeSymFlowGraph::vertex_t, Val::ValVertexType> ver2offMap;
+    map<Val::SymIDType , Val::ValVertexType> symID2offMap;
     std::map<Val::BasicBlockIdType, BasicBlockTask*> bbTasks;
     vector<Val*> Nodes;
     vector<Val::ValVertexType> getParametersSym;
