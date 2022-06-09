@@ -503,6 +503,13 @@ public:
       for(auto it = splited2OriginalBB.begin(); it != splited2OriginalBB.end();it++){
           output<< "BB:"<<it->first->getName() <<"->BB"<<it->second->getName()<<'\n';
       }
+      for(auto eachTryAlternative : tryAlternativePairs){
+          auto tryAltSymId = eachTryAlternative.first.first;
+          auto tryAltBBid = eachTryAlternative.first.second;
+          auto operandSym = eachTryAlternative.second.first;
+          auto operand = eachTryAlternative.second.second;
+          output<<"tryAlt:symid:"<<tryAltSymId<<",bbid:"<<tryAltBBid<<",symop:"<<*operandSym<<",op:"<<*operand<<'\n';
+      }
   }
 
   /// Compute the offset of a member in a (possibly nested) aggregate.

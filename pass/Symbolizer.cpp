@@ -909,13 +909,11 @@ Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
 
 void Symbolizer::tryAlternative(IRBuilder<> &IRB, Value *V) {
     auto *destExpr = getSymbolicExpression(V);
-
     if (auto tmpExpr = dyn_cast<llvm::ConstantInt>(destExpr); !(tmpExpr != nullptr && tmpExpr->isZero()) ) {
         unsigned tryAlternativeSymID =  getNextID();
         // this call is just a place holder for DDG construction, will be removed later
         //auto *destAssertion = IRB.CreateCall(runtime.tryAlternative,{destExpr, V});
         //assignSymID(destAssertion,tryAlternativeID);
-        (void)IRB;
         unsigned tryAlternativeBBID = GetBBID(IRB.GetInsertBlock());
         tryAlternativePairs[std::make_pair(tryAlternativeSymID,tryAlternativeBBID)] = std::make_pair(destExpr, V);
     }
