@@ -50,6 +50,17 @@ public:
       }
   };
   ~Symbolizer(){
+      symbolicExpressions.clear();
+      symbolicIDs.clear();
+      phiSymbolicIDs.clear();
+      for(auto eachCallToSetPara: callToSetParaMap){
+          eachCallToSetPara.second.clear();
+      }
+      callToSetParaMap.clear();
+      phiNodes.clear();
+      splited2OriginalBB.clear();
+      originalBB2ID.clear();
+      tryAlternativePairs.clear();
   }
 
   /// Insert code to obtain the symbolic expressions for the function arguments.
@@ -253,7 +264,7 @@ public:
             llvm::errs()<<*phi <<"does not have a sym id\n";
             llvm_unreachable("");
         }
-        return it->second.first;
+        return it->second.symid;
     }
     void replaceAllUseWith(llvm::Instruction * i, llvm::Value * v){
         unsigned numUser1 = 0;
@@ -364,10 +375,17 @@ public:
         assert(exprIt == symbolicIDs.end());
         symbolicIDs[symcall] = ID;
     }
-    void assignSymIDPhi(llvm::PHINode* symPhi, unsigned int ID, bool is_authentic){
+
+    struct PhiStatus{
+        unsigned symid;
+        bool isTrue;
+        bool isFalseRoot;
+        std::set<unsigned> leaves;
+    };
+    void assignSymIDPhi(llvm::PHINode* symPhi, unsigned int ID, bool is_true, bool is_false_root, std::set<unsigned> leaves){
         auto exprIt = phiSymbolicIDs.find(symPhi);
         assert(exprIt == phiSymbolicIDs.end());
-        phiSymbolicIDs[symPhi] = std::make_pair(ID, is_authentic);
+        phiSymbolicIDs[symPhi] = {ID, is_true,is_false_root, leaves};
     }
 
     void addSetParaToNotifyCall(llvm::CallInst* notifyCall, llvm::CallInst* setPara){
@@ -497,8 +515,18 @@ public:
       for(auto eachSymOp : symbolicIDs){
           output<<eachSymOp->second<<"|"<<*eachSymOp->first<<'\n';
       }
-      for(auto eachSymOp : phiSymbolicIDs){
-          output<<eachSymOp->second.first<<"|"<<*eachSymOp->first<<"|"<< eachSymOp->second.second <<'\n';
+      for(auto eachSymOp : phiSymbolicIDs) {
+          output << eachSymOp->second.symid << "|" << *eachSymOp->first << "|";
+          if (eachSymOp->second.isTrue) {
+              output << "true,";
+          } else{
+              output << "false,";
+          }
+          if(eachSymOp->second.isFalseRoot){
+              output << "root\n";
+          }else{
+              output << "leaf\n";
+          }
       }
       for(auto it = splited2OriginalBB.begin(); it != splited2OriginalBB.end();it++){
           output<< "BB:"<<it->first->getName() <<"->BB"<<it->second->getName()<<'\n';
@@ -541,7 +569,7 @@ public:
   /// Maps symbolic value to its IDs
   llvm::ValueMap<llvm::CallInst *, unsigned int> symbolicIDs;
   /// Maps phi nodes to its IDs
-  llvm::ValueMap<llvm::PHINode* , std::pair<unsigned int, bool> > phiSymbolicIDs;
+  llvm::ValueMap<llvm::PHINode* , PhiStatus > phiSymbolicIDs;
   //map call inst to its corresponding set paras
   std::map<llvm::CallInst*, llvm::SmallVector<llvm::CallInst*, 8> > callToSetParaMap;
   /// A record of all PHI nodes in this function.

@@ -20,7 +20,8 @@ typedef std::string NodeType;
 #define NodeRuntimeDouble  "runtimeDouble"
 #define NodeRuntimePtr      "runtimePtr"
 #define NodeTruePhi         "truePhi"
-#define NodeFalsePhi        "falsePhi"
+#define NodeFalseRootPhi        "falseRootPhi"
+#define NodeFalseLeafPhi        "falseLeafPhi"
 
 #define VoidStr            "NaS"
 class SymDepGraph
@@ -40,6 +41,7 @@ public:
     {
         unsigned arg_no;
         unsigned incomingBB;    // used by phi only, also this field is not really used, just for debugging
+        unsigned dashed;             //used by falsePhiRoot Only, to visualize the dependency between falsePhiLeaf and falsePhiRoot
     };
     typedef boost::adjacency_list<boost::listS, boost::vecS,  boost::bidirectionalS,
             Vertex_Properties,Edge_Properties> Graph;
@@ -74,7 +76,14 @@ public:
                     <<nodeTPrefix         <<"="  <<nm[n] <<',' \
                     <<constantValuePrefix <<"="  <<cm[n] <<','  \
                     <<widthPrefix         <<"="  <<bm[n] <<',' \
-                    <<BasicBlockPrefix    <<"="  <<bbm[n] << "]";
+                    <<BasicBlockPrefix    <<"="  <<bbm[n];
+                if(nm[n] == NodeFalseLeafPhi){
+                    out <<",color=blue";
+                }
+                if(nm[n] == NodeFalseRootPhi){
+                    out << ",color=red";
+                }
+                out <<  "]";
             }
 
         }
@@ -98,26 +107,29 @@ public:
     inline static const std::string argNoPrefix              = "label";
     inline static const std::string incomingBBPrefix         = "bb";
 
-    template <class argNoMap,class incomingBBMap>
+    template <class argNoMap,class incomingBBMap, class DashedMap>
     class edge_writer {
     public:
-        edge_writer(argNoMap a, incomingBBMap i) : am(a),im(i){}
+        edge_writer(argNoMap a, incomingBBMap i, DashedMap d) : am(a),im(i), dm(d){}
         template <class Edge>
         void operator()(std::ostream &out, const Edge& e) const {
-            out << "["                            \
-                    << argNoPrefix           <<"="  <<am[e] <<',' \
-                    << incomingBBPrefix           <<"="  <<im[e] << "]";
+            out << "["  << argNoPrefix           <<"="  <<am[e] <<',';
+            if(dm[e] == 1){
+                 out << "style=dashed,";
+            }
+            out << incomingBBPrefix           <<"="  <<im[e] << "]";
         }
 
     private:
         argNoMap am;
         incomingBBMap im;
+        DashedMap dm;
     };
 
-    template <class argNoMap,class incomingBBMap>
-    inline edge_writer<argNoMap,incomingBBMap>
-    make_edge_writer(argNoMap a, incomingBBMap i) {
-        return edge_writer<argNoMap, incomingBBMap>(a,i);
+    template <class argNoMap,class incomingBBMap, class DashedMap>
+    inline edge_writer<argNoMap,incomingBBMap, DashedMap>
+    make_edge_writer(argNoMap a, incomingBBMap i, DashedMap d) {
+        return edge_writer<argNoMap, incomingBBMap, DashedMap>(a,i, d);
     }
 
 
@@ -131,7 +143,7 @@ public:
 
     void AddEdge(unsigned from_symid, unsigned to_symid, unsigned arg_no);
     void AddEdge(vertex_t, vertex_t, unsigned);
-    void AddPhiEdge(unsigned from_symid, unsigned to_symid, unsigned,unsigned);
+    void AddPhiEdge(unsigned from_symid, unsigned to_symid, unsigned,unsigned, unsigned);
     SymDepGraph::vertex_it GetVerticeBySymID(unsigned symID);
 
     SymDepGraph::vertex_it GetVerticeEndIt();

@@ -695,7 +695,7 @@ void Symbolizer::visitPHINode(PHINode &I) {
     IRBuilder<> IRB(&I);
     unsigned numIncomingValues = I.getNumIncomingValues();
     auto *exprPHI = IRB.CreatePHI(runtime.isSymT, numIncomingValues);
-    assignSymIDPhi(exprPHI, getNextID(), true);
+    assignSymIDPhi(exprPHI, getNextID(), true, false,{});
     for (unsigned incoming = 0; incoming < numIncomingValues; incoming++) {
         exprPHI->addIncoming(
                 // The null pointer will be replaced in finalizePHINodes.
@@ -944,7 +944,6 @@ unsigned int getTypeWidth(Type* ty, const DataLayout& dataLayout){
     unsigned int width = 0;
     if(PointerType * ptrType = dyn_cast<PointerType>(ty)){
         width = dataLayout.getPointerTypeSize(ptrType);
-        __asm__("nop");
     }
     else{
         width =  dataLayout.getTypeAllocSize(ty);
@@ -991,10 +990,12 @@ void Symbolizer::shortCircuitExpressionUses() {
                 [&](const Input &input) {
                     return (input.getSymbolicOperand() != nullExpression);
                 });
+        std::set<unsigned> falsePhiLeavesSymIDs;
         for (unsigned argIndex = 0; argIndex < symbolicComputation.inputs.size();
              argIndex++) {
             auto &argument = symbolicComputation.inputs[argIndex];
             auto *originalArgExpression = argument.getSymbolicOperand();
+
             auto *argCheckBlock = symbolicComputation.firstInstruction->getParent();
 
             // We only need a run-time check for concreteness if the argument isn't
@@ -1004,8 +1005,16 @@ void Symbolizer::shortCircuitExpressionUses() {
             // in the slow path. Therefore, we can skip expression generation in
             // that case.
             bool needRuntimeCheck = originalArgExpression != nullExpression;
-            if (needRuntimeCheck && (numUnknownConcreteness == 1))
+            if (needRuntimeCheck && (numUnknownConcreteness == 1)){
+                auto originalArgSymID = getSymIDFromSym(originalArgExpression);
+                if(originalArgSymID == 0){
+                    errs() <<"concrete:"<< *argument.concreteValue<<'\n';
+                    errs()<<"sym:"<<*originalArgExpression <<'\n';
+                    llvm_unreachable("some symexpr needs runtime checking and its symid is 0");
+                }
+                falsePhiLeavesSymIDs.insert(originalArgSymID);
                 continue;
+            }
 
             if (needRuntimeCheck) {
                 auto *argExpressionBlock = SplitBlockAndInsertIfThen(
@@ -1025,7 +1034,9 @@ void Symbolizer::shortCircuitExpressionUses() {
             if (needRuntimeCheck) {
                 IRB.SetInsertPoint(symbolicComputation.firstInstruction);
                 auto *argPHI = IRB.CreatePHI(runtime.isSymT, 2);
-                assignSymIDPhi(argPHI, getNextID(), false);
+                unsigned cur_phi_symid =  getNextID();
+                assignSymIDPhi(argPHI, cur_phi_symid, false, false,{});
+                falsePhiLeavesSymIDs.insert(cur_phi_symid);
                 argPHI->addIncoming(originalArgExpression, argCheckBlock);
                 argPHI->addIncoming(newArgExpression, newArgExpression->getParent());
                 finalArgExpression = argPHI;
@@ -1041,8 +1052,14 @@ void Symbolizer::shortCircuitExpressionUses() {
         // if short-circuiting wasn't possible.
         if (!symbolicComputation.lastInstruction->use_empty()) {
             IRB.SetInsertPoint(&tail->front());
+
             auto *finalExpression = IRB.CreatePHI(runtime.isSymT, 2);
-            assignSymIDPhi(finalExpression, getNextID(),false);
+            if(falsePhiLeavesSymIDs.size() == 0){
+                //this simply means this is based on all constants, and this phiRootNode functionally equals false
+                assert(numUnknownConcreteness == 0);
+            }
+            assignSymIDPhi(finalExpression, getNextID(),false, true, falsePhiLeavesSymIDs);
+
             //symbolicComputation.lastInstruction->replaceAllUsesWith(finalExpression);
             replaceAllUseWith(symbolicComputation.lastInstruction, finalExpression);
 
@@ -1169,10 +1186,12 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
             if (PHINode *symPhi = dyn_cast<PHINode>(&eachInst); symPhi != nullptr &&
                                                                 phiSymbolicIDs.find(symPhi) != phiSymbolicIDs.end()) {
                 unsigned userSymID = getSymIDFromSym(symPhi);
-                if(phiSymbolicIDs.find(symPhi)->second.second){
+                if(phiSymbolicIDs.find(symPhi)->second.isTrue){
                     g.AddPhiVertice(NodeTruePhi,userSymID, blockID );
+                }else if(phiSymbolicIDs.find(symPhi)->second.isFalseRoot){
+                    g.AddPhiVertice(NodeFalseRootPhi,userSymID, blockID );
                 }else{
-                    g.AddPhiVertice(NodeFalsePhi,userSymID, blockID );
+                    g.AddPhiVertice(NodeFalseLeafPhi, userSymID, blockID);
                 }
             }
             if(!isa<CallInst>(&eachInst)){
@@ -1304,11 +1323,15 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                 unsigned userSymID = getSymIDFromSymPhi(phi);
 
 
-                if(phiSymbolicIDs.find(symPhi)->second.second){
+                if(phiSymbolicIDs.find(symPhi)->second.isTrue){
                     IRBuilder<> IRB(&*phi->getParent()->getFirstInsertionPt());
                     reportingPhi = IRB.CreatePHI(runtime.int8T, numIncomingValue);
                     IRB.CreateCall(runtime.notifyPhi,
                                    {reportingPhi, ConstantHelper(runtime.symIntT, userSymID)});
+                }else if(phiSymbolicIDs.find(symPhi)->second.isFalseRoot){
+                    for(auto eachFalseLeave: phiSymbolicIDs.find(symPhi)->second.leaves){
+                        g.AddPhiEdge(eachFalseLeave, userSymID, 2 , 0, 1);
+                    }
                 }
                 for (unsigned incoming = 0, totalIncoming =numIncomingValue;incoming < totalIncoming; incoming++) {
                     BasicBlock *incomingBB = phi->getIncomingBlock(incoming);
@@ -1323,7 +1346,7 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                     unsigned incomingValueSymID = getSymIDFromSym(incomingValue);
                     //assert(incomingValueSymID != 0); // incoming symid could be zero
                     // add incoming BBID as edge property just to double check
-                    g.AddPhiEdge(incomingValueSymID, userSymID,incoming, incomingBBID);
+                    g.AddPhiEdge(incomingValueSymID, userSymID,incoming, incomingBBID, 0);
                 }
             }
         }
