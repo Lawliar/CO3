@@ -2,4 +2,3 @@
 **/build/
 .settings/
 .vscode/
-*.cproject
