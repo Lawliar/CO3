@@ -9,8 +9,8 @@
 
 #include "MsgQueue.h"
 #include "SymGraph.h"
-
-#include "boost/filesystem.hpp"
+#include <stack>
+#include <boost/filesystem.hpp>
 extern "C" {
 #include "serialport.h"
 }
@@ -21,14 +21,23 @@ public:
     Orchestrator(std::string inputDir, std::string sp_port, int);
     int StartListen();
     int Run();
+    SymGraph* getCurFunc();
 
+    inline bool isNodeReady(Val*, Val*);
+    Val* stripPhis(Val*, Val*);
+
+    set<Val*> getNonReadyDeps(Val*);
+    void ExecuteBasicBlock(Val::BasicBlockIdType, bool);
+    void PreparingCalling(NotifyCallMessage*);
+    void ForwardExecution(Val*, bool, bool);
+    void BackwardExecution(SymVal*);
     ~Orchestrator();
 
 
     OpenedSP sp;
     MsgQueue msgQueue;
-    stack<SymGraph*> callStack;
-    map<unsigned, SymGraph*> symGraphs;
+    std::stack<SymGraph*> callStack;
+    std::map<unsigned, SymGraph*> symGraphs;
 
     // for debugging purpose
     std::deque<uint32_t> BBTrace;
