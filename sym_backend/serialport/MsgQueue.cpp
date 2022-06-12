@@ -151,13 +151,20 @@ void MsgQueue::ProcessMsgs() {
     char numBytesForPacket;
     char tempBuffer[64];
 
-    ring_buffer_dequeue(&RingBuffer, &numBytesForPacket);
-    numBytesForPacket -= 1;//remove the header byte itself
-    processedBytes += 1;
+    ring_buffer_peek(&RingBuffer, &numBytesForPacket, 0);
 
+    while( (numBytesForPacket + 1) < (avaiNumBytes - processedBytes)){
+        //we only deal with a whole packet, if what's remaining is not enough, we just wait for another turn
 
-    while(numBytesForPacket < (avaiNumBytes - processedBytes)){
-        ring_buffer_dequeue_arr(&RingBuffer,tempBuffer, numBytesForPacket);
+        //retrive numBytesForPacket out from the ring buffer
+        ring_buffer_dequeue(&RingBuffer, &numBytesForPacket); // dequeue one byte for the length
+        ring_buffer_dequeue_arr(&RingBuffer,tempBuffer, numBytesForPacket); // dequeue the content
+        //render these data and push to the queue
         RenderAndPush(tempBuffer, numBytesForPacket);
+        // mark these are processed
+        processedBytes += (numBytesForPacket + 1);
+
+        // peek numBytesForPacket for the next packet
+        ring_buffer_peek(&RingBuffer, &numBytesForPacket, 0);
     }
 }
