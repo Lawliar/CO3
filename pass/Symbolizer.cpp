@@ -1647,7 +1647,7 @@ void Symbolizer::OutputCFG(llvm::Function & F, DominatorTree& dTree, PostDominat
         llvm_unreachable("virtual exit should not have a corresponding BB");
     }
     if(tree_root->getNumChildren() != 1){
-        llvm_unreachable("virtual exit should only have one child which is the real exit");
+        llvm_unreachable("virtual exit should only have one child which is the real exit, most likely there is the deadloop in the code.");
     }
     BasicBlock* real_exit = tree_root->back()->getBlock();
     if(real_exit != exit_bb){
