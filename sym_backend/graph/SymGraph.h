@@ -36,6 +36,7 @@ public:
     ValType type;
     BasicBlockIdType BBID;
     ReadyType ready;
+    bool inLoop;
     std::map<ArgIndexType, ValVertexType> In_edges;
     std::set<ValVertexType> UsedBy;
 
@@ -47,6 +48,7 @@ class ConstantVal: public Val{
 public:
     ByteWidthType ByteWidth;
     ConstantVal(ValType t, BasicBlockIdType bid, ByteWidthType byteWidth): Val(t, bid), ByteWidth(byteWidth){
+        assert(bid == 0);
         assert(t >= ConstantIntValTy && t <= ConstantDoubleValTy);
     }
 };
@@ -290,7 +292,7 @@ public:
     // at given time of execution, which branch this true phi took and what symExpr it represents
     vector<pair<Val::ArgIndexType, SymExpr*> > historyValues;
     SymVal_sym_TruePhi(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges, map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap):
-            SymVal(symid, "_sym_TruePhi", bid), ArgNo2BBMap(ArgNo2BBMap){
+            SymVal(symid, NodeTruePhi, bid), ArgNo2BBMap(ArgNo2BBMap){
         numOps = PhiEdges.size();
         for(auto eachPhiEdge : PhiEdges){
             In_edges[eachPhiEdge.first] = eachPhiEdge.second;
@@ -299,19 +301,35 @@ public:
     ~SymVal_sym_TruePhi(){In_edges.clear();}
 };
 
-class SymVal_sym_FalsePhi: public SymVal{
+class SymVal_sym_FalsePhiRoot: public SymVal{
 public:
     unsigned numOps;
     map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap;// not really used
-    SymVal_sym_FalsePhi(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges,map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap):
-            SymVal(symid, "_sym_FalsePhi", bid), ArgNo2BBMap(ArgNo2BBMap){
+    set<ValVertexType> falsePhiLeaves;
+    SymVal_sym_FalsePhiRoot(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges,set<ValVertexType> falsePhiLeaves,map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap):
+            SymVal(symid, NodeFalseRootPhi, bid), ArgNo2BBMap(ArgNo2BBMap), falsePhiLeaves(falsePhiLeaves){
         numOps = PhiEdges.size();
         for(auto eachPhiEdge : PhiEdges){
             In_edges[eachPhiEdge.first] = eachPhiEdge.second;
         }
     }
-    ~SymVal_sym_FalsePhi(){In_edges.clear();}
+    ~SymVal_sym_FalsePhiRoot(){In_edges.clear();}
 };
+
+class SymVal_sym_FalsePhiLeaf: public SymVal{
+public:
+    unsigned numOps;
+    map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap;// not really used
+    SymVal_sym_FalsePhiLeaf(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges,map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap):
+            SymVal(symid, NodeFalseLeafPhi, bid), ArgNo2BBMap(ArgNo2BBMap){
+        numOps = PhiEdges.size();
+        for(auto eachPhiEdge : PhiEdges){
+            In_edges[eachPhiEdge.first] = eachPhiEdge.second;
+        }
+    }
+    ~SymVal_sym_FalsePhiLeaf(){In_edges.clear();}
+};
+
 
 class DataDependents{
 public:

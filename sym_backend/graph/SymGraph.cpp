@@ -29,6 +29,8 @@
     assert(in_degree == 4);             \
     cur_node = new SymVal##OP(symid, bbid, in_paras.at(0),in_paras.at(1),in_paras.at(2),in_paras.at(3));}
 
+set<string> leaves;
+
 SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_filename, std::string pdt_filename, std::string dfg_filename) \
 :funcname(funcname),cfg(cfg_filename,dt_filename, pdt_filename),dfg(dfg_filename, cfg) {
 
@@ -183,9 +185,9 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
                 cerr<<"unhandled op:"<<op<<'\n';
                 assert(false);
             }
+        }
 
-
-        }else if( nodeType == NodeTruePhi || nodeType == NodeFalsePhi){
+        else if( nodeType == NodeTruePhi || nodeType == NodeFalseLeafPhi){
             map<unsigned short, unsigned short> in_paras;
             map<unsigned short, unsigned short> argNo2BBMap;
             for(;in_eit != in_eit_end; in_eit++ ){
@@ -198,30 +200,88 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
             }
             if(nodeType == NodeTruePhi){
                 cur_node = new  SymVal_sym_TruePhi(symid, bbid, in_paras,argNo2BBMap);
-            }else{
-                assert(in_paras.size() == 2);
-                SymVal_NULL * op1 = dynamic_cast<SymVal_NULL*>(Nodes.at(in_paras.at(0)));
-                SymVal_NULL * op2 = dynamic_cast<SymVal_NULL*>(Nodes.at(in_paras.at(1)));
-                assert(op2==nullptr);//op2 should never be null
-                cur_node = new SymVal_sym_FalsePhi(symid, bbid, in_paras,argNo2BBMap);
+            } else{
+                assert(in_paras.size() == 2 && argNo2BBMap.size() == 2);
+                cur_node = new SymVal_sym_FalsePhiLeaf(symid, bbid, in_paras,argNo2BBMap);
             }
+        }else if(nodeType == NodeFalseRootPhi ){
+            map<unsigned short, unsigned short> in_paras;
+            map<unsigned short, unsigned short> argNo2BBMap;
+            set<Val::ValVertexType> falsePhiLeaves;
+            for(;in_eit != in_eit_end; in_eit++ ){
+                unsigned arg_index = dfg.graph[*in_eit].arg_no;
+                RuntimeSymFlowGraph::vertex_t source = boost::source(*in_eit,dfg.graph);
+                if(arg_index == 0 || arg_index == 1){
+                    assert(in_paras.find(arg_index) == in_paras.end());
+                    in_paras[arg_index] = ver2offMap.at(source);
+                    assert(dfg.graph[*in_eit].incomingBB > 0);
+                    argNo2BBMap[arg_index] = dfg.graph[*in_eit].incomingBB;
+                }else{
+                    assert(arg_index == 2);
+                    falsePhiLeaves.insert(ver2offMap.at(source));
+                }
+            }
+            assert(in_paras.size() == 2 && argNo2BBMap.size() == 2);
+            cur_node = new SymVal_sym_FalsePhiRoot(symid, bbid, in_paras, falsePhiLeaves, argNo2BBMap);
         }
+
         Nodes[ver2offMap.at(cur_ver)] = cur_node;
     }
+
     for(unsigned index = 0 ; index < Nodes.size() ; index++){
         // make sure every node is parsed.
-        assert(Nodes[index]!= nullptr);
+        Val* cur_node = Nodes[index];
+        assert(cur_node!= nullptr);
+        // some sanity check for some special node
+        if(SymVal_sym_FalsePhiRoot * falsePhiRoot = dynamic_cast<SymVal_sym_FalsePhiRoot*>(Nodes[index])){
+            SymVal_NULL * op1 = dynamic_cast<SymVal_NULL*>(Nodes.at(falsePhiRoot->In_edges.at(0)));
+            SymVal_NULL * op2 = dynamic_cast<SymVal_NULL*>(Nodes.at(falsePhiRoot->In_edges.at(1)));
+            assert(op1 != nullptr && op2 == nullptr); // op1 is always pointing to false, op2 is always not pointing to false
+        }
+        if(SymVal_sym_FalsePhiLeaf * falsePhiLeaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(Nodes[index])){
+            SymVal_NULL * op1 = dynamic_cast<SymVal_NULL*>(Nodes.at(falsePhiLeaf->In_edges.at(0)));
+            SymVal_NULL * op2 = dynamic_cast<SymVal_NULL*>(Nodes.at(falsePhiLeaf->In_edges.at(1)));
+            assert(op1 == nullptr && op2 == nullptr); // both of the operands are not pointing to false
+        }
+        // end of the sanity check
+
         // complete the use relation
-        for(auto each_in_edge : Nodes[index]->In_edges){
+        if(cur_node->BBID == 0){
+            cur_node->inLoop = false;
+        }else{
+            cur_node->inLoop = cfg.bbid2loop.at(cur_node->BBID);
+        }
+        for(auto each_in_edge : cur_node->In_edges){
             Nodes[each_in_edge.second]->UsedBy.insert(static_cast<Val::ValVertexType>(index));
         }
+
         //complete the symid to off map
-        if(SymVal* symval = dynamic_cast<SymVal*>(Nodes[index]) ; symval != nullptr){
+        if(SymVal* symval = dynamic_cast<SymVal*>(cur_node) ; symval != nullptr){
             Val::SymIDType symid = symval->symID;
             assert(symID2offMap.find(symid) == symID2offMap.end());
             symID2offMap[symid] = static_cast<Val::ValVertexType>(index);
         }
     }
+
+    // just to debugging and know more
+    for(unsigned index = 0 ; index < Nodes.size() ; index++){
+        auto * node = Nodes.at(index);
+        if(node->In_edges.size() == 0){
+            if(auto * constVal = dynamic_cast<ConstantVal*>(node); constVal != nullptr){
+                leaves.insert("const");
+            }else if(auto * runtimeVal = dynamic_cast<RuntimeVal*>(node); runtimeVal != nullptr){
+                leaves.insert("runtime");
+            }else if(auto * symnull = dynamic_cast<SymVal_NULL*>(node); symnull != nullptr){
+                leaves.insert("symnull");
+            }else if(auto *symVal = dynamic_cast<SymVal*>(node);symVal != nullptr ){
+                leaves.insert(symVal->Op);
+            }else{
+                assert(false);
+            }
+        }
+    }
+    //
+
     // get the getPara setRet for this function
     Val::BasicBlockIdType entryBBID = static_cast<Val::BasicBlockIdType>(cfg.graph[cfg.cfgEntry].id);
     Val::BasicBlockIdType exitBBID = static_cast<Val::BasicBlockIdType>(cfg.graph[cfg.cfgExit].id);
@@ -492,6 +552,7 @@ void SymGraph::prepareBBTask() {
                     return sortNonLoopBB(a, b);});
                 //eachBBTask.second->nonLoopRootDependents[eachRoot] = dependentBBs;
             }
+            //end of sanity check
         }
     }
 }

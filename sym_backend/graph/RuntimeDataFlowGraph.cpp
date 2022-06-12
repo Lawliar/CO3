@@ -31,7 +31,7 @@ struct cycle_detector : public boost::dfs_visitor<>
 
     template <class Edge, class Graph>
     void back_edge(Edge e, Graph& g) {
-        assert(g[e.m_target].nodeType == NodeTruePhi || g[e.m_target].nodeType == NodeFalsePhi || g[e.m_source].nodeType == NodeTruePhi || g[e.m_source].nodeType == NodeFalsePhi);
+        //assert(g[e.m_target].nodeType == NodeTruePhi ||  g[e.m_source].nodeType == NodeTruePhi );
         _has_cycle = true;
     }
 protected:

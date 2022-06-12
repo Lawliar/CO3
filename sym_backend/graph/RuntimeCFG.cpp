@@ -35,21 +35,13 @@ void RuntimeCFG::readGraphViz(std::string cfg_filename, std::string p_filename, 
     dp_file.close();
 
 
-    // some sanity check
     assert(graph.m_vertices.size() == postDomTree.m_vertices.size());
+    assert(graph.m_vertices.size() == domTree.m_vertices.size());
     vertex_it cfg_it, cfg_it_end;
-    std::set<unsigned> cfg_ids;
     for(boost::tie(cfg_it,cfg_it_end) = boost::vertices(graph); cfg_it != cfg_it_end; ++cfg_it){
-        unsigned node_id = graph[*cfg_it].id;
-        assert(cfg_ids.find(node_id) == cfg_ids.end());
-        cfg_ids.insert(node_id);
-    }
-    pd_vertex_it pd_it, pd_it_end;
-    std::set<unsigned> pd_ids;
-    for(boost::tie(pd_it,pd_it_end) = boost::vertices(postDomTree); pd_it!= pd_it_end; ++pd_it){
-        unsigned node_id = postDomTree[*pd_it].id;
-        assert(pd_ids.find(node_id) == pd_ids.end());
-        pd_ids.insert(node_id);
+        unsigned bbid = graph[*cfg_it].id;
+        bool inloop = graph[*cfg_it].inloop == '1' ? true : false;
+        bbid2loop[bbid] = inloop;
     }
 }
 

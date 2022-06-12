@@ -58,6 +58,7 @@ public:
     vertex_t cfgExit;
     RuntimeCFG(std::string cfg_filename, std::string d_filename, std::string pd_filename);
     void readGraphViz(std::string cfg,std::string, std::string pd);
+    std::map<unsigned, bool> bbid2loop;
 
     Graph graph;
     DominanceTree domTree;
