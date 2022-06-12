@@ -5,6 +5,7 @@
 #include "MsgQueue.h"
 #include <assert.h>
 #include <iostream>
+#include <fstream>
 extern ring_buffer_t RingBuffer;
 
 size_t MsgQueue::GetQueueSize(){
@@ -27,16 +28,29 @@ Message* MsgQueue::Pop(){
     //msgQMutex.unlock();
     return ret;
 }
-
+extern std::string dbgInputFileName;
 [[noreturn]] void MsgQueue::Listen() {
-    while(true){
-        int bytesWaiting = GetNumBytesWaiting(sp);
-        if(bytesWaiting > 0){
-            receiveData(sp.port, bytesWaiting, 1000);
-        }else{
-            // maybe sleep, but we can designate a core, so who cares
+    int bytesWaiting;
+    if(sp.port != nullptr){
+        while(true){
+            bytesWaiting = GetNumBytesWaiting(sp);
+            if(bytesWaiting > 0){
+                receiveData(sp.port, bytesWaiting, 1000);
+            }else{
+            }
         }
-        bytesWaiting = GetNumBytesWaiting(sp);
+    }else{
+        std::ifstream inputFile(dbgInputFileName, std::ios::binary);
+        char buf[128];
+        while(!inputFile.eof()){
+            inputFile.read(buf, 128);
+            std::streamsize s = inputFile.gcount();
+            unsigned emptyBytes = ring_buffer_num_empty_items(&RingBuffer);
+            while(emptyBytes < s){
+                usleep(100);
+            }
+            ring_buffer_queue_arr(&RingBuffer, buf, s);
+        }
     }
 }
 

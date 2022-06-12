@@ -4,6 +4,8 @@
 
 #include "SymGraph.h"
 #include <stack>
+#include <queue>
+
 #define CHECK_SYM_OP0(OP)               \
     else if(op == #OP){                          \
     assert(in_degree == 0);                           \
@@ -287,15 +289,13 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
     Val::BasicBlockIdType exitBBID = static_cast<Val::BasicBlockIdType>(cfg.graph[cfg.cfgExit].id);
     for(auto nodeIt = Nodes.begin(); nodeIt != Nodes.end(); nodeIt ++){
         if((*nodeIt)->BBID == entryBBID && (*nodeIt)->type == Val::SymValTy){
-            if(SymVal_sym_get_parameter_expression * getPara = dynamic_cast<SymVal_sym_get_parameter_expression*>((*nodeIt)); getPara !=
-                    nullptr){
-                getParametersSym.push_back(static_cast<Val::ValVertexType>(nodeIt - Nodes.begin()));
+            if(SymVal_sym_get_parameter_expression * getPara = dynamic_cast<SymVal_sym_get_parameter_expression*>((*nodeIt)); getPara != nullptr){
+                getParametersSym.push_back(*nodeIt);
             }
         }
         if((*nodeIt)->BBID == exitBBID && (*nodeIt)->type == Val::SymValTy){
-            if(SymVal_sym_set_return_expression * setRet = dynamic_cast<SymVal_sym_set_return_expression*>((*nodeIt)); setRet !=
-                                                                                                                              nullptr){
-                setRetSym = static_cast<Val::ValVertexType>(nodeIt - Nodes.begin());
+            if(SymVal_sym_set_return_expression * setRet = dynamic_cast<SymVal_sym_set_return_expression*>((*nodeIt)); setRet != nullptr){
+                setRetSym = *nodeIt;
             }
         }
     }
@@ -327,14 +327,14 @@ std::set<Val::BasicBlockIdType> SymGraph::domChildrenOf(Val::BasicBlockIdType sr
     return visited;
 }
 
-void DataDependents::nonTruePhiDataDependentsOf( set<Val::ValVertexType> ancesters){
+void DataDependents::nonTruePhiDataDependentsOf( set<Val*> ancesters){
     ancesters.insert(root);
-    if(SymVal_sym_TruePhi * true_phi = dynamic_cast<SymVal_sym_TruePhi*>(allNodes[root]); true_phi != nullptr){
+    if(SymVal_sym_TruePhi * true_phi = dynamic_cast<SymVal_sym_TruePhi*>(root); true_phi != nullptr){
         truePhiDependences[root] = map<Val::ArgIndexType, DataDependents* >{};
-        for(auto eachTruePhiDep: dynamic_cast<SymVal_sym_TruePhi*>(allNodes[root])->In_edges){
-            Val::ValVertexType new_root = eachTruePhiDep.second;
+        for(auto eachTruePhiDep: dynamic_cast<SymVal_sym_TruePhi*>(root)->In_edges){
+            Val* new_root = allNodes.at(eachTruePhiDep.second);
             if(ancesters.find(new_root) == ancesters.end()){
-                DataDependents* child_node = new DataDependents(eachTruePhiDep.second, allNodes);
+                DataDependents* child_node = new DataDependents(new_root, allNodes);
                 truePhiDependences.at(root)[eachTruePhiDep.first] = child_node;
                 child_node->nonTruePhiDataDependentsOf(ancesters);
             }
@@ -343,31 +343,32 @@ void DataDependents::nonTruePhiDataDependentsOf( set<Val::ValVertexType> anceste
     }
 
     std::stack<Val::ValVertexType> work_stack;
-    vector<Val::ValVertexType> truePhis;
-    for(auto eachRootDep : allNodes[root]->In_edges){
-        deps.insert(eachRootDep.second);
+    vector<Val*> truePhis;
+    for(auto eachRootDep : root->In_edges){
+        deps.insert(allNodes.at(eachRootDep.second));
         work_stack.push(eachRootDep.second);
     }
     while(!work_stack.empty()){
         Val::ValVertexType cur_ver = work_stack.top();
         work_stack.pop();
         if(SymVal_sym_TruePhi * true_phi = dynamic_cast<SymVal_sym_TruePhi*>(allNodes[cur_ver]); true_phi != nullptr){
-            truePhis.push_back(cur_ver);
+            truePhis.push_back(allNodes[cur_ver]);
         }
         for(auto eachWorkDep : allNodes[cur_ver]->In_edges){
-            if(deps.find(eachWorkDep.second) == deps.end() && ancesters.find(eachWorkDep.second) == ancesters.end()){
-                deps.insert(eachWorkDep.second);
-                ancesters.insert(eachWorkDep.second);
+            Val* new_depNpde = allNodes.at(eachWorkDep.second);
+            if(deps.find(new_depNpde) == deps.end() && ancesters.find(new_depNpde) == ancesters.end()){
+                deps.insert(new_depNpde);
+                ancesters.insert(new_depNpde);
                 work_stack.push(eachWorkDep.second);
             }
         }
     }
     for(auto eachTruePhi: truePhis){
         truePhiDependences[eachTruePhi] = map<Val::ArgIndexType, DataDependents* >{};
-        for(auto eachTruePhiDep: dynamic_cast<SymVal_sym_TruePhi*>(allNodes[eachTruePhi])->In_edges){
-            Val::ValVertexType new_root = eachTruePhiDep.second;
+        for(auto eachTruePhiDep: dynamic_cast<SymVal_sym_TruePhi*>(eachTruePhi)->In_edges){
+            Val* new_root = allNodes.at(eachTruePhiDep.second);
             if(ancesters.find(new_root) == ancesters.end()){
-                DataDependents* child_node = new DataDependents(eachTruePhiDep.second, allNodes);
+                DataDependents* child_node = new DataDependents(new_root, allNodes);
                 truePhiDependences.at(eachTruePhi)[eachTruePhiDep.first] = child_node;
                 child_node->nonTruePhiDataDependentsOf(ancesters);
             }
@@ -375,7 +376,7 @@ void DataDependents::nonTruePhiDataDependentsOf( set<Val::ValVertexType> anceste
     }
 }
 
-void DataDependents::allPossibleDataDependencies(set<Val::ValVertexType> parent, vector<set<Val::ValVertexType> >& all) {
+void DataDependents::allPossibleDataDependencies(set<Val*> parent, vector<set<Val*> >& all) {
     parent.insert(deps.begin(), deps.end());
     if(truePhiDependences.empty()){
         all.push_back(parent);
@@ -456,6 +457,134 @@ void SymGraph::dbgBBRoot(Val::ValVertexType v) {
     }
 }
 
+inline bool SymGraph::isNodeReady(Val * nodeInQuestion, Val *  root_in_construct) {
+    auto * nodeIsTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(nodeInQuestion);
+    auto * rootIsTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(root_in_construct);
+    assert(nodeIsTruePhi == nullptr and rootIsTruePhi == nullptr);
+    if(nodeInQuestion == root_in_construct){
+        //if it's the same node, then it's not ready
+        return false;
+    }
+    if(!nodeInQuestion->inLoop){
+        if(nodeInQuestion->ready == 1){
+            return true;
+        }else if (nodeInQuestion->ready == 0){
+            return false;
+        }else{
+            cerr<<"Nodes in the non-loop BB should at executed at most once.";
+            assert(false);
+        }
+    }else{
+        // now nodeInQuestion is in loop, and root is in or out of a loop
+        if(nodeInQuestion->BBID == root_in_construct->BBID){
+            // if they are in the same BB, then it's just a comparison of ready value
+            if(nodeInQuestion->ready == root_in_construct->ready){
+                // the root we're trying to construct, and this nodeInQuestion has same ready Value
+                return false;
+            }else if (nodeInQuestion->ready == (root_in_construct->ready + 1)){
+                return true;
+            }else{
+                cerr<<"the dep can only be one more or equal to the root in terms of ready value when they are in the same loop BB";
+                assert(false);
+            }
+        }else{
+            // for BB in the loop we execute in the per-BB level
+            // given the root is under construction, no matter it's in the loop or not
+            // the nodeInQuestion is inside a loop, and they are in different BB
+            // then it must mean the construction for the nodeInQuestion must have been finished.
+            assert(nodeInQuestion->ready >= 1);
+            return true;
+        }
+    }
+}
+Val* SymGraph::stripPhis(Val* nodeInQuestion, Val* root) {
+    Val* prev_node = nullptr;
+    Val* cur_node = nodeInQuestion;
+    SymVal_sym_TruePhi *      true_phi       = dynamic_cast<SymVal_sym_TruePhi*>(cur_node);
+    SymVal_sym_FalsePhiRoot * false_phi_root = dynamic_cast<SymVal_sym_FalsePhiRoot*>(cur_node);
+    SymVal_sym_FalsePhiLeaf * false_phi_leaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(cur_node);
+
+    while(true_phi != nullptr || false_phi_root != nullptr || false_phi_leaf != nullptr ){
+        // assuming the ReportTruePhi has been sent from the MCU.
+        Val::ValVertexType new_vert;
+        if(true_phi != nullptr){
+            // for truePhi, its ready number might legally be larger than root_ready, we'll just choose the history value we want
+            new_vert = true_phi->In_edges.at(true_phi->historyValues.at(root->ready + 1).first);
+        }else if(false_phi_root != nullptr){
+            if(false_phi_root->falsePhiLeaves.size() == 0){
+                // this root has all constant dependencies, which makes it impossible to be symbolized.
+                return nullptr;
+            }
+            if(isNodeReady(cur_node, root)){
+                // cur_node is already constructed
+                return prev_node;
+            }
+            new_vert = false_phi_root->In_edges.at(false_phi_root->In_edges.at(1));// 1 is the non-false value
+
+        }else{
+            if(isNodeReady(cur_node, root)){
+                // cur_node is already constructed
+                return prev_node;
+            }
+            new_vert = false_phi_leaf->In_edges.at(false_phi_leaf->In_edges.at(0));// 0 is the original value
+        }
+        prev_node = cur_node;
+        cur_node = Nodes[new_vert];
+        true_phi = dynamic_cast<SymVal_sym_TruePhi*>(cur_node);
+        false_phi_root = dynamic_cast<SymVal_sym_FalsePhiRoot*>(cur_node);
+        false_phi_leaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(cur_node);
+    }
+    return cur_node;
+}
+SymGraph::RootTask* SymGraph::CreateRootTask(Val * root) {
+    {
+        // dont' regard true phi as a root, as its ready value does not reflect it's constructed or not.
+        SymVal_sym_TruePhi * true_phi = dynamic_cast<SymVal_sym_TruePhi*>(root);
+        assert(true_phi == nullptr);
+    }
+    SymGraph::BasicBlockTask* rootBBTask = bbTasks.at(root->BBID);
+    RootTask* rootTask = new RootTask(root, rootBBTask);
+    queue<Val*> work_queue;
+
+    set<Val*> visited {root};
+    work_queue.push(root);
+
+    while(!work_queue.empty()){
+        Val* cur_node = work_queue.front();
+        work_queue.pop();
+        // stripping nasty phis
+        Val * strippedPhis = stripPhis(cur_node, root);
+        if(strippedPhis == nullptr){
+            // met FalsePhiRoot which is all constants(it means it's just a false), ignore it
+            continue;
+        }
+        SymVal_sym_FalsePhiRoot * false_phi_root = dynamic_cast<SymVal_sym_FalsePhiRoot*>(strippedPhis);
+        SymVal_sym_FalsePhiLeaf * false_phi_leaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(strippedPhis);
+        if(false_phi_root != nullptr || false_phi_leaf != nullptr){
+            // we stripped it, and it is still here, that can only mean this is the one we should start building
+            assert(!isNodeReady(strippedPhis, root));
+            rootTask->InsertNonReadyDep(strippedPhis);
+        }
+        for(auto eachDep : cur_node->In_edges){
+            Val* depNode = Nodes[eachDep.second];
+            if(isNodeReady(depNode, root)){
+                //this dep has been constructed
+                continue;
+            }
+            if(visited.find((depNode)) != visited.end()){
+                // this node has been visited before
+                continue;
+            }
+            work_queue.push(depNode);
+            rootTask->InsertNonReadyDep(depNode);
+            visited.insert(depNode);
+        }
+    }
+    //just to debugging purpose
+    rootTasks.push_back(rootTask);
+    //end
+    return rootTask;
+}
 void SymGraph::prepareBBTask() {
     RuntimeCFG::vertex_it cfg_vi,cfg_vi_end;
 
@@ -486,13 +615,13 @@ void SymGraph::prepareBBTask() {
             RuntimeSymFlowGraph::vertex_t from = boost::source(*ei, dfg.graph);
             RuntimeSymFlowGraph::vertex_t to = boost::target(*ei, dfg.graph);
             if(dfg.graph[from].BBID == cur_bbid && dfg.graph[to].BBID != cur_bbid){
-                task->roots.insert(ver2offMap.at(from));
+                task->roots.insert(Nodes.at(ver2offMap.at(from)));
                 //for debug purpose only
                 dbgBBRoot(ver2offMap.at(from));
                 //end of debug
             }
             if(dfg.graph[from].BBID != cur_bbid && dfg.graph[to].BBID == cur_bbid){
-                task->leaves.insert(ver2offMap.at(from));
+                task->leaves.insert(Nodes.at(ver2offMap.at(from)));
                 //for debug purpose only
                 dbgBBLeaves(ver2offMap.at(from));
                 //end of debug
@@ -503,7 +632,7 @@ void SymGraph::prepareBBTask() {
         for(boost::tie(vi, vi_end) = boost::vertices(dfg.graph) ; vi != vi_end ; vi++){
             if(dfg.graph[*vi].BBID == cur_bbid){
                 if(boost::in_degree(*vi, dfg.graph) == 0){
-                    task->leaves.insert(ver2offMap.at(*vi));
+                    task->leaves.insert(Nodes.at(ver2offMap.at(*vi)));
                     assert(Nodes[ver2offMap.at(*vi)]->In_edges.size() == 0);
                     //for debug purpose only
                     dbgBBLeaves(ver2offMap.at(*vi));
@@ -511,7 +640,7 @@ void SymGraph::prepareBBTask() {
 
                 }
                 if(boost::out_degree(*vi, dfg.graph) == 0){
-                    task->roots.insert(ver2offMap.at(*vi));
+                    task->roots.insert(Nodes.at(ver2offMap.at(*vi)));
                     assert(Nodes[ver2offMap.at(*vi)]->UsedBy.size() == 0);
                     //for debug purpose only
                     dbgBBRoot(ver2offMap.at(*vi));
@@ -525,34 +654,5 @@ void SymGraph::prepareBBTask() {
         // construct bbid to postDomTree Ver Map
         bbTasks.insert(make_pair(cur_bbid, task));
     }
-    for(auto eachBBTask : bbTasks){
-        Val::BasicBlockIdType root_bbid = eachBBTask.first;
-        for(auto eachRoot : eachBBTask.second->roots){
-            set<Val::ValVertexType> visited;
-            eachBBTask.second->nonLoopRootDependents[eachRoot] = new DataDependents(eachRoot, Nodes);
-            eachBBTask.second->nonLoopRootDependents[eachRoot]->nonTruePhiDataDependentsOf(visited);
-            //just for sanity check
-            vector<set<Val::ValVertexType> > allDependencies;
-            set<Val::ValVertexType> parent;
-            eachBBTask.second->nonLoopRootDependents[eachRoot]->allPossibleDataDependencies(parent, allDependencies);
-            for(auto eachPossibleDataDep : allDependencies){
-                vector<Val::BasicBlockIdType> dependentBBs;
-                for(auto eachDependentSymNode : eachPossibleDataDep){
-                    Val::BasicBlockIdType nodeBBID = Nodes[eachDependentSymNode]->BBID;
-                    if(nodeBBID == 0 || nodeBBID == root_bbid){
-                        // not interested in constants(which are in 0-numbered BB) and self
-                        continue;
-                    }
-                    if(std::find(dependentBBs.begin(),dependentBBs.end(),nodeBBID) == dependentBBs.end() && bbTasks.at(nodeBBID)->inLoop == false){
-                        dependentBBs.push_back(nodeBBID);// we only deal with the non-loop BB
-                    }
-                }
-                // just ensure the order between those BB exists
-                std::sort(dependentBBs.begin(), dependentBBs.end(), [this] (Val::BasicBlockIdType a, Val::BasicBlockIdType b) {
-                    return sortNonLoopBB(a, b);});
-                //eachBBTask.second->nonLoopRootDependents[eachRoot] = dependentBBs;
-            }
-            //end of sanity check
-        }
-    }
+
 }

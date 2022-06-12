@@ -18,9 +18,6 @@ public:
     RuntimeSymFlowGraph(std::string, RuntimeCFG&);
     void readGraphViz(std::string filename);
     void loopCheck();
-    void PreparePerBBTask();
-    void PreparePerRootTask();
-    void addToTaskDependents(vertex_t);
 
     const RuntimeCFG& cfg;
 

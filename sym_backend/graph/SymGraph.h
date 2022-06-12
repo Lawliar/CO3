@@ -333,12 +333,12 @@ public:
 
 class DataDependents{
 public:
-    Val::ValVertexType root;
+    Val* root;
     vector<Val*>& allNodes;
-    set<Val::ValVertexType> deps;
-    map<Val::ValVertexType, map<Val::ArgIndexType, DataDependents* > > truePhiDependences;
+    set<Val*> deps;
+    map<Val*, map<Val::ArgIndexType, DataDependents* > > truePhiDependences;
 
-    DataDependents(Val::ValVertexType root, vector<Val*>&  nodes): root(root), allNodes(nodes){}
+    DataDependents(Val* root, vector<Val*>&  nodes): root(root), allNodes(nodes){}
     ~DataDependents(){
         deps.clear();
         for(auto eachTruePhi: truePhiDependences){
@@ -349,8 +349,8 @@ public:
         }
         truePhiDependences.clear();
     }
-    void nonTruePhiDataDependentsOf(set<Val::ValVertexType> ancesters);
-    void allPossibleDataDependencies(set<Val::ValVertexType>, vector<set<Val::ValVertexType> >& );
+    void nonTruePhiDataDependentsOf(set<Val*> ancesters);
+    void allPossibleDataDependencies(set<Val*>, vector<set<Val*> >& );
 };
 
 class SymGraph {
@@ -362,6 +362,7 @@ private:
     bool sortNonLoopBB(Val::BasicBlockIdType, Val::BasicBlockIdType);
     list<Val::BasicBlockIdType> sortNonLoopBBs(set<Val::BasicBlockIdType>);
 public:
+
 
     SymGraph(std::string funcname, std::string cfg, std::string dt, std::string pdt, std::string dfg );
     ~SymGraph(){
@@ -386,10 +387,10 @@ public:
             post_dominance.clear();
             leaves.clear();
             roots.clear();
-            for(auto eachRootDep:nonLoopRootDependents){
-                delete eachRootDep.second;
-            }
-            nonLoopRootDependents.clear();
+            //for(auto eachRootDep:nonLoopRootDependents){
+            //    delete eachRootDep.second;
+            //}
+            //nonLoopRootDependents.clear();
         }
         Val::BasicBlockIdType BBID;
         bool inLoop;
@@ -399,24 +400,46 @@ public:
         std::set<Val::BasicBlockIdType> dominance;
         std::set<Val::BasicBlockIdType > post_dominance;// this BB post dominate these BBs
         // leaves are the "inputs" to this basic block
-        std::set<Val::ValVertexType> leaves;
+        std::set<Val*> leaves;
         // roots are the non-out vertices and the direct out vertices
-        std::set<Val::ValVertexType> roots;
+        std::set<Val*> roots;
 
         // map the root to its Dependent BBs that are not in the loop(because we already make sure loop is properly executed)
-        std::map<Val::ValVertexType, DataDependents* > nonLoopRootDependents;
+        //std::map<Val*, DataDependents* > nonLoopRootDependents;
     };
 
+    class RootTask{
+    public:
+        std::set<Val*> nonReadyDeps;
+        std::set<Val*> inBBNonReadyDeps;
+        Val *  root;
+        BasicBlockTask* bbTask;
+        void InsertNonReadyDep(Val* v){
+            nonReadyDeps.insert(v);
+            if(bbTask->leaves.find(v) != bbTask->leaves.end()){
+                inBBNonReadyDeps.insert(v);
+            }
+        }
+        RootTask(Val* r, BasicBlockTask* rootBBTask): root(r), bbTask(rootBBTask){};
+    };
+    // some basic information
     std::string funcname;
     RuntimeCFG cfg;
     RuntimeSymFlowGraph dfg;
-
+    // some mapping
     map<RuntimeSymFlowGraph::vertex_t, Val::ValVertexType> ver2offMap;
     map<Val::SymIDType , Val::ValVertexType> symID2offMap;
     std::map<Val::BasicBlockIdType, BasicBlockTask*> bbTasks;
     vector<Val*> Nodes;
-    vector<Val::ValVertexType> getParametersSym;
-    Val::ValVertexType setRetSym;
+    vector<Val*> getParametersSym;
+    Val* setRetSym;
+
+    Val* stripPhis(Val*, Val*);
+    inline bool isNodeReady(Val*, Val*);
+
+    RootTask* CreateRootTask(Val*);
+    // for debugging purpose only, it's just to keep the record, not referenced to when running
+    vector<RootTask*> rootTasks;
 };
 
 

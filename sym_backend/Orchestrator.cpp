@@ -4,16 +4,20 @@
 
 #include "Orchestrator.h"
 #include <iostream>
-#include <queue>
 #include <fstream>
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "UnreachableCode"
+
+std::string dbgInputFileName;
 Orchestrator::Orchestrator(std::string inputDir, std::string sp_port, int baud_rate): \
 sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
 {
     boost::filesystem::path dir (inputDir);
     boost::filesystem::path funcIDFilePath = dir / "spear_func_id.txt";
+
+    boost::filesystem::path dbgInputFile = dir / "dbgInput.bin";
+    dbgInputFileName.append(dbgInputFile.string());
     if(!boost::filesystem::exists(funcIDFilePath)){
         cerr<<"func id file does not exist";
         assert(false);
@@ -71,131 +75,7 @@ int Orchestrator::StartListen() {
 as truePhi itself does not carry any real information
 
 */
-Val* Orchestrator::stripPhis(Val* nodeInQuestion, Val* root) {
-    SymGraph* cur_graph = getCurFunc();
-    Val* prev_node = nullptr;
-    Val* cur_node = nodeInQuestion;
-    SymVal_sym_TruePhi *      true_phi       = dynamic_cast<SymVal_sym_TruePhi*>(cur_node);
-    SymVal_sym_FalsePhiRoot * false_phi_root = dynamic_cast<SymVal_sym_FalsePhiRoot*>(cur_node);
-    SymVal_sym_FalsePhiLeaf * false_phi_leaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(cur_node);
 
-    while(true_phi != nullptr || false_phi_root != nullptr || false_phi_leaf != nullptr ){
-        // assuming the ReportTruePhi has been sent from the MCU.
-        Val::ValVertexType new_vert;
-        if(true_phi != nullptr){
-            // for truePhi, its ready number might legally be larger than root_ready, we'll just choose the history value we want
-            new_vert = true_phi->In_edges.at(true_phi->historyValues.at(root->ready + 1).first);
-        }else if(false_phi_root != nullptr){
-            if(false_phi_root->falsePhiLeaves.size() == 0){
-                // this root has all constant dependencies, which makes it impossible to be symbolized.
-                return nullptr;
-            }
-            if(isNodeReady(cur_node, root)){
-                // cur_node is already constructed
-                return prev_node;
-            }
-            new_vert = false_phi_root->In_edges.at(false_phi_root->In_edges.at(1));// 1 is the non-false value
-
-        }else{
-            if(isNodeReady(cur_node, root)){
-                // cur_node is already constructed
-                return prev_node;
-            }
-            new_vert = false_phi_leaf->In_edges.at(false_phi_leaf->In_edges.at(0));// 0 is the original value
-        }
-        prev_node = cur_node;
-        cur_node = cur_graph->Nodes[new_vert];
-        true_phi = dynamic_cast<SymVal_sym_TruePhi*>(cur_node);
-        false_phi_root = dynamic_cast<SymVal_sym_FalsePhiRoot*>(cur_node);
-        false_phi_leaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(cur_node);
-    }
-    return cur_node;
-}
-
-inline bool Orchestrator::isNodeReady(Val * nodeInQuestion, Val *  root_in_construct) {
-    auto * nodeIsTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(nodeInQuestion);
-    auto * rootIsTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(root_in_construct);
-    assert(nodeIsTruePhi == nullptr and rootIsTruePhi == nullptr);
-    if(nodeInQuestion == root_in_construct){
-        //if it's the same node, then it's not ready
-        return false;
-    }
-    if(!nodeInQuestion->inLoop){
-        if(nodeInQuestion->ready == 1){
-            return true;
-        }else if (nodeInQuestion->ready == 0){
-            return false;
-        }else{
-            cerr<<"Nodes in the non-loop BB should at executed at most once.";
-            assert(false);
-        }
-    }else{
-        // now nodeInquest is in loop, and root is in or out of a loop
-        if(nodeInQuestion->BBID == root_in_construct->BBID){
-            // if they are in the same BB, then it's just a comparison of ready value
-            if(nodeInQuestion->ready == root_in_construct->ready){
-                // the root we're trying to construct, and this nodeInQuestion has same ready Value
-                return false;
-            }else if (nodeInQuestion->ready == (root_in_construct->ready + 1)){
-                return true;
-            }else{
-                cerr<<"the dep can only be one more or equal to the root in terms of ready value when they are in the same loop BB";
-                assert(false);
-            }
-        }else{
-            // for BB in the loop we execute in the per-BB level
-            // given the root is under construction, no matter it's in the loop or not
-            // the nodeInQuestion is inside a loop, and they are in different BB
-            // then it must mean the construction for the nodeInQuestion must have been finished.
-            return true;
-        }
-    }
-}
-set<Val*> Orchestrator::getNonReadyDeps(Val* root) {
-    SymGraph* cur_graph = getCurFunc();
-    {
-        // dont' regard true phi as a root, as its ready value does not reflect it's constructed or not.
-        SymVal_sym_TruePhi * true_phi = dynamic_cast<SymVal_sym_TruePhi*>(root);
-        assert(true_phi == nullptr);
-    }
-    set<Val*> nonReadyDeps;
-    queue<Val*> work_queue;
-
-    set<Val*> visited {root};
-    work_queue.push(root);
-
-    while(!work_queue.empty()){
-        Val* cur_node = work_queue.front();
-        work_queue.pop();
-        // stripping nasty phis
-        Val * strippedPhis = stripPhis(cur_node, root);
-        if(strippedPhis == nullptr){
-            // met FalsePhiRoot which is all constants(it means it's just a false), ignore it
-            continue;
-        }
-        SymVal_sym_FalsePhiRoot * false_phi_root = dynamic_cast<SymVal_sym_FalsePhiRoot*>(strippedPhis);
-        SymVal_sym_FalsePhiLeaf * false_phi_leaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(strippedPhis);
-        if(false_phi_root != nullptr || false_phi_leaf != nullptr){
-            // we stripped it, and it is still here, that can only mean this is the one we should start building
-            assert(!isNodeReady(strippedPhis, root));
-            nonReadyDeps.insert(strippedPhis);
-        }
-        for(auto eachDep : cur_node->In_edges){
-            Val* depNode = cur_graph->Nodes[eachDep.second];
-            if(isNodeReady(depNode, root)){
-                //this dep has been constructed
-                continue;
-            }
-            if(visited.find((depNode)) != visited.end()){
-                // this node has been visited before
-                continue;
-            }
-            work_queue.push(depNode);
-            nonReadyDeps.insert(depNode);
-            visited.insert(depNode);
-        }
-    }
-}
 
 void Orchestrator::ExecuteBasicBlock(Val::BasicBlockIdType bbid, bool force) {
 
@@ -213,7 +93,6 @@ void Orchestrator::BackwardExecution(SymVal* sink) {
     SymGraph* cur_func = getCurFunc();
     Val::ReadyType root_ready = sink->ready;
 
-    set<Val*> nonReadyDeps = getNonReadyDeps(sink);
     set<Val*> nonReadyLeavesInSameBB;
     vector<Val::BasicBlockIdType> nonReadyBB;
 

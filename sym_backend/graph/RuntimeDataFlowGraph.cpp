@@ -77,20 +77,3 @@ RuntimeSymFlowGraph::RuntimeSymFlowGraph(std::string filename, RuntimeCFG & cfg)
     // prepare the task
     PreparePerBBTask();
 }
-
-void RuntimeSymFlowGraph::addToTaskDependents(vertex_t root){
-    std::set<vertex_t> visited;
-    // src_id post dominates itself
-    visited.insert(root);
-    std::stack<vertex_t> work_stack;
-    work_stack.push(root);
-
-}
-void RuntimeSymFlowGraph::PreparePerBBTask(){
-    loopCheck();
-
-}
-
-void RuntimeSymFlowGraph::PreparePerRootTask(){
-
-}

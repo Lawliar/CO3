@@ -16,6 +16,7 @@ extern "C" {
 }
 
 
+
 class Orchestrator{
 public:
     Orchestrator(std::string inputDir, std::string sp_port, int);
@@ -23,10 +24,6 @@ public:
     int Run();
     SymGraph* getCurFunc();
 
-    inline bool isNodeReady(Val*, Val*);
-    Val* stripPhis(Val*, Val*);
-
-    set<Val*> getNonReadyDeps(Val*);
     void ExecuteBasicBlock(Val::BasicBlockIdType, bool);
     void PreparingCalling(NotifyCallMessage*);
     void ForwardExecution(Val*, bool, bool);
@@ -34,13 +31,11 @@ public:
     ~Orchestrator();
 
 
+
     OpenedSP sp;
     MsgQueue msgQueue;
     std::stack<SymGraph*> callStack;
     std::map<unsigned, SymGraph*> symGraphs;
-
-    // for debugging purpose
-    std::deque<uint32_t> BBTrace;
 
 };
 #endif //SYMBACKEND_ORCHESTRATOR_H
