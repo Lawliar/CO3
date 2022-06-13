@@ -4,6 +4,7 @@
 #include <iostream>
 #include "Orchestrator.h"
 
+
 boost::program_options::variables_map ParseCommand(int argc, const char *argv[]){
     try
     {
@@ -23,6 +24,12 @@ boost::program_options::variables_map ParseCommand(int argc, const char *argv[])
         std::cerr << ex.what() << '\n';
     }
 }
+// for debug purpose only
+extern set<string> SinkOps;
+extern set<string> leaveOps;
+extern set<string> leaves;
+
+// end of debug
 int main(int argc, const char *argv[])
 {
     boost::program_options::variables_map vm = ParseCommand(argc, argv);
@@ -37,5 +44,7 @@ int main(int argc, const char *argv[])
     }
 
     Orchestrator orc(input_path,serial_port,baud_rate);
+    orc.Run();
     __asm__("nop");
+
 }

@@ -14,13 +14,13 @@
 extern "C" {
 #include "serialport.h"
 }
+#include "ThreadPool.h"
 
 
 
 class Orchestrator{
 public:
     Orchestrator(std::string inputDir, std::string sp_port, int);
-    int StartListen();
     int Run();
     SymGraph* getCurFunc();
 
@@ -31,6 +31,7 @@ public:
     ~Orchestrator();
 
 
+    ThreadPool pool;
 
     OpenedSP sp;
     MsgQueue msgQueue;

@@ -11,13 +11,14 @@
 
 std::string dbgInputFileName;
 Orchestrator::Orchestrator(std::string inputDir, std::string sp_port, int baud_rate): \
-sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
+pool(12),sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
 {
     boost::filesystem::path dir (inputDir);
     boost::filesystem::path funcIDFilePath = dir / "spear_func_id.txt";
 
-    boost::filesystem::path dbgInputFile = dir / "dbgInput.bin";
-    dbgInputFileName.append(dbgInputFile.string());
+    boost::filesystem::path fileInputFilePath = dir / "fileUSB.bin";
+    dbgInputFileName.append(fileInputFilePath.string());
+
     if(!boost::filesystem::exists(funcIDFilePath)){
         cerr<<"func id file does not exist";
         assert(false);
@@ -58,24 +59,19 @@ sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
         SymGraph* cur_symgraph = new SymGraph(cur_funcname, cfg_file.string(),dom_file.string(),postDom_file.string(),dfg_file.string());
         symGraphs[cur_id] = cur_symgraph;
     }
+    _sym_initialize(inputDir);
 }
 Orchestrator::~Orchestrator() {
     freeSerialPort(sp);
+    for(auto eachFunc :symGraphs){
+        delete eachFunc.second;
+    }
+    symGraphs.clear();
 }
 
 SymGraph* Orchestrator::getCurFunc() {
     return callStack.top();
 }
-int Orchestrator::StartListen() {
-
-}
-
-/*
-
-as truePhi itself does not carry any real information
-
-*/
-
 
 void Orchestrator::ExecuteBasicBlock(Val::BasicBlockIdType bbid, bool force) {
 
@@ -93,8 +89,7 @@ void Orchestrator::BackwardExecution(SymVal* sink) {
     SymGraph* cur_func = getCurFunc();
     Val::ReadyType root_ready = sink->ready;
 
-    set<Val*> nonReadyLeavesInSameBB;
-    vector<Val::BasicBlockIdType> nonReadyBB;
+
 
 }
 
@@ -103,27 +98,34 @@ void Orchestrator::PreparingCalling(NotifyCallMessage* callMsg){
 }
 
 int Orchestrator::Run() {
+
+    pool.enqueue(&MsgQueue::Listen,&(this->msgQueue));
     while(true){
         Message* msg = msgQueue.Pop();
-        if(ControlMessgaes * cnt_msg = dynamic_cast<ControlMessgaes*>(msg); cnt_msg != nullptr){
-            if(NotifyBasicBlockMessage * bb_msg = dynamic_cast<NotifyBasicBlockMessage*>(msg) ; bb_msg != nullptr){
+        if(auto cnt_msg = dynamic_cast<ControlMessgaes*>(msg); cnt_msg != nullptr){
+            if(auto bb_msg = dynamic_cast<NotifyBasicBlockMessage*>(msg) ; bb_msg != nullptr){
 
-            }else if(NotifyFuncMessage * func_msg = dynamic_cast<NotifyFuncMessage*>(msg); func_msg != nullptr){
-                func_msg->id;
-            }else if(NotifyCallMessage * call_msg = dynamic_cast<NotifyCallMessage*>(msg) ; call_msg != nullptr){
+            }else if(auto func_msg = dynamic_cast<NotifyFuncMessage*>(msg); func_msg != nullptr){
+                callStack.push(symGraphs.at(func_msg->id));
+            }else if(auto call_msg = dynamic_cast<NotifyCallMessage*>(msg) ; call_msg != nullptr){
 
-            }else if(NotifyRetMessage * ret_msg = dynamic_cast<NotifyRetMessage*>(msg) ; ret_msg != nullptr){
+            }else if(auto ret_msg = dynamic_cast<NotifyRetMessage*>(msg) ; ret_msg != nullptr){
 
             }else{
                 std::cerr<<"seriously?";
                 assert(false);
             }
 
-        }else if (SymSourceMessage* sym_source_msg = dynamic_cast<SymSourceMessage*>(msg) ; sym_source_msg != nullptr){
+        }else if (auto sym_source_msg = dynamic_cast<SymSourceMessage*>(msg) ; sym_source_msg != nullptr){
 
-        }else if (SymSinkMessage* sym_sink_msg = dynamic_cast<SymSinkMessage*>(msg) ; sym_sink_msg != nullptr){
+        }else if (auto sym_sink_msg = dynamic_cast<SymSinkMessage*>(msg) ; sym_sink_msg != nullptr){
+            if(auto sym_constraint_msg = dynamic_cast<PushConstraintMessage*>(sym_sink_msg); sym_constraint_msg != nullptr){
 
-        }else{
+            }
+        }else if(msg == nullptr){
+            usleep(100);
+        }
+        else{
             std::cerr<<"seriously?";
             assert(false);
         }
