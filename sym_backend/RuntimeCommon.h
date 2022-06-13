@@ -35,7 +35,7 @@ extern "C" {
 /*
  * Initialization
  */
-void _sym_initialize(void);
+void _sym_initialize(string);
 
 /*
  * Construction of simple values

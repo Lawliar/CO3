@@ -62,11 +62,6 @@ void tryAlternative(E *value, SymExpr valueExpr, F caller) {
 void initLibcWrappers() {
   if (g_config.fullyConcrete)
     return;
-
-  if (g_config.inputFile.empty()) {
-    // Symbolic data comes from standard input.
-    inputFileDescriptor = 0;
-  }
 }
 
 extern "C" {

@@ -63,6 +63,9 @@
 #include <LibcWrappers.h>
 #include <Shadow.h>
 
+// Boost
+#include <boost/filesystem.hpp>
+
 namespace qsym {
 
 ExprBuilder *g_expr_builder;
@@ -77,10 +80,6 @@ namespace {
 /// Indicate whether the runtime has been initialized.
 std::atomic_flag g_initialized = ATOMIC_FLAG_INIT;
 
-/// The file that contains out input.
-std::string inputFileName;
-
-void deleteInputFile() { std::remove(inputFileName.c_str()); }
 
 /// A mapping of all expressions that we have ever received from Qsym to the
 /// corresponding shared pointers on the heap.
@@ -115,67 +114,45 @@ namespace fs = std::filesystem;
 namespace fs = std::experimental::filesystem;
 #endif
 
-void _sym_initialize(void) {
-  if (g_initialized.test_and_set())
-    return;
 
-  loadConfig();
-  initLibcWrappers();
-  std::cerr << "This is SymCC running with the QSYM backend" << std::endl;
-  if (g_config.fullyConcrete) {
-    std::cerr
-        << "Performing fully concrete execution (i.e., without symbolic input)"
-        << std::endl;
-    return;
-  }
 
-  // Check the output directory
-  if (!fs::exists(g_config.outputDir) ||
-      !fs::is_directory(g_config.outputDir)) {
-    std::cerr << "Error: the output directory " << g_config.outputDir
-              << " (configurable via SYMCC_OUTPUT_DIR) does not exist."
-              << std::endl;
-    exit(-1);
-  }
+void _sym_initialize(string inputDirName) {
+    if (g_initialized.test_and_set())
+        return;
+    boost::filesystem::path dir (inputDirName);
+    //loadConfig();
+    boost::filesystem::path outputDir = dir / "output";
+    boost::filesystem::path inputFile = dir /"conreteInput.bin";
 
-  // Qsym requires the full input in a file
-  if (g_config.inputFile.empty()) {
-    std::cerr << "Reading program input until EOF (use Ctrl+D in a terminal)..."
-              << std::endl;
-    std::istreambuf_iterator<char> in_begin(std::cin), in_end;
-    std::vector<char> inputData(in_begin, in_end);
-    inputFileName = std::tmpnam(nullptr);
-    std::ofstream inputFile(inputFileName, std::ios::trunc);
-    std::copy(inputData.begin(), inputData.end(),
-              std::ostreambuf_iterator<char>(inputFile));
-    inputFile.close();
-
-#ifdef DEBUG_RUNTIME
-    std::cerr << "Loaded input:" << std::endl;
-    std::copy(inputData.begin(), inputData.end(),
-              std::ostreambuf_iterator<char>(std::cerr));
-    std::cerr << std::endl;
-#endif
-
-    atexit(deleteInputFile);
-
-    // Restore some semblance of standard input
-    auto *newStdin = freopen(inputFileName.c_str(), "r", stdin);
-    if (newStdin == nullptr) {
-      perror("Failed to reopen stdin");
-      exit(-1);
+    if(!boost::filesystem::exists(outputDir)){
+        boost::filesystem::create_directory(outputDir);
     }
-  } else {
-    inputFileName = g_config.inputFile;
-    std::cerr << "Making data read from " << inputFileName << " as symbolic"
-              << std::endl;
-  }
+    if(!boost::filesystem::exists(inputFile)){
+        std::cerr << inputFile <<" does not exist!";
+        exit(1);
+    }
 
-  g_z3_context = new z3::context{};
-  g_solver =
-      new Solver(inputFileName, g_config.outputDir, g_config.aflCoverageMap);
-  g_expr_builder = g_config.pruning ? PruneExprBuilder::create()
-                                    : SymbolicExprBuilder::create();
+    g_config.outputDir = outputDir.string();
+    g_config.inputFile = inputFile.string();
+    unsigned inputSize = boost::filesystem::file_size(inputFile);
+    g_config.logFile = (dir / "qsymLog.txt").string();
+    g_config.pruning = false;
+    g_config.aflCoverageMap = "";
+    initLibcWrappers();
+    if (g_config.fullyConcrete) {
+        return;
+    }
+    g_z3_context = new z3::context{};
+    g_solver = new Solver(g_config.inputFile, g_config.outputDir, g_config.aflCoverageMap);
+    g_expr_builder = g_config.pruning ? PruneExprBuilder::create()
+                                      : SymbolicExprBuilder::create();
+    // symbolize a buffer
+
+    //initially symbolize the memory buffer
+    ReadWriteShadow shadow((void*)0x2400a921, inputSize);
+    unsigned cursor = 0;
+    std::generate(shadow.begin(), shadow.end(),
+                  [&cursor]() { return _sym_get_input_byte(cursor++); });
 }
 
 SymExpr _sym_build_integer(uint64_t value, uint8_t bits) {

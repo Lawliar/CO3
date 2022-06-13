@@ -22,7 +22,7 @@ struct Config {
   bool fullyConcrete = false;
 
   /// The directory for storing new outputs.
-  std::string outputDir = "/tmp/output";
+  std::string outputDir;
 
   /// The input file, if any.
   std::string inputFile;
@@ -37,7 +37,7 @@ struct Config {
   ///
   /// Specifying a file name here allows us to track already covered program
   /// locations across multiple program executions.
-  std::string aflCoverageMap = "";
+  std::string aflCoverageMap;
 
   /// The garbage collection threshold.
   ///
