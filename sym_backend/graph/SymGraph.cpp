@@ -580,6 +580,15 @@ SymGraph::RootTask* SymGraph::CreateRootTask(Val * root) {
             visited.insert(depNode);
         }
     }
+    // sanity check
+    for(auto eachNonReadyNonLoopBB : rootTask->depNonReadyNonLoopBB){
+        BasicBlockTask* bbTask = bbTasks.at(eachNonReadyNonLoopBB);
+        assert(bbTask->ready == 0);
+        assert(bbTask->inLoop == false);
+    }
+    // end of sanity check
+    std::sort(rootTask->depNonReadyNonLoopBB.begin(), rootTask->depNonReadyNonLoopBB.end(), [this] (Val::BasicBlockIdType a, Val::BasicBlockIdType b) {
+        return sortNonLoopBB(a, b);});
     //just to debugging purpose
     rootTasks.push_back(rootTask);
     //end

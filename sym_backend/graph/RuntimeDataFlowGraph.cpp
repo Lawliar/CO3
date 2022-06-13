@@ -75,5 +75,4 @@ RuntimeSymFlowGraph::RuntimeSymFlowGraph(std::string filename, RuntimeCFG & cfg)
     }
      */
     // prepare the task
-    PreparePerBBTask();
 }

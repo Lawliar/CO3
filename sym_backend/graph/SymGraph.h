@@ -412,15 +412,23 @@ public:
     public:
         std::set<Val*> nonReadyDeps;
         std::set<Val*> inBBNonReadyDeps;
+        std::vector<Val::BasicBlockIdType> depNonReadyNonLoopBB;
         Val *  root;
-        BasicBlockTask* bbTask;
+        Val::BasicBlockIdType rootBBid;
+        BasicBlockTask* rootBBTask;
         void InsertNonReadyDep(Val* v){
             nonReadyDeps.insert(v);
-            if(bbTask->leaves.find(v) != bbTask->leaves.end()){
+            if(rootBBTask->leaves.find(v) != rootBBTask->leaves.end()){
                 inBBNonReadyDeps.insert(v);
             }
+            Val::BasicBlockIdType depBBID = v->BBID;
+            if(depBBID != rootBBid && depBBID != 0 && v->inLoop == false){
+                if(std::find(depNonReadyNonLoopBB.begin(), depNonReadyNonLoopBB.end(), depBBID) == depNonReadyNonLoopBB.end()){
+                    depNonReadyNonLoopBB.push_back(depBBID);
+                }
+            }
         }
-        RootTask(Val* r, BasicBlockTask* rootBBTask): root(r), bbTask(rootBBTask){};
+        RootTask(Val* r, BasicBlockTask* rootBBTask): root(r), rootBBid(r->BBID),rootBBTask(rootBBTask){};
     };
     // some basic information
     std::string funcname;
