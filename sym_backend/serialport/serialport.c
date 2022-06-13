@@ -122,7 +122,12 @@ void receiveData(struct sp_port* port, unsigned numBytesWaiting, unsigned timeou
     u8 * buf = (u8 *)malloc(numBytesWaiting + 1);
     int result = check(sp_blocking_read(port, buf, numBytesWaiting, timeout));
     buf[result] = '\0';
-    while(ring_buffer_num_empty_items(&RingBuffer) < numBytesWaiting){ usleep(100);}
+    unsigned freeBytes = ring_buffer_num_empty_items(&RingBuffer);
+    if(freeBytes < numBytesWaiting){
+        fprintf(stderr,"no enough space in the ringbuffer to write %d bytes!\n", freeBytes);
+        abort();
+    }
+
     ring_buffer_queue_arr(&RingBuffer, buf, numBytesWaiting);
     return;
 }

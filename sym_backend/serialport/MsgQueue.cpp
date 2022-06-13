@@ -29,29 +29,53 @@ Message* MsgQueue::Pop(){
     return ret;
 }
 extern std::string dbgInputFileName;
-[[noreturn]] void MsgQueue::Listen() {
+[[noreturn]] int MsgQueue::Listen() {
     int bytesWaiting;
+    int frameLen = 64;
     if(sp.port != nullptr){
         while(true){
             bytesWaiting = GetNumBytesWaiting(sp);
             if(bytesWaiting > 0){
-                receiveData(sp.port, bytesWaiting, 1000);
+                //receive data and write it to ringbuffer
+                if(bytesWaiting <= frameLen){
+                    receiveData(sp.port, bytesWaiting, 1000);
+                    ProcessMsgs();
+                }else{
+                    unsigned cursor = 0;
+                    for(; cursor < bytesWaiting ; cursor += frameLen){
+                        unsigned remaining = bytesWaiting - cursor;
+                        if( remaining >= frameLen){
+                            receiveData(sp.port, frameLen, 1000);
+                            ProcessMsgs();
+                        }else{
+                            receiveData(sp.port, remaining, 1000);
+                            ProcessMsgs();
+                        }
+                    }
+                }
             }else{
             }
         }
     }else{
         std::ifstream inputFile(dbgInputFileName, std::ios::binary);
+        assert(inputFile.is_open());
         char buf[128];
         while(!inputFile.eof()){
-            inputFile.read(buf, 128);
+            inputFile.read(buf, frameLen);
             std::streamsize s = inputFile.gcount();
             unsigned emptyBytes = ring_buffer_num_empty_items(&RingBuffer);
-            while(emptyBytes < s){
-                usleep(100);
-            }
+            assert(emptyBytes >= frameLen);// I trusted when calling ProcessMsg, one least one whole frame is processed
             ring_buffer_queue_arr(&RingBuffer, buf, s);
+            ProcessMsgs();
         }
     }
+    return 0;
+}
+
+MsgQueue::~MsgQueue() {
+    assert(ring_buffer_num_items(&RingBuffer) == 0);
+    MsgLen.clear();
+    msgQueue.clear();
 }
 
 void MsgQueue::RenderAndPush(char * buf, char size){
@@ -167,7 +191,7 @@ void MsgQueue::ProcessMsgs() {
 
     ring_buffer_peek(&RingBuffer, &numBytesForPacket, 0);
 
-    while( (numBytesForPacket + 1) < (avaiNumBytes - processedBytes)){
+    while( (numBytesForPacket + 1) <= (avaiNumBytes - processedBytes)){
         //we only deal with a whole packet, if what's remaining is not enough, we just wait for another turn
 
         //retrive numBytesForPacket out from the ring buffer

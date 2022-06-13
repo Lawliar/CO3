@@ -38,10 +38,10 @@ public:
                 {SYM_NTFY_BBLK1     ,3 }
         };
     }
-
+    ~MsgQueue();
     void RenderAndPush(char * buf, char size);
     void ProcessMsgs();
-    [[noreturn]] void Listen();
+    [[noreturn]] int Listen();
     size_t GetQueueSize();
     Message* Pop();
 private:
