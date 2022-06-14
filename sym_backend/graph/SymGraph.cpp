@@ -229,24 +229,30 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
 
         Nodes[ver2offMap.at(cur_ver)] = cur_node;
     }
-
     for(unsigned index = 0 ; index < Nodes.size() ; index++){
         // make sure every node is parsed.
         Val* cur_node = Nodes[index];
         assert(cur_node!= nullptr);
+        //convert tmpInEdge to the real In_edges
+        for(auto eachTmpInEdge : cur_node->tmpIn_edges){
+            cur_node->In_edges.insert(make_pair(eachTmpInEdge.first, Nodes.at(eachTmpInEdge.second)));
+        }
+    }
+    for(unsigned index = 0 ; index < Nodes.size() ; index++){
         // some sanity check for some special node
         if(SymVal_sym_FalsePhiRoot * falsePhiRoot = dynamic_cast<SymVal_sym_FalsePhiRoot*>(Nodes[index])){
-            SymVal_NULL * op1 = dynamic_cast<SymVal_NULL*>(Nodes.at(falsePhiRoot->In_edges.at(0)));
-            SymVal_NULL * op2 = dynamic_cast<SymVal_NULL*>(Nodes.at(falsePhiRoot->In_edges.at(1)));
+            SymVal_NULL * op1 = dynamic_cast<SymVal_NULL*>(falsePhiRoot->In_edges.at(0));
+            SymVal_NULL * op2 = dynamic_cast<SymVal_NULL*>(falsePhiRoot->In_edges.at(1));
             assert(op1 != nullptr && op2 == nullptr); // op1 is always pointing to false, op2 is always not pointing to false
         }
         if(SymVal_sym_FalsePhiLeaf * falsePhiLeaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(Nodes[index])){
-            SymVal_NULL * op1 = dynamic_cast<SymVal_NULL*>(Nodes.at(falsePhiLeaf->In_edges.at(0)));
-            SymVal_NULL * op2 = dynamic_cast<SymVal_NULL*>(Nodes.at(falsePhiLeaf->In_edges.at(1)));
+            SymVal_NULL * op1 = dynamic_cast<SymVal_NULL*>(falsePhiLeaf->In_edges.at(0));
+            SymVal_NULL * op2 = dynamic_cast<SymVal_NULL*>(falsePhiLeaf->In_edges.at(1));
             assert(op1 == nullptr && op2 == nullptr); // both of the operands are not pointing to false
         }
         // end of the sanity check
 
+        Val* cur_node = Nodes[index];
         // complete the use relation
         if(cur_node->BBID == 0){
             cur_node->inLoop = false;
@@ -254,7 +260,7 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
             cur_node->inLoop = cfg.bbid2loop.at(cur_node->BBID);
         }
         for(auto each_in_edge : cur_node->In_edges){
-            Nodes[each_in_edge.second]->UsedBy.insert(static_cast<Val::ValVertexType>(index));
+            each_in_edge.second->UsedBy.insert(cur_node);
         }
 
         //complete the symid to off map
@@ -332,9 +338,9 @@ void DataDependents::nonTruePhiDataDependentsOf( set<Val*> ancesters){
     if(SymVal_sym_TruePhi * true_phi = dynamic_cast<SymVal_sym_TruePhi*>(root); true_phi != nullptr){
         truePhiDependences[root] = map<Val::ArgIndexType, DataDependents* >{};
         for(auto eachTruePhiDep: dynamic_cast<SymVal_sym_TruePhi*>(root)->In_edges){
-            Val* new_root = allNodes.at(eachTruePhiDep.second);
+            Val* new_root = eachTruePhiDep.second;
             if(ancesters.find(new_root) == ancesters.end()){
-                DataDependents* child_node = new DataDependents(new_root, allNodes);
+                DataDependents* child_node = new DataDependents(new_root);
                 truePhiDependences.at(root)[eachTruePhiDep.first] = child_node;
                 child_node->nonTruePhiDataDependentsOf(ancesters);
             }
@@ -342,20 +348,20 @@ void DataDependents::nonTruePhiDataDependentsOf( set<Val*> ancesters){
         return;
     }
 
-    std::stack<Val::ValVertexType> work_stack;
+    std::stack<Val*> work_stack;
     vector<Val*> truePhis;
     for(auto eachRootDep : root->In_edges){
-        deps.insert(allNodes.at(eachRootDep.second));
+        deps.insert(eachRootDep.second);
         work_stack.push(eachRootDep.second);
     }
     while(!work_stack.empty()){
-        Val::ValVertexType cur_ver = work_stack.top();
+        Val* cur_ver = work_stack.top();
         work_stack.pop();
-        if(SymVal_sym_TruePhi * true_phi = dynamic_cast<SymVal_sym_TruePhi*>(allNodes[cur_ver]); true_phi != nullptr){
-            truePhis.push_back(allNodes[cur_ver]);
+        if(SymVal_sym_TruePhi * true_phi = dynamic_cast<SymVal_sym_TruePhi*>(cur_ver); true_phi != nullptr){
+            truePhis.push_back(cur_ver);
         }
-        for(auto eachWorkDep : allNodes[cur_ver]->In_edges){
-            Val* new_depNpde = allNodes.at(eachWorkDep.second);
+        for(auto eachWorkDep : cur_ver->In_edges){
+            Val* new_depNpde = eachWorkDep.second;
             if(deps.find(new_depNpde) == deps.end() && ancesters.find(new_depNpde) == ancesters.end()){
                 deps.insert(new_depNpde);
                 ancesters.insert(new_depNpde);
@@ -366,9 +372,9 @@ void DataDependents::nonTruePhiDataDependentsOf( set<Val*> ancesters){
     for(auto eachTruePhi: truePhis){
         truePhiDependences[eachTruePhi] = map<Val::ArgIndexType, DataDependents* >{};
         for(auto eachTruePhiDep: dynamic_cast<SymVal_sym_TruePhi*>(eachTruePhi)->In_edges){
-            Val* new_root = allNodes.at(eachTruePhiDep.second);
+            Val* new_root = eachTruePhiDep.second;
             if(ancesters.find(new_root) == ancesters.end()){
-                DataDependents* child_node = new DataDependents(new_root, allNodes);
+                DataDependents* child_node = new DataDependents(new_root);
                 truePhiDependences.at(eachTruePhi)[eachTruePhiDep.first] = child_node;
                 child_node->nonTruePhiDataDependentsOf(ancesters);
             }
@@ -465,6 +471,15 @@ inline bool SymGraph::isNodeReady(Val * nodeInQuestion, Val *  root_in_construct
         //if it's the same node, then it's not ready
         return false;
     }
+    if(nodeInQuestion->BBID == 0){
+        // if it's a constant or symNULL, then of course it's ready.
+        //for debugging only
+        auto tmpSymNull = dynamic_cast<SymVal_NULL*>(nodeInQuestion);
+        auto tmpConst = dynamic_cast<ConstantVal*>(nodeInQuestion);
+        assert(tmpConst != nullptr || tmpConst != nullptr);
+        //end of debug
+        return true;
+    }
     if(!nodeInQuestion->inLoop){
         if(nodeInQuestion->ready == 1){
             return true;
@@ -497,6 +512,7 @@ inline bool SymGraph::isNodeReady(Val * nodeInQuestion, Val *  root_in_construct
         }
     }
 }
+
 Val* SymGraph::stripPhis(Val* nodeInQuestion, Val* root) {
     Val* prev_node = nullptr;
     Val* cur_node = nodeInQuestion;
@@ -506,7 +522,7 @@ Val* SymGraph::stripPhis(Val* nodeInQuestion, Val* root) {
 
     while(true_phi != nullptr || false_phi_root != nullptr || false_phi_leaf != nullptr ){
         // assuming the ReportTruePhi has been sent from the MCU.
-        Val::ValVertexType new_vert;
+        Val* new_vert;
         if(true_phi != nullptr){
             // for truePhi, its ready number might legally be larger than root_ready, we'll just choose the history value we want
             new_vert = true_phi->In_edges.at(true_phi->historyValues.at(root->ready + 1).first);
@@ -519,23 +535,41 @@ Val* SymGraph::stripPhis(Val* nodeInQuestion, Val* root) {
                 // cur_node is already constructed
                 return prev_node;
             }
-            new_vert = false_phi_root->In_edges.at(false_phi_root->In_edges.at(1));// 1 is the non-false value
+            new_vert = false_phi_root->In_edges.at(1);// 1 is the non-false value
 
         }else{
             if(isNodeReady(cur_node, root)){
                 // cur_node is already constructed
                 return prev_node;
             }
-            new_vert = false_phi_leaf->In_edges.at(false_phi_leaf->In_edges.at(0));// 0 is the original value
+            new_vert = false_phi_leaf->In_edges.at(0);// 0 is the original value
         }
         prev_node = cur_node;
-        cur_node = Nodes[new_vert];
+        cur_node = new_vert;
         true_phi = dynamic_cast<SymVal_sym_TruePhi*>(cur_node);
         false_phi_root = dynamic_cast<SymVal_sym_FalsePhiRoot*>(cur_node);
         false_phi_leaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(cur_node);
     }
     return cur_node;
 }
+
+Val* SymGraph::stripTruePhi(Val* nodeInQuestion, Val* root) {
+    Val* cur_node = nodeInQuestion;
+    SymVal_sym_TruePhi *      true_phi       = dynamic_cast<SymVal_sym_TruePhi*>(cur_node);
+
+    while(true_phi != nullptr  ){
+        // assuming the ReportTruePhi has been sent from the MCU.
+        Val* new_vert;
+        if(true_phi != nullptr){
+            // for truePhi, its ready number might legally be larger than root_ready, we'll just choose the history value we want
+            new_vert = true_phi->In_edges.at(true_phi->historyValues.at(root->ready + 1).first);
+        }
+        cur_node = new_vert;
+        true_phi = dynamic_cast<SymVal_sym_TruePhi*>(cur_node);
+    }
+    return cur_node;
+}
+
 SymGraph::RootTask* SymGraph::CreateRootTask(Val * root) {
     {
         // dont' regard true phi as a root, as its ready value does not reflect it's constructed or not.
@@ -566,7 +600,7 @@ SymGraph::RootTask* SymGraph::CreateRootTask(Val * root) {
             rootTask->InsertNonReadyDep(strippedPhis);
         }
         for(auto eachDep : cur_node->In_edges){
-            Val* depNode = Nodes[eachDep.second];
+            Val* depNode = eachDep.second;
             if(isNodeReady(depNode, root)){
                 //this dep has been constructed
                 continue;

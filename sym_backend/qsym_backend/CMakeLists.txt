@@ -84,7 +84,7 @@ add_executable(orchestrator
   ${SHARED_RUNTIME_SOURCES}
   ${SERIAL_PORT_SOURCES}
   ${GRAPH_SOURCES}
-  Runtime.cpp ../ThreadPool.h)
+  Runtime.cpp ../ThreadPool.h ../graph/Val.cpp ../graph/Val.h)
 
 
 ## even when LIBSERIALPORT is found by pkg_check_modules, no related variables are set, so we have to do this in this ugly way, thanks cmake!!
