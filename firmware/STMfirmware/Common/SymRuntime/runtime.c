@@ -542,9 +542,14 @@ void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t 
 		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
 	}
 
-	byteval = (uint8_t*)(&length);
-	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
-	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
+    if(msgCode != SYM_BLD_READ_MEM  && msgCode != SYM_BLD_WRITE_MEM )
+    {
+    	byteval = (uint8_t*)(&length);
+    	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+    	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
+    }
+
+
 
 }
 
@@ -657,7 +662,7 @@ bool _sym_build_read_memory(char * addr, size_t length, bool is_little_edian, ui
 		{
 			if((uint32_t*)addr == sym_peripherals[i])
 			{
-				reportSymHelper( SYM_BLD_READ_MEM, SIZE_SYM_BLD_READ_MEM, addr, NULL, length, symID);
+				reportSymHelper( SYM_BLD_READ_MEM, SIZE_SYM_BLD_READ_MEM, addr, NULL, 0, symID);
 				return true;
 			}
 		}
@@ -674,7 +679,7 @@ bool _sym_build_read_memory(char * addr, size_t length, bool is_little_edian, ui
 	{
 		if(checkSymbolic(pChar))
 		{
-			reportSymHelper( SYM_BLD_READ_MEM, SIZE_SYM_BLD_READ_MEM, addr, NULL, length, symID);
+			reportSymHelper( SYM_BLD_READ_MEM, SIZE_SYM_BLD_READ_MEM, addr, NULL, 0, symID);
 			return true;
 		}
 		pChar++;
@@ -709,7 +714,7 @@ void _sym_build_write_memory(char * addr, size_t length, bool input, uint16_t sy
 
 	if(report)
 	{
-		reportSymHelper( SYM_BLD_WRITE_MEM, SIZE_SYM_BLD_WRITE_MEM ,addr,NULL,length, symID);
+		reportSymHelper( SYM_BLD_WRITE_MEM, SIZE_SYM_BLD_WRITE_MEM ,addr,NULL,0, symID);
 	}
 
 }

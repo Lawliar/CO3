@@ -72,8 +72,8 @@ enum {
 #define SIZE_SYM_BLD_MEMCPY         13     // | FCODE(1) | symID(2)         | dest(4)     | src(4)    | length(2) |
 #define SIZE_SYM_BLD_MENSET         9      // | FCODE(1) | symID(2)         | mem(4)      | length(2) |
 #define SIZE_SYM_BLD_MEMMOVE        13     // | FCODE(1) | symID(2)         | dest(4)     | src(4)    | length(2) |
-#define SIZE_SYM_BLD_READ_MEM       9      // | FCODE(1) | symID(2)         | addr(4)     | length(2) |
-#define SIZE_SYM_BLD_WRITE_MEM      9      // | FCODE(1) | symID(2)         | addr(4)     | length(2) |
+#define SIZE_SYM_BLD_READ_MEM       7      // | FCODE(1) | symID(2)         | addr(4)     |
+#define SIZE_SYM_BLD_WRITE_MEM      7      // | FCODE(1) | symID(2)         | addr(4)     |
 #define SIZE_SYM_NTFY_PHI           4      // | FCODE(1) | symID(2)         | branchNo(1) |
 #define SIZE_SYM_NTFY_CALL          2      // | FCODE(1) | call_inst_id(1)  |
 #define SIZE_SYM_NTFY_FUNC          2      // | FCODE(1) | func_id(1)       |
