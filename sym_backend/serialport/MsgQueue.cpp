@@ -79,7 +79,7 @@ MsgQueue::~MsgQueue() {
 }
 
 void MsgQueue::RenderAndPush(char * buf, char size){
-    char cur = 0;
+    int cur = 0;
     while(cur < size ){
         if(buf[cur] == SYM_BLD_INT_1){
             uint16_t symid = *(uint16_t*)(buf + cur + 1);
@@ -139,14 +139,12 @@ void MsgQueue::RenderAndPush(char * buf, char size){
         }else if(buf[cur] == SYM_BLD_READ_MEM){
             uint16_t symid = *(uint16_t*)(buf + cur + 1);
             uint32_t ptr = *(uint32_t*)(buf + cur + 3);
-            uint16_t len = *(uint16_t*)(buf + cur + 7);
-            msgQueue.push_back(new ReadMemMessage(symid,ptr,len));
+            msgQueue.push_back(new ReadMemMessage(symid,ptr));
             cur += MsgLen.at(SYM_BLD_READ_MEM);
         }else if(buf[cur] == SYM_BLD_WRITE_MEM){
             uint16_t symid = *(uint16_t*)(buf + cur + 1);
             uint32_t ptr = *(uint32_t*)(buf + cur + 3);
-            uint16_t len = *(uint16_t*)(buf + cur + 7);
-            msgQueue.push_back(new WriteMemMessage(symid,ptr,len));
+            msgQueue.push_back(new WriteMemMessage(symid,ptr));
             cur += MsgLen.at(SYM_BLD_WRITE_MEM);
         }else if(buf[cur] == SYM_NTFY_PHI){
             uint16_t symid = *(uint16_t*)(buf + cur + 1);

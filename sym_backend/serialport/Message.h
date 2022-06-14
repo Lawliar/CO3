@@ -38,18 +38,19 @@ public:
 
 class SymSinkMessage : public Message{
 public:
-    SymSinkMessage(MessageType t): Message(t){};
+    uint16_t symid;
+    SymSinkMessage(MessageType t, uint16_t symid): Message(t), symid(symid){};
 };
 
 class SymSourceMessage : public Message{
 public:
-    SymSourceMessage(MessageType t): Message(t){};
+    uint16_t symid;
+    SymSourceMessage(MessageType t,uint16_t symid): Message(t), symid(symid){};
 };
 
 class RuntimeBoolValueMessage: public SymSourceMessage{
 public:
-    RuntimeBoolValueMessage(uint16_t symid,bool value):SymSourceMessage(BoolRuntimeValMsg), symid(symid), value(value){};
-    uint16_t symid;
+    RuntimeBoolValueMessage(uint16_t symid,bool value):SymSourceMessage(BoolRuntimeValMsg, symid), value(value){};
     bool value;
 };
 
@@ -62,37 +63,32 @@ public:
 
 class RuntimeIntValueMessage: public SymSourceMessage{
 public:
-    RuntimeIntValueMessage(uint16_t symid, uint8_t width, int32_t value):SymSourceMessage(IntRuntimeValMsg), symid(symid),width(width), value(value){};
-    uint16_t symid;
+    RuntimeIntValueMessage(uint16_t symid, uint8_t width, int32_t value):SymSourceMessage(IntRuntimeValMsg, symid),width(width), value(value){};
     uint8_t width;
     int32_t value;
 };
 
 class RuntimeFloatValueMessage: public SymSourceMessage{
 public:
-    RuntimeFloatValueMessage(uint16_t symid,float value):SymSourceMessage(FloatRuntimeValMsg), symid(symid), value(value){};
-    uint16_t symid;
+    RuntimeFloatValueMessage(uint16_t symid,float value):SymSourceMessage(FloatRuntimeValMsg, symid), value(value){};
     float value;
 };
 
 class RuntimeDoubleValueMessage: public SymSourceMessage{
 public:
-    RuntimeDoubleValueMessage(uint16_t symid,double value):SymSourceMessage(DoubleRuntimeValMsg), symid(symid), value(value){};
-    uint16_t symid;
+    RuntimeDoubleValueMessage(uint16_t symid,double value):SymSourceMessage(DoubleRuntimeValMsg, symid), value(value){};
     double value;
 };
 
 class PushConstraintMessage: public SymSinkMessage{
 public:
-    PushConstraintMessage(uint16_t symID, bool runtimeVal):SymSinkMessage(ConstraintRuntimeValMsg), symID(symID), runtimeVal(runtimeVal){};
-    uint16_t symID;
+    PushConstraintMessage(uint16_t symID, bool runtimeVal):SymSinkMessage(ConstraintRuntimeValMsg, symID), runtimeVal(runtimeVal){};
     bool runtimeVal;
 };
 
 class MemCpyMessage: public SymSinkMessage{
 public:
-    MemCpyMessage(uint16_t symID, uint32_t dst_ptr, uint32_t src_ptr, uint32_t length): SymSinkMessage(MemCpyRuntimeMsg),symID(symID), dst_ptr(dst_ptr), src_ptr(src_ptr),length(length){};
-    uint16_t symID;
+    MemCpyMessage(uint16_t symID, uint32_t dst_ptr, uint32_t src_ptr, uint32_t length): SymSinkMessage(MemCpyRuntimeMsg, symID), dst_ptr(dst_ptr), src_ptr(src_ptr),length(length){};
     uint32_t dst_ptr;
     uint32_t src_ptr;
     uint32_t length;
@@ -100,16 +96,14 @@ public:
 
 class MemSetMessage: public SymSinkMessage{
 public:
-    MemSetMessage(uint16_t symID, uint32_t ptr, uint32_t length): SymSinkMessage(MemsetRuntimeMsg),symID(symID),  ptr(ptr),length(length){};
-    uint16_t symID;
+    MemSetMessage(uint16_t symID, uint32_t ptr, uint32_t length): SymSinkMessage(MemsetRuntimeMsg,symID), ptr(ptr),length(length){};
     uint32_t ptr;
     uint16_t length;
 };
 
 class MemMoveMessage: public SymSinkMessage{
 public:
-    MemMoveMessage(uint16_t symID, uint32_t dst_ptr, uint32_t src_ptr, uint32_t length): SymSinkMessage(MemmoveRuntimeMsg),symID(symID), dst_ptr(dst_ptr), src_ptr(src_ptr),length(length){};
-    uint16_t symID;
+    MemMoveMessage(uint16_t symID, uint32_t dst_ptr, uint32_t src_ptr, uint32_t length): SymSinkMessage(MemmoveRuntimeMsg, symID), dst_ptr(dst_ptr), src_ptr(src_ptr),length(length){};
     uint32_t dst_ptr;
     uint32_t src_ptr;
     uint32_t length;
@@ -117,18 +111,14 @@ public:
 
 class ReadMemMessage: public SymSourceMessage{
 public:
-    ReadMemMessage(uint16_t symID, uint32_t ptr, uint32_t length): SymSourceMessage(ReadMemRuntimeMsg),symID(symID), ptr(ptr),length(length){}
-    uint16_t symID;
+    ReadMemMessage(uint16_t symID, uint32_t ptr): SymSourceMessage(ReadMemRuntimeMsg, symID), ptr(ptr){}
     uint32_t ptr;
-    uint16_t length;
 };
 
 class WriteMemMessage: public SymSinkMessage{
 public:
-    WriteMemMessage(uint16_t symID, uint32_t ptr, uint32_t length): SymSinkMessage(WriteMemRuntimeMsg),symID(symID), ptr(ptr),length(length){}
-    uint16_t symID;
+    WriteMemMessage(uint16_t symID, uint32_t ptr): SymSinkMessage(WriteMemRuntimeMsg, symID), ptr(ptr){}
     uint32_t ptr;
-    uint16_t length;
 };
 
 class NotifyCallMessage: public ControlMessgaes{
