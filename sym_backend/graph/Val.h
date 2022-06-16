@@ -9,6 +9,7 @@
 #include <mutex>
 #include <map>
 #include <assert.h>
+#include <sstream>
 #include "Runtime.h"
 #include "DataFlowGraph.h"
 
@@ -32,7 +33,25 @@ public:
         SymValTy,
     } ValType;
 
-
+    static string valTypeString(ValType vT) {
+        if(vT == ConstantIntValTy) {
+            return "ConstInt";
+        }else if(vT == ConstantFloatValTy){
+            return "ConstantFloat";
+        }else if(vT == ConstantDoubleValTy){
+            return  "ConstantDouble";
+        }else if(vT == RuntimeIntValTy){
+            return "RuntimeInt";
+        }else if(vT == RuntimeFloatValTy){
+            return  "runtimeFloat";
+        }else if(vT == RuntimeDoubleValTy) {
+            return "runtimeDouble";
+        }else if(vT == RuntimePtrValTy) {
+            return "runtimePtr";
+        }else if(vT == SymValTy){
+            return "SymVal";
+        }
+    }
     std::mutex mutex;
     ValType type;
     BasicBlockIdType BBID;
@@ -43,7 +62,11 @@ public:
     std::set<Val*> UsedBy;
 
     Val(ValType t, BasicBlockIdType bid): type(t), BBID(bid), ready(0){}
+    bool isThisNodeReady(Val*, Val::ReadyType);
     virtual ~Val(){};
+    string Print() {
+        return valTypeString(type);
+    }
 };
 
 class ConstantVal: public Val{
@@ -121,7 +144,13 @@ public:
     SymIDType symID;
     SymExpr symExpr;
     virtual void Construct() {};
+    bool directlyConstructable();
     SymVal(SymIDType symid, std::string op, BasicBlockIdType bid):Val( SymValTy,  bid), Op(op), symID(symid){}
+    string Print() {
+        std::ostringstream ss;
+        ss << "symID:"<<symID << ",op:"<<Op<<",BBID:"<<BBID<<",ready:"<<ready;
+        return ss.str();
+    }
 };
 
 
@@ -319,6 +348,9 @@ public:
     ~SymVal_sym_TruePhi(){In_edges.clear();tmpIn_edges.clear(); UsedBy.clear();}
 };
 
+
+
+
 class SymVal_sym_FalsePhiRoot: public SymVal{
 public:
     unsigned numOps;
@@ -338,6 +370,7 @@ class SymVal_sym_FalsePhiLeaf: public SymVal{
 public:
     unsigned numOps;
     map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap;// not really used
+    SymVal_sym_FalsePhiRoot* falsePhiRoot = nullptr;
     SymVal_sym_FalsePhiLeaf(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges,map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap):
             SymVal(symid, NodeFalseLeafPhi, bid), ArgNo2BBMap(ArgNo2BBMap){
         numOps = PhiEdges.size();
@@ -347,6 +380,5 @@ public:
     }
     ~SymVal_sym_FalsePhiLeaf(){In_edges.clear();tmpIn_edges.clear(); UsedBy.clear();}
 };
-
 
 #endif //SYMBACKEND_VAL_H

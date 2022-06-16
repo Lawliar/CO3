@@ -237,6 +237,14 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
         for(auto eachTmpInEdge : cur_node->tmpIn_edges){
             cur_node->In_edges.insert(make_pair(eachTmpInEdge.first, Nodes.at(eachTmpInEdge.second)));
         }
+        if(auto falsePhiRoot = dynamic_cast<SymVal_sym_FalsePhiRoot*>(cur_node); falsePhiRoot!= nullptr){
+            for(auto eachFalsePhiLeaf: falsePhiRoot->falsePhiLeaves){
+                auto falsePhiLeaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(Nodes.at(eachFalsePhiLeaf));
+                if(falsePhiLeaf != nullptr){
+                    falsePhiLeaf->falsePhiRoot = falsePhiRoot;
+                }
+            }
+        }
     }
     for(unsigned index = 0 ; index < Nodes.size() ; index++){
         // some sanity check for some special node
@@ -272,6 +280,7 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
     }
 
     // just to debugging and know more
+    /*
     for(unsigned index = 0 ; index < Nodes.size() ; index++){
         auto * node = Nodes.at(index);
         if(node->In_edges.size() == 0){
@@ -288,6 +297,7 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
             }
         }
     }
+     */
     //
 
     // get the getPara setRet for this function
@@ -394,32 +404,21 @@ void DataDependents::allPossibleDataDependencies(set<Val*> parent, vector<set<Va
     }
 }
 
-bool SymGraph::sortNonLoopBB(Val::BasicBlockIdType a, Val::BasicBlockIdType b) {
-    BasicBlockTask* a_task = bbTasks.at(a);
-    BasicBlockTask* b_task = bbTasks.at(b);
-    if(a_task->dominance.find(b) != a_task->dominance.end()){
+bool SymGraph::sortNonLoopBB(BasicBlockTask* a, BasicBlockTask* b) {
+    if(a->dominance.find(b->BBID) != a->dominance.end()){
         // a dominate b
         return true;
-    } else if (b_task->post_dominance.find(a) != b_task->post_dominance.end()){
+    } else if (b->post_dominance.find(a->BBID) != b->post_dominance.end()){
         // b post-dominate a
         return true;
     }else{
         //b dominate a OR a post-dominate b
-        assert(b_task->dominance.find(a) != b_task->dominance.end() || a_task->post_dominance.find(b) != a_task->post_dominance.end());
+        assert(b->dominance.find(a->BBID) != b->dominance.end() || a->post_dominance.find(b->BBID) != a->post_dominance.end());
 
         return false;
     }
 }
 
-list<Val::BasicBlockIdType> SymGraph::sortNonLoopBBs(set<Val::BasicBlockIdType> unsorted) {
-    list<Val::BasicBlockIdType> sortedBBs;
-    sortedBBs.push_back(*unsorted.begin());
-    unsorted.erase(unsorted.begin());
-
-    for(auto eachUnsorted : unsorted){
-
-    }
-}
 
 
 set<string> SinkOps;
@@ -463,55 +462,7 @@ void SymGraph::dbgBBRoot(Val::ValVertexType v) {
     }
 }
 
-inline bool SymGraph::isNodeReady(Val * nodeInQuestion, Val *  root_in_construct) {
-    auto * nodeIsTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(nodeInQuestion);
-    auto * rootIsTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(root_in_construct);
-    assert(nodeIsTruePhi == nullptr and rootIsTruePhi == nullptr);
-    if(nodeInQuestion == root_in_construct){
-        //if it's the same node, then it's not ready
-        return false;
-    }
-    if(nodeInQuestion->BBID == 0){
-        // if it's a constant or symNULL, then of course it's ready.
-        //for debugging only
-        auto tmpSymNull = dynamic_cast<SymVal_NULL*>(nodeInQuestion);
-        auto tmpConst = dynamic_cast<ConstantVal*>(nodeInQuestion);
-        assert(tmpConst != nullptr || tmpConst != nullptr);
-        //end of debug
-        return true;
-    }
-    if(!nodeInQuestion->inLoop){
-        if(nodeInQuestion->ready == 1){
-            return true;
-        }else if (nodeInQuestion->ready == 0){
-            return false;
-        }else{
-            cerr<<"Nodes in the non-loop BB should at executed at most once.";
-            assert(false);
-        }
-    }else{
-        // now nodeInQuestion is in loop, and root is in or out of a loop
-        if(nodeInQuestion->BBID == root_in_construct->BBID){
-            // if they are in the same BB, then it's just a comparison of ready value
-            if(nodeInQuestion->ready == root_in_construct->ready){
-                // the root we're trying to construct, and this nodeInQuestion has same ready Value
-                return false;
-            }else if (nodeInQuestion->ready == (root_in_construct->ready + 1)){
-                return true;
-            }else{
-                cerr<<"the dep can only be one more or equal to the root in terms of ready value when they are in the same loop BB";
-                assert(false);
-            }
-        }else{
-            // for BB in the loop we execute in the per-BB level
-            // given the root is under construction, no matter it's in the loop or not
-            // the nodeInQuestion is inside a loop, and they are in different BB
-            // then it must mean the construction for the nodeInQuestion must have been finished.
-            assert(nodeInQuestion->ready >= 1);
-            return true;
-        }
-    }
-}
+
 
 Val* SymGraph::stripPhis(Val* nodeInQuestion, Val* root) {
     Val* prev_node = nullptr;
@@ -531,14 +482,14 @@ Val* SymGraph::stripPhis(Val* nodeInQuestion, Val* root) {
                 // this root has all constant dependencies, which makes it impossible to be symbolized.
                 return nullptr;
             }
-            if(isNodeReady(cur_node, root)){
+            if(root->isThisNodeReady( cur_node, (root->ready + 1) )){
                 // cur_node is already constructed
                 return prev_node;
             }
             new_vert = false_phi_root->In_edges.at(1);// 1 is the non-false value
 
         }else{
-            if(isNodeReady(cur_node, root)){
+            if(root->isThisNodeReady(cur_node, (root->ready + 1) )){
                 // cur_node is already constructed
                 return prev_node;
             }
@@ -570,11 +521,18 @@ Val* SymGraph::stripTruePhi(Val* nodeInQuestion, Val* root) {
     return cur_node;
 }
 
-SymGraph::RootTask* SymGraph::CreateRootTask(Val * root) {
+
+SymGraph::RootTask* SymGraph::GetRootTask(SymVal * root) {
     {
         // dont' regard true phi as a root, as its ready value does not reflect it's constructed or not.
         SymVal_sym_TruePhi * true_phi = dynamic_cast<SymVal_sym_TruePhi*>(root);
         assert(true_phi == nullptr);
+    }
+
+    if(rootTasks.find(root) != rootTasks.end()){
+        RootTask* old_rootTask = rootTasks.at(root);
+        old_rootTask->Refresh();
+        return old_rootTask;
     }
     SymGraph::BasicBlockTask* rootBBTask = bbTasks.at(root->BBID);
     RootTask* rootTask = new RootTask(root, rootBBTask);
@@ -596,12 +554,13 @@ SymGraph::RootTask* SymGraph::CreateRootTask(Val * root) {
         SymVal_sym_FalsePhiLeaf * false_phi_leaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(strippedPhis);
         if(false_phi_root != nullptr || false_phi_leaf != nullptr){
             // we stripped it, and it is still here, that can only mean this is the one we should start building
-            assert(!isNodeReady(strippedPhis, root));
-            rootTask->InsertNonReadyDep(strippedPhis);
+            assert(!root->isThisNodeReady(strippedPhis, (root->ready + 1)  ));
+            rootTask->InsertNonReadyDep(strippedPhis, bbTasks);
         }
+        bool childIsNotReady = false;
         for(auto eachDep : cur_node->In_edges){
             Val* depNode = eachDep.second;
-            if(isNodeReady(depNode, root)){
+            if(root->isThisNodeReady(depNode, (root->ready + 1) )){
                 //this dep has been constructed
                 continue;
             }
@@ -609,23 +568,44 @@ SymGraph::RootTask* SymGraph::CreateRootTask(Val * root) {
                 // this node has been visited before
                 continue;
             }
+            auto tmpConstantVal = dynamic_cast<ConstantVal*>(depNode);
+            if(tmpConstantVal != nullptr){
+                // don't push Constant
+                continue;
+            }
             work_queue.push(depNode);
-            rootTask->InsertNonReadyDep(depNode);
+            rootTask->InsertNonReadyDep(depNode,bbTasks);
             visited.insert(depNode);
+            childIsNotReady=true;
         }
     }
     // sanity check
     for(auto eachNonReadyNonLoopBB : rootTask->depNonReadyNonLoopBB){
-        BasicBlockTask* bbTask = bbTasks.at(eachNonReadyNonLoopBB);
-        assert(bbTask->ready == 0);
-        assert(bbTask->inLoop == false);
+        assert(eachNonReadyNonLoopBB->ready == 0);
+        assert(eachNonReadyNonLoopBB->inLoop == false);
     }
     // end of sanity check
-    std::sort(rootTask->depNonReadyNonLoopBB.begin(), rootTask->depNonReadyNonLoopBB.end(), [this] (Val::BasicBlockIdType a, Val::BasicBlockIdType b) {
+
+    for(auto eachInBBNonReadyDep : rootTask->inBBNonReadyDeps){
+        bool allChildReady = true;
+        for(auto eachInBBNonReadyDepInEdge : eachInBBNonReadyDep->In_edges){
+            if(eachInBBNonReadyDepInEdge.second->BBID == 0){
+                //constants are of course ready
+                continue;
+            }
+            if(rootTask->inBBNonReadyDeps.find(eachInBBNonReadyDepInEdge.second) != rootTask->inBBNonReadyDeps.end()){
+                // one of its non-constant sym is also in the set
+                allChildReady = false;
+            }
+        }
+        if(allChildReady){
+            rootTask->inBBNonReadyLeafDeps.insert(eachInBBNonReadyDep);
+        }
+    }
+    std::sort(rootTask->depNonReadyNonLoopBB.begin(), rootTask->depNonReadyNonLoopBB.end(), [this] (BasicBlockTask* a, BasicBlockTask* b) {
         return sortNonLoopBB(a, b);});
-    //just to debugging purpose
-    rootTasks.push_back(rootTask);
-    //end
+
+    rootTasks.insert(make_pair(root,rootTask));
     return rootTask;
 }
 void SymGraph::prepareBBTask() {
@@ -653,6 +633,12 @@ void SymGraph::prepareBBTask() {
         bool inLoop = cfg.graph[*cfg_vi].inloop == '1' ? true : false;
         BasicBlockTask* task = new BasicBlockTask(cur_bbid, inLoop);
         RuntimeSymFlowGraph::edge_it ei, ei_end;
+        for(auto eachNode : Nodes ){
+            if(eachNode->BBID == cur_bbid){
+                task->allNodes.insert(eachNode);
+                task->nonReadyNodes.insert(eachNode);
+            }
+        }
         //prepare leaves and roots
         for(boost::tie(ei,ei_end) = boost::edges(dfg.graph); ei != ei_end ; ei++){
             RuntimeSymFlowGraph::vertex_t from = boost::source(*ei, dfg.graph);
@@ -691,11 +677,107 @@ void SymGraph::prepareBBTask() {
                 }
             }
         }
+        task->nonReadyLeaves.insert(task->leaves.begin(), task->leaves.end());
         // post-dom relation
         task->dominance = domChildrenOf(cur_bbid, dID2VertMap, cfg.domTree);
         task->post_dominance = domChildrenOf(cur_bbid, pdId2VertMap, cfg.postDomTree);
         // construct bbid to postDomTree Ver Map
         bbTasks.insert(make_pair(cur_bbid, task));
     }
-
 }
+
+void SymGraph::RootTask::InsertNonReadyDep(Val *v, std::map<Val::BasicBlockIdType, BasicBlockTask *> &bbTasks) {
+    //nonReadyDeps.insert(v);
+    if(v->BBID == root->BBID){
+        inBBNonReadyDeps.insert(v);
+    }
+    BasicBlockTask* curBBTask = bbTasks.at(v->BBID);
+    if(curBBTask->BBID != rootBBid && curBBTask->BBID != 0 && curBBTask->inLoop == false){
+        // this BB is not in the loop, and it has node that has not been executed, then it must not be ready
+        assert(curBBTask->ready == 0);
+        if(std::find(depNonReadyNonLoopBB.begin(), depNonReadyNonLoopBB.end(), curBBTask) == depNonReadyNonLoopBB.end()){
+            depNonReadyNonLoopBB.push_back(curBBTask);
+        }
+    }
+}
+
+void SymGraph::RootTask::Refresh() {
+    // we always assume root is yet to be constructed
+    // bbs
+    auto bbIter = depNonReadyNonLoopBB.begin();
+    while(bbIter != depNonReadyNonLoopBB.end()){
+        if((*bbIter)->ready == 1){
+            bbIter = depNonReadyNonLoopBB.erase(bbIter);
+        }else{
+            ++bbIter;
+        }
+    }
+    // in bb nodes
+    bool inBBNodesChanged = false;
+    auto nodeIter = inBBNonReadyDeps.begin();
+    while(nodeIter != inBBNonReadyDeps.end()){
+        if(root->isThisNodeReady(*nodeIter, (root->ready + 1 ) )){
+            nodeIter = inBBNonReadyDeps.erase(nodeIter);
+            inBBNodesChanged = true;
+        }else{
+            ++nodeIter;
+        }
+    }
+    // in bb nodes leaves, only refresh when the in BB nodes changed.
+    if(inBBNodesChanged){
+        inBBNonReadyLeafDeps.clear();
+        for(auto eachInBBNonReadyDep : inBBNonReadyDeps){
+            bool allChildReady = true;
+            for(auto eachInBBNonReadyDepInEdge : eachInBBNonReadyDep->In_edges){
+                if( ! root->isThisNodeReady(eachInBBNonReadyDepInEdge.second, (root->ready + 1 ))){
+                    allChildReady = false;
+                }
+            }
+            if(allChildReady){
+                // all of its children are ready, but not this node
+                inBBNonReadyLeafDeps.insert(eachInBBNonReadyDep);
+            }
+        }
+    }
+}
+
+bool SymGraph::BasicBlockTask::isBBReady() {
+    for(auto eachNode : allNodes){
+        if(eachNode->ready > ready){
+            assert((eachNode->ready)  == (ready + 1) );
+            return false;
+        }
+    }
+    return true;
+}
+void SymGraph::BasicBlockTask::Refresh() {
+    // in bb nodes
+    bool inBBNodesChanged = false;
+    auto nodeIter = nonReadyNodes.begin();
+    unsigned nodeReadyMax = ready;
+    while(nodeIter != nonReadyNodes.end()){
+        if((*nodeIter)->ready > ready){
+            assert((*nodeIter)->ready == (ready + 1) );
+            nodeIter = nonReadyNodes.erase(nodeIter);
+            inBBNodesChanged = true;
+            nodeReadyMax = (*nodeIter)->ready;
+        }else{
+            ++nodeIter;
+        }
+    }
+    if(inBBNodesChanged){
+        nonReadyLeaves.clear();
+        for(auto eachInBBNonReadyDep : nonReadyNodes){
+            bool allChildReady = true;
+            for(auto eachInBBNonReadyDepInEdge : eachInBBNonReadyDep->In_edges){
+                if(! eachInBBNonReadyDep->isThisNodeReady(eachInBBNonReadyDepInEdge.second, nodeReadyMax)){
+                    allChildReady = false;
+                }
+            }
+            if(allChildReady){
+                nonReadyLeaves.insert(eachInBBNonReadyDep);
+            }
+        }
+    }
+}
+

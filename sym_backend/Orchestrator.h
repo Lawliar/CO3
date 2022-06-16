@@ -24,9 +24,11 @@ public:
     int Run();
     SymGraph* getCurFunc();
 
-    void ExecuteBasicBlock(Val::BasicBlockIdType, bool);
+    void ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot*);
+    void ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf*);
+    void ExecuteBasicBlock(Val::BasicBlockIdType);
     void PreparingCalling(NotifyCallMessage*);
-    void ForwardExecution(Val*, bool, bool);
+    void ForwardExecution(Val*, bool, Val*,unsigned);
     void BackwardExecution(SymVal*);
     ~Orchestrator();
 

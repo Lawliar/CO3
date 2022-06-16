@@ -45,6 +45,10 @@ int main(int argc, const char *argv[])
 
     Orchestrator orc(input_path,serial_port,baud_rate);
     orc.Run();
+    //for(auto eachLeaf: leaves){
+    //    cout<<eachLeaf<<'\n';
+    //    cout.flush();
+    //}
     __asm__("nop");
 
 }

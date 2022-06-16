@@ -3,6 +3,74 @@
 //
 #include "Val.h"
 
+bool Val::isThisNodeReady(Val * nodeInQuestion, unsigned targetReady) {
+    auto * nodeIsTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(nodeInQuestion);
+    auto * rootIsTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(this);
+    assert(nodeIsTruePhi == nullptr and rootIsTruePhi == nullptr);
+    if(nodeInQuestion == this){
+        //if it's the same node, then it's not ready
+        return false;
+    }
+    if(nodeInQuestion->BBID == 0){
+        // if it's a constant or symNULL, then of course it's ready.
+        //for debugging only
+        auto tmpSymNull = dynamic_cast<SymVal_NULL*>(nodeInQuestion);
+        auto tmpConst = dynamic_cast<ConstantVal*>(nodeInQuestion);
+        assert(tmpConst != nullptr || tmpConst != nullptr);
+        //end of debug
+        return true;
+    }
+    if(!nodeInQuestion->inLoop){
+        if(nodeInQuestion->ready == 1){
+            return true;
+        }else if (nodeInQuestion->ready == 0){
+            return false;
+        }else{
+            cerr<<"Nodes in the non-loop BB should at executed at most once.";
+            assert(false);
+        }
+    }else{
+        // now nodeInQuestion is in loop, and root is in or out of a loop
+        if(nodeInQuestion->BBID == this->BBID){
+            // if they are in the same BB, then it's just a comparison of ready value
+            if(nodeInQuestion->ready == this->ready){
+                //nodeInQuestion has the same readyValue as this Node
+                if(this->ready == targetReady){
+                    return true;
+                }else if(this->ready < targetReady){
+                    return false;
+                }else{
+                    std::cerr<<"target Ready is less than this node's ready?";
+                    std::cerr.flush();
+                    abort();
+                }
+            }else if (nodeInQuestion->ready == (this->ready + 1)){
+                return true;
+            }else{
+                cerr<<"the dep can only be one more or equal to the root in terms of ready value when they are in the same loop BB";
+                assert(false);
+            }
+        }else{
+            // for BB in the loop we execute in the per-BB level
+            // given the root is under construction, no matter it's in the loop or not
+            // the nodeInQuestion is inside a loop, and they are in different BB
+            // then it must mean the construction for the nodeInQuestion must have been finished.
+            assert(nodeInQuestion->ready >= 1);
+            return true;
+        }
+    }
+}
+
+bool SymVal::directlyConstructable(){
+    bool allReady = true;
+    for(auto eachInEdge: In_edges){
+        if( ! this->isThisNodeReady(eachInEdge.second, ready + 1)){
+            allReady = false;
+        }
+    }
+    return allReady;
+}
+
 void RuntimeIntVal::Assign(IntValType val) {
     Val=val;
     ready++;
@@ -82,7 +150,17 @@ DEFINE_SYMVAL_CONSTRUCTION(_sym_build_unsigned_less_than)
 DEFINE_SYMVAL_CONSTRUCTION(_sym_build_unsigned_less_equal)
 DEFINE_SYMVAL_CONSTRUCTION(_sym_build_unsigned_greater_than)
 DEFINE_SYMVAL_CONSTRUCTION(_sym_build_unsigned_greater_equal)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_equal)
+
+void SymVal_sym_build_equal::Construct(){
+    auto left_operand = dynamic_cast<SymVal*>(In_edges.at(0));
+    assert(left_operand != nullptr && left_operand->symExpr != nullptr);
+
+    auto right_operand = dynamic_cast<SymVal*>(In_edges.at(1));
+    assert(right_operand != nullptr && right_operand->symExpr != nullptr);
+
+    symExpr = _sym_build_equal(left_operand->symExpr, right_operand->symExpr);
+    ready++;
+}
 DEFINE_SYMVAL_CONSTRUCTION(_sym_build_not_equal)
 DEFINE_SYMVAL_CONSTRUCTION(_sym_build_bool_and)
 DEFINE_SYMVAL_CONSTRUCTION(_sym_build_and)
@@ -150,6 +228,7 @@ void SymVal_sym_build_read_memory::Construct() {
     auto endianOperand = dynamic_cast<ConstantIntVal*>(In_edges.at(2));
     uint32_t endian_val = 0;
     assert(endianOperand != nullptr);
+    endian_val = endianOperand->Val;
 
     symExpr = _sym_build_read_memory((uint8_t*) ptr_val, len_val, endian_val);
     ready++;

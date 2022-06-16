@@ -10,6 +10,11 @@
 #include "RuntimeDataFlowGraph.h"
 #include "Val.h"
 
+typedef enum _ConstructStatus{
+    ConstructNotReady,
+    ConstructReady,
+    ConstructedDone
+} ConstructStatus;
 class DataDependents{
 public:
     Val* root;
@@ -32,30 +37,6 @@ public:
 };
 
 class SymGraph {
-private:
-    std::set<Val::BasicBlockIdType> domChildrenOf(Val::BasicBlockIdType, map<Val::BasicBlockIdType, RuntimeCFG::pd_vertex_t>, RuntimeCFG::DominanceTree&);
-    void dbgBBLeaves(Val::ValVertexType);
-    void dbgBBRoot(Val::ValVertexType);
-    void prepareBBTask();
-    bool sortNonLoopBB(Val::BasicBlockIdType, Val::BasicBlockIdType);
-    list<Val::BasicBlockIdType> sortNonLoopBBs(set<Val::BasicBlockIdType>);
-public:
-
-
-    SymGraph(std::string funcname, std::string cfg, std::string dt, std::string pdt, std::string dfg );
-    ~SymGraph(){
-        ver2offMap.clear();
-        symID2offMap.clear();
-        for(auto eachBBTask: bbTasks){
-            delete eachBBTask.second;
-            bbTasks[eachBBTask.first] = nullptr;
-        }
-        for(unsigned i = 0 ; i < Nodes.size(); i ++){
-            delete Nodes[i];
-            Nodes[i] = nullptr;
-        }
-    }
-
     class BasicBlockTask{
     public:
 
@@ -77,37 +58,73 @@ public:
         std::set<string> fakeRoots{"_sym_notify_call", "_sym_try_alternative"};
         std::set<Val::BasicBlockIdType> dominance;
         std::set<Val::BasicBlockIdType > post_dominance;// this BB post dominate these BBs
+        std::set<Val*> allNodes;
+        std::set<Val*> nonReadyNodes;
+        std::set<Val*> nonReadyLeaves;
         // leaves are the "inputs" to this basic block
         std::set<Val*> leaves;
         // roots are the non-out vertices and the direct out vertices
         std::set<Val*> roots;
-
+        bool isBBReady();
+        void Refresh();
         // map the root to its Dependent BBs that are not in the loop(because we already make sure loop is properly executed)
         //std::map<Val*, DataDependents* > nonLoopRootDependents;
     };
 
     class RootTask{
     public:
-        std::set<Val*> nonReadyDeps;
+        // not really used
+        //std::set<Val*> nonReadyDeps;
+        //end
         std::set<Val*> inBBNonReadyLeafDeps;
-        std::vector<Val::BasicBlockIdType> depNonReadyNonLoopBB;
-        Val *  root;
+        std::set<Val*> inBBNonReadyDeps;
+        // because when we construct this node, we trust that
+        // all its dependencies in other basic blocks(that dominates this BB)
+        // have already been executed, thus we only record the BBID, and make sure that BB is executed
+        // instead of the individual node.
+        std::vector<BasicBlockTask*> depNonReadyNonLoopBB;
+        SymVal *  root;
         Val::BasicBlockIdType rootBBid;
         BasicBlockTask* rootBBTask;
-        void InsertNonReadyDep(Val* v){
-            nonReadyDeps.insert(v);
-            if(rootBBTask->leaves.find(v) != rootBBTask->leaves.end()){
-                inBBNonReadyLeafDeps.insert(v);
-            }
-            Val::BasicBlockIdType depBBID = v->BBID;
-            if(depBBID != rootBBid && depBBID != 0 && v->inLoop == false){
-                if(std::find(depNonReadyNonLoopBB.begin(), depNonReadyNonLoopBB.end(), depBBID) == depNonReadyNonLoopBB.end()){
-                    depNonReadyNonLoopBB.push_back(depBBID);
+        void InsertNonReadyDep(Val* v,std::map<Val::BasicBlockIdType, BasicBlockTask*>& bbTasks);
+        bool hasRuntimeDep(){
+            for(auto eachLeafDep : inBBNonReadyLeafDeps){
+                auto tmpRuntime = dynamic_cast<RuntimeVal*>(eachLeafDep);
+                if(tmpRuntime != nullptr){
+                    return true;
                 }
             }
+            return false;
         }
-        RootTask(Val* r, BasicBlockTask* rootBBTask): root(r), rootBBid(r->BBID),rootBBTask(rootBBTask){};
+
+        void Refresh();
+
+        RootTask(SymVal* r, BasicBlockTask* rootBBTask): root(r), rootBBid(r->BBID),rootBBTask(rootBBTask){};
     };
+private:
+    std::set<Val::BasicBlockIdType> domChildrenOf(Val::BasicBlockIdType, map<Val::BasicBlockIdType, RuntimeCFG::pd_vertex_t>, RuntimeCFG::DominanceTree&);
+    void dbgBBLeaves(Val::ValVertexType);
+    void dbgBBRoot(Val::ValVertexType);
+    void prepareBBTask();
+    bool sortNonLoopBB(BasicBlockTask*, BasicBlockTask*);
+public:
+
+
+    SymGraph(std::string funcname, std::string cfg, std::string dt, std::string pdt, std::string dfg );
+    ~SymGraph(){
+        ver2offMap.clear();
+        symID2offMap.clear();
+        for(auto eachBBTask: bbTasks){
+            delete eachBBTask.second;
+            bbTasks[eachBBTask.first] = nullptr;
+        }
+        for(unsigned i = 0 ; i < Nodes.size(); i ++){
+            delete Nodes[i];
+            Nodes[i] = nullptr;
+        }
+    }
+
+
     // some basic information
     std::string funcname;
     RuntimeCFG cfg;
@@ -122,11 +139,10 @@ public:
 
     Val* stripPhis(Val*, Val*);
     Val* stripTruePhi(Val*, Val*);
-    inline bool isNodeReady(Val*, Val*);
 
-    RootTask* CreateRootTask(Val*);
-    // for debugging purpose only, it's just to keep the record, not referenced to when running
-    vector<RootTask*> rootTasks;
+    RootTask* GetRootTask(SymVal*);
+
+    map<SymVal*,RootTask*> rootTasks;
 };
 
 
