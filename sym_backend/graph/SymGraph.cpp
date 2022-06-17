@@ -237,6 +237,7 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
         for(auto eachTmpInEdge : cur_node->tmpIn_edges){
             cur_node->In_edges.insert(make_pair(eachTmpInEdge.first, Nodes.at(eachTmpInEdge.second)));
         }
+        // complete the falsePhiRoot For the falsePhiLeaves
         if(auto falsePhiRoot = dynamic_cast<SymVal_sym_FalsePhiRoot*>(cur_node); falsePhiRoot!= nullptr){
             for(auto eachFalsePhiLeaf: falsePhiRoot->falsePhiLeaves){
                 auto falsePhiLeaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(Nodes.at(eachFalsePhiLeaf));
@@ -300,21 +301,29 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
      */
     //
 
-    // get the getPara setRet for this function
+    // get the getPara setRet, callInst for this function
     Val::BasicBlockIdType entryBBID = static_cast<Val::BasicBlockIdType>(cfg.graph[cfg.cfgEntry].id);
     Val::BasicBlockIdType exitBBID = static_cast<Val::BasicBlockIdType>(cfg.graph[cfg.cfgExit].id);
     for(auto nodeIt = Nodes.begin(); nodeIt != Nodes.end(); nodeIt ++){
         if((*nodeIt)->BBID == entryBBID && (*nodeIt)->type == Val::SymValTy){
-            if(SymVal_sym_get_parameter_expression * getPara = dynamic_cast<SymVal_sym_get_parameter_expression*>((*nodeIt)); getPara != nullptr){
+            if(auto getPara = dynamic_cast<SymVal_sym_get_parameter_expression*>((*nodeIt)); getPara != nullptr){
                 getParametersSym.push_back(*nodeIt);
             }
         }
         if((*nodeIt)->BBID == exitBBID && (*nodeIt)->type == Val::SymValTy){
-            if(SymVal_sym_set_return_expression * setRet = dynamic_cast<SymVal_sym_set_return_expression*>((*nodeIt)); setRet != nullptr){
+            if(auto setRet = dynamic_cast<SymVal_sym_set_return_expression*>((*nodeIt)); setRet != nullptr){
                 setRetSym = *nodeIt;
             }
         }
+        if(auto notifyCall = dynamic_cast<SymVal_sym_notify_call*>(*nodeIt)){
+            auto idOperand = dynamic_cast<ConstantIntVal*>(notifyCall->In_edges.at(0));
+            assert(idOperand != nullptr);
+            unsigned char callInstId = idOperand->Val;
+            assert(callInsts.find(callInstId) == callInsts.end());
+            callInsts[callInstId] = notifyCall;
+        }
     }
+
     prepareBBTask();
 }
 

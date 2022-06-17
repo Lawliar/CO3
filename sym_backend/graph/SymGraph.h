@@ -129,13 +129,17 @@ public:
     std::string funcname;
     RuntimeCFG cfg;
     RuntimeSymFlowGraph dfg;
-    // some mapping
+
+    // some mapping just to trade space for speed
     map<RuntimeSymFlowGraph::vertex_t, Val::ValVertexType> ver2offMap;
     map<Val::SymIDType , Val::ValVertexType> symID2offMap;
     std::map<Val::BasicBlockIdType, BasicBlockTask*> bbTasks;
+
+    // the real thing
     vector<Val*> Nodes;
     vector<Val*> getParametersSym;
     Val* setRetSym;
+    map<unsigned char, SymVal_sym_notify_call*> callInsts;
 
     Val* stripPhis(Val*, Val*);
     Val* stripTruePhi(Val*, Val*);
