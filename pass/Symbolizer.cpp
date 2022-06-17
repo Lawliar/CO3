@@ -265,7 +265,9 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
         assignSymID(call_to_set_para,getNextID());
         setParas.push_back(call_to_set_para);
     }
-    auto notifyCall = IRB.CreateCall(runtime.notifyCall, ConstantHelper(runtime.int8T, callInstID));
+    auto callIdConstant = ConstantHelper(runtime.int8T, callInstID);
+    auto notifyCall = IRB.CreateCall(runtime.notifyCall, callIdConstant);
+    setCallInstId(notifyCall, callIdConstant);
     assignSymID(notifyCall, getNextID());
     for(auto eachSetPara: setParas){
         addSetParaToNotifyCall(notifyCall, eachSetPara);
@@ -1212,7 +1214,9 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                 unsigned userSymID = getSymIDFromSym(callInst);
                 auto userNode = g.AddSymVertice(userSymID, calleeName.str(),blockID);
                 if(calleeName.equals("_sym_notify_call")){
-                    unsigned counter = 0;
+                    auto conVert = addConstantIntVertice(callToCallId.at(callInst));
+                    g.AddEdge(conVert,userNode, 0);
+                    unsigned counter = 1;
                     if(callToSetParaMap.find(callInst) != callToSetParaMap.end()){
                         for(auto eachSetPara : callToSetParaMap.at(callInst)){
                             unsigned arg_symid = getSymIDFromSym(eachSetPara);

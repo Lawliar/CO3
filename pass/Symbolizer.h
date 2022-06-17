@@ -56,6 +56,7 @@ public:
       for(auto eachCallToSetPara: callToSetParaMap){
           eachCallToSetPara.second.clear();
       }
+      callToCallId.clear();
       callToSetParaMap.clear();
       phiNodes.clear();
       splited2OriginalBB.clear();
@@ -387,7 +388,10 @@ public:
         assert(exprIt == phiSymbolicIDs.end());
         phiSymbolicIDs[symPhi] = {ID, is_true,is_false_root, leaves};
     }
-
+    void setCallInstId(llvm::CallInst* notifyCall, llvm::ConstantInt* con){
+        assert(callToCallId.find(notifyCall) == callToCallId.end());
+        callToCallId[notifyCall] = con;
+    }
     void addSetParaToNotifyCall(llvm::CallInst* notifyCall, llvm::CallInst* setPara){
         if( callToSetParaMap.find(notifyCall) == callToSetParaMap.end() ){
             callToSetParaMap[notifyCall] = llvm::SmallVector<llvm::CallInst*, 8>();
@@ -571,6 +575,7 @@ public:
   /// Maps phi nodes to its IDs
   llvm::ValueMap<llvm::PHINode* , PhiStatus > phiSymbolicIDs;
   //map call inst to its corresponding set paras
+  std::map<llvm::CallInst*, llvm::ConstantInt* > callToCallId;
   std::map<llvm::CallInst*, llvm::SmallVector<llvm::CallInst*, 8> > callToSetParaMap;
   /// A record of all PHI nodes in this function.
   ///
