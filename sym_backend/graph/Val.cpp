@@ -8,8 +8,11 @@ bool Val::isThisNodeReady(Val * nodeInQuestion, unsigned targetReady) {
     auto * rootIsTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(this);
     assert(nodeIsTruePhi == nullptr and rootIsTruePhi == nullptr);
     if(nodeInQuestion == this){
-        //if it's the same node, then it's not ready
-        return false;
+        if(this->ready == targetReady){
+            return true;
+        }else{
+            return false;
+        }
     }
     if(nodeInQuestion->BBID == 0){
         // if it's a constant or symNULL, then of course it's ready.

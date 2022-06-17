@@ -20,8 +20,5 @@ public:
     void loopCheck();
 
     const RuntimeCFG& cfg;
-
-
-    std::map<vertex_t, set<vertex_t> > taskDependents;
 };
 #endif //SYMBACKEND_RUNTIMEDATAFLOWGRAPH_H
