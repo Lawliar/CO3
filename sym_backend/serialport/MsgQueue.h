@@ -41,7 +41,7 @@ public:
     ~MsgQueue();
     void RenderAndPush(char * buf, char size);
     void ProcessMsgs();
-    [[noreturn]] int Listen();
+    int Listen();
     size_t GetQueueSize();
     Message* Pop();
 private:

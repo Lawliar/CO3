@@ -97,8 +97,8 @@ void freeSerialPort(OpenedSP sp){
 }
 
 
-int GetNumBytesWaiting(OpenedSP sp){
-    int bytes_waiting = check(sp_input_waiting(sp.port));
+unsigned GetNumBytesWaiting(OpenedSP sp){
+    unsigned bytes_waiting = check(sp_input_waiting(sp.port));
     return bytes_waiting;
 }
 

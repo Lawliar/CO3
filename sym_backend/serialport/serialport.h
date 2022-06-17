@@ -45,7 +45,7 @@ typedef struct _OpenedSP{
 OpenedSP initSerialPort(const char * port_name, int);
 void freeSerialPort(OpenedSP port);
 void setRXReadyEvent(OpenedSP port);
-int GetNumBytesWaiting(OpenedSP port);
+unsigned GetNumBytesWaiting(OpenedSP port);
 
 
 void sendDataSerialPort(struct sp_port* port, uint8_t * buf, uint32_t size);

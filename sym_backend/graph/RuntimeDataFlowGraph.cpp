@@ -24,6 +24,7 @@ void RuntimeSymFlowGraph::readGraphViz(std::string filename) {
     myfile.close();
 }
 
+/*
 struct cycle_detector : public boost::dfs_visitor<>
 {
     cycle_detector( bool& has_cycle)
@@ -36,12 +37,12 @@ struct cycle_detector : public boost::dfs_visitor<>
     }
 protected:
     bool& _has_cycle;
-};
+};*/
 
 void RuntimeSymFlowGraph::loopCheck() {
-    bool has_cycle = false;
-    cycle_detector vis(has_cycle);
-    boost::depth_first_search(graph, visitor(vis));
+    //bool has_cycle = false;
+    //cycle_detector vis(has_cycle);
+    //boost::depth_first_search(graph, visitor(vis));
 
     /*
     edge_it ei,ei_end;

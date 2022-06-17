@@ -10,11 +10,6 @@
 #include "RuntimeDataFlowGraph.h"
 #include "Val.h"
 
-typedef enum _ConstructStatus{
-    ConstructNotReady,
-    ConstructReady,
-    ConstructedDone
-} ConstructStatus;
 class DataDependents{
 public:
     Val* root;
@@ -55,7 +50,6 @@ class SymGraph {
         bool inLoop;
         Val::ReadyType ready;
 
-        std::set<string> fakeRoots{"_sym_notify_call", "_sym_try_alternative"};
         std::set<Val::BasicBlockIdType> dominance;
         std::set<Val::BasicBlockIdType > post_dominance;// this BB post dominate these BBs
         std::set<Val*> allNodes;
@@ -137,8 +131,8 @@ public:
 
     // the real thing
     vector<Val*> Nodes;
-    vector<Val*> getParametersSym;
-    Val* setRetSym;
+    vector<SymVal_sym_get_parameter_expression*> getParametersSym;
+    SymVal_sym_set_return_expression* setRetSym;
     map<unsigned char, SymVal_sym_notify_call*> callInsts;
 
     Val* stripPhis(Val*, Val*);

@@ -122,7 +122,7 @@ void _sym_initialize(string inputDirName) {
     boost::filesystem::path dir (inputDirName);
     //loadConfig();
     boost::filesystem::path outputDir = dir / "output";
-    boost::filesystem::path inputFile = dir /"conreteInput.bin";
+    boost::filesystem::path inputFile = dir /"concreteInputs.bin";
 
     if(!boost::filesystem::exists(outputDir)){
         boost::filesystem::create_directory(outputDir);
@@ -146,7 +146,6 @@ void _sym_initialize(string inputDirName) {
     g_solver = new Solver(g_config.inputFile, g_config.outputDir, g_config.aflCoverageMap);
     g_expr_builder = g_config.pruning ? PruneExprBuilder::create()
                                       : SymbolicExprBuilder::create();
-    // symbolize a buffer
 
     //initially symbolize the memory buffer
     ReadWriteShadow shadow((void*)0x2400a921, inputSize);

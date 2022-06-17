@@ -29,9 +29,9 @@ Message* MsgQueue::Pop(){
     return ret;
 }
 extern std::string dbgInputFileName;
-[[noreturn]] int MsgQueue::Listen() {
-    int bytesWaiting;
-    int frameLen = 64;
+int MsgQueue::Listen() {
+    unsigned bytesWaiting;
+    unsigned frameLen = 64;
     if(sp.port != nullptr){
         while(true){
             bytesWaiting = GetNumBytesWaiting(sp);
@@ -64,7 +64,7 @@ extern std::string dbgInputFileName;
             inputFile.read(buf, frameLen);
             std::streamsize s = inputFile.gcount();
             unsigned emptyBytes = ring_buffer_num_empty_items(&RingBuffer);
-            assert(emptyBytes >= frameLen);// I trusted when calling ProcessMsg, one least one whole frame is processed
+            assert(emptyBytes >= frameLen);// I trusted when calling ProcessMsg, at least one whole frame is processed
             ring_buffer_queue_arr(&RingBuffer, buf, s);
             ProcessMsgs();
         }
@@ -149,7 +149,7 @@ void MsgQueue::RenderAndPush(char * buf, char size){
         }else if(buf[cur] == SYM_NTFY_PHI){
             uint16_t symid = *(uint16_t*)(buf + cur + 1);
             uint8_t val = *(uint64_t*)(buf + cur + 3);
-            msgQueue.push_back(new RuntimePhiValueMessage(symid, val));
+            msgQueue.push_back(new PhiValueMessage(symid, val));
             cur += MsgLen.at(SYM_NTFY_PHI);
         }else if(buf[cur] == SYM_NTFY_CALL){
             uint8_t id = *(uint8_t*)(buf + cur + 1);
@@ -183,22 +183,22 @@ void MsgQueue::ProcessMsgs() {
     ring_buffer_size_t avaiNumBytes = ring_buffer_num_items(&RingBuffer);
     assert(avaiNumBytes > 0);
 
-    int processedBytes = 0;
+    unsigned processedBytes = 0;
     char numBytesForPacket;
     char tempBuffer[64];
 
     ring_buffer_peek(&RingBuffer, &numBytesForPacket, 0);
 
-    while( (numBytesForPacket + 1) <= (avaiNumBytes - processedBytes)){
+    while( static_cast<unsigned>(numBytesForPacket + 1) <= (avaiNumBytes - processedBytes)){
         //we only deal with a whole packet, if what's remaining is not enough, we just wait for another turn
 
         //retrive numBytesForPacket out from the ring buffer
         ring_buffer_dequeue(&RingBuffer, &numBytesForPacket); // dequeue one byte for the length
         ring_buffer_dequeue_arr(&RingBuffer,tempBuffer, numBytesForPacket); // dequeue the content
         //render these data and push to the queue
-        RenderAndPush(tempBuffer, numBytesForPacket);
+        RenderAndPush(tempBuffer, static_cast<unsigned char>(numBytesForPacket) );
         // mark these are processed
-        processedBytes += (numBytesForPacket + 1);
+        processedBytes += (static_cast<unsigned char>(numBytesForPacket)  + 1);
 
         // peek numBytesForPacket for the next packet
         ring_buffer_peek(&RingBuffer, &numBytesForPacket, 0);

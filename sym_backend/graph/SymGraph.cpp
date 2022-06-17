@@ -307,12 +307,12 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
     for(auto nodeIt = Nodes.begin(); nodeIt != Nodes.end(); nodeIt ++){
         if((*nodeIt)->BBID == entryBBID && (*nodeIt)->type == Val::SymValTy){
             if(auto getPara = dynamic_cast<SymVal_sym_get_parameter_expression*>((*nodeIt)); getPara != nullptr){
-                getParametersSym.push_back(*nodeIt);
+                getParametersSym.push_back(getPara);
             }
         }
         if((*nodeIt)->BBID == exitBBID && (*nodeIt)->type == Val::SymValTy){
             if(auto setRet = dynamic_cast<SymVal_sym_set_return_expression*>((*nodeIt)); setRet != nullptr){
-                setRetSym = *nodeIt;
+                setRetSym = setRet;
             }
         }
         if(auto notifyCall = dynamic_cast<SymVal_sym_notify_call*>(*nodeIt)){
@@ -485,7 +485,8 @@ Val* SymGraph::stripPhis(Val* nodeInQuestion, Val* root) {
         Val* new_vert;
         if(true_phi != nullptr){
             // for truePhi, its ready number might legally be larger than root_ready, we'll just choose the history value we want
-            new_vert = true_phi->In_edges.at(true_phi->historyValues.at(root->ready + 1).first);
+            auto whichBranchItTook = true_phi->historyValues.at(root->ready + 1).first;
+            new_vert = true_phi->In_edges.at(whichBranchItTook);
         }else if(false_phi_root != nullptr){
             if(false_phi_root->falsePhiLeaves.size() == 0){
                 // this root has all constant dependencies, which makes it impossible to be symbolized.
@@ -522,7 +523,8 @@ Val* SymGraph::stripTruePhi(Val* nodeInQuestion, Val* root) {
         Val* new_vert;
         if(true_phi != nullptr){
             // for truePhi, its ready number might legally be larger than root_ready, we'll just choose the history value we want
-            new_vert = true_phi->In_edges.at(true_phi->historyValues.at(root->ready + 1).first);
+            auto whichBranchItTook = true_phi->historyValues.at(root->ready + 1).first;
+            new_vert = true_phi->In_edges.at(whichBranchItTook);
         }
         cur_node = new_vert;
         true_phi = dynamic_cast<SymVal_sym_TruePhi*>(cur_node);
@@ -566,7 +568,6 @@ SymGraph::RootTask* SymGraph::GetRootTask(SymVal * root) {
             assert(!root->isThisNodeReady(strippedPhis, (root->ready + 1)  ));
             rootTask->InsertNonReadyDep(strippedPhis, bbTasks);
         }
-        bool childIsNotReady = false;
         for(auto eachDep : cur_node->In_edges){
             Val* depNode = eachDep.second;
             if(root->isThisNodeReady(depNode, (root->ready + 1) )){
@@ -585,7 +586,6 @@ SymGraph::RootTask* SymGraph::GetRootTask(SymVal * root) {
             work_queue.push(depNode);
             rootTask->InsertNonReadyDep(depNode,bbTasks);
             visited.insert(depNode);
-            childIsNotReady=true;
         }
     }
     // sanity check

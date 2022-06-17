@@ -54,9 +54,9 @@ public:
     bool value;
 };
 
-class RuntimePhiValueMessage: public Message{
+class PhiValueMessage: public ControlMessgaes{
 public:
-    RuntimePhiValueMessage(uint16_t symid,uint8_t value):Message(PhiMsg), symid(symid), value(value){};
+    PhiValueMessage(uint16_t symid,uint8_t value):ControlMessgaes(PhiMsg), symid(symid), value(value){};
     uint16_t symid;
     uint8_t value;
 };
