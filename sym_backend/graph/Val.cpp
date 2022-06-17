@@ -19,7 +19,7 @@ bool Val::isThisNodeReady(Val * nodeInQuestion, unsigned targetReady) {
         //for debugging only
         auto tmpSymNull = dynamic_cast<SymVal_NULL*>(nodeInQuestion);
         auto tmpConst = dynamic_cast<ConstantVal*>(nodeInQuestion);
-        assert(tmpConst != nullptr || tmpConst != nullptr);
+        assert(tmpSymNull != nullptr || tmpConst != nullptr);
         //end of debug
         return true;
     }
@@ -98,10 +98,27 @@ void RuntimePtrVal::Assign(void *val) {
 #define DEFINE_SYMVAL_CONSTRUCTION(OP) \
 void SymVal##OP::Construct(){          \
 }
-DEFINE_SYMVAL_CONSTRUCTION(_sym_notify_call)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_try_alternative)
 
-DEFINE_SYMVAL_CONSTRUCTION(_NULL)
+
+#define DEFINE_SYMVAL_CONSTRUCTION1(OP) \
+void SymVal##OP::Construct(){          \
+    auto symOp = dynamic_cast<SymVal*>(In_edges.at(0));    \
+    assert(symOp != nullptr && symOp->symExpr != nullptr);           \
+    symExpr =  OP(symOp->symExpr);       \
+    ready++;                             \
+}
+
+
+#define DEFINE_SYMVAL_CONSTRUCTION2(OP) \
+void SymVal##OP::Construct(){          \
+    auto symOp1 = dynamic_cast<SymVal*>(In_edges.at(0));    \
+    assert(symOp1 != nullptr && symOp1->symExpr != nullptr); \
+    auto symOp2 = dynamic_cast<SymVal*>(In_edges.at(1));    \
+    assert(symOp2 != nullptr && symOp2->symExpr != nullptr);           \
+    symExpr =  OP(symOp1->symExpr,symOp2->symExpr);       \
+    ready++;                                             \
+}
+
 void SymVal_sym_build_integer::Construct() {
     // check op0
     Val* op0 = In_edges.at(0);
@@ -122,37 +139,84 @@ void SymVal_sym_build_integer::Construct() {
     //ready ++
     ready++;
 }
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_null_pointer)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_true)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_false)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_bool)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_neg)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_add)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_sub)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_mul)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_unsigned_div)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_signed_div)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_unsigned_rem)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_signed_rem)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_shift_left)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_logical_shift_right)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_arithmetic_shift_right)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_fp_add)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_fp_sub)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_fp_mul)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_fp_div)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_fp_rem)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_fp_abs)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_not)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_signed_less_than)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_signed_less_equal)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_signed_greater_than)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_signed_greater_equal)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_unsigned_less_than)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_unsigned_less_equal)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_unsigned_greater_than)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_unsigned_greater_equal)
+void SymVal_sym_build_float::Construct() {
+    auto val_op = In_edges.at(0);
+    double val;
+    if(auto runtimeFloat = dynamic_cast<RuntimeFloatVal*>(val_op)){
+        val = static_cast<double>(runtimeFloat->Val);
+    }else if(auto runtimeDouble = dynamic_cast<RuntimeDoubleVal*>(val_op)){
+        val = runtimeDouble->Val;
+    }else if(auto constFloat = dynamic_cast<ConstantFloatVal*>(val_op)){
+        val = static_cast<double>(constFloat->Val);
+    }else if(auto constDouble = dynamic_cast<ConstantDoubleVal*>(val_op)){
+        val = constDouble->Val;
+    }
+
+    auto whateverthisis = dynamic_cast<ConstantIntVal*>(In_edges.at(1));
+    assert(whateverthisis != nullptr);
+    bool isDouble = whateverthisis->Val;
+    symExpr = _sym_build_float(val, isDouble);
+    ready++;
+}
+void SymVal_sym_build_null_pointer::Construct() {
+    symExpr = _sym_build_null_pointer();
+    ready++;
+}
+void SymVal_sym_build_true::Construct() {
+    symExpr = _sym_build_true();
+    ready++;
+}
+
+void SymVal_sym_build_false::Construct(){
+    symExpr = _sym_build_false();
+    ready ++ ;
+}
+void SymVal_sym_build_bool::Construct() {
+    auto val_op = In_edges.at(0);
+    bool val;
+    if(auto const_int = dynamic_cast<ConstantIntVal*>(val_op)){
+        val = static_cast<bool>(const_int->Val);
+    }else{
+        auto runtime_int = dynamic_cast<RuntimeIntVal*>(val_op);
+        assert(runtime_int != nullptr);
+        val = static_cast<bool>(runtime_int->Val);
+    }
+
+    symExpr = _sym_build_bool(val);
+    ready++;
+}
+
+
+DEFINE_SYMVAL_CONSTRUCTION(_sym_notify_call)
+DEFINE_SYMVAL_CONSTRUCTION(_sym_try_alternative)
+DEFINE_SYMVAL_CONSTRUCTION(_NULL)
+
+DEFINE_SYMVAL_CONSTRUCTION1(_sym_build_neg)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_add)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_sub)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_mul)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_div)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_signed_div)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_rem)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_signed_rem)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_shift_left)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_logical_shift_right)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_arithmetic_shift_right)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_fp_add)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_fp_sub)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_fp_mul)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_fp_div)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_fp_rem)
+DEFINE_SYMVAL_CONSTRUCTION1(_sym_build_fp_abs)
+DEFINE_SYMVAL_CONSTRUCTION1(_sym_build_not)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_signed_less_than)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_signed_less_equal)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_signed_greater_than)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_signed_greater_equal)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_less_than)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_less_equal)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_greater_than)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_greater_equal)
 
 void SymVal_sym_build_equal::Construct(){
     auto left_operand = dynamic_cast<SymVal*>(In_edges.at(0));
@@ -164,42 +228,50 @@ void SymVal_sym_build_equal::Construct(){
     symExpr = _sym_build_equal(left_operand->symExpr, right_operand->symExpr);
     ready++;
 }
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_not_equal)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_bool_and)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_and)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_bool_or)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_or)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_bool_xor)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_xor)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float_ordered_greater_than)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float_ordered_greater_equal)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float_ordered_less_than)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float_ordered_less_equal)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float_ordered_equal)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float_ordered_not_equal)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float_ordered)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float_unordered)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float_unordered_greater_than)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float_unordered_greater_equal)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float_unordered_less_than)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float_unordered_less_equal)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float_unordered_equal)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float_unordered_not_equal)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_not_equal)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_bool_and)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_and)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_bool_or)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_or)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_bool_xor)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_xor)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_ordered_greater_than)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_ordered_greater_equal)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_ordered_less_than)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_ordered_less_equal)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_ordered_equal)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_ordered_not_equal)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_ordered)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_unordered)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_unordered_greater_than)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_unordered_greater_equal)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_unordered_less_than)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_unordered_less_equal)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_unordered_equal)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_unordered_not_equal)
 DEFINE_SYMVAL_CONSTRUCTION(_sym_build_sext)
 DEFINE_SYMVAL_CONSTRUCTION(_sym_build_zext)
 DEFINE_SYMVAL_CONSTRUCTION(_sym_build_trunc)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_bswap)
+DEFINE_SYMVAL_CONSTRUCTION1(_sym_build_bswap)
 DEFINE_SYMVAL_CONSTRUCTION(_sym_build_int_to_float)
 DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float_to_float)
 DEFINE_SYMVAL_CONSTRUCTION(_sym_build_bits_to_float)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float_to_bits)
+DEFINE_SYMVAL_CONSTRUCTION1(_sym_build_float_to_bits)
 DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float_to_signed_integer)
 DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float_to_unsigned_integer)
 DEFINE_SYMVAL_CONSTRUCTION(_sym_build_bool_to_bits)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_set_parameter_expression)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_get_parameter_expression)
+DEFINE_SYMVAL_CONSTRUCTION(_sym_set_parameter_expression) // handled elsewhere
+void SymVal_sym_get_parameter_expression::Construct() {
+    auto const_op = dynamic_cast<ConstantIntVal*>(In_edges.at(0));
+    assert(const_op != nullptr);
+    symExpr = _sym_get_parameter_expression(const_op->Val);
+    ready++;
+}
 DEFINE_SYMVAL_CONSTRUCTION(_sym_set_return_expression)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_get_return_expression)
+void SymVal_sym_get_return_expression::Construct() {
+    symExpr = _sym_get_return_expression();
+    ready++;
+}
 void SymVal_sym_build_path_constraint::Construct() {
     // check symVal operand
     auto symVal = dynamic_cast<SymVal*>(In_edges.at(0));
@@ -233,7 +305,7 @@ void SymVal_sym_build_read_memory::Construct() {
     assert(endianOperand != nullptr);
     endian_val = endianOperand->Val;
 
-    symExpr = _sym_build_read_memory((uint8_t*) ptr_val, len_val, endian_val);
+    symExpr = _sym_build_read_memory(reinterpret_cast<uint8_t*>(ptr_val), len_val, endian_val);
     ready++;
 }
 DEFINE_SYMVAL_CONSTRUCTION(_sym_build_write_memory)

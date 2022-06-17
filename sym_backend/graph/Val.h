@@ -50,6 +50,8 @@ public:
             return "runtimePtr";
         }else if(vT == SymValTy){
             return "SymVal";
+        }else {
+            return "seriously?";
         }
     }
     std::mutex mutex;
@@ -337,7 +339,7 @@ public:
     map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap;// not really used
 
     // at given time of execution, which branch this true phi took and what symExpr it represents
-    vector<pair<Val::ArgIndexType, SymExpr*> > historyValues;
+    vector<pair<Val::ArgIndexType, SymExpr> > historyValues;
     SymVal_sym_TruePhi(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges, map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap):
             SymVal(symid, NodeTruePhi, bid), ArgNo2BBMap(ArgNo2BBMap){
         numOps = PhiEdges.size();
