@@ -203,9 +203,9 @@ void Orchestrator::ForwardExecution(Val* source, bool crossBB, Val* target, unsi
             }else if(falsePhiRoot != nullptr){
                 ExecuteFalsePhiRoot(falsePhiRoot);
             }
-            if(symVal->directlyConstructable()){
+            if(symVal->directlyConstructable(targetReady)){
                 // if we can construct right now, just do it
-                symVal->Construct();
+                symVal->Construct(targetReady);
                 constructed = true;
             }else{
                 auto rootTask = cur_func->GetRootTask(symVal);
@@ -252,9 +252,9 @@ void Orchestrator::BackwardExecution(SymVal* sink, Val::ReadyType targetReady) {
         //sink is already constructed
         return;
     }
-    else if(sink->directlyConstructable()){
+    else if(sink->directlyConstructable(targetReady)){
         // if we can construct right now, just do it
-        sink->Construct();
+        sink->Construct(targetReady);
         cout << "constructed\n";
         cout.flush();
     }else{
@@ -265,7 +265,6 @@ void Orchestrator::BackwardExecution(SymVal* sink, Val::ReadyType targetReady) {
             ForwardExecution(eachInBBLeaf,false,sink,targetReady);
         }
     }
-
 }
 
 
@@ -339,6 +338,7 @@ int Orchestrator::Run() {
                 assert(val != nullptr);
                 BackwardExecution(val, (truePhi->ready + 1) );
                 truePhi->historyValues.push_back(make_pair(phi_msg->value, val->symExpr));
+                truePhi->ready ++;
             }
             else{
                 std::cerr<<"seriously?";

@@ -145,8 +145,10 @@ public:
     std::string Op;
     SymIDType symID;
     SymExpr symExpr;
-    virtual void Construct() {};
-    bool directlyConstructable();
+    // this targetReady is for debugging only, can be removed later
+    virtual void Construct(Val::ReadyType targetReady) {};
+    bool directlyConstructable(Val::ReadyType targetReady);
+    inline SymExpr extractSymExprFromSymVal(SymVal*, ReadyType);
     SymVal(SymIDType symid, std::string op, BasicBlockIdType bid):Val( SymValTy,  bid), Op(op), symID(symid){}
     string Print() {
         std::ostringstream ss;
@@ -160,7 +162,7 @@ public:
 class SymVal##OP : public SymVal{                      \
 public:                                                    \
     static const unsigned numOps = 0;                      \
-    void Construct() override;                                                       \
+    void Construct(ReadyType) override;                                                       \
     SymVal##OP(SymIDType symid, BasicBlockIdType bid): SymVal(symid, #OP, bid){}                         \
     ~SymVal##OP(){In_edges.clear();tmpIn_edges.clear(); UsedBy.clear();}                        \
 };
@@ -168,7 +170,7 @@ public:                                                    \
 #define DECLARE_SYMVAL_TYPE1(OP)                           \
 class SymVal##OP : public SymVal{                      \
 public:                                                    \
-    void Construct() override;                                                       \
+    void Construct(ReadyType) override;                                                       \
     static const unsigned numOps = 1;                                                       \
     SymVal##OP(SymIDType symid, BasicBlockIdType bid, ValVertexType dep): SymVal(symid, #OP,bid){ \
                tmpIn_edges[0] = dep;}                         \
@@ -178,7 +180,7 @@ public:                                                    \
 #define DECLARE_SYMVAL_TYPE2(OP)                           \
 class SymVal##OP : public SymVal{                      \
 public:                                                    \
-    void Construct() override;                                                       \
+    void Construct(ReadyType) override;                                                       \
     static const unsigned numOps = 2;                    \
     SymVal##OP(SymIDType symid, BasicBlockIdType bid,     \
                  ValVertexType dep1, ValVertexType dep2 ): \
@@ -191,7 +193,7 @@ public:                                                    \
 #define DECLARE_SYMVAL_TYPE3(OP)                           \
 class SymVal##OP : public SymVal{                      \
 public:                                                    \
-    void Construct() override;                                                       \
+    void Construct(ReadyType) override;                                                       \
     static const unsigned numOps = 3;                   \
     SymVal##OP(SymIDType symid, BasicBlockIdType bid,     \
                   ValVertexType dep1, ValVertexType dep2,  \
@@ -206,7 +208,7 @@ public:                                                    \
 class SymVal##OP : public SymVal{                      \
 public:                                                    \
     static const unsigned numOps = 4;                      \
-    void Construct() override;                                                       \
+    void Construct(ReadyType) override;                                                       \
     SymVal##OP(SymIDType symid, BasicBlockIdType bid,    \
           ValVertexType dep1, ValVertexType dep2,         \
           ValVertexType dep3, ValVertexType dep4):        \
@@ -220,7 +222,7 @@ public:                                                    \
 
 class SymVal_sym_notify_call: public SymVal {
 public:
-    void Construct() override;
+    void Construct(ReadyType) override;
     SymVal_sym_notify_call(SymIDType symid, BasicBlockIdType bid, std::map<unsigned , unsigned>& paras): SymVal(symid, "_sym_notify_call", bid) {
         for(auto eachPara: paras) {
             tmpIn_edges.insert(std::make_pair(eachPara.first, eachPara.second));
@@ -233,7 +235,7 @@ public:
 class SymVal_sym_try_alternative: public SymVal{
 public:
     static const unsigned numOps = 2;
-    void Construct() override;
+    void Construct(ReadyType) override;
     SymVal_sym_try_alternative(SymIDType symid, BasicBlockIdType bid,
                                ValVertexType dep1, ValVertexType dep2 ):
             SymVal(symid,"_sym_try_alternative",bid){

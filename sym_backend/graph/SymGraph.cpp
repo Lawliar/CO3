@@ -484,9 +484,9 @@ Val* SymGraph::stripPhis(Val* nodeInQuestion, Val* root) {
         // assuming the ReportTruePhi has been sent from the MCU.
         Val* new_vert;
         if(true_phi != nullptr){
-            // for truePhi, its ready number might legally be larger than root_ready, we'll just choose the history value we want
-            auto whichBranchItTook = true_phi->historyValues.at(root->ready + 1).first;
-            new_vert = true_phi->In_edges.at(whichBranchItTook);
+            // for truePhi, its ready number might legally be larger than root_ready
+            // we already execute truePhi here, just return prevNode
+            return prev_node;
         }else if(false_phi_root != nullptr){
             if(false_phi_root->falsePhiLeaves.size() == 0){
                 // this root has all constant dependencies, which makes it impossible to be symbolized.
