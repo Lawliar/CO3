@@ -29,7 +29,7 @@ public:
     void ExecuteBasicBlock(Val::BasicBlockIdType);
     void PreparingCalling(NotifyCallMessage*);
     void SetRet();
-    void ForwardExecution(Val*, bool, Val*,unsigned);
+    void ForwardExecution(Val*,bool, bool, Val*,unsigned);
     void BackwardExecution(SymVal*, Val::ReadyType);
     ~Orchestrator();
 

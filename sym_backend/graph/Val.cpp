@@ -80,21 +80,25 @@ bool SymVal::directlyConstructable(Val::ReadyType targetReady){
 
 void RuntimeIntVal::Assign(IntValType val) {
     Val=val;
+    Unassigned = false;
     ready++;
 }
 
 void RuntimeFloatVal::Assign(float val) {
     Val=val;
+    Unassigned = false;
     ready++;
 }
 
 void RuntimeDoubleVal::Assign(double val) {
     Val=val;
+    Unassigned = false;
     ready++;
 }
 
 void RuntimePtrVal::Assign(void *val) {
     Val=val;
+    Unassigned = false;
     ready++;
 }
 
@@ -145,8 +149,14 @@ void SymVal_sym_build_integer::Construct(Val::ReadyType targetReady) {
     if(auto tmp_const = dynamic_cast<ConstantIntVal*>(op0)){
         op0_val = tmp_const->Val;
     }else if(auto tmp_runtime = dynamic_cast<RuntimeIntVal*>(op0)){
+        // when this is called, we assume the runtime value will already be there
+        // otherwise, it means, the FalsePhiLeaf concreteness checking is wrong
+        assert( ! tmp_runtime->Unassigned);
         assert(tmp_runtime->ready == (ready + 1) );
         op0_val = tmp_runtime->Val;
+    }else{
+        std::cerr << "unhandled build integer type;";
+        abort();
     }
 
     //check op1
@@ -163,8 +173,10 @@ void SymVal_sym_build_float::Construct(Val::ReadyType targetReady) {
     auto val_op = In_edges.at(0);
     double val;
     if(auto runtimeFloat = dynamic_cast<RuntimeFloatVal*>(val_op)){
+        assert(!runtimeFloat->Unassigned);
         val = static_cast<double>(runtimeFloat->Val);
     }else if(auto runtimeDouble = dynamic_cast<RuntimeDoubleVal*>(val_op)){
+        assert(!runtimeDouble->Unassigned);
         val = runtimeDouble->Val;
     }else if(auto constFloat = dynamic_cast<ConstantFloatVal*>(val_op)){
         val = static_cast<double>(constFloat->Val);
@@ -203,6 +215,7 @@ void SymVal_sym_build_bool::Construct(Val::ReadyType targetReady) {
     }else{
         auto runtime_int = dynamic_cast<RuntimeIntVal*>(val_op);
         assert(runtime_int != nullptr);
+        assert(!runtime_int->Unassigned);
         val = static_cast<bool>(runtime_int->Val);
     }
 
@@ -317,6 +330,12 @@ void SymVal_sym_build_read_memory::Construct(Val::ReadyType targetReady) {
     assert(targetReady == (ready + 1) );
     // check op0
     auto ptrOperand = dynamic_cast<RuntimeIntVal*>(In_edges.at(0));
+    if(ptrOperand->Unassigned){
+        // we are reading from addr that has not been reported from the MCU,
+        // this only means that the address we are reading are all concrete
+        symExpr = nullptr;
+        ready++;
+    }
     uint32_t ptr_val = 0;
     assert(ptrOperand != nullptr && ptrOperand->ready == (ready+1) );
     ptr_val = ptrOperand->Val;

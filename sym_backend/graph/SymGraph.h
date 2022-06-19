@@ -53,14 +53,13 @@ class SymGraph {
         std::set<Val::BasicBlockIdType> dominance;
         std::set<Val::BasicBlockIdType > post_dominance;// this BB post dominate these BBs
         std::set<Val*> allNodes;
-        std::set<Val*> nonReadyNodes;
-        std::set<Val*> nonReadyLeaves;
+        std::set<Val*> nonReadyRoots;
         // leaves are the "inputs" to this basic block
         std::set<Val*> leaves;
         // roots are the non-out vertices and the direct out vertices
         std::set<Val*> roots;
         bool isBBReady();
-        void Refresh();
+        void Refresh(Val::ReadyType targetReady);
         // map the root to its Dependent BBs that are not in the loop(because we already make sure loop is properly executed)
         //std::map<Val*, DataDependents* > nonLoopRootDependents;
     };

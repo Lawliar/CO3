@@ -82,11 +82,17 @@ SymGraph* Orchestrator::getCurFunc() {
 void Orchestrator::ExecuteBasicBlock(Val::BasicBlockIdType bbid) {
     SymGraph* cur_func = getCurFunc();
     auto bbTask = cur_func->bbTasks.at(bbid);
-    bbTask->Refresh();
-    for(auto eachNonReadyLeaf : bbTask->nonReadyLeaves){
-        ForwardExecution(eachNonReadyLeaf,false,nullptr,(bbTask->ready + 1) );
+    bbTask->Refresh( bbTask->ready + 1 );
+    for(auto eachNonReadyRoot : bbTask->nonReadyRoots){
+        if(auto tmpSymVal = dynamic_cast<SymVal*>(eachNonReadyRoot); tmpSymVal != nullptr){
+            BackwardExecution(tmpSymVal, bbTask->ready + 1);
+        }else if(auto tmpRuntime = dynamic_cast<RuntimeVal*>(eachNonReadyRoot);  tmpRuntime != nullptr){
+            tmpRuntime->Unassign();
+        }
     }
+
     assert(bbTask->isBBReady());
+    bbTask->ready ++;
 }
 
 void Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot) {
@@ -176,11 +182,14 @@ void Orchestrator::ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf * falsePhiLeaf) {
         falsePhiLeaf->ready++;
     }
 }
-void Orchestrator::ForwardExecution(Val* source, bool crossBB, Val* target, unsigned targetReady) {
+void Orchestrator::ForwardExecution(Val* source,bool force, bool crossBB, Val* target, unsigned targetReady) {
     std::cout << "Forwarding:"<<source->Print() <<"\n";
     std::cout.flush();
     SymGraph* cur_func = getCurFunc();
     SymVal * symVal = dynamic_cast<SymVal*>(source);
+    RuntimeVal* runtimeVal = dynamic_cast<RuntimeVal*>(source);
+    ConstantVal* constVal = dynamic_cast<ConstantVal*>(source);
+
     bool constructed = false;
     if(symVal != nullptr){
         // try to construct this symval
@@ -217,11 +226,18 @@ void Orchestrator::ForwardExecution(Val* source, bool crossBB, Val* target, unsi
                 if(!rootTask->hasRuntimeDep()){
                     // if there is not, then, we can also construct this
                     for(auto eachInEdge : rootTask->inBBNonReadyLeafDeps){
-                        ForwardExecution(eachInEdge, false, symVal,targetReady);
+                        ForwardExecution(eachInEdge,force, false, symVal,targetReady);
                     }
                 }
             }
         }
+    }else if(runtimeVal != nullptr){
+        // when not forcing the runtimeValue, this source should not be runtimeVal, as this has been checked by code above
+        assert(force == true);
+        // this runtimeVal should not be ready, otherwise, this should not be called.
+        assert(targetReady == (runtimeVal->ready + 1));
+        runtimeVal->Unassign();
+        constructed = true;
     }
     if(constructed){
         cout << "constructed\n";
@@ -236,7 +252,7 @@ void Orchestrator::ForwardExecution(Val* source, bool crossBB, Val* target, unsi
         for(auto eachUser : source->UsedBy){
             auto& userPostDominance = cur_func->bbTasks.at(eachUser->BBID)->post_dominance;
             if(eachUser->BBID == source->BBID || (eachUser->BBID != source->BBID && crossBB && userPostDominance.find(source->BBID) != userPostDominance.end() ) ){
-                ForwardExecution(eachUser, crossBB, target, targetReady);
+                ForwardExecution(eachUser, force, crossBB, target, targetReady);
             }
         }
     }
@@ -260,10 +276,17 @@ void Orchestrator::BackwardExecution(SymVal* sink, Val::ReadyType targetReady) {
     }else{
         cout << "not constructed\n";
         cout.flush();
+
         auto rootTask = cur_func->GetRootTask(sink);
-        for(auto eachInBBLeaf : rootTask->inBBNonReadyLeafDeps){
-            ForwardExecution(eachInBBLeaf,false,sink,targetReady);
+        for(auto eachBBDep : rootTask->depNonReadyNonLoopBB){
+            ExecuteBasicBlock(eachBBDep->BBID);
         }
+        for(auto eachInBBLeaf : rootTask->inBBNonReadyLeafDeps){
+            // we are forcing the dependent unready runtime value to unassign themselves
+            ForwardExecution(eachInBBLeaf,true, false,sink,targetReady);
+        }
+        // we hope the execution above ful-filled its job properly
+        assert(sink->ready == targetReady);
     }
 }
 
@@ -359,7 +382,7 @@ int Orchestrator::Run() {
                 assert(runtime_operand != nullptr);
                 runtime_operand->Assign(sym_read_mem_msg->ptr);
                 // allow this to cross BB, but not by force(i.e., halt when meeting other unknown runtime dependency)
-                ForwardExecution(realMemSymVal,true,nullptr, realMemSymVal->ready + 1);
+                ForwardExecution(realMemSymVal,false, true,nullptr, realMemSymVal->ready + 1);
             }
         }else if (auto sym_sink_msg = dynamic_cast<SymSinkMessage*>(msg) ; sym_sink_msg != nullptr){
             SymGraph * cur_func = callStack.top();

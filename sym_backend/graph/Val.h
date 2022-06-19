@@ -106,7 +106,11 @@ public:
 
 class RuntimeVal: public Val{
 public:
+    // when this is true, it means, this value is not reported from the MCU
+    // thus, whatever SymVal that is using this should be concrete.
+    bool Unassigned;
     ByteWidthType ByteWidth;
+    void Unassign(){ Unassigned = true; ready++;};
     RuntimeVal(ValType t, BasicBlockIdType bid, ByteWidthType byteWidth): Val(t, bid), ByteWidth(byteWidth){
         assert(t >= RuntimeIntValTy && t <= RuntimePtrValTy);
     }

@@ -645,7 +645,6 @@ void SymGraph::prepareBBTask() {
         for(auto eachNode : Nodes ){
             if(eachNode->BBID == cur_bbid){
                 task->allNodes.insert(eachNode);
-                task->nonReadyNodes.insert(eachNode);
             }
         }
         //prepare leaves and roots
@@ -686,7 +685,7 @@ void SymGraph::prepareBBTask() {
                 }
             }
         }
-        task->nonReadyLeaves.insert(task->leaves.begin(), task->leaves.end());
+        task->nonReadyRoots.insert(task->roots.begin(), task->roots.end());
         // post-dom relation
         task->dominance = domChildrenOf(cur_bbid, dID2VertMap, cfg.domTree);
         task->post_dominance = domChildrenOf(cur_bbid, pdId2VertMap, cfg.postDomTree);
@@ -759,33 +758,14 @@ bool SymGraph::BasicBlockTask::isBBReady() {
     }
     return true;
 }
-void SymGraph::BasicBlockTask::Refresh() {
+void SymGraph::BasicBlockTask::Refresh(Val::ReadyType targetReady) {
     // in bb nodes
-    bool inBBNodesChanged = false;
-    auto nodeIter = nonReadyNodes.begin();
-    unsigned nodeReadyMax = ready;
-    while(nodeIter != nonReadyNodes.end()){
-        if((*nodeIter)->ready > ready){
-            assert((*nodeIter)->ready == (ready + 1) );
-            nodeIter = nonReadyNodes.erase(nodeIter);
-            inBBNodesChanged = true;
-            nodeReadyMax = (*nodeIter)->ready;
+    auto nodeIter = nonReadyRoots.begin();
+    while(nodeIter != nonReadyRoots.end()){
+        if((*nodeIter)->ready == targetReady){
+            nodeIter = nonReadyRoots.erase(nodeIter);
         }else{
             ++nodeIter;
-        }
-    }
-    if(inBBNodesChanged){
-        nonReadyLeaves.clear();
-        for(auto eachInBBNonReadyDep : nonReadyNodes){
-            bool allChildReady = true;
-            for(auto eachInBBNonReadyDepInEdge : eachInBBNonReadyDep->In_edges){
-                if(! eachInBBNonReadyDep->isThisNodeReady(eachInBBNonReadyDepInEdge.second, nodeReadyMax)){
-                    allChildReady = false;
-                }
-            }
-            if(allChildReady){
-                nonReadyLeaves.insert(eachInBBNonReadyDep);
-            }
         }
     }
 }
