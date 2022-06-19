@@ -31,8 +31,9 @@
     assert(in_degree == 4);             \
     cur_node = new SymVal##OP(symid, bbid, in_paras.at(0),in_paras.at(1),in_paras.at(2),in_paras.at(3));}
 
-set<string> leaves;
 
+set<string> leaves;
+set<string> nodesDepOnRuntime;
 SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_filename, std::string pdt_filename, std::string dfg_filename) \
 :funcname(funcname),cfg(cfg_filename,dt_filename, pdt_filename),dfg(dfg_filename, cfg) {
 
@@ -279,26 +280,45 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
             symID2offMap[symid] = static_cast<Val::ValVertexType>(index);
         }
     }
-
-    // just to debugging and know more
     /*
-    for(unsigned index = 0 ; index < Nodes.size() ; index++){
-        auto * node = Nodes.at(index);
-        if(node->In_edges.size() == 0){
-            if(auto * constVal = dynamic_cast<ConstantVal*>(node); constVal != nullptr){
-                leaves.insert("const");
-            }else if(auto * runtimeVal = dynamic_cast<RuntimeVal*>(node); runtimeVal != nullptr){
-                leaves.insert("runtime");
-            }else if(auto * symnull = dynamic_cast<SymVal_NULL*>(node); symnull != nullptr){
-                leaves.insert("symnull");
-            }else if(auto *symVal = dynamic_cast<SymVal*>(node);symVal != nullptr ){
-                leaves.insert(symVal->Op);
-            }else{
-                assert(false);
+    // just to debugging and know more
+    for(auto eachNode : Nodes){
+        if(auto tmpRuntime = dynamic_cast<RuntimeVal*>(eachNode)){
+            if(tmpRuntime->UsedBy.size() > 1){
+                __asm__("nop");
+            }
+            for(auto eachUser : tmpRuntime->UsedBy){
+                auto symVal = dynamic_cast<SymVal*>(eachUser);
+                assert(symVal != nullptr);
+
+                nodesDepOnRuntime.insert(symVal->Op);
+                auto buildBool = dynamic_cast<SymVal_sym_build_bool*>(symVal);
+                auto buildFloat = dynamic_cast<SymVal_sym_build_float*>(symVal);
+                auto buildInt = dynamic_cast<SymVal_sym_build_integer*>(symVal);
+                if(buildBool != nullptr || buildFloat != nullptr || buildInt != nullptr){
+                    if(symVal->UsedBy.size() > 1){
+                        __asm__("nop");
+                    }
+                    for(auto eachUserUser : symVal->UsedBy){
+                        auto symValVal = dynamic_cast<SymVal*>(eachUserUser);
+                        nodesDepOnRuntime.insert(symVal->Op);
+                    }
+                }
             }
         }
     }
-     */
+
+
+    for(unsigned index = 0 ; index < Nodes.size() ; index++){
+        auto * node = Nodes.at(index);
+        if(node->In_edges.size() == 0){
+            if(auto symVal = dynamic_cast<SymVal*>(node); symVal != nullptr){
+                leaves.insert(symVal->Op);
+            }else{
+                leaves.insert(node->Print());
+            }
+        }
+    }*/
     //
 
     // get the getPara setRet, callInst for this function

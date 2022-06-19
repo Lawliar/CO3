@@ -88,6 +88,9 @@ void Orchestrator::ExecuteBasicBlock(Val::BasicBlockIdType bbid) {
             BackwardExecution(tmpSymVal, bbTask->ready + 1);
         }else if(auto tmpRuntime = dynamic_cast<RuntimeVal*>(eachNonReadyRoot);  tmpRuntime != nullptr){
             tmpRuntime->Unassign();
+        }else{
+            cerr<<"Const should not be here";
+            assert(false);
         }
     }
 
