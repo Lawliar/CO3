@@ -4,3 +4,6 @@
 [submodule "deps/libserialport"]
 	path = deps/libserialport
 	url = git://sigrok.org/libserialport
+[submodule "benchmark/samples"]
+	path = benchmark/samples
+	url = https://github.com/CyberGrandChallenge/samples.git
