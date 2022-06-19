@@ -20,7 +20,7 @@ bool Val::isThisNodeReady(Val * nodeInQuestion, unsigned targetReady) {
     }
     if(nodeInQuestion->BBID == 0){
         // if it's a constant or symNULL, then of course it's ready.
-        //for debugging only
+        //todo: for debugging only
         auto tmpSymNull = dynamic_cast<SymVal_NULL*>(nodeInQuestion);
         auto tmpConst = dynamic_cast<ConstantVal*>(nodeInQuestion);
         assert(tmpSymNull != nullptr || tmpConst != nullptr);
@@ -146,12 +146,15 @@ void SymVal_sym_build_integer::Construct(Val::ReadyType targetReady) {
     // check op0
     Val* op0 = In_edges.at(0);
     uint32_t op0_val = 0;
-    if(auto tmp_const = dynamic_cast<ConstantIntVal*>(op0)){
+    if(auto tmp_const = dynamic_cast<ConstantIntVal*>(op0); tmp_const != nullptr){
         op0_val = tmp_const->Val;
-    }else if(auto tmp_runtime = dynamic_cast<RuntimeIntVal*>(op0)){
-        // when this is called, we assume the runtime value will already be there
-        // otherwise, it means, the FalsePhiLeaf concreteness checking is wrong
-        assert( ! tmp_runtime->Unassigned);
+    }else if(auto tmp_runtime = dynamic_cast<RuntimeIntVal*>(op0);tmp_runtime != nullptr){
+        // build integer can be fed into various symVal(e.g., the bool value of the path contraint), not just FalsePhi
+        if(tmp_runtime->Unassigned){
+            symExpr = nullptr;
+            ready++;
+            return;
+        }
         assert(tmp_runtime->ready == (ready + 1) );
         op0_val = tmp_runtime->Val;
     }else{
@@ -167,20 +170,29 @@ void SymVal_sym_build_integer::Construct(Val::ReadyType targetReady) {
     symExpr = _sym_build_integer(op0_val, op1->Val);
     //ready ++
     ready++;
+    return;
 }
 void SymVal_sym_build_float::Construct(Val::ReadyType targetReady) {
     assert(targetReady == (ready + 1));
     auto val_op = In_edges.at(0);
     double val;
-    if(auto runtimeFloat = dynamic_cast<RuntimeFloatVal*>(val_op)){
-        assert(!runtimeFloat->Unassigned);
+    if(auto runtimeFloat = dynamic_cast<RuntimeFloatVal*>(val_op); runtimeFloat != nullptr){
+        if(runtimeFloat->Unassigned){
+            symExpr = nullptr;
+            ready++;
+            return;
+        }
         val = static_cast<double>(runtimeFloat->Val);
-    }else if(auto runtimeDouble = dynamic_cast<RuntimeDoubleVal*>(val_op)){
-        assert(!runtimeDouble->Unassigned);
+    }else if(auto runtimeDouble = dynamic_cast<RuntimeDoubleVal*>(val_op); runtimeDouble != nullptr){
+        if(runtimeDouble->Unassigned){
+            symExpr = nullptr;
+            ready++;
+            return;
+        }
         val = runtimeDouble->Val;
-    }else if(auto constFloat = dynamic_cast<ConstantFloatVal*>(val_op)){
+    }else if(auto constFloat = dynamic_cast<ConstantFloatVal*>(val_op); constFloat != nullptr){
         val = static_cast<double>(constFloat->Val);
-    }else if(auto constDouble = dynamic_cast<ConstantDoubleVal*>(val_op)){
+    }else if(auto constDouble = dynamic_cast<ConstantDoubleVal*>(val_op) ; constDouble != nullptr){
         val = constDouble->Val;
     }
 
@@ -215,12 +227,17 @@ void SymVal_sym_build_bool::Construct(Val::ReadyType targetReady) {
     }else{
         auto runtime_int = dynamic_cast<RuntimeIntVal*>(val_op);
         assert(runtime_int != nullptr);
-        assert(!runtime_int->Unassigned);
+        if(runtime_int->Unassigned){
+            symExpr =  nullptr;
+            ready++;
+            return;
+        }
         val = static_cast<bool>(runtime_int->Val);
     }
 
     symExpr = _sym_build_bool(val);
     ready++;
+    return;
 }
 
 
@@ -315,12 +332,21 @@ void SymVal_sym_build_path_constraint::Construct(Val::ReadyType targetReady) {
     // check symVal operand
     assert(targetReady == (ready + 1) );
     auto symVal = dynamic_cast<SymVal*>(In_edges.at(0));
-    assert(symVal != nullptr && symVal->ready > ready);
-
+    assert(symVal != nullptr);
+    if(symVal->symExpr == nullptr){
+        // the symExpr called to the solver is concrete.
+        ready++;
+        return;
+    }
     // check the boolean
     // check op0
     auto boolean_operand = dynamic_cast<RuntimeIntVal*>(In_edges.at(1));
     assert(boolean_operand != nullptr && boolean_operand->ready == (ready+1) );
+    if(boolean_operand ->Unassigned){
+        //no path_constraint is reported from the MCU
+        ready++;
+        return;
+    }
     // We simply use the symid as the siteID
     _sym_build_path_constraint(extractSymExprFromSymVal(symVal, targetReady), boolean_operand->Val, symID);
     symExpr = nullptr;

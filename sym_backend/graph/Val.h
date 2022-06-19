@@ -149,7 +149,7 @@ public:
     std::string Op;
     SymIDType symID;
     SymExpr symExpr;
-    // this targetReady is for debugging only, can be removed later
+    // todo: remove the targetReady parameter
     virtual void Construct(Val::ReadyType targetReady) {};
     bool directlyConstructable(Val::ReadyType targetReady);
     inline SymExpr extractSymExprFromSymVal(SymVal*, ReadyType);
@@ -345,6 +345,7 @@ public:
     map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap;// not really used
 
     // at given time of execution, which branch this true phi took and what symExpr it represents
+    // todo: replace these historyValue to just the newest value
     vector<pair<Val::ArgIndexType, SymExpr> > historyValues;
     SymVal_sym_TruePhi(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges, map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap):
             SymVal(symid, NodeTruePhi, bid), ArgNo2BBMap(ArgNo2BBMap){
