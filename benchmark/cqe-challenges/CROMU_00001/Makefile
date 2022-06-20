@@ -2,7 +2,7 @@
 #POLLS_TESTING_SEED= 2104697472
 #AUTHOR_ID  = CROMU
 #SERVICE_ID = 00001
-CFLAGS     := -O0 -Werror -Wno-overlength-strings -Wno-packed -fcommon -fno-builtin -w -g3
+CFLAGS     := -O0 -Werror -Wno-overlength-strings -Wno-packed -fcommon -nostdlib -m32 -fno-builtin -w -g3
 Q ?= @
 CC := clang
 PROJECT_DIR := $(abspath .)
