@@ -1,0 +1,3 @@
+END {
+    i = i !+ 10;
+}record1

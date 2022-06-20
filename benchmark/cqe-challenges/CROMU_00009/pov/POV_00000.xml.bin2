@@ -1,0 +1,146 @@
+echo "\x00\x00\x00\x00" > /testfile
+mkfolder /test
+mkfolder /test/test0
+mkfolder /test/test1
+mkfolder /test/test2
+mkfolder /test/test3
+mkfolder /test/test4
+mkfolder /test/test5
+mkfolder /test/test6
+mkfolder /test/test7
+mkfolder /test/test8
+mkfolder /test/test9
+mkfolder /test/test10
+mkfolder /test/test11
+mkfolder /test/test12
+mkfolder /test/test13
+mkfolder /test/test14
+mkfolder /test/test15
+mkfolder /test/test16
+mkfolder /test/test17
+mkfolder /test/test18
+mkfolder /test/test19
+mkfolder /test/test20
+mkfolder /test/test21
+mkfolder /test/test22
+mkfolder /test/test23
+mkfolder /test/test24
+mkfolder /test/test25
+mkfolder /test/test26
+mkfolder /test/test27
+mkfolder /test/test28
+mkfolder /test/test29
+mkfolder /test/test30
+mkfolder /test/test31
+mkfolder /test/test32
+mkfolder /test/test33
+mkfolder /test/test34
+mkfolder /test/test35
+mkfolder /test/test36
+mkfolder /test/test37
+mkfolder /test/test38
+mkfolder /test/test39
+mkfolder /test/test40
+mkfolder /test/test41
+mkfolder /test/test42
+mkfolder /test/test43
+mkfolder /test/test44
+mkfolder /test/test45
+mkfolder /test/test46
+mkfolder /test/test47
+mkfolder /test/test48
+mkfolder /test/test49
+mkfolder /test/test50
+mkfolder /test/test51
+mkfolder /test/test52
+mkfolder /test/test53
+mkfolder /test/test54
+mkfolder /test/test55
+mkfolder /test/test56
+mkfolder /test/test57
+mkfolder /test/test58
+mkfolder /test/test59
+mkfolder /test/test60
+mkfolder /test/test61
+mkfolder /test/test62
+mkfolder /test/test63
+mkfolder /test/test64
+mkfolder /test/test65
+mkfolder /test/test66
+mkfolder /test/test67
+mkfolder /test/test68
+mkfolder /test/test69
+mkfolder /test/test70
+mkfolder /test/test71
+mkfolder /test/test72
+mkfolder /test/test73
+mkfolder /test/test74
+mkfolder /test/test75
+mkfolder /test/test76
+mkfolder /test/test77
+mkfolder /test/test78
+mkfolder /test/test79
+mkfolder /test/test80
+mkfolder /test/test81
+mkfolder /test/test82
+mkfolder /test/test83
+mkfolder /test/test84
+mkfolder /test/test85
+mkfolder /test/test86
+mkfolder /test/test87
+mkfolder /test/test88
+mkfolder /test/test89
+mkfolder /test/test90
+mkfolder /test/test91
+mkfolder /test/test92
+mkfolder /test/test93
+mkfolder /test/test94
+mkfolder /test/test95
+mkfolder /test/test96
+mkfolder /test/test97
+mkfolder /test/test98
+mkfolder /test/test99
+mkfolder /test/test100
+mkfolder /test/test101
+mkfolder /test/test102
+mkfolder /test/test103
+mkfolder /test/test104
+mkfolder /test/test105
+mkfolder /test/test106
+mkfolder /test/test107
+mkfolder /test/test108
+mkfolder /test/test109
+mkfolder /test/test110
+mkfolder /test/test111
+mkfolder /test/test112
+mkfolder /test/test113
+mkfolder /test/test114
+mkfolder /test/test115
+mkfolder /test/test116
+mkfolder /test/test117
+mkfolder /test/test118
+mkfolder /test/test119
+mkfolder /test/test120
+mkfolder /test/test121
+mkfolder /test/test122
+mkfolder /test/test123
+mkfolder /test/test124
+mkfolder /test/test125
+mkfolder /test/test126
+mkfolder /test/test127
+mkfolder /test/test128
+echo "\x04\xee\xff\xb7" > /testfile
+echo "fake" >> /testfile
+echo "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" >> /testfile
+echo "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" >> /testfile
+echo "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" >> /testfile
+echo "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" >> /testfile
+echo "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" >> /testfile
+echo "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" >> /testfile
+echo "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" >> /testfile
+echo "\x01\x00\x00\x00" >> /testfile
+echo "\x00\x00\x00\x00" >> /testfile
+echo "\x01\x00\x00\x00" >> /testfile
+echo "\x00\x00\x00\x00" >> /testfile
+echo "\x98\xae\xaa\xba" >> /testfile
+echo "\x00\x00\x00\x00" >> /test/fake

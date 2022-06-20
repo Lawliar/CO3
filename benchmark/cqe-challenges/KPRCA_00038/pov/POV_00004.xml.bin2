@@ -1,0 +1,4 @@
+END {
+    $8192="a";
+    print;
+}record1

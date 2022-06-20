@@ -1,0 +1,3 @@
+set1= |set2,"data"|
+set2 = |set1,"data2"|
+.psset1

@@ -1,0 +1,5 @@
+END {
+    f = "#";
+    printf f "s", -3;
+    print;
+}record1
