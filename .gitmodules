@@ -7,3 +7,6 @@
 [submodule "benchmark/samples"]
 	path = benchmark/samples
 	url = https://github.com/CyberGrandChallenge/samples.git
+[submodule "benchmark/cb-multios"]
+	path = benchmark/cb-multios
+	url = https://github.com/trailofbits/cb-multios.git
