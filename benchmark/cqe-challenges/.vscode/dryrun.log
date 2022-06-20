@@ -1,0 +1,6 @@
+make --dry-run --keep-going --print-directory
+make: Entering directory '/home/lcm/github/spear/spear-code/benchmark/cqe-challenges'
+make: Leaving directory '/home/lcm/github/spear/spear-code/benchmark/cqe-challenges'
+ 
+make: *** No targets specified and no makefile found.  Stop.
+

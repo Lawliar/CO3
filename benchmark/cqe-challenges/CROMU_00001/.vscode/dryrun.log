@@ -1,0 +1,5 @@
+make --dry-run --keep-going --print-directory
+make: Entering directory '/home/lcm/github/spear/spear-code/benchmark/cqe-challenges/CROMU_00001'
+clang -O0 -g -Werror -Wno-overlength-strings -Wno-packed -I/home/lcm/github/spear/spear-code/benchmark/cqe-challenges/libcgc -c -o out /home/lcm/github/spear/spear-code/benchmark/cqe-challenges/CROMU_00001/src/service.c
+make: Leaving directory '/home/lcm/github/spear/spear-code/benchmark/cqe-challenges/CROMU_00001'
+ 
