@@ -168,7 +168,7 @@ size_t_cgc create_user( puser_manager pum, char *username )
 	newuser->name[0] = 0x00;
 	newuser->pmm = init_manager();
 
-	strncat( newuser->name, username, USERNAME_LENGTH );
+	strncat_cgc( newuser->name, username, USERNAME_LENGTH );
 
 	// Check root user first
 	if ( pum->root == NULL ) {
@@ -280,7 +280,7 @@ pmessage create_message( char * msg_string )
 	pmsg->message_id = 0;
 	pmsg->read = 0;
 
-	bzero( pmsg->message, MESSAGE_LENGTH );
+	bzero_cgc( pmsg->message, MESSAGE_LENGTH );
 
 	for ( counter = 0; counter < strlen_cgc( msg_string ); counter++ ) {
 		pmsg->message[counter] = msg_string[counter];
@@ -357,8 +357,8 @@ void read_message( pmessage_manager pmm, size_t_cgc message_id )
 		goto end;
 	}
 
-	bzero( buffer, 0x100 );
-	strncat( buffer, "***********************************\n", 0x100 );
+	bzero_cgc( buffer, 0x100 );
+	strncat_cgc( buffer, "***********************************\n", 0x100 );
 	
 	walker = pmm->root;
 
@@ -366,9 +366,9 @@ void read_message( pmessage_manager pmm, size_t_cgc message_id )
 		if ( walker->message_id == message_id ) {
 			retval = strlen_cgc(buffer);
 			itoa( buffer + retval, message_id, 0x100-retval );
-			strncat(buffer, ":  ", 0x100 );
-			strncat(buffer, walker->message, 0x100 );
-			strncat( buffer, "\n***********************************\n", 0x100 );
+			strncat_cgc(buffer, ":  ", 0x100 );
+			strncat_cgc(buffer, walker->message, 0x100 );
+			strncat_cgc( buffer, "\n***********************************\n", 0x100 );
 			puts_cgc( buffer );
 			walker->read = 1;
 			goto end;
@@ -433,7 +433,7 @@ void list_unread_messages( pmessage_manager pmm )
 
 	char data[size];
 
-	bzero( data, size );
+	bzero_cgc( data, size );
 
 	walker = pmm->root;
 
@@ -453,7 +453,7 @@ void list_unread_messages( pmessage_manager pmm )
 	}
 
 	puts_cgc( data );
-end:
+//end:
 	return;
 }
 
@@ -512,7 +512,7 @@ end:
  * @param msg Pointer to the message to send to the user.
  * @return Returns the id of the sent message or 0 on failure.
  **/
-size_t_cgc_cgc send_user_message( puser_manager pum, char *username, char *msg )
+size_t_cgc send_user_message( puser_manager pum, char *username, char *msg )
 {
 	size_t_cgc id = 0;
 	puser pu = NULL;
@@ -574,7 +574,7 @@ void handle_loggedin( puser_manager pum, puser pu )
 
 		if ( receive_cgc_until( (char*)&choice, 0x0a, 2 ) == 0 ) {
 			puts_cgc("[-] receive_cgc failed\n");
-			_terminate(0);
+			goto end;
 		}
 
 		choice -= 0x30;
@@ -586,13 +586,13 @@ void handle_loggedin( puser_manager pum, puser pu )
 
 		if ( choice == 6 ) {
 			puts_cgc("Exiting...\n");
-			_terminate(0);
+			goto end;
 		} else if ( choice == 5 ) {
 			puts_cgc("Logging out...\n");
 			goto end;
 		} else if ( choice == 4 ) {
 			puts_cgc("ID: ");
-			bzero( message, MESSAGE_LENGTH);
+			bzero_cgc( message, MESSAGE_LENGTH);
 			receive_cgc_until( message, '\n', 4 );
 			choice = atoi( message );
 			delete_message( pu->pmm, choice );
@@ -600,13 +600,13 @@ void handle_loggedin( puser_manager pum, puser pu )
 			list_messages( pu->pmm );
 		} else if ( choice == 2 ) {
 			puts_cgc("ID: ");
-			bzero( message, MESSAGE_LENGTH );
+			bzero_cgc( message, MESSAGE_LENGTH );
 			receive_cgc_until( message, '\n', 4 );
 			choice = atoi( message );
 			read_message( pu->pmm, choice );
 		} else if ( choice == 1 ) {
-			bzero( message, MESSAGE_LENGTH );
-			bzero( username, USERNAME_LENGTH );
+			bzero_cgc( message, MESSAGE_LENGTH );
+			bzero_cgc( username, USERNAME_LENGTH );
 
 			puts_cgc("To: ");
 			receive_cgc_until( username, '\n', USERNAME_LENGTH-1);
@@ -628,7 +628,7 @@ void handle_menu ( )
 	puser_manager pum = NULL;
 	puser current_user = NULL;
 	size_t_cgc choice = 0;
-	size_t_cgc receive_cgcd = 0;
+	//size_t_cgc receive_cgcd = 0;
 	char username[USERNAME_LENGTH];
 
 	pum = init_users( );
@@ -647,7 +647,7 @@ void handle_menu ( )
 
 		if ( receive_cgc_until( (char*)&choice, '\n', 2 ) == 0 ) {
 			puts_cgc("[-] receive_cgc Failed\n");
-			_terminate(0);
+			goto end;
 		}
 
 		choice -= 0x30;
@@ -657,11 +657,11 @@ void handle_menu ( )
 			continue;
 		}
 
-		bzero( username, USERNAME_LENGTH );
+		bzero_cgc( username, USERNAME_LENGTH );
 
 		if ( choice == 3 ) {
 			puts_cgc("Exiting...\n");
-			_terminate( 0 );
+			goto end;
 		} else if ( choice == 1 ) {
 			puts_cgc("username: ");
 			receive_cgc_until( username, '\n', USERNAME_LENGTH - 1);

@@ -47,7 +47,7 @@ struct timeval {
 #define	ENOSYS		5
 #define	EPIPE		6
 
-void _terminate(unsigned int status);
+//void _terminate(unsigned int status);
 int transmit(int fd, const void *buf, size_t_cgc count, size_t_cgc *tx_bytes);
 int receive_cgc( void *buf, size_t_cgc count, size_t_cgc *rx_bytes);
 int fdwait(int nfds, fd_set *readfds, fd_set *writefds,

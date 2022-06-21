@@ -256,8 +256,8 @@ Runtime::Runtime(Module &M) {
     // given the address, we need to check the src is symbolic or not inside this fuction
     memcpy = import(M, "_sym_build_memcpy", voidT, ptrT, ptrT, intPtrType, symIntT);
     SymOperators.push_back(&memcpy);
-    runtimeArgNo["_sym_build_memcpy"] = {0,1};
-    constArgNo["_sym_build_memcpy"] = {2};
+    runtimeArgNo["_sym_build_memcpy"] = {0,1,2};
+    //constArgNo["_sym_build_memcpy"] = {};
     symIdArgNo["_sym_build_memcpy"] = {3};
 
     // the 1st para is a physical address

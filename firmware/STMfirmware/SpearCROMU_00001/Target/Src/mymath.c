@@ -47,9 +47,9 @@ double round_away_from_zero( double val )
         return 0.0;
 }
 
-double round( double val, double n )
+double round_cgc( double val, double n )
 {
-    // Round to n digits
+    // round_cgc to n digits
     n = rint( n );
 
     double high_pow10 = pow( 10, n );

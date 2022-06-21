@@ -34,10 +34,10 @@ double atof(const char *str);
 int atoi(const char *str);
 
 char *strcpy_cgc( char *dest, char *src );
-int printf( const char *fmt, ... );
-void bzero( void *, size_t_cgc );
+//int printf( const char *fmt, ... );
+void bzero_cgc( void *, size_t_cgc );
 int strcmp( const char *, const char * );
-char *strncat( char *dest, const char *src, size_t_cgc n );
+char *strncat_cgc( char *dest, const char *src, size_t_cgc n );
 size_t_cgc receive_cgc_until( char *, char, size_t_cgc );
 size_t_cgc strcat_cgc( char *, char* );
 size_t_cgc strlen_cgc( char * );

@@ -142,7 +142,7 @@ COREMARK_HAL_INCLUDE_DIR := \
 -I$(COREMARK_HAL_DIR)/Inc
 
 COREMARK_HAL_SOURCES := \
-$(COREMARK_HAL_DIR)/UninstrumentedSrc/libcgc.c \
+$(COREMARK_HAL_DIR)/Src/libcgc.c \
 $(COREMARK_HAL_DIR)/Src/mymath.c \
 $(COREMARK_HAL_DIR)/Src/printf.c \
 $(COREMARK_HAL_DIR)/Src/service.c \

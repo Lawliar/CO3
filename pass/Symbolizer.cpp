@@ -869,6 +869,7 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
         assignSymID(ret,symid);
         return ret;
     }
+    errs()<<*V<<'\n';
     llvm_unreachable("Unhandled type for constant expression");
 }
 
@@ -1283,7 +1284,10 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                                 errs()<<"arg:"<<*arg<<'\n';
                                 llvm_unreachable("runtime value is neither a parameter nor an instruction. \n");
                             }
-                            if( !val_type->isIntegerTy() && !val_type->isDoubleTy() && !val_type->isFloatTy()){
+                            if( !val_type->isIntegerTy() && !val_type->isDoubleTy() && !val_type->isFloatTy() && !val_type->isPointerTy()){
+                                errs()<<"callInst"<< *callInst<<'\n';
+                                errs()<<arg_idx <<"th parameter\n";
+                                errs()<< * arg <<'\n' << *val_type<<'\n';
                                 llvm_unreachable("type unhandled");
                             }
                             auto runtimeVert = addRuntimeVertice(arg,runtimeValueBBID);

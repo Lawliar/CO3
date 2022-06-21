@@ -204,7 +204,7 @@ char *strcpy_cgc( char *dest, char *src )
     return (dest);
 }
 
-void bzero( void *buff, size_t_cgc len )
+void bzero_cgc( void *buff, size_t_cgc len )
 {
     size_t_cgc index = 0;
     unsigned char *c = buff;
@@ -234,7 +234,7 @@ int strcmp( const char *s1, const char *s2 )
     return (*(const unsigned char *)s1 - *(const unsigned char *)s2);
 }
 
-char *strncat ( char *dest, const char *src, size_t_cgc n ) 
+char *strncat_cgc ( char *dest, const char *src, size_t_cgc n ) 
 {
     size_t_cgc dest_len = strlen_cgc(dest);
     size_t_cgc i;
@@ -353,6 +353,6 @@ void puts_cgc( char *t )
 {
     size_t_cgc size;
     if (transmit(STDOUT, t, strlen_cgc(t), &size) != 0) {
-        _terminate(2);
+        //_terminate(2);
     }
 }

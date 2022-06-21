@@ -45,9 +45,10 @@ unsigned available_input = sizeof(input) - 1;
 
 unsigned int cur = 0;
 
+/*
 void _terminate(unsigned int status){
 	while (1){}
-}
+}*/
 
 int transmit(int fd, const void *buf, size_t_cgc count, size_t_cgc *tx_bytes){
 	//ssize_t_cgc txb = write(fd, buf, count);

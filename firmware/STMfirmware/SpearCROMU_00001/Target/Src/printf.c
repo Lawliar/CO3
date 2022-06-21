@@ -36,9 +36,9 @@ int putc( int c )
 {
     size_t_cgc tx_count;
 
-    if ( transmit( STDOUT, &c, 1, &tx_count ) != 0 )
-        _terminate(2);
-
+    if ( transmit( STDOUT, &c, 1, &tx_count ) != 0 ){
+        //_terminate(2);
+    }
     return c;
 }
 
@@ -99,7 +99,7 @@ void float_to_str( double val, char *buf )
     {
         int digit;
         int m;
-        int m1;
+        //int m1;
         int fraction_digit;
         int in_fraction;
         int neg = 0;
@@ -159,7 +159,7 @@ void float_to_str( double val, char *buf )
         *c = '\0';
     }
 }
-
+/*
 int vprintf( const char *fmt, va_list arg )
 {
     int character_count = 0;
@@ -249,4 +249,4 @@ int printf( const char *fmt, ... )
     va_end( arg );
 
     return done;
-}
+}*/
