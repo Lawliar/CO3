@@ -24,7 +24,7 @@
 #include "libcgc.h"
 #include "stdlib.h" // for free and malloc
 #include "string.h"
-#include "runtime.h"
+#include "protocol.h"
 // lame so we don't have to include over-riding .h files
 #define MAP_ANONYMOUS 0x20
 #define MAP_PRIVATE 0x02
@@ -34,20 +34,21 @@
 #define _SC_PAGESIZE 128
 // todo prot_exec
 
-//#define USE_USB_AS_INPUT
+#define USE_USB_AS_INPUT
 
+#define string_literal "123456789"
 #ifdef USE_USB_AS_INPUT
 extern Symex_t AFLfuzzer;
 #else
-char * input = "";
-unsigned available_input = sizeof(input) - 1;
+char * input = string_literal;
+unsigned available_input = sizeof(string_literal) - 1;
 #endif
 
 unsigned int cur = 0;
 
 /*
 void _terminate(unsigned int status){
-	while (1){}
+	_exit(1);
 }*/
 
 int transmit(int fd, const void *buf, size_t_cgc count, size_t_cgc *tx_bytes){

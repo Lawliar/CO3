@@ -116,7 +116,7 @@ const std::set<llvm::StringRef> kInterceptedFunctions = {
         "fseeko64", "getc",    "ungetc",  "memcpy", "memset", "strncpy", "strchr",
         "memcmp",   "memmove", "ntohl",   "fgets",  "fgetc", "getchar"};
 */
-const std::set<llvm::StringRef> kInterceptedFunctions = {"memcpy", "memset","memmove"};
+const std::set<llvm::StringRef> kInterceptedFunctions = {};
  const llvm::StringRef kInterceptedFunctionPrefix("_sym_build_");
 
 bool isInterceptedFunction(const llvm::Function &f);

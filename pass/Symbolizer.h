@@ -36,9 +36,11 @@ public:
   explicit Symbolizer(llvm::Module &M, Runtime*r, llvm::LoopInfo& LI)
       : runtime(*r), loopinfo(LI), dataLayout(M.getDataLayout()),
         ptrBits(M.getDataLayout().getPointerSizeInBits()),
+        ptrBytes(M.getDataLayout().getPointerSize()),
         maxNumSymVars((1 << r->symIntT->getBitWidth()) - 1),
         intPtrType(M.getDataLayout().getIntPtrType(M.getContext())),g(true)
         {
+      assert(ptrBytes <= 8 );
       for(auto eachIntFunction : kInterceptedFunctions){
           std::string newFuncName = kInterceptedFunctionPrefix.str() + eachIntFunction.str() ;
           size_t len = newFuncName.size();
@@ -555,6 +557,7 @@ public:
 
   /// The width in bits of pointers in the module.
   unsigned ptrBits;
+  unsigned ptrBytes;
   /// max number in-register symbolic variables
   const unsigned maxNumSymVars;
   /// An integer type at least as wide as a pointer.

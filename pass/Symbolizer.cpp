@@ -804,9 +804,11 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
             return ret;
         } else if (bits <= 64) {
             auto symid = getNextID();
+            auto bytes = dataLayout.getTypeAllocSize(valueType);
+            assert(bytes == 1 || bytes == 2 || bytes == 4);
             ret = IRB.CreateCall(runtime.buildInteger,
                                  {IRB.CreateZExtOrBitCast(V, runtime.int_type),
-                                  IRB.getInt8(valueType->getPrimitiveSizeInBits()),
+                                  IRB.getInt8(bytes),
                                   ConstantHelper(runtime.symIntT,symid)});
             assignSymID(ret,symid);
             return ret;
@@ -815,6 +817,7 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
             // tricky because the symbolic backends don't support them per se. We have
             // a special function in the run-time library that handles them, usually
             // by assembling expressions from smaller chunks.
+            llvm_unreachable("128 bit integer in MCU?");
             auto symid = getNextID();
             ret = IRB.CreateCall(
                     runtime.buildInteger128,
@@ -838,9 +841,10 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
 
     if (valueType->isPointerTy()) {
         auto symid = getNextID();
+
         ret = IRB.CreateCall(
                 runtime.buildInteger,
-                {IRB.CreatePtrToInt(V, intPtrType), IRB.getInt8(ptrBits), ConstantHelper(runtime.symIntT, symid)});
+                {IRB.CreatePtrToInt(V, intPtrType), IRB.getInt8(ptrBytes), ConstantHelper(runtime.symIntT, symid)});
         assignSymID(ret,symid);
         return ret;
     }

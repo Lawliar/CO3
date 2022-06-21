@@ -255,6 +255,11 @@ bool _sym_build_integer(uint32_t int_val, uint8_t numBits, uint16_t symID)
 	}
 	else
 	{
+#if DEBUGPRINT ==1
+	    if(numBits > 4){
+	    	printf("Error! Integer more than 4 bytes! %d\n",(int)numBits );
+	    }
+#endif
 		msgSize = SIZE_SYM_BLD_INT_4;
 		msgCode = SYM_BLD_INT_4;
 	}
@@ -613,7 +618,7 @@ void _sym_build_memset(char * mem, bool input, size_t length, uint16_t symID)
 
     if(report)
     {
-    	reportSymHelper( SYM_BLD_MEMSET, SIZE_SYM_BLD_MENSET,mem,NULL, length, symID);
+    	reportSymHelper( SYM_BLD_MEMSET, SIZE_SYM_BLD_MEMSET,mem,NULL, length, symID);
     }
 }
 

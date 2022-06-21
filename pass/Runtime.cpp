@@ -264,9 +264,9 @@ Runtime::Runtime(Module &M) {
     // the 2nd para is actually a sym var which needs to be assigned with an ID
     memset = import(M, "_sym_build_memset", voidT, ptrT, isSymT, intPtrType, symIntT);
     SymOperators.push_back(&memset);
-    runtimeArgNo["_sym_build_memset"] = {0};
+    runtimeArgNo["_sym_build_memset"] = {0,2};
     isSymArgNo["_sym_build_memset"] = {1};
-    constArgNo["_sym_build_memset"] = {2};
+    constArgNo["_sym_build_memset"] = {};
     symIdArgNo["_sym_build_memset"] = {3};
 
     // the first 2 parameters are all physical address

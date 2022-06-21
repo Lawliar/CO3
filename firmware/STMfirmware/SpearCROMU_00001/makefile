@@ -238,7 +238,7 @@ ARM_CORTEXM_BUILTINS ?= \
 COMPILER_SPECIFIC_CFLAGS += \
   --target=arm-none-eabi \
   --sysroot=$(ARM_CORTEXM_SYSROOT) \
-  -Oz
+  -O1
 
 
 #-Wthread-safety \
@@ -348,7 +348,7 @@ endif
 $(TARGET_ELF): $(OBJ_FILES)  $(LDSCRIPT)
 	@echo "Linking library"
   #$(Q) $(CC) $(OBJ_FILES)  $(LDFLAGS) -o $@
-	$(Q) arm-none-eabi-gcc $(OBJ_FILES)  $(LDFLAGS) -fno-builtin -nostdlib -o $@
+	$(Q) arm-none-eabi-gcc $(OBJ_FILES)  $(LDFLAGS) -o $@
 	@echo "Generated $(patsubst $(ROOT_DIR)/%,%,$@)"
 	arm-none-eabi-objcopy -O binary $(TARGET_ELF)  "$(BUILD_DIR)/$(TARGET).bin"
 
