@@ -26,6 +26,8 @@ public:
 
     void ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot*);
     void ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf*);
+    bool ExecuteSpecialNode(SymVal*);
+
     void ExecuteBasicBlock(Val::BasicBlockIdType);
     void PreparingCalling(NotifyCallMessage*);
     void SetRet();
@@ -40,6 +42,5 @@ public:
     MsgQueue msgQueue;
     std::stack<SymGraph*> callStack;
     std::map<unsigned, SymGraph*> symGraphs;
-    bool functionedPushed;
 };
 #endif //SYMBACKEND_ORCHESTRATOR_H
