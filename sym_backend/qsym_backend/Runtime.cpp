@@ -114,8 +114,6 @@ namespace fs = std::filesystem;
 namespace fs = std::experimental::filesystem;
 #endif
 
-
-
 void _sym_initialize(string inputDirName) {
     if (g_initialized.test_and_set())
         return;
@@ -146,6 +144,8 @@ void _sym_initialize(string inputDirName) {
     g_solver = new Solver(g_config.inputFile, g_config.outputDir, g_config.aflCoverageMap);
     g_expr_builder = g_config.pruning ? PruneExprBuilder::create()
                                       : SymbolicExprBuilder::create();
+
+    _common_initialize();
 
     //initially symbolize the memory buffer
     ReadWriteShadow shadow((void*)0x2400a921, inputSize);
