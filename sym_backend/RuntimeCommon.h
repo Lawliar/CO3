@@ -35,6 +35,9 @@ extern "C" {
 /*
  * Initialization
  */
+
+#define kMaxFunctionArguments 256
+void _common_initialize();
 void _sym_initialize(string);
 
 /*

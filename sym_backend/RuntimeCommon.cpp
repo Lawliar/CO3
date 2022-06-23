@@ -24,7 +24,6 @@
 
 namespace {
 
-constexpr int kMaxFunctionArguments = 256;
 
 /// Global storage for function parameters and the return value.
 SymExpr g_return_value;
@@ -33,6 +32,13 @@ std::array<SymExpr, kMaxFunctionArguments> g_function_arguments;
 
 } // namespace
 
+void _common_initialize(){
+    // just to be sure
+    for(auto eachParaIdx = 0 ; eachParaIdx < kMaxFunctionArguments;eachParaIdx++){
+        g_function_arguments[eachParaIdx] = nullptr;
+    }
+    g_return_value = nullptr;
+}
 void _sym_set_return_expression(SymExpr expr) { g_return_value = expr; }
 
 SymExpr _sym_get_return_expression(void) {
