@@ -239,14 +239,21 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
         for(auto eachTmpInEdge : cur_node->tmpIn_edges){
             cur_node->In_edges.insert(make_pair(eachTmpInEdge.first, Nodes.at(eachTmpInEdge.second)));
         }
+        cur_node->tmpIn_edges.clear(); // not gonna use it anymore
         // complete the falsePhiRoot For the falsePhiLeaves
         if(auto falsePhiRoot = dynamic_cast<SymVal_sym_FalsePhiRoot*>(cur_node); falsePhiRoot!= nullptr){
-            for(auto eachFalsePhiLeaf: falsePhiRoot->falsePhiLeaves){
-                auto falsePhiLeaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(Nodes.at(eachFalsePhiLeaf));
+            for(auto eachFalsePhiLeaf: falsePhiRoot->tmpfalsePhiLeaves){
+                auto leafNode = Nodes.at(eachFalsePhiLeaf);
+                auto falsePhiLeaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(leafNode);
+                falsePhiRoot->falsePhiLeaves.insert(leafNode);
                 if(falsePhiLeaf != nullptr){
+#ifdef DEBUG_CHECKING
+                    assert(falsePhiRoot->tmpfalsePhiLeaves.size() > 1);
+#endif
                     falsePhiLeaf->falsePhiRoot = falsePhiRoot;
                 }
             }
+            falsePhiRoot->tmpfalsePhiLeaves.clear();// not gonna use it
         }
     }
     for(unsigned index = 0 ; index < Nodes.size() ; index++){
@@ -272,6 +279,11 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
         }
         for(auto each_in_edge : cur_node->In_edges){
             each_in_edge.second->UsedBy.insert(cur_node);
+        }
+        if(auto tmpFalsePhiRoot = dynamic_cast<SymVal_sym_FalsePhiRoot*>(cur_node)){
+            for(auto eachLeaf : tmpFalsePhiRoot->falsePhiLeaves){
+                eachLeaf->UsedBy.insert(tmpFalsePhiRoot);
+            }
         }
 
         //complete the symid to off map
@@ -575,31 +587,17 @@ SymGraph::RootTask* SymGraph::GetRootTask(SymVal * root) {
 
     while(!work_queue.empty()){
         Val* cur_node = work_queue.front();
+
         work_queue.pop();
 
         // HANDLE Phis
         {
+            // because truePhi is always ready(like BB in the loop), so it shouldn't appear here
             SymVal_sym_TruePhi * true_phi = dynamic_cast<SymVal_sym_TruePhi*>(cur_node);
             assert(true_phi == nullptr);
             assert(!root->isThisNodeReady(cur_node,(root->ready + 1)));
         }
-        SymVal_sym_FalsePhiRoot * false_phi_root = dynamic_cast<SymVal_sym_FalsePhiRoot*>(cur_node);
-        SymVal_sym_FalsePhiLeaf * false_phi_leaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(cur_node);
-        vector<Val*> nodesToAdd;
-        if(false_phi_root != nullptr || false_phi_leaf != nullptr){
-            if(false_phi_root != nullptr){
-                nodesToAdd.push_back(false_phi_root);
-            }else if(false_phi_leaf  != nullptr){
-                nodesToAdd.push_back(false_phi_leaf->In_edges.at(0));
-            }
-        }
-        else{
-            //normal nodes
-            for(auto eachDep : cur_node->In_edges){
-                nodesToAdd.push_back(eachDep.second);
-            }
-        }
-        for(auto eachNodeToAdd: nodesToAdd){
+        for(auto eachNodeToAdd: cur_node->realChildren()){
             if(root->isThisNodeReady(eachNodeToAdd, (root->ready + 1) )){
                 //this dep has been constructed
                 continue;
@@ -608,32 +606,31 @@ SymGraph::RootTask* SymGraph::GetRootTask(SymVal * root) {
                 // this node has been visited before
                 continue;
             }
+#ifdef DEBUG_CHECKING
             auto tmpConstantVal = dynamic_cast<ConstantVal*>(eachNodeToAdd);
-            if(tmpConstantVal != nullptr){
-                // don't push Constant
-                continue;
-            }
+            assert(tmpConstantVal == nullptr);
+#endif
             work_queue.push(eachNodeToAdd);
             rootTask->InsertNonReadyDep(eachNodeToAdd,bbTasks);
             visited.insert(eachNodeToAdd);
         }
     }
-    // sanity check
+#ifdef DEBUG_CHECKING
     for(auto eachNonReadyNonLoopBB : rootTask->depNonReadyNonLoopBB){
         assert(eachNonReadyNonLoopBB->ready == 0);
         assert(eachNonReadyNonLoopBB->inLoop == false);
     }
-    // end of sanity check
+#endif
 
     for(auto eachInBBNonReadyDep : rootTask->inBBNonReadyDeps){
         bool allChildReady = true;
-        for(auto eachInBBNonReadyDepInEdge : eachInBBNonReadyDep->In_edges){
-            if(eachInBBNonReadyDepInEdge.second->BBID == 0){
-                //constants are of course ready
+        for(auto eachRealChild: eachInBBNonReadyDep->realChildren()){
+            if(eachInBBNonReadyDep->isThisNodeReady(eachRealChild,(root->ready + 1))){
                 continue;
-            }
-            if(rootTask->inBBNonReadyDeps.find(eachInBBNonReadyDepInEdge.second) != rootTask->inBBNonReadyDeps.end()){
-                // one of its non-constant sym is also in the set
+            }else{
+#ifdef DEBUG_CHECKING
+                assert(rootTask->inBBNonReadyDeps.find(eachRealChild) != rootTask->inBBNonReadyDeps.end());
+#endif
                 allChildReady = false;
             }
         }

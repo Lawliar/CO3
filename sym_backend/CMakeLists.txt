@@ -27,7 +27,7 @@ if(NOT LLVM_DIR)
   set(LLVM_DIR "/home/lcm/github/toolchains/x86_64/clang+llvm-11.0.0-x86_64-linux-gnu-ubuntu-20.04")
 endif()
 
-
+add_compile_definitions(DEBUG_CHECKING)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 \
 -Wredundant-decls -Wcast-align \
 -Wmissing-include-dirs -Wswitch-default \

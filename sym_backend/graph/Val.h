@@ -62,7 +62,7 @@ public:
     std::map<ArgIndexType, ValVertexType> tmpIn_edges;
     std::map<ArgIndexType, Val*> In_edges;
     std::set<Val*> UsedBy;
-
+    inline vector<Val*> realChildren();
     Val(ValType t, BasicBlockIdType bid): type(t), BBID(bid), ready(0){}
     bool isThisNodeReady(Val*, Val::ReadyType);
     virtual ~Val(){};
@@ -364,9 +364,10 @@ class SymVal_sym_FalsePhiRoot: public SymVal{
 public:
     unsigned numOps;
     map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap;// not really used
-    set<ValVertexType> falsePhiLeaves;
+    set<ValVertexType> tmpfalsePhiLeaves;
+    set<Val*> falsePhiLeaves;
     SymVal_sym_FalsePhiRoot(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges,set<ValVertexType> falsePhiLeaves,map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap):
-            SymVal(symid, NodeFalseRootPhi, bid), ArgNo2BBMap(ArgNo2BBMap), falsePhiLeaves(falsePhiLeaves){
+            SymVal(symid, NodeFalseRootPhi, bid), ArgNo2BBMap(ArgNo2BBMap), tmpfalsePhiLeaves(falsePhiLeaves){
         numOps = PhiEdges.size();
         for(auto eachPhiEdge : PhiEdges){
             tmpIn_edges[eachPhiEdge.first] = eachPhiEdge.second;

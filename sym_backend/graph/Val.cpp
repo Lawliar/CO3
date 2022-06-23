@@ -67,11 +67,28 @@ bool Val::isThisNodeReady(Val * nodeInQuestion, unsigned targetReady) {
         }
     }
 }
-
+inline vector<Val*> Val::realChildren() {
+    vector<Val*> realChildren;
+    SymVal_sym_FalsePhiRoot * false_phi_root = dynamic_cast<SymVal_sym_FalsePhiRoot*>(this);
+    SymVal_sym_FalsePhiLeaf * false_phi_leaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(this);
+    if(false_phi_root != nullptr) {
+        for (auto eachLeaf: false_phi_root->falsePhiLeaves) {
+            realChildren.push_back(eachLeaf);
+        }
+    }else if(false_phi_leaf  != nullptr){
+        realChildren.push_back(false_phi_leaf->In_edges.at(0));
+    }else{
+        //normal nodes
+        for(auto eachDep : In_edges){
+            realChildren.push_back(eachDep.second);
+        }
+    }
+    return realChildren;
+}
 bool SymVal::directlyConstructable(Val::ReadyType targetReady){
     bool allReady = true;
-    for(auto eachInEdge: In_edges){
-        if( ! this->isThisNodeReady(eachInEdge.second, targetReady)){
+    for(auto eachDep: realChildren()){
+        if( ! this->isThisNodeReady(eachDep, targetReady)){
             allReady = false;
         }
     }

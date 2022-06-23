@@ -124,7 +124,7 @@ void Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot) {
         falsePhiRoot->symExpr = nullptr;
         falsePhiRoot->ready++;
     }else if(falsePhiRoot->falsePhiLeaves.size() == 1){
-        auto leaf = dynamic_cast<SymVal*>(getCurFunc()->Nodes.at( *falsePhiRoot->falsePhiLeaves.begin() ));
+        auto leaf = dynamic_cast<SymVal*>(*falsePhiRoot->falsePhiLeaves.begin());
         assert( leaf != nullptr);
         // make sure the only one leaf is executed.
         if(! falsePhiRoot->isThisNodeReady(leaf, (falsePhiRoot->ready + 1) )){
@@ -148,7 +148,7 @@ void Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot) {
         // and each leaf must be symFlaseLeaf
         bool anySym = false;
         for(auto eachLeaf : falsePhiRoot->falsePhiLeaves){
-            auto eachFalsePhiLeaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(getCurFunc()->Nodes.at(eachLeaf));
+            auto eachFalsePhiLeaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(eachLeaf);
             assert(eachFalsePhiLeaf != nullptr);
             auto eachFalsePhiLeafOriginalValue = dynamic_cast<SymVal*>(eachFalsePhiLeaf->In_edges.at(0));
             assert(eachFalsePhiLeafOriginalValue != nullptr);
@@ -340,10 +340,16 @@ void Orchestrator::BackwardExecution(SymVal* sink, Val::ReadyType targetReady) {
         cout << string(indent, ' ') << "not constructed\n";
         cout.flush();
 #endif
+#ifdef DEBUG_CHECKING
+        if(cur_func->funcname == "allocate_cgc" && sink->symID == 8){
+            __asm__("nop");
+        }
+#endif
         auto rootTask = cur_func->GetRootTask(sink);
         for(auto eachBBDep : rootTask->depNonReadyNonLoopBB){
             ExecuteBasicBlock(eachBBDep->BBID);
         }
+
         for(auto eachInBBLeaf : rootTask->inBBNonReadyLeafDeps){
             // we are forcing the dependent unready runtime value to unassign themselves
             ForwardExecution(eachInBBLeaf,true, false,sink,targetReady);
