@@ -66,7 +66,7 @@ public:
     Val(ValType t, BasicBlockIdType bid): type(t), BBID(bid), ready(0){}
     bool isThisNodeReady(Val*, Val::ReadyType);
     virtual ~Val(){};
-    string Print() {
+    string Str() {
         return valTypeString(type);
     }
 };
@@ -154,7 +154,7 @@ public:
     bool directlyConstructable(Val::ReadyType targetReady);
     inline SymExpr extractSymExprFromSymVal(SymVal*, ReadyType);
     SymVal(SymIDType symid, std::string op, BasicBlockIdType bid):Val( SymValTy,  bid), Op(op), symID(symid){}
-    string Print() {
+    string Str() {
         std::ostringstream ss;
         ss << "symID:"<<symID << ",op:"<<Op<<",BBID:"<<BBID<<",ready:"<<ready;
         return ss.str();

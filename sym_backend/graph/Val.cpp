@@ -107,7 +107,10 @@ inline SymExpr SymVal::extractSymExprFromSymVal(SymVal * op, ReadyType targetRea
     if(auto tmpTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(op);tmpTruePhi != nullptr){
         assert(tmpTruePhi->ready >= targetReady);
         ret = tmpTruePhi->historyValues.back().second;
-    } else{
+    }else if(auto tmpNull = dynamic_cast<SymVal_NULL*>(op);tmpNull != nullptr) {
+        ret = nullptr;
+    }
+    else{
         // for debugging only, since we already ensured that this op is ready before calling construct
         assert(this->isThisNodeReady(op, targetReady));
         //debugging end
@@ -125,8 +128,13 @@ void SymVal##OP::Construct(Val::ReadyType targetReady){          \
 #define DEFINE_SYMVAL_CONSTRUCTION1(OP) \
 void SymVal##OP::Construct(Val::ReadyType targetReady){ \
     auto symOp = dynamic_cast<SymVal*>(In_edges.at(0));    \
-    assert(symOp != nullptr && symOp->symExpr != nullptr); \
-    symExpr =  OP(extractSymExprFromSymVal(symOp, targetReady));       \
+    assert(symOp != nullptr);           \
+    auto symInput =   extractSymExprFromSymVal(symOp, targetReady); \
+    if(symInput != nullptr){      \
+        symExpr =  OP(symInput); \
+    }else{                              \
+        symExpr = nullptr;                                    \
+    }                                    \
     ready++;                          \
 }
 
@@ -134,10 +142,49 @@ void SymVal##OP::Construct(Val::ReadyType targetReady){ \
 #define DEFINE_SYMVAL_CONSTRUCTION2(OP) \
 void SymVal##OP::Construct(Val::ReadyType targetReady){          \
     auto symOp1 = dynamic_cast<SymVal*>(In_edges.at(0));    \
-    assert(symOp1 != nullptr && symOp1->symExpr != nullptr); \
+    assert(symOp1 != nullptr);                              \
     auto symOp2 = dynamic_cast<SymVal*>(In_edges.at(1));    \
-    assert(symOp2 != nullptr && symOp2->symExpr != nullptr);           \
-    symExpr =  OP(extractSymExprFromSymVal(symOp1, targetReady),extractSymExprFromSymVal(symOp2, targetReady));       \
+    assert(symOp2 != nullptr);          \
+    auto symInput1 = extractSymExprFromSymVal(symOp1, targetReady);  \
+    auto symInput2 = extractSymExprFromSymVal(symOp2, targetReady);  \
+    if(symInput1 == nullptr){     \
+        assert(symInput2 ==nullptr);                  \
+        symExpr = nullptr;                                  \
+    }else{                                \
+        symExpr =  OP(symInput1,symInput2);  \
+    }                                                     \
+    ready++;                                             \
+}
+
+#define DEFINE_SYMVAL_SYM_1CONSTINT(OP) \
+void SymVal##OP::Construct(Val::ReadyType targetReady){          \
+    auto symOp = dynamic_cast<SymVal*>(In_edges.at(0));    \
+    assert(symOp != nullptr);                              \
+    auto constOp = dynamic_cast<ConstantIntVal*>(In_edges.at(1));    \
+    assert(constOp != nullptr);         \
+    auto symInput = extractSymExprFromSymVal(symOp, targetReady);  \
+    if(symInput == nullptr){     \
+        symExpr = nullptr;                                  \
+    }else{                              \
+        symExpr =  OP(symInput, constOp->Val); \
+    }                                                     \
+    ready++;                                             \
+}
+
+#define DEFINE_SYMVAL_SYM_2CONSTINT(OP) \
+void SymVal##OP::Construct(Val::ReadyType targetReady){          \
+    auto symOp = dynamic_cast<SymVal*>(In_edges.at(0));    \
+    assert(symOp != nullptr);                              \
+    auto constOp1 = dynamic_cast<ConstantIntVal*>(In_edges.at(1));    \
+    assert(constOp1 != nullptr);                              \
+    auto constOp2 = dynamic_cast<ConstantIntVal*>(In_edges.at(2));    \
+    assert(constOp2 != nullptr);                              \
+    auto symInput = extractSymExprFromSymVal(symOp, targetReady);\
+    if(symInput == nullptr){     \
+        symExpr = nullptr;                                  \
+    }else{                              \
+        symExpr =  OP(symInput, constOp1->Val,constOp2->Val); \
+    }                                                     \
     ready++;                                             \
 }
 
@@ -240,10 +287,25 @@ void SymVal_sym_build_bool::Construct(Val::ReadyType targetReady) {
     return;
 }
 
-
+//handled else where
 DEFINE_SYMVAL_CONSTRUCTION(_sym_notify_call)
 DEFINE_SYMVAL_CONSTRUCTION(_sym_try_alternative)
 DEFINE_SYMVAL_CONSTRUCTION(_NULL)
+void SymVal_sym_set_parameter_expression::Construct(ReadyType targetReady) {
+    auto paraIndex = dynamic_cast<ConstantIntVal*>(In_edges.at(0));
+    auto symPara = dynamic_cast<SymVal*>(In_edges.at(1));
+    assert(paraIndex != nullptr && symPara != nullptr);
+    unsigned paraOff = paraIndex->Val;
+
+    _sym_set_parameter_expression(paraOff, extractSymExprFromSymVal(symPara, targetReady));
+    ready++;
+}
+void SymVal_sym_set_return_expression::Construct(ReadyType targetReady) {
+    auto symRet = dynamic_cast<SymVal*>(In_edges.at(0));
+    assert( symRet != nullptr);
+    _sym_set_return_expression(extractSymExprFromSymVal(symRet, targetReady));
+    ready++;
+}
 
 DEFINE_SYMVAL_CONSTRUCTION1(_sym_build_neg)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_add)
@@ -271,20 +333,13 @@ DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_less_than)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_less_equal)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_greater_than)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_greater_equal)
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_equal)
 
-void SymVal_sym_build_equal::Construct(Val::ReadyType targetReady){
-    auto left_operand = dynamic_cast<SymVal*>(In_edges.at(0));
-    assert(left_operand != nullptr && left_operand->symExpr != nullptr);
-
-    auto right_operand = dynamic_cast<SymVal*>(In_edges.at(1));
-    assert(right_operand != nullptr && right_operand->symExpr != nullptr);
-
-    symExpr = _sym_build_equal(extractSymExprFromSymVal(left_operand,targetReady), extractSymExprFromSymVal(right_operand,targetReady));
-    ready++;
-}
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_not_equal)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_bool_and)
+
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_and)
+
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_bool_or)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_or)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_bool_xor)
@@ -303,18 +358,18 @@ DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_unordered_less_than)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_unordered_less_equal)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_unordered_equal)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_unordered_not_equal)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_sext)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_zext)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_trunc)
+DEFINE_SYMVAL_SYM_1CONSTINT(_sym_build_sext)
+DEFINE_SYMVAL_SYM_1CONSTINT(_sym_build_zext)
+DEFINE_SYMVAL_SYM_1CONSTINT(_sym_build_trunc)
 DEFINE_SYMVAL_CONSTRUCTION1(_sym_build_bswap)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_int_to_float)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float_to_float)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_bits_to_float)
+DEFINE_SYMVAL_SYM_2CONSTINT(_sym_build_int_to_float)
+DEFINE_SYMVAL_SYM_1CONSTINT(_sym_build_float_to_float)
+DEFINE_SYMVAL_SYM_1CONSTINT(_sym_build_bits_to_float)
 DEFINE_SYMVAL_CONSTRUCTION1(_sym_build_float_to_bits)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float_to_signed_integer)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_float_to_unsigned_integer)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_bool_to_bits)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_set_parameter_expression) // handled elsewhere
+DEFINE_SYMVAL_SYM_1CONSTINT(_sym_build_float_to_signed_integer)
+DEFINE_SYMVAL_SYM_1CONSTINT(_sym_build_float_to_unsigned_integer)
+DEFINE_SYMVAL_SYM_1CONSTINT(_sym_build_bool_to_bits)
+
 void SymVal_sym_get_parameter_expression::Construct(Val::ReadyType targetReady) {
     assert(targetReady == (ready + 1) );
     auto const_op = dynamic_cast<ConstantIntVal*>(In_edges.at(0));
@@ -322,7 +377,7 @@ void SymVal_sym_get_parameter_expression::Construct(Val::ReadyType targetReady) 
     symExpr = _sym_get_parameter_expression(const_op->Val);
     ready++;
 }
-DEFINE_SYMVAL_CONSTRUCTION(_sym_set_return_expression)
+
 void SymVal_sym_get_return_expression::Construct(Val::ReadyType targetReady) {
     assert(targetReady == (ready + 1) );
     symExpr = _sym_get_return_expression();
@@ -333,58 +388,109 @@ void SymVal_sym_build_path_constraint::Construct(Val::ReadyType targetReady) {
     assert(targetReady == (ready + 1) );
     auto symVal = dynamic_cast<SymVal*>(In_edges.at(0));
     assert(symVal != nullptr);
-    if(symVal->symExpr == nullptr){
-        // the symExpr called to the solver is concrete.
-        ready++;
-        return;
-    }
-    // check the boolean
-    // check op0
+
     auto boolean_operand = dynamic_cast<RuntimeIntVal*>(In_edges.at(1));
-    assert(boolean_operand != nullptr && boolean_operand->ready == (ready+1) );
-    if(boolean_operand ->Unassigned){
-        //no path_constraint is reported from the MCU
-        ready++;
-        return;
+    assert(boolean_operand != nullptr);
+
+    auto symInput = extractSymExprFromSymVal(symVal, targetReady);
+    if(symInput == nullptr){
+        // the symExpr called to the solver is concrete.
+        assert(boolean_operand->Unassigned);
+    }else{
+        // We simply use the symid as the siteID
+        _sym_build_path_constraint(symInput, boolean_operand->Val, symID);
     }
-    // We simply use the symid as the siteID
-    _sym_build_path_constraint(extractSymExprFromSymVal(symVal, targetReady), boolean_operand->Val, symID);
-    symExpr = nullptr;
     ready++;
 }
 void SymVal_sym_build_read_memory::Construct(Val::ReadyType targetReady) {
     assert(targetReady == (ready + 1) );
     // check op0
     auto ptrOperand = dynamic_cast<RuntimeIntVal*>(In_edges.at(0));
+    assert(ptrOperand != nullptr);
     if(ptrOperand->Unassigned){
         // we are reading from addr that has not been reported from the MCU,
         // this only means that the address we are reading are all concrete
         symExpr = nullptr;
-        ready++;
+    }else{
+        // length
+        auto lengthOperand = dynamic_cast<ConstantIntVal*>(In_edges.at(1));
+        assert(lengthOperand != nullptr);
+
+        // little endian
+        auto endianOperand = dynamic_cast<ConstantIntVal*>(In_edges.at(2));
+        assert(endianOperand != nullptr);
+        symExpr = _sym_build_read_memory(reinterpret_cast<uint8_t*>(ptrOperand->Val), lengthOperand->Val, endianOperand->Val);
     }
-    uint32_t ptr_val = 0;
-    assert(ptrOperand != nullptr && ptrOperand->ready == (ready+1) );
-    ptr_val = ptrOperand->Val;
-
-    // length
-    auto lengthOperand = dynamic_cast<ConstantIntVal*>(In_edges.at(1));
-    uint32_t len_val = 0;
-    assert(lengthOperand != nullptr);
-    len_val = lengthOperand->Val;
-
-    // little endian
-    auto endianOperand = dynamic_cast<ConstantIntVal*>(In_edges.at(2));
-    uint32_t endian_val = 0;
-    assert(endianOperand != nullptr);
-    endian_val = endianOperand->Val;
-
-    symExpr = _sym_build_read_memory(reinterpret_cast<uint8_t*>(ptr_val), len_val, endian_val);
     ready++;
 }
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_write_memory)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_memcpy)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_memset)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_memmove)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_insert)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_build_extract)
+void SymVal_sym_build_write_memory::Construct(ReadyType targetReady) {
+    assert((ready + 1) == targetReady );
+    auto symValOperand = dynamic_cast<SymVal*>(In_edges.at(2));
 
+    auto symInput = extractSymExprFromSymVal(symValOperand, targetReady);
+    auto addrOperand = dynamic_cast<RuntimeIntVal*>(In_edges.at(0));
+    assert(addrOperand != nullptr);
+
+    if(symInput== nullptr){
+        // ensure what I calculate on the PC side is consistent with the MCU side(i.e., it's not reporting this as well)
+        // however, this consistency might break, since there might be some false positive from the MCU side.
+        assert(addrOperand->Unassigned);
+    }else{
+        auto lengthOperand = dynamic_cast<ConstantIntVal*>(In_edges.at(1));
+        assert(lengthOperand != nullptr);
+
+        auto isLittleEndianOperand = dynamic_cast<ConstantIntVal*>(In_edges.at(3));
+        assert(isLittleEndianOperand != nullptr);
+
+        _sym_build_write_memory(reinterpret_cast<uint8_t*>(addrOperand->Val), lengthOperand->Val, \
+                                symInput, isLittleEndianOperand->Val );
+    }
+    ready++;
+}
+
+void SymVal_sym_build_memcpy::Construct(ReadyType targetReady) {
+    assert(targetReady == (ready + 1));
+    auto destOperand = dynamic_cast<RuntimeIntVal*>(In_edges.at(0));
+    assert(destOperand != nullptr);
+    auto srcOperand = dynamic_cast<RuntimeIntVal*>(In_edges.at(1));
+    assert(srcOperand != nullptr);
+    auto lengthOperand = dynamic_cast<RuntimeIntVal*>(In_edges.at(2));
+    assert(lengthOperand != nullptr);
+
+    if(destOperand->Unassigned){
+        assert(srcOperand->Unassigned && lengthOperand->Unassigned);
+    }else{
+        _sym_build_memcpy(reinterpret_cast<uint8_t*>(destOperand->Val),reinterpret_cast<uint8_t*>(srcOperand->Val), lengthOperand->Val);
+    }
+    ready++;
+}
+void SymVal_sym_build_memset::Construct(ReadyType targetReady) {
+    assert(targetReady == (ready + 1));
+    auto memOperand = dynamic_cast<RuntimeIntVal*>(In_edges.at(0));
+    assert(memOperand != nullptr);
+
+    auto symVal = dynamic_cast<SymVal*>(In_edges.at(1));
+    assert(symVal != nullptr);
+
+    auto lengthOperand = dynamic_cast<RuntimeIntVal*>(In_edges.at(2));
+    assert(lengthOperand != nullptr);
+
+    if(memOperand->Unassigned){
+        assert(symVal->symExpr == nullptr && lengthOperand->Unassigned);
+    }else{
+        _sym_build_memset(reinterpret_cast<uint8_t*>(memOperand->Val), extractSymExprFromSymVal(symVal, targetReady), lengthOperand->Val);
+    }
+    ready++;
+}
+void SymVal_sym_build_memmove::Construct(ReadyType) {
+    std::cerr <<"not supported yet\n";
+    assert(false);
+}
+void SymVal_sym_build_insert::Construct(ReadyType) {
+    std::cerr <<"not supported yet\n";
+    assert(false);
+}
+void SymVal_sym_build_extract::Construct(ReadyType) {
+    std::cerr <<"not supported yet\n";
+    assert(false);
+}
