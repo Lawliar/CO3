@@ -101,6 +101,7 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
             if(op == VoidStr){
                 assert(bbid == 0);
                 cur_node = new SymVal_NULL(symid, bbid);
+                dynamic_cast<SymVal_NULL*>(cur_node)->symExpr = nullptr;
                 NULL_sym++;
                 assert(NULL_sym == 1);
             } else if(op == "_sym_notify_call"){
@@ -315,7 +316,7 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
             if(auto symVal = dynamic_cast<SymVal*>(node); symVal != nullptr){
                 leaves.insert(symVal->Op);
             }else{
-                leaves.insert(node->Print());
+                leaves.insert(node->Str());
             }
         }
     }*/
@@ -492,7 +493,7 @@ void SymGraph::dbgBBRoot(Val::ValVertexType v) {
 }
 
 
-
+/*
 Val* SymGraph::stripPhis(Val* nodeInQuestion, Val* root) {
     Val* prev_node = nullptr;
     Val* cur_node = nodeInQuestion;
@@ -551,7 +552,7 @@ Val* SymGraph::stripTruePhi(Val* nodeInQuestion, Val* root) {
     }
     return cur_node;
 }
-
+*/
 
 SymGraph::RootTask* SymGraph::GetRootTask(SymVal * root) {
     {
@@ -575,37 +576,46 @@ SymGraph::RootTask* SymGraph::GetRootTask(SymVal * root) {
     while(!work_queue.empty()){
         Val* cur_node = work_queue.front();
         work_queue.pop();
-        // stripping nasty phis
-        Val * strippedPhis = stripPhis(cur_node, root);
-        if(strippedPhis == nullptr){
-            // met FalsePhiRoot which is all constants(it means it's just a false), ignore it
-            continue;
+
+        // HANDLE Phis
+        {
+            SymVal_sym_TruePhi * true_phi = dynamic_cast<SymVal_sym_TruePhi*>(cur_node);
+            assert(true_phi == nullptr);
+            assert(!root->isThisNodeReady(cur_node,(root->ready + 1)));
         }
-        SymVal_sym_FalsePhiRoot * false_phi_root = dynamic_cast<SymVal_sym_FalsePhiRoot*>(strippedPhis);
-        SymVal_sym_FalsePhiLeaf * false_phi_leaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(strippedPhis);
+        SymVal_sym_FalsePhiRoot * false_phi_root = dynamic_cast<SymVal_sym_FalsePhiRoot*>(cur_node);
+        SymVal_sym_FalsePhiLeaf * false_phi_leaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(cur_node);
+        vector<Val*> nodesToAdd;
         if(false_phi_root != nullptr || false_phi_leaf != nullptr){
-            // we stripped it, and it is still here, that can only mean this is the one we should start building
-            assert(!root->isThisNodeReady(strippedPhis, (root->ready + 1)  ));
-            rootTask->InsertNonReadyDep(strippedPhis, bbTasks);
+            if(false_phi_root != nullptr){
+                nodesToAdd.push_back(false_phi_root);
+            }else if(false_phi_leaf  != nullptr){
+                nodesToAdd.push_back(false_phi_leaf->In_edges.at(0));
+            }
         }
-        for(auto eachDep : cur_node->In_edges){
-            Val* depNode = eachDep.second;
-            if(root->isThisNodeReady(depNode, (root->ready + 1) )){
+        else{
+            //normal nodes
+            for(auto eachDep : cur_node->In_edges){
+                nodesToAdd.push_back(eachDep.second);
+            }
+        }
+        for(auto eachNodeToAdd: nodesToAdd){
+            if(root->isThisNodeReady(eachNodeToAdd, (root->ready + 1) )){
                 //this dep has been constructed
                 continue;
             }
-            if(visited.find((depNode)) != visited.end()){
+            if(visited.find((eachNodeToAdd)) != visited.end()){
                 // this node has been visited before
                 continue;
             }
-            auto tmpConstantVal = dynamic_cast<ConstantVal*>(depNode);
+            auto tmpConstantVal = dynamic_cast<ConstantVal*>(eachNodeToAdd);
             if(tmpConstantVal != nullptr){
                 // don't push Constant
                 continue;
             }
-            work_queue.push(depNode);
-            rootTask->InsertNonReadyDep(depNode,bbTasks);
-            visited.insert(depNode);
+            work_queue.push(eachNodeToAdd);
+            rootTask->InsertNonReadyDep(eachNodeToAdd,bbTasks);
+            visited.insert(eachNodeToAdd);
         }
     }
     // sanity check

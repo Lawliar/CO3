@@ -134,8 +134,8 @@ public:
     SymVal_sym_set_return_expression* setRetSym;
     map<unsigned char, SymVal_sym_notify_call*> callInsts;
 
-    Val* stripPhis(Val*, Val*);
-    Val* stripTruePhi(Val*, Val*);
+    //Val* stripPhis(Val*, Val*);
+    //Val* stripTruePhi(Val*, Val*);
 
     RootTask* GetRootTask(SymVal*);
 
