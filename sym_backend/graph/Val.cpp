@@ -306,7 +306,18 @@ void SymVal_sym_build_bool::Construct(Val::ReadyType targetReady) {
 
 //handled else where
 DEFINE_SYMVAL_CONSTRUCTION(_sym_notify_call)
-DEFINE_SYMVAL_CONSTRUCTION(_sym_try_alternative)
+
+void SymVal_sym_try_alternative::Construct(ReadyType targetReady) {
+    assert(targetReady == (ready + 1));
+    auto symOperand = dynamic_cast<SymVal*>(In_edges.at(1));
+    assert(symOperand != nullptr);
+    extractSymExprFromSymVal(symOperand, targetReady);
+
+    auto runtimeOperand = dynamic_cast<RuntimeVal*>(In_edges.at(1));
+    assert(runtimeOperand != nullptr);
+    //we are not really gonna do anything
+    ready++;
+}
 DEFINE_SYMVAL_CONSTRUCTION(_NULL)
 void SymVal_sym_set_parameter_expression::Construct(ReadyType targetReady) {
     auto paraIndex = dynamic_cast<ConstantIntVal*>(In_edges.at(0));

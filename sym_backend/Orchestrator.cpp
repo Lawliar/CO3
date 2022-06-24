@@ -210,9 +210,9 @@ void Orchestrator::ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf * falsePhiLeaf) {
 bool Orchestrator::ExecuteSpecialNode(SymVal *symval) {
     bool processed = false;
     auto notifyCall = dynamic_cast<SymVal_sym_notify_call*>(symval);
-    auto tryAlternative = dynamic_cast<SymVal_sym_try_alternative*>(symval);
+    //auto tryAlternative = dynamic_cast<SymVal_sym_try_alternative*>(symval);
     auto truePhi = dynamic_cast<SymVal_sym_TruePhi*>(symval);
-    if(notifyCall != nullptr || tryAlternative != nullptr || truePhi != nullptr ){
+    if(notifyCall != nullptr  || truePhi != nullptr ){
         // notifycall and true phi are handled else where
         // tryAlternative are simply ignored(for now)
         processed = true;
@@ -228,7 +228,7 @@ bool Orchestrator::ExecuteSpecialNode(SymVal *symval) {
     }
     return processed;
 }
-void Orchestrator::ForwardExecution(Val* source,bool force, bool crossBB, Val* target, unsigned targetReady) {
+void Orchestrator::ForwardExecution(Val* source,bool force, bool crossBB, SymGraph::RootTask* target, unsigned targetReady) {
 #ifdef DEBUG_OUTPUT
     indent += indentNum;
     cout << string(indent, ' ') << "Forwarding:"<<source->Str() <<"\n";
@@ -241,7 +241,6 @@ void Orchestrator::ForwardExecution(Val* source,bool force, bool crossBB, Val* t
     bool constructed = false;
     if(symVal != nullptr){
         // try to construct this symval
-        // some specicial symVal
 #ifdef DEBUG_OUTPUT
         cout << string(indent, ' ') << "sym:"<<symVal->Str()<<'\n';
         std::cout.flush();
@@ -265,7 +264,7 @@ void Orchestrator::ForwardExecution(Val* source,bool force, bool crossBB, Val* t
                     if(!rootTask->hasRuntimeDep()){
                         // if there is not, then, we can also construct this
                         for(auto eachInEdge : rootTask->inBBNonReadyLeafDeps){
-                            ForwardExecution(eachInEdge,force, false, symVal,targetReady);
+                            ForwardExecution(eachInEdge,force, false, rootTask,targetReady);
                         }
                     }
                 }
@@ -283,14 +282,28 @@ void Orchestrator::ForwardExecution(Val* source,bool force, bool crossBB, Val* t
 #ifdef DEBUG_OUTPUT
         cout << string(indent, ' ') << "constructed\n";
 #endif
-        if(target != nullptr && target == source ){
-            //source reached target, no matter the source got constructed or not, time to exit
+        if(target != nullptr  ){
+            if( target->root == source){
+                //source reached target, no matter the source got constructed or not, time to exit
 #ifdef DEBUG_OUTPUT
-            std::cout << string(indent, ' ') << "finish Forwarding:"<<source->Str() <<'\n';
-            std::cout.flush();
-            indent -= indentNum;
+                std::cout << string(indent, ' ') << "finish Forwarding:"<<source->Str() <<'\n';
+                std::cout.flush();
+                indent -= indentNum;
 #endif
-            return;
+                return;
+            }else{
+                bool foundNext = false;
+                for(auto eachUser : source->UsedBy){
+                    if(target->inBBNonReadyDeps.find(eachUser) != target->inBBNonReadyDeps.end()){
+                        ForwardExecution(eachUser, force, crossBB, target, targetReady);
+                        foundNext = true;
+                    }
+                }
+                if(foundNext == false){
+                    cerr << "hasn't reached the target, but found no way to reach it";
+                    assert(false);
+                }
+            }
         }else{
             for(auto eachUser : source->UsedBy){
                 auto& userPostDominance = cur_func->bbTasks.at(eachUser->BBID)->post_dominance;
@@ -352,7 +365,7 @@ void Orchestrator::BackwardExecution(SymVal* sink, Val::ReadyType targetReady) {
 
         for(auto eachInBBLeaf : rootTask->inBBNonReadyLeafDeps){
             // we are forcing the dependent unready runtime value to unassign themselves
-            ForwardExecution(eachInBBLeaf,true, false,sink,targetReady);
+            ForwardExecution(eachInBBLeaf,true, false,rootTask,targetReady);
         }
         // we hope the execution above ful-filled its job properly
         assert(sink->ready == targetReady);
