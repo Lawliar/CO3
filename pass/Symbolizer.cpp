@@ -242,7 +242,7 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
 
 
     if (callee == nullptr){
-        tryAlternative(IRB, I.getCalledOperand());
+        //tryAlternative(IRB, I.getCalledOperand());
     }
     else{
         auto calleeName = callee->getName();
@@ -886,6 +886,7 @@ Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
     }
     auto symID = getNextID();
 
+
     // some sanity check
     /// check if this function needs report
     auto numArgs = function.getFunctionType()->getNumParams();
@@ -907,9 +908,12 @@ Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
     std::vector<Input> inputs;
     for (unsigned i = 0; i < args.size(); i++) {
         const auto &[arg, symbolic] = args[i];
-        if (symbolic)
+        if (symbolic){
             inputs.push_back({arg, i, call});
+        }
+
     }
+
 
     return SymbolicComputation(call, call, inputs);
 }
@@ -917,12 +921,10 @@ Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
 void Symbolizer::tryAlternative(IRBuilder<> &IRB, Value *V) {
     auto *destExpr = getSymbolicExpression(V);
     if (auto tmpExpr = dyn_cast<llvm::ConstantInt>(destExpr); !(tmpExpr != nullptr && tmpExpr->isZero()) ) {
-        unsigned tryAlternativeSymID =  getNextID();
-        // this call is just a place holder for DDG construction, will be removed later
-        //auto *destAssertion = IRB.CreateCall(runtime.tryAlternative,{destExpr, V});
-        //assignSymID(destAssertion,tryAlternativeID);
-        unsigned tryAlternativeBBID = GetBBID(IRB.GetInsertBlock());
-        tryAlternativePairs[std::make_pair(tryAlternativeSymID,tryAlternativeBBID)] = std::make_pair(destExpr, V);
+        auto *destAssertion = IRB.CreateCall(runtime.tryAlternative,{destExpr, V});
+        assignSymID(destAssertion,getNextID());
+        //unsigned tryAlternativeBBID = GetBBID(IRB.GetInsertBlock());
+        //tryAlternativePairs[std::make_pair(tryAlternativeSymID,tryAlternativeBBID)] = std::make_pair(destExpr, V);
     }
 }
 
@@ -964,7 +966,6 @@ void Symbolizer::shortCircuitExpressionUses() {
                "Symbolic computation has no inputs");
 
         IRBuilder<> IRB(symbolicComputation.firstInstruction);
-
         // Build the check whether any input expression is non-null (i.e., there
         // is a symbolic input).
         auto *nullExpression = ConstantHelper(runtime.isSymT,0);
@@ -1057,6 +1058,7 @@ void Symbolizer::shortCircuitExpressionUses() {
         // Finally, the overall result (if the computation produces one) is null
         // if we've taken the fast path and the symbolic expression computed above
         // if short-circuiting wasn't possible.
+
         if (!symbolicComputation.lastInstruction->use_empty()) {
             IRB.SetInsertPoint(&tail->front());
 
@@ -1124,7 +1126,7 @@ SymDepGraph::vertex_t Symbolizer::addRuntimeVertice(llvm::Value * v, unsigned bi
     auto vert = g.AddRuntimeVertice(vertType, width, bid);
     return vert;
 }
-
+/*
 void Symbolizer::addTryAlternativeToTheGraph(){
     for(auto eachTryAlternative: tryAlternativePairs){
         unsigned tryAlterntiveSymID = eachTryAlternative.first.first;
@@ -1163,7 +1165,7 @@ void Symbolizer::addTryAlternativeToTheGraph(){
         }
     }
 }
-
+*/
 void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
     std::set<StringRef> symOperators;
     for(auto eachSymOperation: runtime.SymOperators){
@@ -1190,8 +1192,7 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
     for (auto &basicBlock : F){
         unsigned blockID = GetBBID(&basicBlock);
         for(auto & eachInst : basicBlock){
-            if (PHINode *symPhi = dyn_cast<PHINode>(&eachInst); symPhi != nullptr &&
-                                                                phiSymbolicIDs.find(symPhi) != phiSymbolicIDs.end()) {
+            if (PHINode *symPhi = dyn_cast<PHINode>(&eachInst); symPhi != nullptr && phiSymbolicIDs.find(symPhi) != phiSymbolicIDs.end()) {
                 unsigned userSymID = getSymIDFromSym(symPhi);
                 if(phiSymbolicIDs.find(symPhi)->second.isTrue){
                     g.AddPhiVertice(NodeTruePhi,userSymID, blockID );
@@ -1323,7 +1324,7 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
             }
         }
     }
-    addTryAlternativeToTheGraph();
+    //addTryAlternativeToTheGraph();
     //finish phi nodes
     for (auto &basicBlock : F){
         for(auto & eachInst : basicBlock) {

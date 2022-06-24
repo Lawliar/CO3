@@ -63,7 +63,7 @@ public:
       phiNodes.clear();
       splited2OriginalBB.clear();
       originalBB2ID.clear();
-      tryAlternativePairs.clear();
+      //tryAlternativePairs.clear();
   }
 
   /// Insert code to obtain the symbolic expressions for the function arguments.
@@ -227,7 +227,7 @@ public:
           << "\n...ending at " << *computation.lastInstruction
           << "\n...with inputs:\n";
       for (const auto &input : computation.inputs) {
-        out << '\t' << *input.concreteValue << '\n';
+        out << '\t' << input.operandIndex<<',' <<*input.concreteValue << '\n';
       }
       return out;
     }
@@ -390,6 +390,19 @@ public:
         assert(exprIt == phiSymbolicIDs.end());
         phiSymbolicIDs[symPhi] = {ID, is_true,is_false_root, leaves};
     }
+    llvm::Value* getSymExprBySymId(unsigned symid){
+        for(auto eachSymExpr: symbolicIDs){
+            if(eachSymExpr->second == symid){
+                return eachSymExpr->first;
+            }
+        }
+        for(auto eachSymPhi : phiSymbolicIDs){
+            if(eachSymPhi->second.symid == symid){
+                return eachSymPhi->first;
+            }
+        }
+        return nullptr;
+    }
     void setCallInstId(llvm::CallInst* notifyCall, llvm::ConstantInt* con){
         assert(callToCallId.find(notifyCall) == callToCallId.end());
         callToCallId[notifyCall] = con;
@@ -537,19 +550,20 @@ public:
       for(auto it = splited2OriginalBB.begin(); it != splited2OriginalBB.end();it++){
           output<< "BB:"<<it->first->getName() <<"->BB"<<it->second->getName()<<'\n';
       }
+      /*
       for(auto eachTryAlternative : tryAlternativePairs){
           auto tryAltSymId = eachTryAlternative.first.first;
           auto tryAltBBid = eachTryAlternative.first.second;
           auto operandSym = eachTryAlternative.second.first;
           auto operand = eachTryAlternative.second.second;
           output<<"tryAlt:symid:"<<tryAltSymId<<",bbid:"<<tryAltBBid<<",symop:"<<*operandSym<<",op:"<<*operand<<'\n';
-      }
+      }*/
   }
 
   /// Compute the offset of a member in a (possibly nested) aggregate.
   uint64_t aggregateMemberOffset(llvm::Type *aggregateType,
                                  llvm::ArrayRef<unsigned> indices) const;
-  void addTryAlternativeToTheGraph();
+  //void addTryAlternativeToTheGraph();
   const Runtime& runtime;
   const llvm::LoopInfo& loopinfo;
   /// The data layout of the currently processed module.
@@ -602,7 +616,7 @@ public:
     std::map<llvm::BasicBlock*, llvm::BasicBlock*> splited2OriginalBB;
     std::map<llvm::BasicBlock*, unsigned> originalBB2ID;
 
-    std::map<std::pair<unsigned, unsigned>, std::pair<llvm::Value*, llvm::Value *> > tryAlternativePairs;
+    //std::map<std::pair<unsigned, unsigned>, std::pair<llvm::Value*, llvm::Value *> > tryAlternativePairs;
     SymDepGraph g;
     const unsigned initialBBID = 1;
     unsigned int BBID = initialBBID;
