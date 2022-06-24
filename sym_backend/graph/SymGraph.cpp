@@ -584,6 +584,8 @@ SymGraph::RootTask* SymGraph::GetRootTask(SymVal * root) {
 
     set<Val*> visited {root};
     work_queue.push(root);
+    rootTask->InsertNonReadyDep(root,bbTasks);
+    visited.insert(root);
 
     while(!work_queue.empty()){
         Val* cur_node = work_queue.front();
@@ -625,9 +627,16 @@ SymGraph::RootTask* SymGraph::GetRootTask(SymVal * root) {
     for(auto eachInBBNonReadyDep : rootTask->inBBNonReadyDeps){
         bool allChildReady = true;
         for(auto eachRealChild: eachInBBNonReadyDep->realChildren()){
-            if(eachInBBNonReadyDep->isThisNodeReady(eachRealChild,(root->ready + 1))){
+
+            if( eachInBBNonReadyDep->isThisNodeReady(eachRealChild,(root->ready + 1))){
                 continue;
             }else{
+                if(eachRealChild->BBID != eachInBBNonReadyDep->BBID){
+                    // if eachInBBNonReadyDep(A) is dependening on a non-ready nonde(B) in another non-loop BB
+                    //we can assume (B) is ready, since we're going to execute the BB
+                    assert(std::find(rootTask->depNonReadyNonLoopBB.begin(), rootTask->depNonReadyNonLoopBB.end(), bbTasks.at(eachRealChild->BBID)) != rootTask->depNonReadyNonLoopBB.end());
+                    continue;
+                }
 #ifdef DEBUG_CHECKING
                 assert(rootTask->inBBNonReadyDeps.find(eachRealChild) != rootTask->inBBNonReadyDeps.end());
 #endif
