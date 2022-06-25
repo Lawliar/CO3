@@ -70,7 +70,10 @@ pool(12),sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
         cout << "processing func:"<< cur_funcname<<'\n';
         cout.flush();
 #endif
-        SymGraph* cur_symgraph = new SymGraph(cur_funcname, cfg_file.string(),dom_file.string(),postDom_file.string(),dfg_file.string());
+        funcFiles[cur_funcname] = FuncFileNames{cfg_file.string(), dom_file.string(), postDom_file.string(), dfg_file.string()};
+        SymGraph* cur_symgraph = new SymGraph(cur_funcname, funcFiles[cur_funcname].cfg_file,\
+                                        funcFiles[cur_funcname].dom_file,funcFiles[cur_funcname].postDom_file,\
+                                        funcFiles[cur_funcname].dfg_file);
         symGraphs[cur_id] = cur_symgraph;
     }
     _sym_initialize(inputDir);
@@ -81,6 +84,7 @@ Orchestrator::~Orchestrator() {
         delete eachFunc.second;
     }
     symGraphs.clear();
+    funcFiles.clear();
 }
 
 SymGraph* Orchestrator::getCurFunc() {
@@ -96,10 +100,17 @@ void Orchestrator::ExecuteBasicBlock(Val::BasicBlockIdType bbid) {
     cout.flush();
 #endif
     auto bbTask = cur_func->bbTasks.at(bbid);
+#ifdef DEBUG_CHECKING
+    if(cur_func->funcname == "strlen_cgc" and bbid == 1){
+        __asm__("nop");
+    }
+#endif
     bbTask->Refresh( bbTask->ready + 1 );
     for(auto eachNonReadyRoot : bbTask->nonReadyRoots){
         if(auto tmpSymVal = dynamic_cast<SymVal*>(eachNonReadyRoot); tmpSymVal != nullptr){
-            BackwardExecution(tmpSymVal, bbTask->ready + 1);
+            if(!tmpSymVal->isThisNodeReady(tmpSymVal, bbTask->ready + 1)){
+                BackwardExecution(tmpSymVal, bbTask->ready + 1);
+            }
         }else if(auto tmpRuntime = dynamic_cast<RuntimeVal*>(eachNonReadyRoot);  tmpRuntime != nullptr){
             tmpRuntime->Unassign();
         }else{
@@ -130,7 +141,7 @@ void Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot) {
         if(! falsePhiRoot->isThisNodeReady(leaf, (falsePhiRoot->ready + 1) )){
             BackwardExecution(leaf, falsePhiRoot->ready + 1);
         }
-        if(leaf->symExpr ==  nullptr){
+        if(SymVal::extractSymExprFromSymVal(leaf, (falsePhiRoot->ready + 1)) ==  nullptr){
             // the only leaf is concrete, thus, this root is also concrete
             falsePhiRoot->symExpr = nullptr;
             falsePhiRoot->ready ++;
@@ -138,7 +149,9 @@ void Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot) {
             // the only leaf is not concrete, then we try to execute the slow branch
             SymVal* slowBranchVal = dynamic_cast<SymVal*>(falsePhiRoot->In_edges.at(1));
             assert(slowBranchVal != nullptr);
-            BackwardExecution(slowBranchVal, (falsePhiRoot->ready + 1));
+            if(! falsePhiRoot->isThisNodeReady(slowBranchVal,(falsePhiRoot->ready + 1))){
+                BackwardExecution(slowBranchVal, (falsePhiRoot->ready + 1));
+            }
             assert(falsePhiRoot->isThisNodeReady(slowBranchVal, (falsePhiRoot->ready + 1) ));
             falsePhiRoot->symExpr = slowBranchVal->symExpr;
             falsePhiRoot->ready ++;
@@ -153,7 +166,9 @@ void Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot) {
             auto eachFalsePhiLeafOriginalValue = dynamic_cast<SymVal*>(eachFalsePhiLeaf->In_edges.at(0));
             assert(eachFalsePhiLeafOriginalValue != nullptr);
             // we only care about if the falsePhiRoot's original value is concrete or not
-            BackwardExecution(eachFalsePhiLeafOriginalValue, (falsePhiRoot->ready + 1) );
+            if(! falsePhiRoot->isThisNodeReady(eachFalsePhiLeafOriginalValue, (falsePhiRoot->ready + 1))){
+                BackwardExecution(eachFalsePhiLeafOriginalValue, (falsePhiRoot->ready + 1) );
+            }
             assert(falsePhiRoot->isThisNodeReady(eachFalsePhiLeafOriginalValue, (falsePhiRoot->ready + 1)  ));
             if(eachFalsePhiLeafOriginalValue->symExpr != nullptr){
                 // this original value is not concrete
@@ -166,7 +181,9 @@ void Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot) {
         }else{
             SymVal* slowBranchVal = dynamic_cast<SymVal*>(falsePhiRoot->In_edges.at(1));
             assert(slowBranchVal != nullptr);
-            BackwardExecution(slowBranchVal, (falsePhiRoot->ready + 1) );
+            if(! falsePhiRoot->isThisNodeReady(slowBranchVal, (falsePhiRoot->ready + 1))){
+                BackwardExecution(slowBranchVal, (falsePhiRoot->ready + 1) );
+            }
             assert(falsePhiRoot->isThisNodeReady(slowBranchVal, (falsePhiRoot->ready + 1) ));
             falsePhiRoot->symExpr = slowBranchVal->symExpr;
             falsePhiRoot->ready ++;
@@ -177,56 +194,87 @@ void Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot) {
 void Orchestrator::ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf * falsePhiLeaf) {
     auto falsePhiLeafOriginalVal = dynamic_cast<SymVal*>(falsePhiLeaf->In_edges.at(0));
     assert(falsePhiLeafOriginalVal != nullptr);
-    BackwardExecution(falsePhiLeafOriginalVal, (falsePhiLeaf->ready + 1) );
+    if(! falsePhiLeaf->isThisNodeReady(falsePhiLeafOriginalVal,(falsePhiLeaf->ready + 1)  )){
+        BackwardExecution(falsePhiLeafOriginalVal, (falsePhiLeaf->ready + 1) );
+    }
+#ifdef DEBUG_CHECKING
     assert(falsePhiLeaf->isThisNodeReady(falsePhiLeafOriginalVal, (falsePhiLeaf->ready + 1) ));
-    if(falsePhiLeaf->symExpr == nullptr){
-        //the original value is nullptr
-        if(!falsePhiLeaf->isThisNodeReady(falsePhiLeaf->falsePhiRoot, (falsePhiLeaf->ready + 1) )){
-            BackwardExecution(falsePhiLeaf->falsePhiRoot, (falsePhiLeaf->ready + 1) );
-        }
-        assert(falsePhiLeaf->isThisNodeReady(falsePhiLeaf->falsePhiRoot, (falsePhiLeaf->ready + 1)));
-        if(falsePhiLeaf->falsePhiRoot->symExpr == nullptr){
-            // the root is also concrete, which means, this falsePhiLeaf is not executed at the MCU at all
-            //falsePhiLeaf->symExpr = nullptr;
-            //falsePhiLeaf->ready ++;
+#endif
+    SymExpr originalSymExpr = SymVal::extractSymExprFromSymVal(falsePhiLeaf, (falsePhiLeaf->ready + 1));
+    if(originalSymExpr == nullptr){
+        //the original value is concrete
+        if(falsePhiLeaf->falsePhiRoot != nullptr){
+            if(! falsePhiLeaf->isThisNodeReady(falsePhiLeaf->falsePhiRoot, (falsePhiLeaf->ready + 1) )){
+                BackwardExecution(falsePhiLeaf->falsePhiRoot, (falsePhiLeaf->ready + 1) );
+            }
+            assert(falsePhiLeaf->isThisNodeReady(falsePhiLeaf->falsePhiRoot, (falsePhiLeaf->ready + 1)));
+            if(SymVal::extractSymExprFromSymVal(falsePhiLeaf->falsePhiRoot, (falsePhiLeaf->ready + 1)) == nullptr){
+                // the root is also concrete, which means, this falsePhiLeaf is not executed at the MCU at all
+                //falsePhiLeaf->symExpr = nullptr;
+                //falsePhiLeaf->ready ++;
+            }else{
+                // the root is not concrete, which means,
+                // this falsePhiLeaf need to take the newVal
+                auto newVal = dynamic_cast<SymVal*>(falsePhiLeaf->In_edges.at(1));
+                if(! falsePhiLeaf->isThisNodeReady(newVal, (falsePhiLeaf->ready + 1))){
+                    BackwardExecution(newVal, (falsePhiLeaf->ready + 1) );
+                }
+                assert(falsePhiLeaf->isThisNodeReady(newVal, (falsePhiLeaf->ready + 1) ));
+                falsePhiLeaf->symExpr = SymVal::extractSymExprFromSymVal(newVal, (falsePhiLeaf->ready + 1) );
+                falsePhiLeaf->ready++;
+            }
         }else{
-            // the root is not concrete, which means,
-            // this falsePhiLeaf need to take the newVal
-            auto newVal = dynamic_cast<SymVal*>(falsePhiLeaf->In_edges.at(1));
-            BackwardExecution(newVal, (falsePhiLeaf->ready + 1) );
-            assert(falsePhiLeaf->isThisNodeReady(newVal, (falsePhiLeaf->ready + 1) ));
-            falsePhiLeaf->symExpr = newVal->symExpr;
+            // there is not a root, and the original is concrete, then this falsephileaf is also concrete
+            falsePhiLeaf->symExpr = nullptr;
             falsePhiLeaf->ready++;
         }
     }else{
         //the original value is not concrete
-        // which mean, the root must not be concrete either
+        // which mean, the root , if any, must not be concrete either
         // we just take the original value then
-        falsePhiLeaf->symExpr = falsePhiLeafOriginalVal->symExpr;
+        falsePhiLeaf->symExpr = originalSymExpr;
         falsePhiLeaf->ready++;
     }
 }
 
 bool Orchestrator::ExecuteSpecialNode(SymVal *symval) {
-    bool processed = false;
     auto notifyCall = dynamic_cast<SymVal_sym_notify_call*>(symval);
     //auto tryAlternative = dynamic_cast<SymVal_sym_try_alternative*>(symval);
     auto truePhi = dynamic_cast<SymVal_sym_TruePhi*>(symval);
     if(notifyCall != nullptr  || truePhi != nullptr ){
         // notifycall and true phi are handled else where
         // tryAlternative are simply ignored(for now)
-        processed = true;
+        return true;
+    }
+    auto symNull = dynamic_cast<SymVal_NULL*>(symval);
+    if(symNull != nullptr){
+        return true;
     }
     auto falsePhiRoot = dynamic_cast<SymVal_sym_FalsePhiRoot*>(symval);
     auto falsePhiLeaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(symval);
     if(falsePhiLeaf != nullptr ){
         ExecuteFalsePhiLeaf(falsePhiLeaf);
-        processed = true;
-    }else if(falsePhiRoot != nullptr){
-        ExecuteFalsePhiRoot(falsePhiRoot);
-        processed = true;
+        return true;
     }
-    return processed;
+    if(falsePhiRoot != nullptr){
+        ExecuteFalsePhiRoot(falsePhiRoot);
+        return true;
+    }
+    return false;
+}
+
+bool Orchestrator::ExecuteNode(SymVal * nodeToExecute, Val::ReadyType targetReady) {
+    auto isSpecial = ExecuteSpecialNode(nodeToExecute);
+    if(isSpecial){
+        return true;
+    }else{
+        if(nodeToExecute->directlyConstructable(targetReady)) {
+            // if we can construct right now, just do it
+            nodeToExecute->Construct(targetReady);
+            return true;
+        }
+    }
+    return false;
 }
 void Orchestrator::ForwardExecution(Val* source,bool force, bool crossBB, SymGraph::RootTask* target, unsigned targetReady) {
 #ifdef DEBUG_OUTPUT
@@ -245,29 +293,27 @@ void Orchestrator::ForwardExecution(Val* source,bool force, bool crossBB, SymGra
         cout << string(indent, ' ') << "sym:"<<symVal->Str()<<'\n';
         std::cout.flush();
 #endif
-        if(source->ready < targetReady){
-            auto isSpecial = ExecuteSpecialNode(symVal);
-            if(isSpecial){
-                constructed = true;
-            }else{
-                if(symVal->directlyConstructable(targetReady)){
-                    // if we can construct right now, just do it
-                    symVal->Construct(targetReady);
-                    constructed = true;
-                }else{
-                    auto rootTask = cur_func->GetRootTask(symVal);
-                    // finish the dependent BBs
-                    for(auto eachBBDep : rootTask->depNonReadyNonLoopBB){
-                        ExecuteBasicBlock(eachBBDep->BBID);
-                    }
-                    // see if inside the BB, there is runtime
-                    if(!rootTask->hasRuntimeDep()){
-                        // if there is not, then, we can also construct this
-                        for(auto eachInEdge : rootTask->inBBNonReadyLeafDeps){
-                            ForwardExecution(eachInEdge,force, false, rootTask,targetReady);
-                        }
-                    }
+        if(symVal->ready < targetReady){
+            if(!ExecuteNode(symVal, targetReady)){
+                auto rootTask = cur_func->GetRootTask(symVal);
+                assert(rootTask != nullptr);
+                Val::ReadyType old_ready = rootTask->root->ready;
+                // finish the dependent BBs
+                for(auto eachBBDep : rootTask->depNonReadyNonLoopBB){
+                    ExecuteBasicBlock(eachBBDep->BBID);
                 }
+                // see if inside the BB, there is runtime
+                if(!rootTask->hasRuntimeDep()){
+                    // if there is not, then, we can also construct this
+                    for(auto eachInEdge : rootTask->inBBNonReadyLeafDeps){
+                        ForwardExecution(eachInEdge,force, false, rootTask,targetReady);
+                    }
+                    assert( rootTask->root->ready ==(old_ready + 1));
+                    constructed = true;
+                }
+                rootTask->occupied = false;
+            }else{
+                constructed = true;
             }
         }
     }else if(runtimeVal != nullptr){
@@ -283,26 +329,23 @@ void Orchestrator::ForwardExecution(Val* source,bool force, bool crossBB, SymGra
         cout << string(indent, ' ') << "constructed\n";
 #endif
         if(target != nullptr  ){
-            if( target->root == source){
-                //source reached target, no matter the source got constructed or not, time to exit
-#ifdef DEBUG_OUTPUT
-                std::cout << string(indent, ' ') << "finish Forwarding:"<<source->Str() <<'\n';
-                std::cout.flush();
-                indent -= indentNum;
-#endif
-                return;
-            }else{
-                bool foundNext = false;
-                for(auto eachUser : source->UsedBy){
-                    if(target->inBBNonReadyDeps.find(eachUser) != target->inBBNonReadyDeps.end()){
+            // since we try to execute the target from its children,
+            // this source should never be the target root itself
+            assert(source != target->root);
+            bool foundNext = false;
+            for(auto eachUser : source->UsedBy){
+                if(target->inBBNonReadyDeps.find(eachUser) != target->inBBNonReadyDeps.end()){
+                    if(target->root == eachUser){
+                        ExecuteNode(target->root, targetReady);
+                    }else{
                         ForwardExecution(eachUser, force, crossBB, target, targetReady);
-                        foundNext = true;
                     }
+                    foundNext = true;
                 }
-                if(foundNext == false){
-                    cerr << "hasn't reached the target, but found no way to reach it";
-                    assert(false);
-                }
+            }
+            if(foundNext == false){
+                cerr << "hasn't reached the target, but found no way to reach it";
+                assert(false);
             }
         }else{
             for(auto eachUser : source->UsedBy){
@@ -354,11 +397,12 @@ void Orchestrator::BackwardExecution(SymVal* sink, Val::ReadyType targetReady) {
         cout.flush();
 #endif
 #ifdef DEBUG_CHECKING
-        if(cur_func->funcname == "allocate_cgc" && sink->symID == 8){
+        if(cur_func->funcname == "strlen_cgc" && sink->symID == 3){
             __asm__("nop");
         }
 #endif
         auto rootTask = cur_func->GetRootTask(sink);
+        assert(rootTask != nullptr);
         for(auto eachBBDep : rootTask->depNonReadyNonLoopBB){
             ExecuteBasicBlock(eachBBDep->BBID);
         }
@@ -367,6 +411,7 @@ void Orchestrator::BackwardExecution(SymVal* sink, Val::ReadyType targetReady) {
             // we are forcing the dependent unready runtime value to unassign themselves
             ForwardExecution(eachInBBLeaf,true, false,rootTask,targetReady);
         }
+        rootTask->occupied = false;
         // we hope the execution above ful-filled its job properly
         assert(sink->ready == targetReady);
     }
@@ -381,20 +426,27 @@ void Orchestrator::BackwardExecution(SymVal* sink, Val::ReadyType targetReady) {
 void Orchestrator::PreparingCalling(NotifyCallMessage* callMsg){
     SymGraph* cur_graph = getCurFunc();
     auto notifyCallVal = dynamic_cast<SymVal_sym_notify_call*>(cur_graph->callInsts.at(callMsg->id));
-    unsigned index = 1;
 
-    for(; index < notifyCallVal->In_edges.size() ; index ++){
+    if(cur_graph->funcname == "allocate_cgc"){
+        __asm__("nop");
+    }
+    for(unsigned index = 1; index < notifyCallVal->In_edges.size() ; index ++){
         auto setPara = dynamic_cast<SymVal_sym_set_parameter_expression*>(notifyCallVal->In_edges.at(index));
+#ifdef DEBUG_CHECKING
         assert(setPara != nullptr);
-        BackwardExecution(setPara, notifyCallVal->ready + 1 );
+#endif
+        if(! notifyCallVal->isThisNodeReady(setPara, notifyCallVal->ready + 1)){
+            BackwardExecution(setPara, notifyCallVal->ready + 1 );
+        }
     }
     //initialize the ret value to null in case it's not instrumented.
     _sym_set_return_expression(nullptr);
     notifyCallVal->ready ++;
 }
 
-void Orchestrator::SetRet() {
+void Orchestrator::SetRetAndRefreshGraph() {
     auto cur_func = getCurFunc();
+    auto cur_func_name = getCurFunc()->funcname;// copy construct
     auto setRetSym = cur_func->setRetSym;
     assert(setRetSym != nullptr);
     if(auto symNull = dynamic_cast<SymVal_NULL*>(setRetSym); symNull != nullptr){
@@ -404,6 +456,18 @@ void Orchestrator::SetRet() {
         _sym_set_return_expression(setRetSym->symExpr);
     }
     setRetSym->ready ++;
+
+    unsigned funcId = UINT_MAX;
+    for(auto eachSymGraph : symGraphs){
+        if(eachSymGraph.second == cur_func){
+           funcId = eachSymGraph.first;
+           break;
+        }
+    }
+    assert(funcId != UINT_MAX);
+    delete cur_func;
+    symGraphs[funcId] = new SymGraph(cur_func_name, funcFiles.at(cur_func_name).cfg_file,funcFiles.at(cur_func_name).dom_file,\
+                                funcFiles.at(cur_func_name).postDom_file, funcFiles.at(cur_func_name).dfg_file);
 }
 
 int Orchestrator::Run() {
@@ -467,7 +531,7 @@ int Orchestrator::Run() {
                     cout <<"back from:"<<callStack.top()->funcname<<'\n';
                     cout.flush();
 #endif
-                    SetRet();
+                    SetRetAndRefreshGraph();
                 }else{
 #ifdef DEBUG_OUTPUT
                     cout <<"back from: Uninstrumented\n";

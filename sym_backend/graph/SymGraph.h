@@ -32,6 +32,7 @@ public:
 };
 
 class SymGraph {
+public:
     class BasicBlockTask{
     public:
 
@@ -39,6 +40,8 @@ class SymGraph {
         ~BasicBlockTask(){
             dominance.clear();
             post_dominance.clear();
+            allNodes.clear();
+            nonReadyRoots.clear();
             leaves.clear();
             roots.clear();
             //for(auto eachRootDep:nonLoopRootDependents){
@@ -79,6 +82,7 @@ class SymGraph {
         SymVal *  root;
         Val::BasicBlockIdType rootBBid;
         BasicBlockTask* rootBBTask;
+        bool occupied;
         void InsertNonReadyDep(Val* v,std::map<Val::BasicBlockIdType, BasicBlockTask*>& bbTasks);
         bool hasRuntimeDep(){
             for(auto eachLeafDep : inBBNonReadyLeafDeps){
@@ -93,6 +97,12 @@ class SymGraph {
         void Refresh();
 
         RootTask(SymVal* r, BasicBlockTask* rootBBTask): root(r), rootBBid(r->BBID),rootBBTask(rootBBTask){};
+        ~RootTask(){
+            inBBNonReadyLeafDeps.clear();
+            inBBNonReadyDeps.clear();
+            depNonReadyNonLoopBB.clear();
+            root = nullptr;
+        }
     };
 private:
     std::set<Val::BasicBlockIdType> domChildrenOf(Val::BasicBlockIdType, map<Val::BasicBlockIdType, RuntimeCFG::pd_vertex_t>, RuntimeCFG::DominanceTree&);
@@ -110,6 +120,10 @@ public:
         for(auto eachBBTask: bbTasks){
             delete eachBBTask.second;
             bbTasks[eachBBTask.first] = nullptr;
+        }
+        for(auto eachRootTask: rootTasks){
+            delete eachRootTask.second;
+            rootTasks.at(eachRootTask.first) = nullptr;
         }
         for(unsigned i = 0 ; i < Nodes.size(); i ++){
             delete Nodes[i];

@@ -575,8 +575,13 @@ SymGraph::RootTask* SymGraph::GetRootTask(SymVal * root) {
 
     if(rootTasks.find(root) != rootTasks.end()){
         RootTask* old_rootTask = rootTasks.at(root);
-        old_rootTask->Refresh();
-        return old_rootTask;
+        if(old_rootTask->occupied){
+            return nullptr;
+        }else{
+            old_rootTask->occupied = true;
+            old_rootTask->Refresh();
+            return old_rootTask;
+        }
     }
     SymGraph::BasicBlockTask* rootBBTask = bbTasks.at(root->BBID);
     RootTask* rootTask = new RootTask(root, rootBBTask);
@@ -673,6 +678,7 @@ void SymGraph::prepareBBTask() {
     }
 
     // prepare per-BB task
+
     for(boost::tie(cfg_vi, cfg_vi_end) = boost::vertices(cfg.graph); cfg_vi != cfg_vi_end; cfg_vi++){
         unsigned cur_bbid = cfg.graph[*cfg_vi].id;
         bool inLoop = cfg.graph[*cfg_vi].inloop == '1' ? true : false;
@@ -683,22 +689,23 @@ void SymGraph::prepareBBTask() {
                 task->allNodes.insert(eachNode);
             }
         }
+
         //prepare leaves and roots
         for(boost::tie(ei,ei_end) = boost::edges(dfg.graph); ei != ei_end ; ei++){
             RuntimeSymFlowGraph::vertex_t from = boost::source(*ei, dfg.graph);
+
             RuntimeSymFlowGraph::vertex_t to = boost::target(*ei, dfg.graph);
             if(dfg.graph[from].BBID == cur_bbid && dfg.graph[to].BBID != cur_bbid){
                 task->roots.insert(Nodes.at(ver2offMap.at(from)));
-                //for debug purpose only
+#ifdef DEBUG_OUTPUT
                 dbgBBRoot(ver2offMap.at(from));
-                //end of debug
+#endif
             }
             if(dfg.graph[from].BBID != cur_bbid && dfg.graph[to].BBID == cur_bbid){
                 task->leaves.insert(Nodes.at(ver2offMap.at(from)));
-                //for debug purpose only
+#ifdef DEBUG_OUTPUT
                 dbgBBLeaves(ver2offMap.at(from));
-                //end of debug
-
+#endif
             }
         }
         RuntimeSymFlowGraph::vertex_it  vi,vi_end;
@@ -707,17 +714,17 @@ void SymGraph::prepareBBTask() {
                 if(boost::in_degree(*vi, dfg.graph) == 0){
                     task->leaves.insert(Nodes.at(ver2offMap.at(*vi)));
                     assert(Nodes[ver2offMap.at(*vi)]->In_edges.size() == 0);
-                    //for debug purpose only
+#ifdef DEBUG_OUTPUT
                     dbgBBLeaves(ver2offMap.at(*vi));
-                    //end of debug
+#endif
 
                 }
                 if(boost::out_degree(*vi, dfg.graph) == 0){
                     task->roots.insert(Nodes.at(ver2offMap.at(*vi)));
                     assert(Nodes[ver2offMap.at(*vi)]->UsedBy.size() == 0);
-                    //for debug purpose only
+#ifdef DEBUG_OUTPUT
                     dbgBBRoot(ver2offMap.at(*vi));
-                    //end of debug
+#endif
                 }
             }
         }
@@ -786,11 +793,8 @@ void SymGraph::RootTask::Refresh() {
 }
 
 bool SymGraph::BasicBlockTask::isBBReady() {
-    for(auto eachNode : allNodes){
-        if(eachNode->ready > ready){
-            assert((eachNode->ready)  == (ready + 1) );
-            return false;
-        }
+    for(auto eachRoot : roots){
+        assert( eachRoot->ready == (ready + 1) );
     }
     return true;
 }
@@ -805,4 +809,3 @@ void SymGraph::BasicBlockTask::Refresh(Val::ReadyType targetReady) {
         }
     }
 }
-
