@@ -306,10 +306,10 @@ Runtime::Runtime(Module &M) {
     replaceToInput.push_back("_sym_build_extract");
 
     // just a place-holder, will be removed before lowered to machine code
-    tryAlternative = import(M,"_sym_try_alternative",voidT, isSymT, intPtrType );
+    tryAlternative = import(M,"_sym_try_alternative",voidT, intPtrType, isSymT );
     SymOperators.push_back(&tryAlternative);
-    isSymArgNo["_sym_try_alternative"] = {0};
-    runtimeArgNo["_sym_try_alternative"] = {1};
+    runtimeArgNo["_sym_try_alternative"] = {0};
+    isSymArgNo["_sym_try_alternative"] = {1};
     replaceToNone.push_back("_sym_try_alternative");
 
     notifyPhi = import(M, "_sym_notify_phi", voidT, int8T, symIntT);

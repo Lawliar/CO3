@@ -20,6 +20,7 @@
 #include <llvm/IR/InstVisitor.h>
 #include <llvm/IR/ValueMap.h>
 #include <llvm/Support/raw_ostream.h>
+#include <llvm/Support/Casting.h>
 #include <llvm/Analysis/LoopInfo.h>
 #include <llvm/Analysis/PostDominators.h>
 
@@ -54,6 +55,9 @@ public:
   ~Symbolizer(){
       symbolicExpressions.clear();
       symbolicIDs.clear();
+      for(auto eachSymPhi: phiSymbolicIDs){
+          delete eachSymPhi.second;
+      }
       phiSymbolicIDs.clear();
       for(auto eachCallToSetPara: callToSetParaMap){
           eachCallToSetPara.second.clear();
@@ -260,14 +264,13 @@ public:
         assert(exprIt != symbolicIDs.end());
         return exprIt->second;
     }
-
     unsigned int getSymIDFromSymPhi(llvm::PHINode * phi){
         auto it = phiSymbolicIDs.find(phi);
         if(it == phiSymbolicIDs.end()){
             llvm::errs()<<*phi <<"does not have a sym id\n";
             llvm_unreachable("");
         }
-        return it->second.symid;
+        return it->second->symid;
     }
     void replaceAllUseWith(llvm::Instruction * i, llvm::Value * v){
         unsigned numUser1 = 0;
@@ -379,16 +382,54 @@ public:
         symbolicIDs[symcall] = ID;
     }
 
-    struct PhiStatus{
+    class PhiStatus{
+    public:
+        enum PhiStatusKind{
+            PS_TruePhi,
+            PS_FalsePhiRoot,
+            PS_FalsePhiLeaf
+        };
+    private:
+        const PhiStatusKind Kind;
+    public:
+        PhiStatusKind getKind() const{return Kind;}
         unsigned symid;
-        bool isTrue;
-        bool isFalseRoot;
-        std::set<unsigned> leaves;
+        PhiStatus(PhiStatusKind K, unsigned symid): Kind(K), symid(symid){}
+        virtual ~PhiStatus() {}
     };
-    void assignSymIDPhi(llvm::PHINode* symPhi, unsigned int ID, bool is_true, bool is_false_root, std::set<unsigned> leaves){
+    class TruePhi: public PhiStatus{
+    public:
+        TruePhi(unsigned symid): PhiStatus(PS_TruePhi,symid){};
+        static bool classof(const PhiStatus *p) {
+            return p->getKind() == PS_TruePhi;
+        }
+    };
+    class FalsePhiRoot: public PhiStatus{
+    public:
+        std::set<unsigned> leaves;
+        FalsePhiRoot(unsigned symid, std::set<unsigned> leaves) : PhiStatus(PS_FalsePhiRoot, symid), leaves(leaves){};
+        static bool classof(const PhiStatus *p) {
+            return p->getKind() == PS_FalsePhiRoot;
+        }
+    };
+    class FalsePhiLeaf: public PhiStatus{
+    public:
+        std::set<unsigned> peersOriginal;
+        unsigned originalValueSymId;
+        FalsePhiLeaf(unsigned symid, unsigned orig): PhiStatus(PS_FalsePhiLeaf,symid), originalValueSymId(orig){};
+        static bool classof(const PhiStatus *p) {
+            return p->getKind() == PS_FalsePhiLeaf;
+        }
+        void InsertPeer(unsigned p){
+            if(p != originalValueSymId){
+                peersOriginal.insert(p);
+            }
+        }
+    };
+    void assignSymIDPhi(llvm::PHINode* symPhi, PhiStatus* phiStatus){
         auto exprIt = phiSymbolicIDs.find(symPhi);
         assert(exprIt == phiSymbolicIDs.end());
-        phiSymbolicIDs[symPhi] = {ID, is_true,is_false_root, leaves};
+        phiSymbolicIDs[symPhi] = phiStatus;
     }
     llvm::Value* getSymExprBySymId(unsigned symid){
         for(auto eachSymExpr: symbolicIDs){
@@ -397,7 +438,7 @@ public:
             }
         }
         for(auto eachSymPhi : phiSymbolicIDs){
-            if(eachSymPhi->second.symid == symid){
+            if(eachSymPhi->second->symid == symid){
                 return eachSymPhi->first;
             }
         }
@@ -535,13 +576,13 @@ public:
           output<<eachSymOp->second<<"|"<<*eachSymOp->first<<'\n';
       }
       for(auto eachSymOp : phiSymbolicIDs) {
-          output << eachSymOp->second.symid << "|" << *eachSymOp->first << "|";
-          if (eachSymOp->second.isTrue) {
+          output << eachSymOp->second->symid << "|" << *eachSymOp->first << "|";
+          if (llvm::isa<TruePhi>(eachSymOp.second)) {
               output << "true,";
           } else{
               output << "false,";
           }
-          if(eachSymOp->second.isFalseRoot){
+          if(llvm::isa<FalsePhiRoot>(eachSymOp.second)){
               output << "root\n";
           }else{
               output << "leaf\n";
@@ -590,7 +631,7 @@ public:
   /// Maps symbolic value to its IDs
   llvm::ValueMap<llvm::CallInst *, unsigned int> symbolicIDs;
   /// Maps phi nodes to its IDs
-  llvm::ValueMap<llvm::PHINode* , PhiStatus > phiSymbolicIDs;
+  llvm::ValueMap<llvm::PHINode* , PhiStatus* > phiSymbolicIDs;
   //map call inst to its corresponding set paras
   std::map<llvm::CallInst*, llvm::ConstantInt* > callToCallId;
   std::map<llvm::CallInst*, llvm::SmallVector<llvm::CallInst*, 8> > callToSetParaMap;

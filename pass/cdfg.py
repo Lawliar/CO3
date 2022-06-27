@@ -5,8 +5,7 @@ import os
 
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument("-id",required=True,help="input data flow graph")
-parser.add_argument("-ic",required=True,help="input control flow graph")
+parser.add_argument("-i",required=True,help="input function")
 parser.add_argument("-o",required=True,help="output graph merging the two")
 
 args = parser.parse_args()
@@ -39,21 +38,26 @@ def DirectChildOf(node, nodes, edges):
 def nodeAttrsToLabel(d):
     return symIDPrefix + ":" + d[symIDPrefix] +'|'+ opPrefix +":"+d[opPrefix] +'\n' +nodeTPrefix+":"+d[nodeTPrefix] +'|' +constantValuePrefix+":"+d[constantValuePrefix] +'|' +widthPrefix+":"+d[widthPrefix] +'\n' +BasicBlockPrefix+":"+d[BasicBlockPrefix]
 def main():
-    if(not os.path.exists(args.id)):
-        print("{} does not exist\n" % (args.id))
+    dfg_path = args.i+'_dfg.dot'
+    cfg_path = args.i+'_cfg.dot'
+    if(not os.path.exists(dfg_path)):
+        print("{} does not exist\n" % (dfg_path))
         return 0
-    if(not os.path.exists(args.ic)):
-        print("{} does not exist\n" % (args.ic))
+    if(not os.path.exists(cfg_path)):
+        print("{} does not exist\n" % (cfg_path))
         return 0
-    dfg = pyg.AGraph(args.id, strict=False, directed=True)
-    cfg = pyg.AGraph(args.ic, strict=False, directed=True)
+    dfg = pyg.AGraph(dfg_path, strict=False, directed=True)
+    cfg = pyg.AGraph(cfg_path, strict=False, directed=True)
     cdfg = nx.DiGraph()
     cdfg.graph['compound']='true'
     if('BB' not in dfg.nodes()[0].attr):
         print("please use the non-visualized dfg")
     cdfg.add_edges_from(dfg.edges())
     cdfg = nx.nx_agraph.to_agraph(cdfg)
-
+    ## copy the attr for edge
+    for each_dfg_edge in dfg.edges():
+        for k in each_dfg_edge.attr.keys():
+            cdfg.get_edge(each_dfg_edge[0],each_dfg_edge[1]).attr[k] = each_dfg_edge.attr[k]
     ## collect nodes that I want to see
     for each_dfg_node in dfg.nodes():
         if not ifOutEdge(each_dfg_node, cdfg.edges()):
