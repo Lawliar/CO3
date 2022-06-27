@@ -700,14 +700,15 @@ void SymGraph::prepareBBTask() {
             RuntimeSymFlowGraph::vertex_t from = boost::source(*ei, dfg.graph);
 
             RuntimeSymFlowGraph::vertex_t to = boost::target(*ei, dfg.graph);
+            auto from_node = Nodes.at(ver2offMap.at(from));
             if(dfg.graph[from].BBID == cur_bbid && dfg.graph[to].BBID != cur_bbid){
-                task->roots.insert(Nodes.at(ver2offMap.at(from)));
+                task->roots.insert(from_node);
 #ifdef DEBUG_OUTPUT
                 dbgBBRoot(ver2offMap.at(from));
 #endif
             }
             if(dfg.graph[from].BBID != cur_bbid && dfg.graph[to].BBID == cur_bbid){
-                task->leaves.insert(Nodes.at(ver2offMap.at(from)));
+                task->leaves.insert(from_node);
 #ifdef DEBUG_OUTPUT
                 dbgBBLeaves(ver2offMap.at(from));
 #endif
@@ -716,20 +717,45 @@ void SymGraph::prepareBBTask() {
         RuntimeSymFlowGraph::vertex_it  vi,vi_end;
         for(boost::tie(vi, vi_end) = boost::vertices(dfg.graph) ; vi != vi_end ; vi++){
             if(dfg.graph[*vi].BBID == cur_bbid){
+                auto cur_node = Nodes.at(ver2offMap.at(*vi));
+#ifdef DEBUG_CHECKING
+                auto sym_node = dynamic_cast<SymVal_sym_TruePhi*>(cur_node);
+                if(funcname == "strlen_cgc" && sym_node != nullptr){
+                    __asm__("nop");
+                }
+#endif
                 if(boost::in_degree(*vi, dfg.graph) == 0){
-                    task->leaves.insert(Nodes.at(ver2offMap.at(*vi)));
-                    assert(Nodes[ver2offMap.at(*vi)]->In_edges.size() == 0);
+                    task->leaves.insert(cur_node);
+#ifdef DEBUG_CHECKING
+                    assert(cur_node->In_edges.size() == 0);
+#endif
 #ifdef DEBUG_OUTPUT
                     dbgBBLeaves(ver2offMap.at(*vi));
 #endif
 
                 }
                 if(boost::out_degree(*vi, dfg.graph) == 0){
-                    task->roots.insert(Nodes.at(ver2offMap.at(*vi)));
-                    assert(Nodes[ver2offMap.at(*vi)]->UsedBy.size() == 0);
+                    task->roots.insert(cur_node);
+#ifdef DEBUG_CHECKING
+                    assert(cur_node->UsedBy.size() == 0);
+#endif
 #ifdef DEBUG_OUTPUT
                     dbgBBRoot(ver2offMap.at(*vi));
 #endif
+                }else{
+                    // even if it has out degree, if the only out edges from this node is to TruePhi inside the same BB, it's still a root
+                    RuntimeSymFlowGraph::o_edge_it tmp_ei, tmp_ei_end;
+                    auto allOutToTruePhiWithinSameBB = true;
+                    for(boost::tie(tmp_ei, tmp_ei_end) = boost::out_edges(  *vi, dfg.graph); tmp_ei != tmp_ei_end; tmp_ei++){
+                        auto targetNode = Nodes.at(boost::target(*tmp_ei, dfg.graph));
+                        auto targetTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(targetNode);
+                        if(targetNode->BBID == cur_bbid && targetTruePhi == nullptr){
+                            allOutToTruePhiWithinSameBB = false;
+                        }
+                    }
+                    if(allOutToTruePhiWithinSameBB){
+                        task->roots.insert(cur_node);
+                    }
                 }
             }
         }

@@ -67,7 +67,7 @@ public:
     uint8_t value;
     std::string Str() {
         std::ostringstream s;
-        s<<"PhiValue:symid"<<static_cast<unsigned>(symid)<<",value:"<<static_cast<unsigned>(value);
+        s<<"PhiValue:symid:"<<static_cast<unsigned>(symid)<<",value:"<<static_cast<unsigned>(value);
         return s.str();
     }
 };

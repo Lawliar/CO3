@@ -189,6 +189,7 @@ bool Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot, Va
             falsePhiRoot->ready ++;
         }
     }
+    return true;
 }
 
 bool Orchestrator::ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf * falsePhiLeaf, Val::ReadyType targetReady) {
@@ -574,9 +575,13 @@ int Orchestrator::Run() {
                 auto cur_func = getCurFunc();
                 auto truePhi =  dynamic_cast<SymVal_sym_TruePhi*>(cur_func->Nodes.at(cur_func->symID2offMap.at(phi_msg->symid)));
                 auto val = dynamic_cast<SymVal*>(truePhi->In_edges.at(phi_msg->value));
-                assert(val != nullptr);
-                BackwardExecution(val, (truePhi->ready + 1) );
-                truePhi->historyValues.push_back(make_pair(phi_msg->value, val->symExpr));
+
+                auto desiredReady = truePhi->getDepTargetReady(val);
+                BackwardExecution(val,  desiredReady);
+                assert(truePhi->isThisNodeReady(val, desiredReady));
+
+                auto symExprToTake = SymVal::extractSymExprFromSymVal(val, desiredReady);
+                truePhi->historyValues.push_back(make_pair(phi_msg->value, symExprToTake));
                 truePhi->ready ++;
 #ifdef DEBUG_OUTPUT
                 cout<< "finish "<<phi_msg->Str()<<"\n\n";
@@ -709,13 +714,13 @@ int Orchestrator::Run() {
 #endif
                 auto memcpyVal = dynamic_cast<SymVal_sym_build_memcpy*>(cur_val);
                 assert(memcpyVal != nullptr);
-                auto destPtrVal = dynamic_cast<RuntimeIntVal*>(memcpyVal->In_edges.at(0));
+                auto destPtrVal = dynamic_cast<RuntimePtrVal*>(memcpyVal->In_edges.at(0));
                 assert(destPtrVal != nullptr);
-                destPtrVal->Assign(memcpyMsg->dst_ptr);
+                destPtrVal->Assign(reinterpret_cast<void*>(memcpyMsg->dst_ptr));
 
-                auto srcPtrVal = dynamic_cast<RuntimeIntVal*>(memcpyVal->In_edges.at(1));
+                auto srcPtrVal = dynamic_cast<RuntimePtrVal*>(memcpyVal->In_edges.at(1));
                 assert(srcPtrVal != nullptr);
-                srcPtrVal->Assign(memcpyMsg->src_ptr);
+                srcPtrVal->Assign(reinterpret_cast<void*>(memcpyMsg->src_ptr));
 
                 auto lengthVal = dynamic_cast<RuntimeIntVal*>(memcpyVal->In_edges.at(2));
                 assert(lengthVal != nullptr);

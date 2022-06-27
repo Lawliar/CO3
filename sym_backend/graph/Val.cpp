@@ -5,8 +5,8 @@
 
 bool Val::isThisNodeReady(Val * nodeInQuestion, unsigned targetReady) {
     auto * nodeIsTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(nodeInQuestion);
-    auto * rootIsTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(this);
-    assert(rootIsTruePhi == nullptr);
+    //auto * rootIsTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(this);
+    //assert(rootIsTruePhi == nullptr);
     if(nodeIsTruePhi != nullptr){
         // we execute truePhi pro-actively
         return true;
@@ -67,6 +67,30 @@ bool Val::isThisNodeReady(Val * nodeInQuestion, unsigned targetReady) {
         }
     }
 }
+
+
+Val::ReadyType SymVal_sym_TruePhi::getDepTargetReady(Val * nodeInQuestion) {
+    // how TruePhi's dep work is different from other nodes
+    Val::ReadyType current_ready = ready;
+    if(nodeInQuestion->BBID == BBID) {
+        // TruePhi is depending on a node within the same BB
+        // given TruePhi is always the first instruction in the BB
+        // the targetReady for the nodeInQuestion should just be ready, instead of ready + 1 like other nodes
+        return current_ready;
+    }else {
+        if(nodeInQuestion->inLoop) {
+            // not in the same BB, and the NodeInQuestion is inside a loop
+            // then it's of course ready, just return its return value
+            return nodeInQuestion->ready;
+        }else {
+            // not in the same BB, and nodeInquestion is not inside a loop,
+            // then it must be executed once.
+            return 1;
+        }
+    }
+}
+
+
 inline vector<Val*> Val::realChildren() {
     vector<Val*> realChildren;
     SymVal_sym_FalsePhiRoot * false_phi_root = dynamic_cast<SymVal_sym_FalsePhiRoot*>(this);
@@ -503,9 +527,9 @@ void SymVal_sym_build_write_memory::Construct(ReadyType targetReady) {
 
 void SymVal_sym_build_memcpy::Construct(ReadyType targetReady) {
     assert(targetReady == (ready + 1));
-    auto destOperand = dynamic_cast<RuntimeIntVal*>(In_edges.at(0));
+    auto destOperand = dynamic_cast<RuntimePtrVal*>(In_edges.at(0));
     assert(destOperand != nullptr);
-    auto srcOperand = dynamic_cast<RuntimeIntVal*>(In_edges.at(1));
+    auto srcOperand = dynamic_cast<RuntimePtrVal*>(In_edges.at(1));
     assert(srcOperand != nullptr);
     auto lengthOperand = dynamic_cast<RuntimeIntVal*>(In_edges.at(2));
     assert(lengthOperand != nullptr);
