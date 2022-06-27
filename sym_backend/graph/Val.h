@@ -152,7 +152,7 @@ public:
     // todo: remove the targetReady parameter
     virtual void Construct(Val::ReadyType targetReady) {};
     bool directlyConstructable(Val::ReadyType targetReady);
-    inline SymExpr extractSymExprFromSymVal(SymVal*, ReadyType);
+    inline static SymExpr extractSymExprFromSymVal(SymVal*, ReadyType);
     SymVal(SymIDType symid, std::string op, BasicBlockIdType bid):Val( SymValTy,  bid), Op(op), symID(symid){}
     string Str() {
         std::ostringstream ss;
@@ -363,11 +363,10 @@ public:
 class SymVal_sym_FalsePhiRoot: public SymVal{
 public:
     unsigned numOps;
-    map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap;// not really used
     set<ValVertexType> tmpfalsePhiLeaves;
     set<Val*> falsePhiLeaves;
-    SymVal_sym_FalsePhiRoot(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges,set<ValVertexType> falsePhiLeaves,map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap):
-            SymVal(symid, NodeFalseRootPhi, bid), ArgNo2BBMap(ArgNo2BBMap), tmpfalsePhiLeaves(falsePhiLeaves){
+    SymVal_sym_FalsePhiRoot(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges,set<ValVertexType> falsePhiLeaves):
+            SymVal(symid, NodeFalseRootPhi, bid), tmpfalsePhiLeaves(falsePhiLeaves){
         numOps = PhiEdges.size();
         for(auto eachPhiEdge : PhiEdges){
             tmpIn_edges[eachPhiEdge.first] = eachPhiEdge.second;
@@ -379,10 +378,10 @@ public:
 class SymVal_sym_FalsePhiLeaf: public SymVal{
 public:
     unsigned numOps;
-    map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap;// not really used
-    SymVal_sym_FalsePhiRoot* falsePhiRoot = nullptr;
-    SymVal_sym_FalsePhiLeaf(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges,map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap):
-            SymVal(symid, NodeFalseLeafPhi, bid), ArgNo2BBMap(ArgNo2BBMap){
+    set<ValVertexType> tmpPeerOriginals;
+    set<SymVal*> peerOriginals;
+    SymVal_sym_FalsePhiLeaf(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges,set<ValVertexType> tmpPeerOriginal):
+            SymVal(symid, NodeFalseLeafPhi, bid){
         numOps = PhiEdges.size();
         for(auto eachPhiEdge : PhiEdges){
             tmpIn_edges[eachPhiEdge.first] = eachPhiEdge.second;

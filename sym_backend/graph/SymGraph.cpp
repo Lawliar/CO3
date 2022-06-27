@@ -191,7 +191,7 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
             }
         }
 
-        else if( nodeType == NodeTruePhi || nodeType == NodeFalseLeafPhi){
+        else if( nodeType == NodeTruePhi ){
             map<unsigned short, unsigned short> in_paras;
             map<unsigned short, unsigned short> argNo2BBMap;
             for(;in_eit != in_eit_end; in_eit++ ){
@@ -202,16 +202,11 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
                 assert(dfg.graph[*in_eit].incomingBB > 0);
                 argNo2BBMap[arg_index] = dfg.graph[*in_eit].incomingBB;
             }
-            if(nodeType == NodeTruePhi){
-                cur_node = new  SymVal_sym_TruePhi(symid, bbid, in_paras,argNo2BBMap);
-            } else{
-                assert(in_paras.size() == 2 && argNo2BBMap.size() == 2);
-                cur_node = new SymVal_sym_FalsePhiLeaf(symid, bbid, in_paras,argNo2BBMap);
-            }
-        }else if(nodeType == NodeFalseRootPhi ){
+            cur_node = new  SymVal_sym_TruePhi(symid, bbid, in_paras,argNo2BBMap);
+
+        }else if(nodeType == NodeFalseRootPhi || nodeType == NodeFalseLeafPhi ){
             map<unsigned short, unsigned short> in_paras;
-            map<unsigned short, unsigned short> argNo2BBMap;
-            set<Val::ValVertexType> falsePhiLeaves;
+            set<Val::ValVertexType> leavesOrOriginal;// since both original to the falsePhiLeaf and falsePhiLeaf to root are all marked edged 2
             for(;in_eit != in_eit_end; in_eit++ ){
                 unsigned arg_index = dfg.graph[*in_eit].arg_no;
                 RuntimeSymFlowGraph::vertex_t source = boost::source(*in_eit,dfg.graph);
@@ -219,14 +214,17 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
                     assert(in_paras.find(arg_index) == in_paras.end());
                     in_paras[arg_index] = ver2offMap.at(source);
                     assert(dfg.graph[*in_eit].incomingBB > 0);
-                    argNo2BBMap[arg_index] = dfg.graph[*in_eit].incomingBB;
                 }else{
                     assert(arg_index == 2);
-                    falsePhiLeaves.insert(ver2offMap.at(source));
+                    leavesOrOriginal.insert(ver2offMap.at(source));
                 }
             }
-            assert(in_paras.size() == 2 && argNo2BBMap.size() == 2);
-            cur_node = new SymVal_sym_FalsePhiRoot(symid, bbid, in_paras, falsePhiLeaves, argNo2BBMap);
+            assert(in_paras.size() == 2);
+            if(nodeType == NodeFalseRootPhi){
+                cur_node = new SymVal_sym_FalsePhiRoot(symid, bbid, in_paras, leavesOrOriginal);
+            }else{
+                cur_node = new SymVal_sym_FalsePhiLeaf(symid, bbid, in_paras, leavesOrOriginal);
+            }
         }
 
         Nodes[ver2offMap.at(cur_ver)] = cur_node;
@@ -250,10 +248,17 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
 #ifdef DEBUG_CHECKING
                     assert(falsePhiRoot->tmpfalsePhiLeaves.size() > 1);
 #endif
-                    falsePhiLeaf->falsePhiRoot = falsePhiRoot;
                 }
             }
             falsePhiRoot->tmpfalsePhiLeaves.clear();// not gonna use it
+        }else if(auto falsePhiLeaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(cur_node); falsePhiLeaf != nullptr){
+            for(auto eachPeerOri : falsePhiLeaf->tmpPeerOriginals){
+                auto peerOriginal = dynamic_cast<SymVal*>(Nodes.at(eachPeerOri));
+#ifdef DEBUG_CHECKING
+                assert(peerOriginal != nullptr);
+#endif
+                falsePhiLeaf->peerOriginals.insert(peerOriginal);
+            }
         }
     }
     for(unsigned index = 0 ; index < Nodes.size() ; index++){
@@ -732,6 +737,7 @@ void SymGraph::prepareBBTask() {
         // post-dom relation
         task->dominance = domChildrenOf(cur_bbid, dID2VertMap, cfg.domTree);
         task->post_dominance = domChildrenOf(cur_bbid, pdId2VertMap, cfg.postDomTree);
+        task->nonReadyPostDominance.insert(task->post_dominance.begin(), task->post_dominance.end());
         // construct bbid to postDomTree Ver Map
         bbTasks.insert(make_pair(cur_bbid, task));
     }
@@ -792,18 +798,33 @@ void SymGraph::RootTask::Refresh() {
     }
 }
 
+
 bool SymGraph::BasicBlockTask::isBBReady() {
     for(auto eachRoot : roots){
         assert( eachRoot->ready == (ready + 1) );
     }
     return true;
 }
-void SymGraph::BasicBlockTask::Refresh(Val::ReadyType targetReady) {
+
+void SymGraph::RefreshBBTask(Val::BasicBlockIdType bbid,Val::ReadyType targetReady) {
+    // TODO: find all all BBs that are sure to be executed before this BB
+    auto bbtask = bbTasks.at(bbid);
+    auto bbIter = bbtask->nonReadyPostDominance.begin();
+    while (bbIter != bbtask->nonReadyPostDominance.end()){
+        auto cur_bbtask = bbTasks.at(*bbIter);
+        if(  cur_bbtask->inLoop == false &&  cur_bbtask->ready == 1){
+            bbIter = bbtask->nonReadyPostDominance.erase(bbIter);
+        }else if(cur_bbtask->inLoop == true){
+            bbIter = bbtask->nonReadyPostDominance.erase(bbIter);
+        }else{
+            bbIter++;
+        }
+    }
     // in bb nodes
-    auto nodeIter = nonReadyRoots.begin();
-    while(nodeIter != nonReadyRoots.end()){
+    auto nodeIter = bbtask->nonReadyRoots.begin();
+    while(nodeIter != bbtask->nonReadyRoots.end()){
         if((*nodeIter)->ready == targetReady){
-            nodeIter = nonReadyRoots.erase(nodeIter);
+            nodeIter = bbtask->nonReadyRoots.erase(nodeIter);
         }else{
             ++nodeIter;
         }

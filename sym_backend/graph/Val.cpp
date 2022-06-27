@@ -77,6 +77,9 @@ inline vector<Val*> Val::realChildren() {
         }
     }else if(false_phi_leaf  != nullptr){
         realChildren.push_back(false_phi_leaf->In_edges.at(0));
+        for(auto eachPeerOrig: false_phi_leaf->peerOriginals) {
+            realChildren.push_back(eachPeerOrig);
+        }
     }else{
         //normal nodes
         for(auto eachDep : In_edges){
@@ -86,13 +89,12 @@ inline vector<Val*> Val::realChildren() {
     return realChildren;
 }
 bool SymVal::directlyConstructable(Val::ReadyType targetReady){
-    bool allReady = true;
     for(auto eachDep: realChildren()){
         if( ! this->isThisNodeReady(eachDep, targetReady)){
-            allReady = false;
+            return false;
         }
     }
-    return allReady;
+    return true;
 }
 
 void RuntimeIntVal::Assign(IntValType val) {
@@ -129,7 +131,7 @@ inline SymExpr SymVal::extractSymExprFromSymVal(SymVal * op, ReadyType targetRea
     }
     else{
         // for debugging only, since we already ensured that this op is ready before calling construct
-        assert(this->isThisNodeReady(op, targetReady));
+        //assert(this->isThisNodeReady(op, targetReady));
         //debugging end
         ret = op->symExpr;
     }
@@ -309,16 +311,24 @@ DEFINE_SYMVAL_CONSTRUCTION(_sym_notify_call)
 
 void SymVal_sym_try_alternative::Construct(ReadyType targetReady) {
     assert(targetReady == (ready + 1));
+
+
+    auto runtimeOperand = dynamic_cast<RuntimeVal*>(In_edges.at(0));
+    assert(runtimeOperand != nullptr);
+
     auto symOperand = dynamic_cast<SymVal*>(In_edges.at(1));
     assert(symOperand != nullptr);
     extractSymExprFromSymVal(symOperand, targetReady);
 
-    auto runtimeOperand = dynamic_cast<RuntimeVal*>(In_edges.at(1));
-    assert(runtimeOperand != nullptr);
+
     //we are not really gonna do anything
     ready++;
 }
-DEFINE_SYMVAL_CONSTRUCTION(_NULL)
+void SymVal_NULL::Construct(Val::ReadyType targetReady){
+    // should not be called
+    assert(false);
+}
+
 void SymVal_sym_set_parameter_expression::Construct(ReadyType targetReady) {
     auto paraIndex = dynamic_cast<ConstantIntVal*>(In_edges.at(0));
     auto symPara = dynamic_cast<SymVal*>(In_edges.at(1));
@@ -338,7 +348,22 @@ void SymVal_sym_set_return_expression::Construct(ReadyType targetReady) {
 DEFINE_SYMVAL_CONSTRUCTION1(_sym_build_neg)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_add)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_sub)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_mul)
+void SymVal_sym_build_mul::Construct(ReadyType targetReady) {
+    auto symOp1 = dynamic_cast<SymVal*>(In_edges.at(0));
+    assert(symOp1 != nullptr);
+    auto symOp2 = dynamic_cast<SymVal*>(In_edges.at(1));
+    assert(symOp2 != nullptr);
+
+    SymExpr symInput1 = extractSymExprFromSymVal(symOp1, targetReady);
+    SymExpr symInput2 = extractSymExprFromSymVal(symOp2, targetReady);
+    if(symInput1 == nullptr){
+        assert(symInput2 ==nullptr);
+        symExpr = nullptr;
+    }else{
+        symExpr =  _sym_build_mul(symInput1,symInput2);
+    }
+    ready++;
+}
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_div)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_signed_div)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_rem)

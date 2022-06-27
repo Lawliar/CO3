@@ -99,13 +99,21 @@ void Orchestrator::ExecuteBasicBlock(Val::BasicBlockIdType bbid) {
     cout << string(indent, ' ')<<"Executing BB:"<<bbid<<'\n';
     cout.flush();
 #endif
+    cur_func->RefreshBBTask(bbid, cur_func->bbTasks.at(bbid)->ready + 1);
     auto bbTask = cur_func->bbTasks.at(bbid);
 #ifdef DEBUG_CHECKING
     if(cur_func->funcname == "strlen_cgc" and bbid == 1){
         __asm__("nop");
     }
 #endif
-    bbTask->Refresh( bbTask->ready + 1 );
+/*
+    for(auto eachNonReadyPostDomBB : bbTask->nonReadyPostDominance){
+        if(eachNonReadyPostDomBB == bbTask->BBID){
+            continue;
+        }
+        ExecuteBasicBlock(eachNonReadyPostDomBB);
+    }
+*/
     for(auto eachNonReadyRoot : bbTask->nonReadyRoots){
         if(auto tmpSymVal = dynamic_cast<SymVal*>(eachNonReadyRoot); tmpSymVal != nullptr){
             if(!tmpSymVal->isThisNodeReady(tmpSymVal, bbTask->ready + 1)){
@@ -124,13 +132,13 @@ void Orchestrator::ExecuteBasicBlock(Val::BasicBlockIdType bbid) {
     bbTask->ready ++;
 
 #ifdef DEBUG_OUTPUT
-    indent -= indentNum;
     cout << string(indent, ' ') << "finish Executing BB:"<<bbid<<'\n';
     cout.flush();
+    indent -= indentNum;
 #endif
 }
 
-void Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot) {
+bool Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot, Val::ReadyType targetReady) {
     if (falsePhiRoot->falsePhiLeaves.size() == 0){
         falsePhiRoot->symExpr = nullptr;
         falsePhiRoot->ready++;
@@ -138,10 +146,10 @@ void Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot) {
         auto leaf = dynamic_cast<SymVal*>(*falsePhiRoot->falsePhiLeaves.begin());
         assert( leaf != nullptr);
         // make sure the only one leaf is executed.
-        if(! falsePhiRoot->isThisNodeReady(leaf, (falsePhiRoot->ready + 1) )){
-            BackwardExecution(leaf, falsePhiRoot->ready + 1);
+        if(! falsePhiRoot->isThisNodeReady(leaf, targetReady )){
+            return false;
         }
-        if(SymVal::extractSymExprFromSymVal(leaf, (falsePhiRoot->ready + 1)) ==  nullptr){
+        if(SymVal::extractSymExprFromSymVal(leaf, targetReady) ==  nullptr){
             // the only leaf is concrete, thus, this root is also concrete
             falsePhiRoot->symExpr = nullptr;
             falsePhiRoot->ready ++;
@@ -149,95 +157,87 @@ void Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot) {
             // the only leaf is not concrete, then we try to execute the slow branch
             SymVal* slowBranchVal = dynamic_cast<SymVal*>(falsePhiRoot->In_edges.at(1));
             assert(slowBranchVal != nullptr);
-            if(! falsePhiRoot->isThisNodeReady(slowBranchVal,(falsePhiRoot->ready + 1))){
-                BackwardExecution(slowBranchVal, (falsePhiRoot->ready + 1));
-            }
-            assert(falsePhiRoot->isThisNodeReady(slowBranchVal, (falsePhiRoot->ready + 1) ));
+            BackwardExecution(slowBranchVal, targetReady);
+            assert(falsePhiRoot->isThisNodeReady(slowBranchVal, targetReady ));
             falsePhiRoot->symExpr = slowBranchVal->symExpr;
             falsePhiRoot->ready ++;
         }
     }else{
         // we have multiple leaves
-        // and each leaf must be symFlaseLeaf
-        bool anySym = false;
+        // and each leaf must be FalsePhiLeaf
+        bool allConcrete = true;
         for(auto eachLeaf : falsePhiRoot->falsePhiLeaves){
+            if(!falsePhiRoot->isThisNodeReady(eachLeaf, targetReady)){
+                return false;
+            }
             auto eachFalsePhiLeaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(eachLeaf);
             assert(eachFalsePhiLeaf != nullptr);
-            auto eachFalsePhiLeafOriginalValue = dynamic_cast<SymVal*>(eachFalsePhiLeaf->In_edges.at(0));
-            assert(eachFalsePhiLeafOriginalValue != nullptr);
-            // we only care about if the falsePhiRoot's original value is concrete or not
-            if(! falsePhiRoot->isThisNodeReady(eachFalsePhiLeafOriginalValue, (falsePhiRoot->ready + 1))){
-                BackwardExecution(eachFalsePhiLeafOriginalValue, (falsePhiRoot->ready + 1) );
-            }
-            assert(falsePhiRoot->isThisNodeReady(eachFalsePhiLeafOriginalValue, (falsePhiRoot->ready + 1)  ));
-            if(eachFalsePhiLeafOriginalValue->symExpr != nullptr){
-                // this original value is not concrete
-                anySym = true;
+            SymExpr leafSymExpr = SymVal::extractSymExprFromSymVal(eachFalsePhiLeaf, targetReady);
+            if(leafSymExpr != nullptr){
+                allConcrete = false;
             }
         }
-        if(! anySym){
+        if(allConcrete){
             falsePhiRoot->symExpr = nullptr;
             falsePhiRoot->ready ++;
         }else{
             SymVal* slowBranchVal = dynamic_cast<SymVal*>(falsePhiRoot->In_edges.at(1));
             assert(slowBranchVal != nullptr);
-            if(! falsePhiRoot->isThisNodeReady(slowBranchVal, (falsePhiRoot->ready + 1))){
-                BackwardExecution(slowBranchVal, (falsePhiRoot->ready + 1) );
-            }
-            assert(falsePhiRoot->isThisNodeReady(slowBranchVal, (falsePhiRoot->ready + 1) ));
+            BackwardExecution(slowBranchVal, targetReady );
+            assert(falsePhiRoot->isThisNodeReady(slowBranchVal, targetReady ));
             falsePhiRoot->symExpr = slowBranchVal->symExpr;
             falsePhiRoot->ready ++;
         }
     }
 }
 
-void Orchestrator::ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf * falsePhiLeaf) {
+bool Orchestrator::ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf * falsePhiLeaf, Val::ReadyType targetReady) {
     auto falsePhiLeafOriginalVal = dynamic_cast<SymVal*>(falsePhiLeaf->In_edges.at(0));
     assert(falsePhiLeafOriginalVal != nullptr);
-    if(! falsePhiLeaf->isThisNodeReady(falsePhiLeafOriginalVal,(falsePhiLeaf->ready + 1)  )){
-        BackwardExecution(falsePhiLeafOriginalVal, (falsePhiLeaf->ready + 1) );
-    }
-#ifdef DEBUG_CHECKING
-    assert(falsePhiLeaf->isThisNodeReady(falsePhiLeafOriginalVal, (falsePhiLeaf->ready + 1) ));
-#endif
-    SymExpr originalSymExpr = SymVal::extractSymExprFromSymVal(falsePhiLeaf, (falsePhiLeaf->ready + 1));
-    if(originalSymExpr == nullptr){
-        //the original value is concrete
-        if(falsePhiLeaf->falsePhiRoot != nullptr){
-            if(! falsePhiLeaf->isThisNodeReady(falsePhiLeaf->falsePhiRoot, (falsePhiLeaf->ready + 1) )){
-                BackwardExecution(falsePhiLeaf->falsePhiRoot, (falsePhiLeaf->ready + 1) );
-            }
-            assert(falsePhiLeaf->isThisNodeReady(falsePhiLeaf->falsePhiRoot, (falsePhiLeaf->ready + 1)));
-            if(SymVal::extractSymExprFromSymVal(falsePhiLeaf->falsePhiRoot, (falsePhiLeaf->ready + 1)) == nullptr){
-                // the root is also concrete, which means, this falsePhiLeaf is not executed at the MCU at all
-                //falsePhiLeaf->symExpr = nullptr;
-                //falsePhiLeaf->ready ++;
-            }else{
-                // the root is not concrete, which means,
-                // this falsePhiLeaf need to take the newVal
-                auto newVal = dynamic_cast<SymVal*>(falsePhiLeaf->In_edges.at(1));
-                if(! falsePhiLeaf->isThisNodeReady(newVal, (falsePhiLeaf->ready + 1))){
-                    BackwardExecution(newVal, (falsePhiLeaf->ready + 1) );
-                }
-                assert(falsePhiLeaf->isThisNodeReady(newVal, (falsePhiLeaf->ready + 1) ));
-                falsePhiLeaf->symExpr = SymVal::extractSymExprFromSymVal(newVal, (falsePhiLeaf->ready + 1) );
-                falsePhiLeaf->ready++;
-            }
-        }else{
-            // there is not a root, and the original is concrete, then this falsephileaf is also concrete
-            falsePhiLeaf->symExpr = nullptr;
-            falsePhiLeaf->ready++;
-        }
+
+    SymExpr originalSymExpr = nullptr;
+    bool allConcrete = true;
+    if(!falsePhiLeaf->isThisNodeReady(falsePhiLeafOriginalVal, targetReady)){
+        return false;
     }else{
-        //the original value is not concrete
-        // which mean, the root , if any, must not be concrete either
-        // we just take the original value then
+        originalSymExpr = SymVal::extractSymExprFromSymVal(falsePhiLeafOriginalVal, targetReady);
+        if(originalSymExpr != nullptr){
+            allConcrete = false;
+        }
+    }
+    for(auto eachPeerOrig: falsePhiLeaf->peerOriginals){
+        if(falsePhiLeaf->isThisNodeReady(eachPeerOrig, targetReady)){
+            return false;
+        }else{
+            if(SymVal::extractSymExprFromSymVal(falsePhiLeafOriginalVal, targetReady) != nullptr){
+                allConcrete = false;
+            }
+        }
+    }
+    if(originalSymExpr == nullptr && allConcrete){
+        // both the root and the this leaf's orig are, which means,
+        // this falsePhiLeaf is not executed at the MCU at all
+        // although this FalsePhiLeaf is never executed at the MCU,
+        // still we need to set this to null and say it's ready
+        falsePhiLeaf->symExpr = nullptr;
+        falsePhiLeaf->ready ++;
+    }else if(originalSymExpr == nullptr && (! allConcrete)){
+        // the original is concrete, but the peers are not, we need to construct the newExpr
+        auto newVal = dynamic_cast<SymVal*>(falsePhiLeaf->In_edges.at(1));
+        if(! falsePhiLeaf->isThisNodeReady(newVal, targetReady)){
+            BackwardExecution(newVal, targetReady );
+        }
+        assert(falsePhiLeaf->isThisNodeReady(newVal, targetReady ));
+        falsePhiLeaf->symExpr = SymVal::extractSymExprFromSymVal(newVal, targetReady);
+        falsePhiLeaf->ready++;
+    }else if(originalSymExpr != nullptr){
         falsePhiLeaf->symExpr = originalSymExpr;
         falsePhiLeaf->ready++;
     }
+    return true;
 }
 
-bool Orchestrator::ExecuteSpecialNode(SymVal *symval) {
+bool Orchestrator::ExecuteSpecialNode(SymVal *symval, Val::ReadyType targetReady) {
     auto notifyCall = dynamic_cast<SymVal_sym_notify_call*>(symval);
     //auto tryAlternative = dynamic_cast<SymVal_sym_try_alternative*>(symval);
     auto truePhi = dynamic_cast<SymVal_sym_TruePhi*>(symval);
@@ -253,92 +253,133 @@ bool Orchestrator::ExecuteSpecialNode(SymVal *symval) {
     auto falsePhiRoot = dynamic_cast<SymVal_sym_FalsePhiRoot*>(symval);
     auto falsePhiLeaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(symval);
     if(falsePhiLeaf != nullptr ){
-        ExecuteFalsePhiLeaf(falsePhiLeaf);
-        return true;
+        bool ret = ExecuteFalsePhiLeaf(falsePhiLeaf, targetReady);
+        return ret;
     }
     if(falsePhiRoot != nullptr){
-        ExecuteFalsePhiRoot(falsePhiRoot);
-        return true;
+        bool ret = ExecuteFalsePhiRoot(falsePhiRoot, targetReady);
+        return ret;
     }
     return false;
 }
 
-bool Orchestrator::ExecuteNode(SymVal * nodeToExecute, Val::ReadyType targetReady) {
-    auto isSpecial = ExecuteSpecialNode(nodeToExecute);
-    if(isSpecial){
-        return true;
-    }else{
-        if(nodeToExecute->directlyConstructable(targetReady)) {
-            // if we can construct right now, just do it
-            nodeToExecute->Construct(targetReady);
-            return true;
-        }
-    }
-    return false;
-}
-void Orchestrator::ForwardExecution(Val* source,bool force, bool crossBB, SymGraph::RootTask* target, unsigned targetReady) {
+bool Orchestrator::ExecuteNode(Val* nodeToExecute, Val::ReadyType targetReady) {
 #ifdef DEBUG_OUTPUT
     indent += indentNum;
-    cout << string(indent, ' ') << "Forwarding:"<<source->Str() <<"\n";
+    cout << string(indent, ' ') << "Trying to construct:"<<nodeToExecute->Str() <<"\n";
+    std::cout.flush();
+#endif
+    if(auto runtimeVal = dynamic_cast<RuntimeVal*>(nodeToExecute); runtimeVal != nullptr){
+#ifdef DEBUG_CHECKING
+        assert(targetReady == (runtimeVal->ready + 1));
+#endif
+        runtimeVal->Unassign();
+#ifdef DEBUG_OUTPUT
+        cout << string(indent, ' ') << "constructed:"<<nodeToExecute->Str() <<"\n";
+        std::cout.flush();
+        indent -= indentNum;
+#endif
+        return true;
+    }else{
+        auto symVal = dynamic_cast<SymVal*>(nodeToExecute);
+#ifdef DEBUG_CHECKING
+        assert(symVal != nullptr);
+#endif
+        auto isSpecial = ExecuteSpecialNode(symVal, targetReady);
+        if(isSpecial){
+#ifdef DEBUG_OUTPUT
+            cout << string(indent, ' ') << "constructed:"<<symVal->Str() <<"\n";
+            std::cout.flush();
+            indent -= indentNum;
+#endif
+            return true;
+        }else{
+            if(symVal->directlyConstructable(targetReady)) {
+                // if we can construct right now, just do it
+                symVal->Construct(targetReady);
+#ifdef DEBUG_OUTPUT
+                cout << string(indent, ' ') << "constructed:"<<symVal->Str() <<"\n";
+                std::cout.flush();
+                indent -= indentNum;
+#endif
+                return true;
+            }
+        }
+#ifdef DEBUG_OUTPUT
+        cout << string(indent, ' ') << "not there yet:"<<symVal->Str() <<"\n";
+        std::cout.flush();
+        indent -= indentNum;
+#endif
+        return false;
+    }
+
+}
+void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, unsigned targetReady) {
+#ifdef DEBUG_OUTPUT
+    indent += indentNum;
+    cout << string(indent, ' ') << "Forwarding:"<<source->Str();
+    if(auto tmpSymVal = dynamic_cast<SymVal*>(source); tmpSymVal != nullptr){
+        cout<<',' << tmpSymVal->Str();
+    }
+    cout<<'\n';
     std::cout.flush();
 #endif
     SymGraph* cur_func = getCurFunc();
-    SymVal * symVal = dynamic_cast<SymVal*>(source);
-    RuntimeVal* runtimeVal = dynamic_cast<RuntimeVal*>(source);
+#ifdef DEBUG_CHECKING
+    // shouldn't trying to construct a constant
+    auto tmpConstant = dynamic_cast<ConstantVal*>(source);
+    assert(tmpConstant == nullptr);
+#endif
 
-    bool constructed = false;
-    if(symVal != nullptr){
-        // try to construct this symval
-#ifdef DEBUG_OUTPUT
-        cout << string(indent, ' ') << "sym:"<<symVal->Str()<<'\n';
-        std::cout.flush();
+#ifdef  DEBUG_CHECKING
+    if(target != nullptr){
+        assert(!target->root->isThisNodeReady(source, targetReady));
 #endif
-        if(symVal->ready < targetReady){
-            if(!ExecuteNode(symVal, targetReady)){
-                auto rootTask = cur_func->GetRootTask(symVal);
-                assert(rootTask != nullptr);
-                Val::ReadyType old_ready = rootTask->root->ready;
-                // finish the dependent BBs
-                for(auto eachBBDep : rootTask->depNonReadyNonLoopBB){
-                    ExecuteBasicBlock(eachBBDep->BBID);
-                }
-                // see if inside the BB, there is runtime
-                if(!rootTask->hasRuntimeDep()){
-                    // if there is not, then, we can also construct this
-                    for(auto eachInEdge : rootTask->inBBNonReadyLeafDeps){
-                        ForwardExecution(eachInEdge,force, false, rootTask,targetReady);
-                    }
-                    assert( rootTask->root->ready ==(old_ready + 1));
-                    constructed = true;
-                }
-                rootTask->occupied = false;
-            }else{
-                constructed = true;
-            }
-        }
-    }else if(runtimeVal != nullptr){
-        // when not forcing the runtimeValue, this source should not be runtimeVal, as this has been checked by code above
-        assert(force == true);
-        // this runtimeVal should not be ready, otherwise, this should not be called.
-        assert(targetReady == (runtimeVal->ready + 1));
-        runtimeVal->Unassign();
-        constructed = true;
     }
-    if(constructed){
-#ifdef DEBUG_OUTPUT
-        cout << string(indent, ' ') << "constructed\n";
+    bool shouldMoveForward = false;
+    if(!ExecuteNode(source, targetReady) && target == nullptr) {
+        //only when no target is provided, we try to execute as much as we can find(without forcing the runtime val)
+        // otherwise, we can just take care of this node itself, even if it's not ready to be constructed,
+        // backward execution should already have take of that.
+        auto symVal = dynamic_cast<SymVal*>(source);
+#ifdef DEBUG_CHECKING
+        assert(symVal != nullptr);
 #endif
+        auto rootTask = cur_func->GetRootTask(symVal);
+        assert(rootTask != nullptr);
+        Val::ReadyType old_ready = rootTask->root->ready;
+        // finish the dependent BBs
+        for(auto eachBBDep : rootTask->depNonReadyNonLoopBB){
+            ExecuteBasicBlock(eachBBDep->BBID);
+        }
+        if(!rootTask->hasRuntimeDep()){
+            // if there is not, then, we can also construct this
+            for(auto eachInEdge : rootTask->inBBNonReadyLeafDeps){
+                ForwardExecution(eachInEdge, rootTask,targetReady);
+            }
+            assert( rootTask->root->ready ==(old_ready + 1));
+            shouldMoveForward = true;
+        }
+        rootTask->occupied = false;
+    }else{
+        shouldMoveForward = true;
+    }
+
+
+    if(shouldMoveForward){
         if(target != nullptr  ){
             // since we try to execute the target from its children,
             // this source should never be the target root itself
+#ifdef DEBUG_CHECKING
             assert(source != target->root);
+#endif
             bool foundNext = false;
             for(auto eachUser : source->UsedBy){
                 if(target->inBBNonReadyDeps.find(eachUser) != target->inBBNonReadyDeps.end()){
                     if(target->root == eachUser){
                         ExecuteNode(target->root, targetReady);
                     }else{
-                        ForwardExecution(eachUser, force, crossBB, target, targetReady);
+                        ForwardExecution(eachUser,  target, targetReady);
                     }
                     foundNext = true;
                 }
@@ -348,18 +389,16 @@ void Orchestrator::ForwardExecution(Val* source,bool force, bool crossBB, SymGra
                 assert(false);
             }
         }else{
+            // no target is provided, free farm
+            auto& sourceDominance = cur_func->bbTasks.at(source->BBID)->dominance;
             for(auto eachUser : source->UsedBy){
-                auto& userPostDominance = cur_func->bbTasks.at(eachUser->BBID)->post_dominance;
-                if(eachUser->BBID == source->BBID || (eachUser->BBID != source->BBID && crossBB && userPostDominance.find(source->BBID) != userPostDominance.end() ) ){
-                    ForwardExecution(eachUser, force, crossBB, target, targetReady);
+                if(eachUser->BBID == source->BBID || (eachUser->BBID != source->BBID  && sourceDominance.find(eachUser->BBID) != sourceDominance.end() ) ){
+                    ForwardExecution(eachUser,  target, targetReady);
                 }
             }
         }
     }
 #ifdef DEBUG_OUTPUT
-    else{
-        cout << string(indent, ' ') << "not constructed\n";
-    }
     std::cout << string(indent, ' ') << "finish Forwarding:"<<source->Str() <<'\n';
     std::cout.flush();
     indent -= indentNum;
@@ -375,27 +414,9 @@ void Orchestrator::BackwardExecution(SymVal* sink, Val::ReadyType targetReady) {
 #endif
     //assuming all its dependents are ready
     SymGraph* cur_func = getCurFunc();
-    if(sink->ready == targetReady || ExecuteSpecialNode(sink)){
-        //sink is already constructed or it's special node
-#ifdef DEBUG_OUTPUT
-        cout << string(indent, ' ')<< "finish backwarding:"<<sink->Str()<<'\n';
-        cout.flush();
-        indent -= indentNum;
-#endif
-        return;
-    }
-    else if(sink->directlyConstructable(targetReady)){
-        // if we can construct right now, just do it
-        sink->Construct(targetReady);
-#ifdef DEBUG_OUTPUT
-        cout << string(indent, ' ') << "constructed\n";
-        cout.flush();
-#endif
+    if(sink->ready == targetReady || ExecuteNode(sink, targetReady)){
+        //already constructed or can be constructed right away
     }else{
-#ifdef DEBUG_OUTPUT
-        cout << string(indent, ' ') << "not constructed\n";
-        cout.flush();
-#endif
 #ifdef DEBUG_CHECKING
         if(cur_func->funcname == "strlen_cgc" && sink->symID == 3){
             __asm__("nop");
@@ -409,7 +430,7 @@ void Orchestrator::BackwardExecution(SymVal* sink, Val::ReadyType targetReady) {
 
         for(auto eachInBBLeaf : rootTask->inBBNonReadyLeafDeps){
             // we are forcing the dependent unready runtime value to unassign themselves
-            ForwardExecution(eachInBBLeaf,true, false,rootTask,targetReady);
+            ForwardExecution(eachInBBLeaf,rootTask,targetReady);
         }
         rootTask->occupied = false;
         // we hope the execution above ful-filled its job properly
@@ -586,7 +607,7 @@ int Orchestrator::Run() {
                 assert(runtime_operand != nullptr);
                 runtime_operand->Assign(sym_read_mem_msg->ptr);
                 // allow this to cross BB, but not by force(i.e., halt when meeting other unknown runtime dependency)
-                ForwardExecution(realMemSymVal,false, true,nullptr, realMemSymVal->ready + 1);
+                ForwardExecution(realMemSymVal,nullptr, realMemSymVal->ready + 1);
 #ifdef DEBUG_OUTPUT
                 cout << "finish "<<sym_read_mem_msg->Str()<<"\n\n";
                 cout.flush();

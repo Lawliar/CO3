@@ -25,15 +25,15 @@ public:
     SymGraph* getCurFunc();
 
 
-    void ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot*);
-    void ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf*);
-    bool ExecuteSpecialNode(SymVal*);
+    bool ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot*, Val::ReadyType);
+    bool ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf*, Val::ReadyType);
+    bool ExecuteSpecialNode(SymVal*, Val::ReadyType);
 
-    bool ExecuteNode(SymVal*, Val::ReadyType);
+    bool ExecuteNode(Val*, Val::ReadyType);
     void ExecuteBasicBlock(Val::BasicBlockIdType);
     void PreparingCalling(NotifyCallMessage*);
     void SetRetAndRefreshGraph();
-    void ForwardExecution(Val*,bool, bool, SymGraph::RootTask*,unsigned);
+    void ForwardExecution(Val*, SymGraph::RootTask*,unsigned);
     void BackwardExecution(SymVal*, Val::ReadyType);
     ~Orchestrator();
 

@@ -56,13 +56,14 @@ public:
         std::set<Val::BasicBlockIdType> dominance;
         std::set<Val::BasicBlockIdType > post_dominance;// this BB post dominate these BBs
         std::set<Val*> allNodes;
+        std::set<Val::BasicBlockIdType> nonReadyPostDominance;
         std::set<Val*> nonReadyRoots;
         // leaves are the "inputs" to this basic block
         std::set<Val*> leaves;
         // roots are the non-out vertices and the direct out vertices
         std::set<Val*> roots;
+        bool isPostDominatedReady(Val::BasicBlockIdType);
         bool isBBReady();
-        void Refresh(Val::ReadyType targetReady);
         // map the root to its Dependent BBs that are not in the loop(because we already make sure loop is properly executed)
         //std::map<Val*, DataDependents* > nonLoopRootDependents;
     };
@@ -152,7 +153,7 @@ public:
     //Val* stripTruePhi(Val*, Val*);
 
     RootTask* GetRootTask(SymVal*);
-
+    void RefreshBBTask(Val::BasicBlockIdType, Val::ReadyType);
     map<SymVal*,RootTask*> rootTasks;
 };
 
