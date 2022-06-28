@@ -373,7 +373,9 @@ public:
             tmpIn_edges[eachPhiEdge.first] = eachPhiEdge.second;
         }
     }
-    ~SymVal_sym_FalsePhiRoot(){In_edges.clear();tmpIn_edges.clear(); UsedBy.clear();}
+    ~SymVal_sym_FalsePhiRoot(){In_edges.clear();
+        tmpIn_edges.clear(); UsedBy.clear();
+        tmpfalsePhiLeaves.clear();falsePhiLeaves.clear();}
 };
 
 class SymVal_sym_FalsePhiLeaf: public SymVal{
@@ -381,14 +383,17 @@ public:
     unsigned numOps;
     set<ValVertexType> tmpPeerOriginals;
     set<SymVal*> peerOriginals;
-    SymVal_sym_FalsePhiLeaf(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges,set<ValVertexType> tmpPeerOriginal):
-            SymVal(symid, NodeFalseLeafPhi, bid){
+    SymVal_sym_FalsePhiRoot * root = nullptr;
+    SymVal_sym_FalsePhiLeaf(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges,set<ValVertexType> tmpOriginals):
+            SymVal(symid, NodeFalseLeafPhi, bid), tmpPeerOriginals(tmpOriginals){
         numOps = PhiEdges.size();
         for(auto eachPhiEdge : PhiEdges){
             tmpIn_edges[eachPhiEdge.first] = eachPhiEdge.second;
         }
     }
-    ~SymVal_sym_FalsePhiLeaf(){In_edges.clear();tmpIn_edges.clear(); UsedBy.clear();}
+    ~SymVal_sym_FalsePhiLeaf(){In_edges.clear();
+        tmpIn_edges.clear(); UsedBy.clear();
+        peerOriginals.clear();tmpPeerOriginals.clear();}
 };
 
 #endif //SYMBACKEND_VAL_H

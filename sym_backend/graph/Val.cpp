@@ -372,22 +372,9 @@ void SymVal_sym_set_return_expression::Construct(ReadyType targetReady) {
 DEFINE_SYMVAL_CONSTRUCTION1(_sym_build_neg)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_add)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_sub)
-void SymVal_sym_build_mul::Construct(ReadyType targetReady) {
-    auto symOp1 = dynamic_cast<SymVal*>(In_edges.at(0));
-    assert(symOp1 != nullptr);
-    auto symOp2 = dynamic_cast<SymVal*>(In_edges.at(1));
-    assert(symOp2 != nullptr);
 
-    SymExpr symInput1 = extractSymExprFromSymVal(symOp1, targetReady);
-    SymExpr symInput2 = extractSymExprFromSymVal(symOp2, targetReady);
-    if(symInput1 == nullptr){
-        assert(symInput2 ==nullptr);
-        symExpr = nullptr;
-    }else{
-        symExpr =  _sym_build_mul(symInput1,symInput2);
-    }
-    ready++;
-}
+DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_mul)
+
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_div)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_signed_div)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_rem)
@@ -410,8 +397,21 @@ DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_less_than)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_less_equal)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_greater_than)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_greater_equal)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_equal)
-
+void SymVal_sym_build_equal::Construct(ReadyType targetReady) {
+    auto symOp1 = dynamic_cast<SymVal*>(In_edges.at(0));
+    assert(symOp1 != nullptr);
+    auto symOp2 = dynamic_cast<SymVal*>(In_edges.at(1));
+    assert(symOp2 != nullptr);
+    auto symInput1 = extractSymExprFromSymVal(symOp1, targetReady);
+    auto symInput2 = extractSymExprFromSymVal(symOp2, targetReady);
+    if(symInput1 == nullptr){
+        assert(symInput2 ==nullptr);
+        symExpr = nullptr;
+    }else{
+        symExpr =  _sym_build_equal(symInput1,symInput2);
+    }
+    ready++;
+}
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_not_equal)
 DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_bool_and)
 

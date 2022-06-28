@@ -167,7 +167,7 @@ bool Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot, Va
         // and each leaf must be FalsePhiLeaf
         bool allConcrete = true;
         for(auto eachLeaf : falsePhiRoot->falsePhiLeaves){
-            if(!falsePhiRoot->isThisNodeReady(eachLeaf, targetReady)){
+            if( ! falsePhiRoot->isThisNodeReady(eachLeaf, targetReady)){
                 return false;
             }
             auto eachFalsePhiLeaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(eachLeaf);
@@ -207,10 +207,10 @@ bool Orchestrator::ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf * falsePhiLeaf, V
         }
     }
     for(auto eachPeerOrig: falsePhiLeaf->peerOriginals){
-        if(falsePhiLeaf->isThisNodeReady(eachPeerOrig, targetReady)){
+        if(!falsePhiLeaf->isThisNodeReady(eachPeerOrig, targetReady)){
             return false;
         }else{
-            if(SymVal::extractSymExprFromSymVal(falsePhiLeafOriginalVal, targetReady) != nullptr){
+            if(SymVal::extractSymExprFromSymVal(eachPeerOrig, targetReady) != nullptr){
                 allConcrete = false;
             }
         }
@@ -238,30 +238,36 @@ bool Orchestrator::ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf * falsePhiLeaf, V
     return true;
 }
 
-bool Orchestrator::ExecuteSpecialNode(SymVal *symval, Val::ReadyType targetReady) {
+SpecialNodeReturn Orchestrator::ExecuteSpecialNode(SymVal *symval, Val::ReadyType targetReady) {
     auto notifyCall = dynamic_cast<SymVal_sym_notify_call*>(symval);
     //auto tryAlternative = dynamic_cast<SymVal_sym_try_alternative*>(symval);
     auto truePhi = dynamic_cast<SymVal_sym_TruePhi*>(symval);
-    if(notifyCall != nullptr  || truePhi != nullptr ){
+    auto symNull = dynamic_cast<SymVal_NULL*>(symval);
+    if(notifyCall != nullptr  || truePhi != nullptr || symNull != nullptr){
         // notifycall and true phi are handled else where
         // tryAlternative are simply ignored(for now)
-        return true;
+        return SpecialConstructed;
     }
-    auto symNull = dynamic_cast<SymVal_NULL*>(symval);
-    if(symNull != nullptr){
-        return true;
-    }
+
     auto falsePhiRoot = dynamic_cast<SymVal_sym_FalsePhiRoot*>(symval);
     auto falsePhiLeaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(symval);
     if(falsePhiLeaf != nullptr ){
         bool ret = ExecuteFalsePhiLeaf(falsePhiLeaf, targetReady);
-        return ret;
+        if(ret){
+            return SpecialConstructed;
+        }else{
+            return SpecialNotReady;
+        }
     }
     if(falsePhiRoot != nullptr){
         bool ret = ExecuteFalsePhiRoot(falsePhiRoot, targetReady);
-        return ret;
+        if(ret){
+            return SpecialConstructed;
+        }else{
+            return SpecialNotReady;
+        }
     }
-    return false;
+    return NotSpecial;
 }
 
 bool Orchestrator::ExecuteNode(Val* nodeToExecute, Val::ReadyType targetReady) {
@@ -287,14 +293,14 @@ bool Orchestrator::ExecuteNode(Val* nodeToExecute, Val::ReadyType targetReady) {
         assert(symVal != nullptr);
 #endif
         auto isSpecial = ExecuteSpecialNode(symVal, targetReady);
-        if(isSpecial){
+        if(isSpecial == SpecialConstructed){
 #ifdef DEBUG_OUTPUT
             cout << string(indent, ' ') << "constructed:"<<symVal->Str() <<"\n";
             std::cout.flush();
             indent -= indentNum;
 #endif
             return true;
-        }else{
+        }else if(isSpecial == NotSpecial){
             if(symVal->directlyConstructable(targetReady)) {
                 // if we can construct right now, just do it
                 symVal->Construct(targetReady);
@@ -316,16 +322,27 @@ bool Orchestrator::ExecuteNode(Val* nodeToExecute, Val::ReadyType targetReady) {
 
 }
 void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, unsigned targetReady) {
+#ifdef DEBUG_CHECKING
+    auto tmpSymVal = dynamic_cast<SymVal*>(source);
+#endif
 #ifdef DEBUG_OUTPUT
     indent += indentNum;
     cout << string(indent, ' ') << "Forwarding:"<<source->Str();
-    if(auto tmpSymVal = dynamic_cast<SymVal*>(source); tmpSymVal != nullptr){
+
+    if( tmpSymVal != nullptr){
         cout<<',' << tmpSymVal->Str();
     }
     cout<<'\n';
     std::cout.flush();
+
 #endif
     SymGraph* cur_func = getCurFunc();
+#ifdef DEBUG_CHECKING
+    if(cur_func->funcname == "receive_cgc_until" && tmpSymVal != nullptr && tmpSymVal->symID == 44 ){
+        __asm__("nop");
+    }
+#endif
+
 #ifdef DEBUG_CHECKING
     // shouldn't trying to construct a constant
     auto tmpConstant = dynamic_cast<ConstantVal*>(source);
@@ -394,9 +411,17 @@ void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, uns
             auto& sourceDominance = cur_func->bbTasks.at(source->BBID)->dominance;
             for(auto eachUser : source->UsedBy){
                 if(eachUser->BBID == source->BBID || (eachUser->BBID != source->BBID  && sourceDominance.find(eachUser->BBID) != sourceDominance.end() ) ){
+                    auto tmpFalsePhiRoot = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(eachUser);
+                    auto tmpFalsePhiLeaf = dynamic_cast<SymVal_sym_FalsePhiRoot*>(eachUser);
+                    if(tmpFalsePhiLeaf != nullptr || tmpFalsePhiRoot != nullptr){
+                        // since these 2 nodes involves backward execution, which might force runtimeInt to be Unassigned, we don't explore these 2, for now.
+                        continue;
+                    }
                     ForwardExecution(eachUser,  target, targetReady);
                 }
             }
+
+
         }
     }
 #ifdef DEBUG_OUTPUT
@@ -419,7 +444,7 @@ void Orchestrator::BackwardExecution(SymVal* sink, Val::ReadyType targetReady) {
         //already constructed or can be constructed right away
     }else{
 #ifdef DEBUG_CHECKING
-        if(cur_func->funcname == "strlen_cgc" && sink->symID == 3){
+        if(cur_func->funcname == "receive_cgc" && sink->symID == 46){
             __asm__("nop");
         }
 #endif
@@ -500,6 +525,10 @@ int Orchestrator::Run() {
         if(auto cnt_msg = dynamic_cast<ControlMessgaes*>(msg); cnt_msg != nullptr){
             if(auto bb_msg = dynamic_cast<NotifyBasicBlockMessage*>(msg) ; bb_msg != nullptr){
                 // now a BB has been finished on the MCU side, we try to do the same here
+#ifdef DEBUG_CHECKING
+                auto cur_func = getCurFunc();
+                assert(cur_func->bbTasks.at(bb_msg->id)->inLoop);
+#endif
 #ifdef DEBUG_OUTPUT
                 assert(indent == 0);
                 cout<<bb_msg->Str()<<'\n';
@@ -617,7 +646,7 @@ int Orchestrator::Run() {
                 cout << "finish "<<sym_read_mem_msg->Str()<<"\n\n";
                 cout.flush();
 #endif
-            }else if (auto runtimeBoolMsg = dynamic_cast<RuntimeBoolValueMessage*>(msg); runtimeBoolMsg != nullptr){
+            }else if (auto runtimeBoolMsg = dynamic_cast<BuildBoolValueMessage*>(msg); runtimeBoolMsg != nullptr){
 #ifdef DEBUG_OUTPUT
                 assert(indent == 0);
                 cout << runtimeBoolMsg->Str()<<'\n';
@@ -630,41 +659,55 @@ int Orchestrator::Run() {
                 cout << "finish "<<runtimeBoolMsg->Str()<<"\n\n";
                 cout.flush();
 #endif
-            }else if(auto runtimeIntMsg = dynamic_cast<RuntimeIntValueMessage*>(msg); runtimeIntMsg != nullptr){
+            }else if(auto runtimeIntMsg = dynamic_cast<BuildIntValueMessage*>(msg); runtimeIntMsg != nullptr){
 #ifdef DEBUG_OUTPUT
                 assert(indent == 0);
                 cout << runtimeIntMsg->Str()<<'\n';
                 cout.flush();
 #endif
-                auto runtimeIntVal = dynamic_cast<RuntimeIntVal*>(cur_val);
+                auto buildIntVal = dynamic_cast<SymVal_sym_build_integer*>(cur_val);
+                assert(buildIntVal != nullptr);
+
+                auto runtimeIntVal = dynamic_cast<RuntimeIntVal*>(buildIntVal->In_edges.at(0));
                 assert(runtimeIntVal != nullptr);
-                runtimeIntVal->Assign(runtimeBoolMsg->value);
+                runtimeIntVal->Assign(runtimeIntMsg->value);
+                buildIntVal->Construct(buildIntVal->ready + 1);
 #ifdef DEBUG_OUTPUT
                 cout << "finish "<<runtimeIntMsg->Str()<<"\n\n";
                 cout.flush();
 #endif
-            }else if(auto runtimeFloatMsg = dynamic_cast<RuntimeFloatValueMessage*>(msg); runtimeFloatMsg != nullptr){
+            }else if(auto runtimeFloatMsg = dynamic_cast<BuildFloatValueMessage*>(msg); runtimeFloatMsg != nullptr){
 #ifdef DEBUG_OUTPUT
                 assert(indent == 0);
                 cout << runtimeFloatMsg->Str()<<'\n';
                 cout.flush();
 #endif
-                auto runtimeFloat = dynamic_cast<RuntimeFloatVal*>(cur_val);
-                assert(runtimeFloat != nullptr);
-                runtimeFloat->Assign(runtimeBoolMsg->value);
+                auto buildFloatVal = dynamic_cast<SymVal_sym_build_float*>(cur_val);
+                assert(buildFloatVal != nullptr);
+
+                auto floatVal = dynamic_cast<RuntimeFloatVal*>(buildFloatVal->In_edges.at(0));
+                assert(floatVal != nullptr);
+                floatVal->Assign(runtimeFloatMsg->value);
+
+                buildFloatVal->Construct(buildFloatVal->ready + 1);
 #ifdef DEBUG_OUTPUT
                 cout << "finish "<<runtimeFloatMsg->Str()<<"\n\n";
                 cout.flush();
 #endif
-            }else if(auto runtimeDoubleMsg = dynamic_cast<RuntimeDoubleValueMessage*>(msg);runtimeDoubleMsg != nullptr){
+            }else if(auto runtimeDoubleMsg = dynamic_cast<BuildDoubleValueMessage*>(msg);runtimeDoubleMsg != nullptr){
 #ifdef DEBUG_OUTPUT
                 assert(indent == 0);
                 cout << runtimeDoubleMsg->Str()<<'\n';
                 cout.flush();
 #endif
-                auto runtimeDouble = dynamic_cast<RuntimeDoubleVal*>(cur_val);
-                assert(runtimeDouble != nullptr);
-                runtimeDouble->Assign(runtimeBoolMsg->value);
+                auto buildDoubleVal = dynamic_cast<SymVal_sym_build_float*>(cur_val);
+                assert(buildDoubleVal != nullptr);
+
+                auto doubleVal = dynamic_cast<RuntimeDoubleVal*>(buildDoubleVal->In_edges.at(0));
+                assert(doubleVal != nullptr);
+                doubleVal->Assign(runtimeDoubleMsg->value);
+
+                buildDoubleVal->Construct(buildDoubleVal->ready + 1);
 #ifdef DEBUG_OUTPUT
                 cout << "finish "<<runtimeDoubleMsg->Str()<<"\n\n";
                 cout.flush();

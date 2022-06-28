@@ -21,7 +21,7 @@ boost::program_options::variables_map ParseCommand(int argc, const char *argv[])
 extern set<string> SinkOps;
 extern set<string> leaveOps;
 extern set<string> leaves;
-
+extern set<string> nodesDepOnRuntime;
 // end of debug
 int main(int argc, const char *argv[])
 {
@@ -38,10 +38,6 @@ int main(int argc, const char *argv[])
 
     Orchestrator orc(input_path,serial_port,baud_rate);
     orc.Run();
-    //for(auto eachLeaf: leaves){
-    //    cout<<eachLeaf<<'\n';
-    //    cout.flush();
-    //}
     __asm__("nop");
 
 }

@@ -84,32 +84,32 @@ void MsgQueue::RenderAndPush(char * buf, char size){
         if(buf[cur] == SYM_BLD_INT_1){
             uint16_t symid = *(uint16_t*)(buf + cur + 1);
             uint8_t val = *(uint8_t *)(buf + cur + 3);
-            msgQueue.push_back(new RuntimeIntValueMessage(symid, 1, val ));
+            msgQueue.push_back(new BuildIntValueMessage(symid, 1, val ));
             cur += MsgLen.at(SYM_BLD_INT_1);
         }else if(buf[cur] == SYM_BLD_INT_2){
             uint16_t symid = *(uint16_t*)(buf + cur + 1);
             uint16_t val = *(uint16_t *)(buf + cur + 3);
-            msgQueue.push_back(new RuntimeIntValueMessage(symid, 2, val ));
+            msgQueue.push_back(new BuildIntValueMessage(symid, 2, val ));
             cur += MsgLen.at(SYM_BLD_INT_2);
         }else if(buf[cur] == SYM_BLD_INT_4){
             uint16_t symid = *(uint16_t*)(buf + cur + 1);
             uint32_t val = *(uint32_t *)(buf + cur + 3);
-            msgQueue.push_back(new RuntimeIntValueMessage(symid, 4, val ));
+            msgQueue.push_back(new BuildIntValueMessage(symid, 4, val ));
             cur += MsgLen.at(SYM_BLD_INT_4);
         }else if(buf[cur] == SYM_BLD_FLOAT){
             uint16_t symid = *(uint16_t*)(buf + cur + 1);
             uint32_t val = *(uint32_t*)(buf + cur + 3);
-            msgQueue.push_back(new RuntimeFloatValueMessage(symid, static_cast<float>(val)));
+            msgQueue.push_back(new BuildFloatValueMessage(symid, static_cast<float>(val)));
             cur += MsgLen.at(SYM_BLD_FLOAT);
         }else if(buf[cur] == SYM_BLD_FLOAT_DBL){
             uint16_t symid = *(uint16_t*)(buf + cur + 1);
             uint64_t val = *(uint64_t*)(buf + cur + 3);
-            msgQueue.push_back(new RuntimeDoubleValueMessage(symid, static_cast<double>(val) ));
+            msgQueue.push_back(new BuildDoubleValueMessage(symid, static_cast<double>(val) ));
             cur += MsgLen.at(SYM_BLD_FLOAT_DBL);
         }else if(buf[cur] == SYM_BLD_BOOL){
             uint16_t symid = *(uint16_t*)(buf + cur + 1);
             uint8_t val = *(uint64_t*)(buf + cur + 3);
-            msgQueue.push_back(new RuntimeBoolValueMessage(symid, static_cast<bool>(val)));
+            msgQueue.push_back(new BuildBoolValueMessage(symid, static_cast<bool>(val)));
             cur += MsgLen.at(SYM_BLD_BOOL);
         }else if(buf[cur] == SYM_BLD_PATH_CNSTR){
             uint16_t symid = *(uint16_t*)(buf + cur + 1);

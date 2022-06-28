@@ -17,6 +17,11 @@ extern "C" {
 #include "ThreadPool.h"
 
 
+typedef enum _SpecialNodeReturn{
+    SpecialConstructed,
+    SpecialNotReady,
+    NotSpecial
+}SpecialNodeReturn;
 
 class Orchestrator{
 public:
@@ -27,7 +32,8 @@ public:
 
     bool ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot*, Val::ReadyType);
     bool ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf*, Val::ReadyType);
-    bool ExecuteSpecialNode(SymVal*, Val::ReadyType);
+
+    SpecialNodeReturn ExecuteSpecialNode(SymVal*, Val::ReadyType);
 
     bool ExecuteNode(Val*, Val::ReadyType);
     void ExecuteBasicBlock(Val::BasicBlockIdType);

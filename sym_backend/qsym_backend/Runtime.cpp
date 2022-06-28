@@ -202,7 +202,8 @@ SymExpr _sym_build_bool(bool value) {
 
 DEF_BINARY_EXPR_BUILDER(add, Add)
 DEF_BINARY_EXPR_BUILDER(sub, Sub)
-DEF_BINARY_EXPR_BUILDER(mul, Mul)
+DEF_BINARY_EXPR_BUILDER(mul,Mul)
+
 DEF_BINARY_EXPR_BUILDER(unsigned_div, UDiv)
 DEF_BINARY_EXPR_BUILDER(signed_div, SDiv)
 DEF_BINARY_EXPR_BUILDER(unsigned_rem, URem)
@@ -220,7 +221,12 @@ DEF_BINARY_EXPR_BUILDER(unsigned_less_than, Ult)
 DEF_BINARY_EXPR_BUILDER(unsigned_less_equal, Ule)
 DEF_BINARY_EXPR_BUILDER(unsigned_greater_than, Ugt)
 DEF_BINARY_EXPR_BUILDER(unsigned_greater_equal, Uge)
-DEF_BINARY_EXPR_BUILDER(equal, Equal)
+SymExpr _sym_build_equal(SymExpr a, SymExpr b){
+    auto symExpr_a = allocatedExpressions.at(a);
+    auto symExpr_b = allocatedExpressions.at(b);
+    return registerExpression(g_expr_builder->createMul(
+            symExpr_a, symExpr_b));
+}
 DEF_BINARY_EXPR_BUILDER(not_equal, Distinct)
 
 DEF_BINARY_EXPR_BUILDER(bool_and, LAnd)

@@ -247,6 +247,7 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
                 if(falsePhiLeaf != nullptr){
 #ifdef DEBUG_CHECKING
                     assert(falsePhiRoot->tmpfalsePhiLeaves.size() > 1);
+                    falsePhiLeaf->root = falsePhiRoot;
 #endif
                 }
             }
@@ -285,9 +286,16 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
         for(auto each_in_edge : cur_node->In_edges){
             each_in_edge.second->UsedBy.insert(cur_node);
         }
+        // falsePhiLeaf is used by falsePhiRoot as well
         if(auto tmpFalsePhiRoot = dynamic_cast<SymVal_sym_FalsePhiRoot*>(cur_node)){
             for(auto eachLeaf : tmpFalsePhiRoot->falsePhiLeaves){
                 eachLeaf->UsedBy.insert(tmpFalsePhiRoot);
+            }
+        }
+        // peer's Originals are used by every falseLeaf as well
+        if(auto tmpFalsePhiLeaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(cur_node)){
+            for(auto eachPeerOriginal : tmpFalsePhiLeaf->peerOriginals){
+                eachPeerOriginal->UsedBy.insert(cur_node);
             }
         }
 
@@ -661,6 +669,7 @@ SymGraph::RootTask* SymGraph::GetRootTask(SymVal * root) {
         return sortNonLoopBB(a, b);});
 
     rootTasks.insert(make_pair(root,rootTask));
+    rootTask->occupied = true;
     return rootTask;
 }
 void SymGraph::prepareBBTask() {

@@ -49,13 +49,13 @@ public:
     SymSourceMessage(MessageType t,uint16_t symid): Message(t), symid(symid){};
 };
 
-class RuntimeBoolValueMessage: public SymSourceMessage{
+class BuildBoolValueMessage: public SymSourceMessage{
 public:
-    RuntimeBoolValueMessage(uint16_t symid,bool value):SymSourceMessage(BoolRuntimeValMsg, symid), value(value){};
+    BuildBoolValueMessage(uint16_t symid,bool value):SymSourceMessage(BoolRuntimeValMsg, symid), value(value){};
     bool value;
     std::string Str() {
         std::ostringstream s;
-        s<<"RuntimeBoolValue:symid"<<static_cast<unsigned>(symid)<<",value:"<<value;
+        s<<"RuntimeBoolValue:symid:"<<static_cast<unsigned>(symid)<<",value:"<<value;
         return s.str();
     }
 };
@@ -72,36 +72,36 @@ public:
     }
 };
 
-class RuntimeIntValueMessage: public SymSourceMessage{
+class BuildIntValueMessage: public SymSourceMessage{
 public:
-    RuntimeIntValueMessage(uint16_t symid, uint8_t width, int32_t value):SymSourceMessage(IntRuntimeValMsg, symid),width(width), value(value){};
+    BuildIntValueMessage(uint16_t symid, uint8_t width, int32_t value):SymSourceMessage(IntRuntimeValMsg, symid),width(width), value(value){};
     uint8_t width;
     int32_t value;
     std::string Str() {
         std::ostringstream s;
-        s<<"RuntimeIntMsg:symid"<<static_cast<unsigned>(symid)<<",width:"<<width<<",runtime:"<<static_cast<unsigned>(value);
+        s<<"RuntimeIntMsg:symid:"<<static_cast<unsigned>(symid)<<",width:"<<static_cast<unsigned>(width)<<",value:"<<static_cast<unsigned>(value);
         return s.str();
     }
 };
 
-class RuntimeFloatValueMessage: public SymSourceMessage{
+class BuildFloatValueMessage: public SymSourceMessage{
 public:
-    RuntimeFloatValueMessage(uint16_t symid,float value):SymSourceMessage(FloatRuntimeValMsg, symid), value(value){};
+    BuildFloatValueMessage(uint16_t symid,float value):SymSourceMessage(FloatRuntimeValMsg, symid), value(value){};
     float value;
     std::string Str() {
         std::ostringstream s;
-        s<<"RuntimeFloatMsg:symid"<<static_cast<unsigned>(symid)<<",runtime:"<<value;
+        s<<"RuntimeFloatMsg:symid:"<<static_cast<unsigned>(symid)<<",value:"<<value;
         return s.str();
     }
 };
 
-class RuntimeDoubleValueMessage: public SymSourceMessage{
+class BuildDoubleValueMessage: public SymSourceMessage{
 public:
-    RuntimeDoubleValueMessage(uint16_t symid,double value):SymSourceMessage(DoubleRuntimeValMsg, symid), value(value){};
+    BuildDoubleValueMessage(uint16_t symid,double value):SymSourceMessage(DoubleRuntimeValMsg, symid), value(value){};
     double value;
     std::string Str() {
         std::ostringstream s;
-        s<<"RuntimeDoubleMsg:symid"<<static_cast<unsigned>(symid)<<",runtime:"<<value;
+        s<<"RuntimeDoubleMsg:symid:"<<static_cast<unsigned>(symid)<<",value:"<<value;
         return s.str();
     }
 };
@@ -112,7 +112,7 @@ public:
     bool runtimeVal;
     std::string Str(){
         std::ostringstream s;
-        s<<"PushConstraint:symid"<<static_cast<unsigned>(symid)<<",runtime:"<<runtimeVal;
+        s<<"PushConstraint:symid:"<<static_cast<unsigned>(symid)<<",value:"<<runtimeVal;
         return s.str();
     }
 };
@@ -125,7 +125,7 @@ public:
     uint32_t length;
     std::string Str(){
         std::ostringstream s;
-        s<<"MemCpyMsg:symid"<<static_cast<unsigned>(symid)<<",dest:"<<std::hex<<dst_ptr<<",src:"<<std::hex<<src_ptr<<",len:"<<length;
+        s<<"MemCpyMsg:symid:"<<static_cast<unsigned>(symid)<<",dest:"<<std::hex<<dst_ptr<<",src:"<<std::hex<<src_ptr<<",len:"<<length;
         return s.str();
     }
 };
@@ -137,7 +137,7 @@ public:
     uint16_t length;
     std::string Str(){
         std::ostringstream s;
-        s<<"MemSetMsg:symid"<<static_cast<unsigned>(symid)<<",dest:"<<std::hex<<ptr<<",len:"<<length;
+        s<<"MemSetMsg:symid:"<<static_cast<unsigned>(symid)<<",dest:"<<std::hex<<ptr<<",len:"<<length;
         return s.str();
     }
 };
@@ -161,7 +161,7 @@ public:
     uint32_t ptr;
     std::string Str(){
         std::ostringstream s;
-        s<<"ReadMemMsg:symid"<<static_cast<unsigned>(symid)<<",mem:"<<std::hex<<ptr;
+        s<<"ReadMemMsg:symid:"<<static_cast<unsigned>(symid)<<",mem:"<<std::hex<<ptr;
         return s.str();
     }
 };
@@ -172,7 +172,7 @@ public:
     uint32_t ptr;
     std::string Str(){
         std::ostringstream s;
-        s<<"WriteMemMsg:symid"<<static_cast<unsigned>(symid)<<",mem:"<< std::hex <<ptr;
+        s<<"WriteMemMsg:symid:"<<static_cast<unsigned>(symid)<<",mem:"<< std::hex <<ptr;
         return s.str();
     }
 };
