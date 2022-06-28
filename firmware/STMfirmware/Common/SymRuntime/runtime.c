@@ -264,7 +264,6 @@ bool _sym_build_integer(uint32_t int_val, uint8_t numBits, uint16_t symID)
 		msgCode = SYM_BLD_INT_4;
 	}
 
-
 	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
 	//set the ID
@@ -693,7 +692,7 @@ bool _sym_build_read_memory(char * addr, size_t length, bool is_little_edian, ui
 
 }
 
-void _sym_build_write_memory(char * addr, size_t length, bool input, uint16_t symID )
+void _sym_build_write_memory(char * addr, size_t length, bool input, bool little_endian, uint16_t symID )
 {
 	char *pChar=addr;
 	bool report;

@@ -107,7 +107,7 @@ void _sym_build_memcpy(char * dest, char * src, size_t length, uint16_t symID);
 void _sym_build_memset(char * mem, bool input, size_t length, uint16_t symID);
 void _sym_build_memmove(char * dest, char * src, size_t length, uint16_t symID);
 bool _sym_build_read_memory(char * addr, size_t length, bool is_little_edian, uint16_t symID);
-void _sym_build_write_memory(char * addr, size_t length, bool input, uint16_t symID );
+void _sym_build_write_memory(char * addr, size_t length, bool input,bool is_little_edian, uint16_t symID );
 
 //needs some RAM, no report
 void _sym_set_parameter_expression(int8_t para_index, bool input);
