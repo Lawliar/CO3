@@ -49,6 +49,7 @@ public:
     typedef boost::graph_traits<Graph>::vertex_iterator vertex_it;
     typedef boost::graph_traits<Graph>::edge_descriptor edge_t;
     typedef boost::graph_traits<Graph>::edge_iterator edge_it;
+    typedef boost::graph_traits<Graph>::out_edge_iterator o_edge_it;
 
 
 public:

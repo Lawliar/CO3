@@ -842,7 +842,6 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
 
     if (valueType->isPointerTy()) {
         auto symid = getNextID();
-
         ret = IRB.CreateCall(
                 runtime.buildInteger,
                 {IRB.CreatePtrToInt(V, intPtrType), IRB.getInt8(ptrBytes), ConstantHelper(runtime.symIntT, symid)});
