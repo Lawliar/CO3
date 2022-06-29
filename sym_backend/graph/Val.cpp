@@ -256,8 +256,11 @@ void SymVal_sym_build_integer::Construct(Val::ReadyType targetReady) {
     auto op1 = dynamic_cast<ConstantIntVal*>(In_edges.at(1));
     assert(op1 != nullptr);
 
+    assert(op1->Val % 8 != 0);// make sure it's byteLength, and then we convert it into bit length
+
+
     // construct the symExpr
-    symExpr = _sym_build_integer(op0_val, op1->Val);
+    symExpr = _sym_build_integer(op0_val, op1->Val * 8);
     //ready ++
     ready++;
     return;
@@ -365,7 +368,8 @@ void SymVal_sym_set_parameter_expression::Construct(ReadyType targetReady) {
 void SymVal_sym_set_return_expression::Construct(ReadyType targetReady) {
     auto symRet = dynamic_cast<SymVal*>(In_edges.at(0));
     assert( symRet != nullptr);
-    _sym_set_return_expression(extractSymExprFromSymVal(symRet, targetReady));
+    auto retSymExpr = extractSymExprFromSymVal(symRet, targetReady);
+    _sym_set_return_expression(retSymExpr);
     ready++;
 }
 
@@ -508,17 +512,20 @@ void SymVal_sym_build_write_memory::Construct(ReadyType targetReady) {
     auto addrOperand = dynamic_cast<RuntimeIntVal*>(In_edges.at(0));
     assert(addrOperand != nullptr);
 
-    if(symInput== nullptr){
-        // ensure what I calculate on the PC side is consistent with the MCU side(i.e., it's not reporting this as well)
-        // however, this consistency might break, since there might be some false positive from the MCU side.
-        assert(addrOperand->Unassigned);
+    //assert(!addrOperand->Unassigned);
+    if(addrOperand->Unassigned){
+        //the execution of this function is not triggered by messages from MCU, we should do nothing
     }else{
         auto lengthOperand = dynamic_cast<ConstantIntVal*>(In_edges.at(1));
         assert(lengthOperand != nullptr);
 
         auto isLittleEndianOperand = dynamic_cast<ConstantIntVal*>(In_edges.at(3));
         assert(isLittleEndianOperand != nullptr);
-
+#ifdef DEBUG_CHECKING
+        if(addrOperand->Val == 604002768){
+            __asm__("nop");
+        }
+#endif
         _sym_build_write_memory(reinterpret_cast<uint8_t*>(addrOperand->Val), lengthOperand->Val, \
                                 symInput, isLittleEndianOperand->Val );
     }

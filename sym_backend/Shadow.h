@@ -122,7 +122,8 @@ public:
     if (auto *symbolicResult = ReadShadowIterator::operator*())
       return symbolicResult;
 
-    return _sym_build_integer(*reinterpret_cast<const uint8_t *>(address_), 8);
+    //auto int_to_build =   *reinterpret_cast<const uint8_t *>(address_);
+    return _sym_build_integer(0x00, 8);
   }
 };
 

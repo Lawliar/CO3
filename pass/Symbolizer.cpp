@@ -36,8 +36,10 @@ void Symbolizer::initializeFunctions(Function &F) {
             if (!arg.user_empty()){
                 auto * symcall  = IRB.CreateCall(runtime.getParameterExpression,
                                                                 IRB.getInt8(arg.getArgNo()));
+                auto paraGetSymID = getNextID();
                 symbolicExpressions[&arg] = symcall;
-                assignSymID(symcall,getNextID());
+                assignSymID(symcall,paraGetSymID);
+                stageSettingOperations.push_back(paraGetSymID);
             }
         }
     }
@@ -360,7 +362,9 @@ void Symbolizer::visitReturnInst(ReturnInst &I) {
     auto returnSymExpr = getSymbolicExpression(I.getReturnValue());
 
     CallInst * set_return_inst = IRB.CreateCall(runtime.setReturnExpression,returnSymExpr);
-    assignSymID(set_return_inst,getNextID());
+    auto retSymID = getNextID();
+    assignSymID(set_return_inst,retSymID);
+    stageSettingOperations.push_back(retSymID);
 }
 
 void Symbolizer::visitBranchInst(BranchInst &I) {
@@ -1240,7 +1244,13 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                     continue;
                 }
                 unsigned userSymID = getSymIDFromSym(callInst);
-                auto userNode = g.AddSymVertice(userSymID, calleeName.str(),blockID);
+                SymDepGraph::vertex_t userNode;
+                if(std::find(stageSettingOperations.begin(), stageSettingOperations.end(),userSymID) != stageSettingOperations.end()){
+                    userNode = g.AddSymVertice(userSymID, calleeName.str(),blockID, 1);
+                }else{
+                    userNode = g.AddSymVertice(userSymID, calleeName.str(),blockID, 0);
+                }
+
                 if(calleeName.equals("_sym_notify_call")){
                     auto conVert = addConstantIntVertice(callToCallId.at(callInst));
                     g.AddEdge(conVert,userNode, 0);

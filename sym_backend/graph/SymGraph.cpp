@@ -56,6 +56,7 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
         int symid = dfg.graph[cur_ver].symID;
         unsigned width = dfg.graph[cur_ver].byteWidth;
         unsigned long const_val = dfg.graph[cur_ver].const_value;
+        unsigned stageSetting = dfg.graph[cur_ver].stageSetting;
         std::string op = dfg.graph[cur_ver].op;
         // check in-edges
         RuntimeSymFlowGraph::in_edge_it in_eit, in_eit_end;
@@ -90,7 +91,6 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
             }
         }else if ( nodeType == NodeSym){
             assert(symid >= 0);
-
             map<unsigned, unsigned> in_paras;
             for(;in_eit != in_eit_end; in_eit++ ){
                 unsigned arg_index = dfg.graph[*in_eit].arg_no;
@@ -226,7 +226,14 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
                 cur_node = new SymVal_sym_FalsePhiLeaf(symid, bbid, in_paras, leavesOrOriginal);
             }
         }
-
+        if(stageSetting == 1){
+            if(auto tmpGetPara = dynamic_cast<SymVal_sym_get_parameter_expression*>(cur_node) ; tmpGetPara != nullptr){
+                getParametersSym.push_back(tmpGetPara);
+            }
+            if(auto tmpSetRet = dynamic_cast<SymVal_sym_set_return_expression*>(cur_node); tmpSetRet != nullptr){
+                setRetSym = tmpSetRet;
+            }
+        }
         Nodes[ver2offMap.at(cur_ver)] = cur_node;
     }
     for(unsigned index = 0 ; index < Nodes.size() ; index++){
@@ -348,19 +355,10 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
     //
 
     // get the getPara setRet, callInst for this function
+
     Val::BasicBlockIdType entryBBID = static_cast<Val::BasicBlockIdType>(cfg.graph[cfg.cfgEntry].id);
     Val::BasicBlockIdType exitBBID = static_cast<Val::BasicBlockIdType>(cfg.graph[cfg.cfgExit].id);
     for(auto nodeIt = Nodes.begin(); nodeIt != Nodes.end(); nodeIt ++){
-        if((*nodeIt)->BBID == entryBBID && (*nodeIt)->type == Val::SymValTy){
-            if(auto getPara = dynamic_cast<SymVal_sym_get_parameter_expression*>((*nodeIt)); getPara != nullptr){
-                getParametersSym.push_back(getPara);
-            }
-        }
-        if((*nodeIt)->BBID == exitBBID && (*nodeIt)->type == Val::SymValTy){
-            if(auto setRet = dynamic_cast<SymVal_sym_set_return_expression*>((*nodeIt)); setRet != nullptr){
-                setRetSym = setRet;
-            }
-        }
         if(auto notifyCall = dynamic_cast<SymVal_sym_notify_call*>(*nodeIt)){
             auto idOperand = dynamic_cast<ConstantIntVal*>(notifyCall->In_edges.at(0));
             assert(idOperand != nullptr);
@@ -369,8 +367,8 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
             callInsts[callInstId] = notifyCall;
         }
     }
-
     prepareBBTask();
+    //assert(setRetSym != nullptr);
 }
 
 std::set<Val::BasicBlockIdType> SymGraph::domChildrenOf(Val::BasicBlockIdType src_id, map<Val::BasicBlockIdType, RuntimeCFG::pd_vertex_t> id2vertMap, RuntimeCFG::DominanceTree& dGraph) {

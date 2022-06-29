@@ -148,7 +148,7 @@ void _sym_initialize(string inputDirName) {
     _common_initialize();
 
     //initially symbolize the memory buffer
-    ReadWriteShadow shadow((void*)0x2400a921, inputSize);
+    ReadWriteShadow shadow((void*)0x2400a929, inputSize);
     unsigned cursor = 0;
     std::generate(shadow.begin(), shadow.end(),
                   [&cursor]() { return _sym_get_input_byte(cursor++); });
@@ -221,12 +221,7 @@ DEF_BINARY_EXPR_BUILDER(unsigned_less_than, Ult)
 DEF_BINARY_EXPR_BUILDER(unsigned_less_equal, Ule)
 DEF_BINARY_EXPR_BUILDER(unsigned_greater_than, Ugt)
 DEF_BINARY_EXPR_BUILDER(unsigned_greater_equal, Uge)
-SymExpr _sym_build_equal(SymExpr a, SymExpr b){
-    auto symExpr_a = allocatedExpressions.at(a);
-    auto symExpr_b = allocatedExpressions.at(b);
-    return registerExpression(g_expr_builder->createMul(
-            symExpr_a, symExpr_b));
-}
+DEF_BINARY_EXPR_BUILDER(equal, Equal)
 DEF_BINARY_EXPR_BUILDER(not_equal, Distinct)
 
 DEF_BINARY_EXPR_BUILDER(bool_and, LAnd)

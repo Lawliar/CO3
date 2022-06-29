@@ -338,7 +338,7 @@ void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, uns
 #endif
     SymGraph* cur_func = getCurFunc();
 #ifdef DEBUG_CHECKING
-    if(cur_func->funcname == "receive_cgc_until" && tmpSymVal != nullptr && tmpSymVal->symID == 44 ){
+    if(cur_func->funcname == "receive_cgc_until" && tmpSymVal != nullptr && tmpSymVal->symID == 42 ){
         __asm__("nop");
     }
 #endif
@@ -355,7 +355,8 @@ void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, uns
 #endif
     }
     bool shouldMoveForward = false;
-    if(!ExecuteNode(source, targetReady) && target == nullptr) {
+    bool constructed = ExecuteNode(source, targetReady);
+    if(! constructed && target == nullptr) {
         //only when no target is provided, we try to execute as much as we can find(without forcing the runtime val)
         // otherwise, we can just take care of this node itself, even if it's not ready to be constructed,
         // backward execution should already have take of that.
@@ -379,7 +380,7 @@ void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, uns
             shouldMoveForward = true;
         }
         rootTask->occupied = false;
-    }else{
+    }else if(constructed){
         shouldMoveForward = true;
     }
 
@@ -440,6 +441,11 @@ void Orchestrator::BackwardExecution(SymVal* sink, Val::ReadyType targetReady) {
 #endif
     //assuming all its dependents are ready
     SymGraph* cur_func = getCurFunc();
+#ifdef DEBUG_CHECKING
+    if(cur_func->funcname == "receive_cgc_until" && sink->symID == 22){
+        __asm__("nop");
+    }
+#endif
     if(sink->ready == targetReady || ExecuteNode(sink, targetReady)){
         //already constructed or can be constructed right away
     }else{
@@ -495,14 +501,12 @@ void Orchestrator::SetRetAndRefreshGraph() {
     auto cur_func = getCurFunc();
     auto cur_func_name = getCurFunc()->funcname;// copy construct
     auto setRetSym = cur_func->setRetSym;
-    assert(setRetSym != nullptr);
-    if(auto symNull = dynamic_cast<SymVal_NULL*>(setRetSym); symNull != nullptr){
-        _sym_set_return_expression(nullptr);
-    }else{
-        BackwardExecution(setRetSym, (setRetSym->ready + 1) );
-        _sym_set_return_expression(setRetSym->symExpr);
+    if(setRetSym != nullptr){
+        auto targetReady = (setRetSym->ready + 1);
+        BackwardExecution(setRetSym,  targetReady);
+        assert(setRetSym->ready == targetReady);
     }
-    setRetSym->ready ++;
+
 
     unsigned funcId = UINT_MAX;
     for(auto eachSymGraph : symGraphs){
@@ -745,6 +749,9 @@ int Orchestrator::Run() {
                 assert(addrOperand != nullptr);
                 addrOperand->Assign(memWriteMsg->ptr);
                 BackwardExecution(memWriteVal,memWriteVal->ready + 1 );
+#ifdef DEBUG_CHECKING
+
+#endif
 #ifdef DEBUG_OUTPUT
                 cout << "finish "<<memWriteMsg->Str()<<"\n\n";
                 cout.flush();

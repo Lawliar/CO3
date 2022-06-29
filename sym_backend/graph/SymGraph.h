@@ -49,9 +49,9 @@ public:
             //}
             //nonLoopRootDependents.clear();
         }
-        Val::BasicBlockIdType BBID;
-        bool inLoop;
-        Val::ReadyType ready;
+        Val::BasicBlockIdType BBID = 0;
+        bool inLoop = false;
+        Val::ReadyType ready = 0;
 
         std::set<Val::BasicBlockIdType> dominance;
         std::set<Val::BasicBlockIdType > post_dominance;// this BB post dominate these BBs
@@ -81,9 +81,9 @@ public:
         // instead of the individual node.
         std::vector<BasicBlockTask*> depNonReadyNonLoopBB;
         SymVal *  root;
-        Val::BasicBlockIdType rootBBid;
-        BasicBlockTask* rootBBTask;
-        bool occupied;
+        Val::BasicBlockIdType rootBBid = 0;
+        BasicBlockTask* rootBBTask = nullptr;
+        bool occupied = false;
         void InsertNonReadyDep(Val* v,std::map<Val::BasicBlockIdType, BasicBlockTask*>& bbTasks);
         bool hasRuntimeDep(){
             for(auto eachLeafDep : inBBNonReadyLeafDeps){
@@ -146,7 +146,7 @@ public:
     // the real thing
     vector<Val*> Nodes;
     vector<SymVal_sym_get_parameter_expression*> getParametersSym;
-    SymVal_sym_set_return_expression* setRetSym;
+    SymVal_sym_set_return_expression* setRetSym = nullptr;
     map<unsigned char, SymVal_sym_notify_call*> callInsts;
 
     //Val* stripPhis(Val*, Val*);

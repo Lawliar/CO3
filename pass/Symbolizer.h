@@ -67,6 +67,7 @@ public:
       phiNodes.clear();
       splited2OriginalBB.clear();
       originalBB2ID.clear();
+      stageSettingOperations.clear();
       //tryAlternativePairs.clear();
   }
 
@@ -656,6 +657,7 @@ public:
     std::vector<SymbolicComputation> expressionUses;
     std::map<llvm::BasicBlock*, llvm::BasicBlock*> splited2OriginalBB;
     std::map<llvm::BasicBlock*, unsigned> originalBB2ID;
+    std::vector<unsigned> stageSettingOperations;
 
     //std::map<std::pair<unsigned, unsigned>, std::pair<llvm::Value*, llvm::Value *> > tryAlternativePairs;
     SymDepGraph g;
