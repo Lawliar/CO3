@@ -40,19 +40,21 @@ enum {
  SYM_BLD_MEMSET        ,
  SYM_BLD_MEMMOVE       ,
  SYM_BLD_READ_MEM      ,
- SYM_BLD_WRITE_MEM = 12    ,
+ SYM_BLD_READ_MEM_W    ,
+ SYM_BLD_READ_MEM_HW   ,
+ SYM_BLD_WRITE_MEM     ,
 
- SYM_SET_PAR_EXP = 13      ,
+ SYM_SET_PAR_EXP       ,
  SYM_GET_PAR_EXP       ,
  SYM_SET_RET_EXP       ,
- SYM_GET_RET_EXP = 16      ,
+ SYM_GET_RET_EXP       ,
 
- SYM_NTFY_PHI     = 17     ,
+ SYM_NTFY_PHI          ,
  SYM_NTFY_CALL         ,
  SYM_NTFY_FUNC         ,
  SYM_NTFY_RET          ,
  SYM_NTFY_BBLK         ,
- SYM_NTFY_BBLK1   = 22      ,
+ SYM_NTFY_BBLK1        ,
 
  SYM_INIT
 };
@@ -73,6 +75,8 @@ enum {
 #define SIZE_SYM_BLD_MEMSET         9      // | FCODE(1) | symID(2)         | mem(4)      | length(2) |
 #define SIZE_SYM_BLD_MEMMOVE        13     // | FCODE(1) | symID(2)         | dest(4)     | src(4)    | length(2) |
 #define SIZE_SYM_BLD_READ_MEM       7      // | FCODE(1) | symID(2)         | addr(4)     |
+#define SIZE_SYM_BLD_READ_MEM_W     11     // | FCODE(1) | symID(2)         | addr(4)     | val(4)    |
+#define SIZE_SYM_BLD_READ_MEM_HW    9      // | FCODE(1) | symID(2)         | addr(4)     | val(2)    |
 #define SIZE_SYM_BLD_WRITE_MEM      7      // | FCODE(1) | symID(2)         | addr(4)     |
 #define SIZE_SYM_NTFY_PHI           4      // | FCODE(1) | symID(2)         | branchNo(1) |
 #define SIZE_SYM_NTFY_CALL          2      // | FCODE(1) | call_inst_id(1)  |

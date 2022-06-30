@@ -37,56 +37,60 @@
 
 #if DEBUGPRINT ==1
 
- char S_SYM_DUMMY           []="SYM_DUMMY         ";
- char S_SYM_BLD_INT_1       []="SYM_BLD_INT_1     ";
- char S_SYM_BLD_INT_2       []="SYM_BLD_INT_2     ";
- char S_SYM_BLD_INT_4       []="SYM_BLD_INT_4     ";
- char S_SYM_BLD_FLOAT       []="SYM_BLD_FLOAT     ";
- char S_SYM_BLD_FLOAT_DBL   []="SYM_BLD_FLOAT_DBL ";
- char S_SYM_BLD_BOOL        []="SYM_BLD_BOOL      ";
- char S_SYM_BLD_PATH_CNSTR  []="SYM_BLD_PATH_CNSTR";
- char S_SYM_BLD_MEMCPY      []="SYM_BLD_MEMCPY    ";
- char S_SYM_BLD_MEMSET      []="SYM_BLD_MEMSET    ";
- char S_SYM_BLD_MEMMOVE     []="SYM_BLD_MEMMOVE   ";
- char S_SYM_BLD_READ_MEM    []="SYM_BLD_READ_MEM  ";
- char S_SYM_BLD_WRITE_MEM   []="SYM_BLD_WRITE_MEM ";
- char S_SYM_SET_PAR_EXP     []="SYM_SET_PAR_EXP   ";
- char S_SYM_GET_PAR_EXP     []="SYM_GET_PAR_EXP   ";
- char S_SYM_SET_RET_EXP     []="SYM_SET_RET_EXP   ";
- char S_SYM_GET_RET_EXP     []="SYM_GET_RET_EXP   ";
- char S_SYM_NTFY_PHI        []="SYM_NTFY_PHI      ";
- char S_SYM_NTFY_CALL       []="SYM_NTFY_CALL     ";
- char S_SYM_NTFY_FUNC       []="SYM_NTFY_FUNC     ";
- char S_SYM_NTFY_RET        []="SYM_NTFY_RET      ";
- char S_SYM_NTFY_BBLK       []="SYM_NTFY_BBLK     ";
- char S_SYM_NTFY_BBLK1      []="SYM_NTFY_BBLK1    ";
- char S_SYM_INIT            []="SYM_INIT          ";
+ char S_SYM_DUMMY           []="SYM_DUMMY           ";
+ char S_SYM_BLD_INT_1       []="SYM_BLD_INT_1       ";
+ char S_SYM_BLD_INT_2       []="SYM_BLD_INT_2       ";
+ char S_SYM_BLD_INT_4       []="SYM_BLD_INT_4       ";
+ char S_SYM_BLD_FLOAT       []="SYM_BLD_FLOAT       ";
+ char S_SYM_BLD_FLOAT_DBL   []="SYM_BLD_FLOAT_DBL   ";
+ char S_SYM_BLD_BOOL        []="SYM_BLD_BOOL        ";
+ char S_SYM_BLD_PATH_CNSTR  []="SYM_BLD_PATH_CNSTR  ";
+ char S_SYM_BLD_MEMCPY      []="SYM_BLD_MEMCPY      ";
+ char S_SYM_BLD_MEMSET      []="SYM_BLD_MEMSET      ";
+ char S_SYM_BLD_MEMMOVE     []="SYM_BLD_MEMMOVE     ";
+ char S_SYM_BLD_READ_MEM    []="SYM_BLD_READ_MEM    ";
+ char S_SYM_BLD_READ_MEM_W  []="SYM_BLD_READ_MEM_W  ";
+ char S_SYM_BLD_READ_MEM_HW []="SYM_BLD_READ_MEM_HW ";
+ char S_SYM_BLD_WRITE_MEM   []="SYM_BLD_WRITE_MEM   ";
+ char S_SYM_SET_PAR_EXP     []="SYM_SET_PAR_EXP     ";
+ char S_SYM_GET_PAR_EXP     []="SYM_GET_PAR_EXP     ";
+ char S_SYM_SET_RET_EXP     []="SYM_SET_RET_EXP     ";
+ char S_SYM_GET_RET_EXP     []="SYM_GET_RET_EXP     ";
+ char S_SYM_NTFY_PHI        []="SYM_NTFY_PHI        ";
+ char S_SYM_NTFY_CALL       []="SYM_NTFY_CALL       ";
+ char S_SYM_NTFY_FUNC       []="SYM_NTFY_FUNC       ";
+ char S_SYM_NTFY_RET        []="SYM_NTFY_RET        ";
+ char S_SYM_NTFY_BBLK       []="SYM_NTFY_BBLK       ";
+ char S_SYM_NTFY_BBLK1      []="SYM_NTFY_BBLK1      ";
+ char S_SYM_INIT            []="SYM_INIT            ";
 
  char *fstrings[]={
 
-		 S_SYM_DUMMY          ,
-		 S_SYM_BLD_INT_1      ,
-		 S_SYM_BLD_INT_2      ,
-		 S_SYM_BLD_INT_4      ,
-		 S_SYM_BLD_FLOAT      ,
-		 S_SYM_BLD_FLOAT_DBL  ,
-		 S_SYM_BLD_BOOL       ,
-		 S_SYM_BLD_PATH_CNSTR ,
-		 S_SYM_BLD_MEMCPY     ,
-		 S_SYM_BLD_MEMSET     ,
-		 S_SYM_BLD_MEMMOVE    ,
-		 S_SYM_BLD_READ_MEM   ,
-		 S_SYM_BLD_WRITE_MEM  ,
-		 S_SYM_SET_PAR_EXP    ,
-		 S_SYM_GET_PAR_EXP    ,
-		 S_SYM_SET_RET_EXP    ,
-		 S_SYM_GET_RET_EXP    ,
-		 S_SYM_NTFY_PHI       ,
-		 S_SYM_NTFY_CALL      ,
-		 S_SYM_NTFY_FUNC      ,
-		 S_SYM_NTFY_RET       ,
-		 S_SYM_NTFY_BBLK      ,
-		 S_SYM_NTFY_BBLK1     ,
+		 S_SYM_DUMMY            ,
+		 S_SYM_BLD_INT_1        ,
+		 S_SYM_BLD_INT_2        ,
+		 S_SYM_BLD_INT_4        ,
+		 S_SYM_BLD_FLOAT        ,
+		 S_SYM_BLD_FLOAT_DBL    ,
+		 S_SYM_BLD_BOOL         ,
+		 S_SYM_BLD_PATH_CNSTR   ,
+		 S_SYM_BLD_MEMCPY       ,
+		 S_SYM_BLD_MEMSET       ,
+		 S_SYM_BLD_MEMMOVE      ,
+		 S_SYM_BLD_READ_MEM     ,
+		 S_SYM_BLD_READ_MEM_W   ,
+		 S_SYM_BLD_READ_MEM_HW  ,
+		 S_SYM_BLD_WRITE_MEM    ,
+		 S_SYM_SET_PAR_EXP      ,
+		 S_SYM_GET_PAR_EXP      ,
+		 S_SYM_SET_RET_EXP      ,
+		 S_SYM_GET_RET_EXP      ,
+		 S_SYM_NTFY_PHI         ,
+		 S_SYM_NTFY_CALL        ,
+		 S_SYM_NTFY_FUNC        ,
+		 S_SYM_NTFY_RET         ,
+		 S_SYM_NTFY_BBLK        ,
+		 S_SYM_NTFY_BBLK1       ,
 		 S_SYM_INIT
  };
 
@@ -103,6 +107,9 @@ uint32_t *shadowram;
 bool parameter_exp[NUMBER_PARAMETER_EXP];
 bool return_exp;
 
+
+
+void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t length, uint16_t symID);
 
 //return address
 uint32_t AddressToShadow(char *addr);
@@ -546,14 +553,28 @@ void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t 
 		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
 	}
 
-    if(msgCode != SYM_BLD_READ_MEM  && msgCode != SYM_BLD_WRITE_MEM )
+    if(msgCode != SYM_BLD_READ_MEM  && msgCode != SYM_BLD_WRITE_MEM ) // we don't need the length because it is already known on PC side for these functions
     {
     	byteval = (uint8_t*)(&length);
     	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
     	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
     }
 
+    if(msgCode == SYM_BLD_READ_MEM_W ) // we need to send the concrete word
+    {
+    		byteval = (uint8_t*)(dest);
+    		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+    		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+    		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+    		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
+    }
 
+    if(msgCode == SYM_BLD_READ_MEM_HW ) // we need to send the concrete half  word
+    {
+       		byteval = (uint8_t*)(dest);
+       		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+       		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
+    }
 
 }
 
@@ -657,6 +678,8 @@ void _sym_build_memmove(char * dest, char * src, size_t length, uint16_t symID)
 
 bool _sym_build_read_memory(char * addr, size_t length, bool is_little_edian, uint16_t symID)
 {
+
+
 	if((uint32_t)addr>= SYM_PERIPHERAL_ADDR_START && (uint32_t)addr <=(SYM_PERIPHERAL_ADDR_START + SYM_PERIPHERAL_SIZE)  )
 	{
 		//address is a peripheral
@@ -672,6 +695,7 @@ bool _sym_build_read_memory(char * addr, size_t length, bool is_little_edian, ui
 		}
 		return false;
 	}
+
 	if((uint32_t)addr>= SYM_FLASH_ADDR_START && (uint32_t)addr <=(SYM_FLASH_ADDR_START + SYM_FLASH_SIZE)  )
 	{
 		//flash is always concrete
@@ -679,15 +703,39 @@ bool _sym_build_read_memory(char * addr, size_t length, bool is_little_edian, ui
 	}
 
 	char *pChar=addr;
-	for(size_t i=0; i<length; i++)
+	uint8_t countSymbols;
+	size_t i;
+
+	countSymbols =0;
+
+	for(i=0; i<length; i++)
 	{
 		if(checkSymbolic(pChar))
 		{
-			reportSymHelper( SYM_BLD_READ_MEM, SIZE_SYM_BLD_READ_MEM, addr, NULL, 0, symID);
-			return true;
+			countSymbols++;
+			//reportSymHelper( SYM_BLD_READ_MEM, SIZE_SYM_BLD_READ_MEM, addr, NULL, 0, symID);
+
 		}
 		pChar++;
 	}
+
+	if(countSymbols == length) // all bytes are symbols report only the address
+	{
+		reportSymHelper( SYM_BLD_READ_MEM, SIZE_SYM_BLD_READ_MEM, addr, NULL, 0, symID);
+		return true;
+	}
+	else if( length == 2 && countSymbols>0 ) // report address + value HalfWord
+	{
+		reportSymHelper(SYM_BLD_READ_MEM_HW, SIZE_SYM_BLD_READ_MEM_HW, addr, NULL, 0, symID);
+		return true;
+	}
+	else if( length == 4 && countSymbols>0 ) // report address + value Word
+	{
+		reportSymHelper(SYM_BLD_READ_MEM_W, SIZE_SYM_BLD_READ_MEM_W, addr, NULL, 0, symID);
+		return true;
+	}
+
+
 	return false;
 
 }
