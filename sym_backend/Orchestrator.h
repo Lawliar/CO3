@@ -29,7 +29,6 @@ public:
     int Run();
     SymGraph* getCurFunc();
 
-
     bool ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot*, Val::ReadyType);
     bool ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf*, Val::ReadyType);
 
@@ -55,6 +54,7 @@ public:
 
     OpenedSP sp;
     MsgQueue msgQueue;
+    Val::BasicBlockIdType lastBBID = 0;
     std::stack<SymGraph*> callStack;
     std::map<unsigned, SymGraph*> symGraphs;
     std::map<string, FuncFileNames> funcFiles;

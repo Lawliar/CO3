@@ -500,7 +500,13 @@ void SymVal_sym_build_read_memory::Construct(Val::ReadyType targetReady) {
         // little endian
         auto endianOperand = dynamic_cast<ConstantIntVal*>(In_edges.at(2));
         assert(endianOperand != nullptr);
-        symExpr = _sym_build_read_memory(reinterpret_cast<uint8_t*>(ptrOperand->Val), lengthOperand->Val, endianOperand->Val);
+
+        if(! hasConcrete){
+            symExpr = _sym_build_read_memory(reinterpret_cast<uint8_t*>(ptrOperand->Val), lengthOperand->Val, endianOperand->Val);
+        }else{
+            symExpr = _sym_build_read_memory_concrete(reinterpret_cast<uint8_t*>(ptrOperand->Val), lengthOperand->Val, endianOperand->Val,concreteValue);
+        }
+
     }
     ready++;
 }

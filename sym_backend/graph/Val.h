@@ -330,7 +330,26 @@ DECLARE_SYMVAL_TYPE0(_sym_get_return_expression)
 
 DECLARE_SYMVAL_TYPE2(_sym_build_path_constraint)//sym id will be added later
 
-DECLARE_SYMVAL_TYPE3(_sym_build_read_memory)
+class SymVal_sym_build_read_memory : public SymVal{
+public:
+    void Construct(ReadyType) override;
+    static const unsigned numOps = 3;
+    bool hasConcrete = false;
+    uint32_t concreteValue = 0;
+    SymVal_sym_build_read_memory(SymIDType symid, BasicBlockIdType bid,
+                  ValVertexType dep1, ValVertexType dep2,
+                  ValVertexType dep3 ): SymVal(symid,"_sym_build_read_memory", bid){
+               tmpIn_edges[0] = dep1;
+               tmpIn_edges[1] = dep2;
+               tmpIn_edges[2] = dep3;
+    }
+    void AddConcreteValue(uint32_t val){
+        hasConcrete = true;
+        concreteValue = val;
+    }
+    ~SymVal_sym_build_read_memory(){In_edges.clear();tmpIn_edges.clear(); UsedBy.clear();}
+};
+
 DECLARE_SYMVAL_TYPE4(_sym_build_write_memory)
 DECLARE_SYMVAL_TYPE3(_sym_build_memcpy)
 DECLARE_SYMVAL_TYPE3(_sym_build_memset)

@@ -93,7 +93,7 @@ SymGraph* Orchestrator::getCurFunc() {
 
 void Orchestrator::ExecuteBasicBlock(Val::BasicBlockIdType bbid) {
     SymGraph* cur_func = getCurFunc();
-
+    _sym_notify_basic_block(bbid);
 #ifdef DEBUG_OUTPUT
     indent += indentNum;
     cout << string(indent, ' ')<<"Executing BB:"<<bbid<<'\n';
@@ -450,7 +450,7 @@ void Orchestrator::BackwardExecution(SymVal* sink, Val::ReadyType targetReady) {
         //already constructed or can be constructed right away
     }else{
 #ifdef DEBUG_CHECKING
-        if(cur_func->funcname == "receive_cgc" && sink->symID == 46){
+        if(cur_func->funcname == "receive_cgc_until" && sink->symID == 23){
             __asm__("nop");
         }
 #endif
@@ -550,6 +550,7 @@ int Orchestrator::Run() {
                 cout<<func_msg->Str()<< ':'<<nextFunc->funcname<<'\n';
                 cout.flush();
 #endif
+                _sym_notify_call(func_msg->id);
                 if(callStack.size() == 0){
                     callStack.push(nextFunc);
                 }else{
@@ -586,6 +587,15 @@ int Orchestrator::Run() {
                     cout <<"back from:"<<callStack.top()->funcname<<'\n';
                     cout.flush();
 #endif
+                    auto funcId = INT32_MAX;
+                    for(auto eachFunc = symGraphs.begin(); eachFunc != symGraphs.end(); eachFunc++){
+                        if(eachFunc->second == callStack.top()){
+                            funcId = eachFunc->first;
+                            break;
+                        }
+                    }
+                    assert(funcId != INT32_MAX);
+                    _sym_notify_ret(funcId);
                     SetRetAndRefreshGraph();
                 }else{
 #ifdef DEBUG_OUTPUT
@@ -607,6 +617,11 @@ int Orchestrator::Run() {
 #endif
                 auto cur_func = getCurFunc();
                 auto truePhi =  dynamic_cast<SymVal_sym_TruePhi*>(cur_func->Nodes.at(cur_func->symID2offMap.at(phi_msg->symid)));
+                auto truePhiBBID = truePhi->BBID;
+                if(truePhiBBID != lastBBID){
+                    _sym_notify_basic_block(truePhiBBID);
+                    lastBBID = truePhi->BBID;
+                }
                 auto val = dynamic_cast<SymVal*>(truePhi->In_edges.at(phi_msg->value));
 
                 auto desiredReady = truePhi->getDepTargetReady(val);
@@ -616,6 +631,7 @@ int Orchestrator::Run() {
                 auto symExprToTake = SymVal::extractSymExprFromSymVal(val, desiredReady);
                 truePhi->historyValues.push_back(make_pair(phi_msg->value, symExprToTake));
                 truePhi->ready ++;
+
 #ifdef DEBUG_OUTPUT
                 cout<< "finish "<<phi_msg->Str()<<"\n\n";
                 cout.flush();
@@ -636,16 +652,21 @@ int Orchestrator::Run() {
                 cout.flush();
 #endif
                 //sanity check
-                auto realMemSymVal = dynamic_cast<SymVal_sym_build_read_memory*>(cur_val);
-                assert(realMemSymVal != nullptr);
+                auto readMemSymVal = dynamic_cast<SymVal_sym_build_read_memory*>(cur_val);
+                assert(readMemSymVal != nullptr);
                 // at compilation, we already ensure, operand 1, 2 are constant, and operand 0 is runtime, so we just
                 // assign the Val from msg to the RuntimePtr's Val, and increase the ready value of that runtime operand by 1, and build this node
                 // and then move on to this parents
-                auto runtime_operand = dynamic_cast<RuntimeIntVal*>(realMemSymVal->In_edges.at(0));
+                auto readMemSymBBID = readMemSymVal->BBID;
+                if(readMemSymBBID != lastBBID){
+                    _sym_notify_basic_block(readMemSymBBID);
+                    lastBBID = readMemSymBBID;
+                }
+                auto runtime_operand = dynamic_cast<RuntimeIntVal*>(readMemSymVal->In_edges.at(0));
                 assert(runtime_operand != nullptr);
                 runtime_operand->Assign(sym_read_mem_msg->ptr);
                 // allow this to cross BB, but not by force(i.e., halt when meeting other unknown runtime dependency)
-                ForwardExecution(realMemSymVal,nullptr, realMemSymVal->ready + 1);
+                ForwardExecution(readMemSymVal,nullptr, readMemSymVal->ready + 1);
 #ifdef DEBUG_OUTPUT
                 cout << "finish "<<sym_read_mem_msg->Str()<<"\n\n";
                 cout.flush();
@@ -656,9 +677,16 @@ int Orchestrator::Run() {
                 cout << runtimeBoolMsg->Str()<<'\n';
                 cout.flush();
 #endif
-                auto runtimeBoolVal = dynamic_cast<RuntimeIntVal*>(cur_val);
-                assert(runtimeBoolVal != nullptr);
+                auto buildBoolSymVal = dynamic_cast<SymVal_sym_build_bool*>(cur_val);
+                assert(buildBoolSymVal != nullptr);
+                auto buildBoolSymValBBID = buildBoolSymVal->BBID;
+                if(buildBoolSymValBBID != lastBBID){
+                    _sym_notify_basic_block(buildBoolSymValBBID);
+                    lastBBID = buildBoolSymValBBID;
+                }
+                auto runtimeBoolVal = dynamic_cast<RuntimeIntVal*>(buildBoolSymVal->In_edges.at(0));
                 runtimeBoolVal->Assign(runtimeBoolMsg->value);
+                ForwardExecution(buildBoolSymVal,nullptr, buildBoolSymVal->ready + 1);
 #ifdef DEBUG_OUTPUT
                 cout << "finish "<<runtimeBoolMsg->Str()<<"\n\n";
                 cout.flush();
@@ -669,13 +697,19 @@ int Orchestrator::Run() {
                 cout << runtimeIntMsg->Str()<<'\n';
                 cout.flush();
 #endif
-                auto buildIntVal = dynamic_cast<SymVal_sym_build_integer*>(cur_val);
-                assert(buildIntVal != nullptr);
+                auto buildIntSymVal = dynamic_cast<SymVal_sym_build_integer*>(cur_val);
+                assert(buildIntSymVal != nullptr);
 
-                auto runtimeIntVal = dynamic_cast<RuntimeIntVal*>(buildIntVal->In_edges.at(0));
+                auto buildIntSymValBBID = buildIntSymVal->BBID;
+                if(buildIntSymValBBID != lastBBID){
+                    _sym_notify_basic_block(buildIntSymValBBID);
+                    lastBBID = buildIntSymValBBID;
+                }
+
+                auto runtimeIntVal = dynamic_cast<RuntimeIntVal*>(buildIntSymVal->In_edges.at(0));
                 assert(runtimeIntVal != nullptr);
                 runtimeIntVal->Assign(runtimeIntMsg->value);
-                buildIntVal->Construct(buildIntVal->ready + 1);
+                ForwardExecution(buildIntSymVal,nullptr, buildIntSymVal->ready + 1);
 #ifdef DEBUG_OUTPUT
                 cout << "finish "<<runtimeIntMsg->Str()<<"\n\n";
                 cout.flush();
@@ -686,14 +720,19 @@ int Orchestrator::Run() {
                 cout << runtimeFloatMsg->Str()<<'\n';
                 cout.flush();
 #endif
-                auto buildFloatVal = dynamic_cast<SymVal_sym_build_float*>(cur_val);
-                assert(buildFloatVal != nullptr);
+                auto buildFloatSymVal = dynamic_cast<SymVal_sym_build_float*>(cur_val);
+                assert(buildFloatSymVal != nullptr);
 
-                auto floatVal = dynamic_cast<RuntimeFloatVal*>(buildFloatVal->In_edges.at(0));
-                assert(floatVal != nullptr);
-                floatVal->Assign(runtimeFloatMsg->value);
+                auto buildFloatSymValBBID = buildFloatSymVal->BBID;
+                if(buildFloatSymValBBID != lastBBID){
+                    _sym_notify_basic_block(buildFloatSymValBBID);
+                    lastBBID = buildFloatSymValBBID;
+                }
 
-                buildFloatVal->Construct(buildFloatVal->ready + 1);
+                auto runtimeFloatVal = dynamic_cast<RuntimeFloatVal*>(buildFloatSymVal->In_edges.at(0));
+                assert(runtimeFloatVal != nullptr);
+                runtimeFloatVal->Assign(runtimeFloatMsg->value);
+                ForwardExecution(buildFloatSymVal, nullptr, buildFloatSymVal->ready + 1);
 #ifdef DEBUG_OUTPUT
                 cout << "finish "<<runtimeFloatMsg->Str()<<"\n\n";
                 cout.flush();
@@ -704,14 +743,19 @@ int Orchestrator::Run() {
                 cout << runtimeDoubleMsg->Str()<<'\n';
                 cout.flush();
 #endif
-                auto buildDoubleVal = dynamic_cast<SymVal_sym_build_float*>(cur_val);
-                assert(buildDoubleVal != nullptr);
+                auto buildDoubleSymVar = dynamic_cast<SymVal_sym_build_float*>(cur_val);
+                assert(buildDoubleSymVar != nullptr);
 
-                auto doubleVal = dynamic_cast<RuntimeDoubleVal*>(buildDoubleVal->In_edges.at(0));
-                assert(doubleVal != nullptr);
-                doubleVal->Assign(runtimeDoubleMsg->value);
+                auto buildDoubleSymVarBBID = buildDoubleSymVar->BBID;
+                if(buildDoubleSymVarBBID != lastBBID){
+                    _sym_notify_basic_block(buildDoubleSymVarBBID);
+                    lastBBID = buildDoubleSymVarBBID;
+                }
 
-                buildDoubleVal->Construct(buildDoubleVal->ready + 1);
+                auto runtimeDoubleVar = dynamic_cast<RuntimeDoubleVal*>(buildDoubleSymVar->In_edges.at(0));
+                assert(runtimeDoubleVar != nullptr);
+                runtimeDoubleVar->Assign(runtimeDoubleMsg->value);
+                ForwardExecution(buildDoubleSymVar, nullptr,buildDoubleSymVar->ready + 1);
 #ifdef DEBUG_OUTPUT
                 cout << "finish "<<runtimeDoubleMsg->Str()<<"\n\n";
                 cout.flush();
@@ -728,6 +772,13 @@ int Orchestrator::Run() {
 #endif
                 auto constraintVal = dynamic_cast<SymVal_sym_build_path_constraint*>(cur_val);
                 assert(constraintVal != nullptr);
+
+                auto pushConstraintSymVarBBID = constraintVal->BBID;
+                if(pushConstraintSymVarBBID != lastBBID){
+                    _sym_notify_basic_block(pushConstraintSymVarBBID);
+                    lastBBID = pushConstraintSymVarBBID;
+                }
+
                 auto runtime_value = dynamic_cast<RuntimeIntVal*>(constraintVal->In_edges.at(1));
                 assert(runtime_value != nullptr);
                 runtime_value->Assign(sym_constraint_msg->runtimeVal);
@@ -743,8 +794,16 @@ int Orchestrator::Run() {
                 cout << memWriteMsg->Str()<<'\n';
                 cout.flush();
 #endif
+
                 auto memWriteVal = dynamic_cast<SymVal_sym_build_write_memory*>(cur_val);
                 assert(memWriteVal != nullptr);
+
+                auto memWriteBBID = memWriteVal->BBID;
+                if(memWriteBBID != lastBBID){
+                    _sym_notify_basic_block(memWriteBBID);
+                    lastBBID = memWriteBBID;
+                }
+
                 auto addrOperand = dynamic_cast<RuntimeIntVal*>(memWriteVal->In_edges.at(0));
                 assert(addrOperand != nullptr);
                 addrOperand->Assign(memWriteMsg->ptr);
@@ -764,6 +823,14 @@ int Orchestrator::Run() {
 #endif
                 auto memcpyVal = dynamic_cast<SymVal_sym_build_memcpy*>(cur_val);
                 assert(memcpyVal != nullptr);
+
+                auto memcpyValBBID = memcpyVal->BBID;
+                if(memcpyValBBID != lastBBID){
+                    _sym_notify_basic_block(memcpyValBBID);
+                    lastBBID = memcpyValBBID;
+                }
+
+
                 auto destPtrVal = dynamic_cast<RuntimePtrVal*>(memcpyVal->In_edges.at(0));
                 assert(destPtrVal != nullptr);
                 destPtrVal->Assign(reinterpret_cast<void*>(memcpyMsg->dst_ptr));

@@ -112,6 +112,37 @@ SymExpr _sym_build_read_memory(uint8_t *addr, size_t length, bool little_endian)
                          });
 }
 
+SymExpr _sym_build_read_memory_concrete(uint8_t *addr, size_t length, bool little_endian,uint32_t concreteValue) {
+    assert(length && "Invalid query for zero-length memory region");
+
+#ifdef DEBUG_RUNTIME
+    std::cerr << "Reading " << length << " bytes from address " << P(addr)
+            << std::endl;
+  dump_known_regions();
+#endif
+
+    // If the entire memory region is concrete, don't create a symbolic expression
+    // at all.
+    if (isConcrete(addr, length))
+        return nullptr;
+
+    uint8_t * ptrToConcrete = (uint8_t*)&concreteValue;
+    ReadOnlyShadow shadow(addr, length);
+    return std::accumulate(shadow.begin(), shadow.end(),
+                           static_cast<SymExpr>(nullptr),
+                           [&](SymExpr result, SymExpr byteExpr) {
+                               if (result == nullptr)
+                                   return byteExpr;
+                               if(byteExpr == nullptr){
+                                   byteExpr = _sym_build_integer( *ptrToConcrete, 8);
+                               }
+                               concreteValue++;
+                               return little_endian
+                                      ? _sym_concat_helper(byteExpr, result)
+                                      : _sym_concat_helper(result, byteExpr);
+                           });
+}
+
 void _sym_build_write_memory(uint8_t *addr, size_t length, SymExpr expr,
                        bool little_endian) {
   assert(length && "Invalid query for zero-length memory region");

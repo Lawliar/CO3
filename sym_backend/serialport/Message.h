@@ -159,12 +159,20 @@ class ReadMemMessage: public SymSourceMessage{
 public:
     ReadMemMessage(uint16_t symID, uint32_t ptr): SymSourceMessage(ReadMemRuntimeMsg, symID), ptr(ptr){}
     uint32_t ptr;
+    bool hasConcrete = false;
+    uint32_t  concreteValue;
     std::string Str(){
         std::ostringstream s;
-        s<<"ReadMemMsg:symid:"<<static_cast<unsigned>(symid)<<",mem:"<<std::hex<<ptr;
+        s<<"ReadMemMsg:symid:"<<static_cast<unsigned>(symid)<<",mem:"<<std::hex<<\
+            ptr<<",hasConcrete:"<<hasConcrete<<",concreteValue:"<<std::hex<<concreteValue;
         return s.str();
     }
+    void AddConcreteValue(uint32_t val){
+        hasConcrete = true;
+        concreteValue = val;
+    }
 };
+
 
 class WriteMemMessage: public SymSinkMessage{
 public:

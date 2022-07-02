@@ -148,7 +148,7 @@ void _sym_initialize(string inputDirName) {
     _common_initialize();
 
     //initially symbolize the memory buffer
-    ReadWriteShadow shadow((void*)0x2400a929, inputSize);
+    ReadWriteShadow shadow((void*)0x2400aaa1, inputSize);
     unsigned cursor = 0;
     std::generate(shadow.begin(), shadow.end(),
                   [&cursor]() { return _sym_get_input_byte(cursor++); });

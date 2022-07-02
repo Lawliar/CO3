@@ -150,6 +150,7 @@ SymExpr _sym_get_input_byte(size_t offset);
  * Memory management
  */
 SymExpr _sym_build_read_memory(uint8_t *addr, size_t length, bool little_endian);
+SymExpr _sym_build_read_memory_concrete(uint8_t *addr, size_t length, bool little_endian, uint32_t concreteValue);
 void _sym_build_write_memory(uint8_t *addr, size_t length, SymExpr expr,
                        bool little_endian);
 void _sym_build_memcpy(uint8_t *dest, const uint8_t *src, size_t length);
