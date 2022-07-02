@@ -39,24 +39,52 @@
 
  char S_SYM_DUMMY           []="SYM_DUMMY           ";
  char S_SYM_BLD_INT_1       []="SYM_BLD_INT_1       ";
+ char S_SYM_BLD_INT_1_1     []="SYM_BLD_INT_1_1     ";
  char S_SYM_BLD_INT_2       []="SYM_BLD_INT_2       ";
+ char S_SYM_BLD_INT_2_1     []="SYM_BLD_INT_2_1     ";
  char S_SYM_BLD_INT_4       []="SYM_BLD_INT_4       ";
+ char S_SYM_BLD_INT_4_1     []="SYM_BLD_INT_4_1     ";
  char S_SYM_BLD_FLOAT       []="SYM_BLD_FLOAT       ";
+ char S_SYM_BLD_FLOAT_1     []="SYM_BLD_FLOAT_1     ";
+
  char S_SYM_BLD_FLOAT_DBL   []="SYM_BLD_FLOAT_DBL   ";
+ char S_SYM_BLD_FLOAT_DBL_1 []="SYM_BLD_FLOAT_DBL_1 ";
+
  char S_SYM_BLD_BOOL        []="SYM_BLD_BOOL        ";
+ char S_SYM_BLD_BOOL_1      []="SYM_BLD_BOOL_1      ";
+
  char S_SYM_BLD_PATH_CNSTR  []="SYM_BLD_PATH_CNSTR  ";
+ char S_SYM_BLD_PATH_CNSTR_1[]="SYM_BLD_PATH_CNSTR_1";
+
  char S_SYM_BLD_MEMCPY      []="SYM_BLD_MEMCPY      ";
+ char S_SYM_BLD_MEMCPY_1    []="SYM_BLD_MEMCPY_1    ";
+
  char S_SYM_BLD_MEMSET      []="SYM_BLD_MEMSET      ";
+ char S_SYM_BLD_MEMSET_1    []="SYM_BLD_MEMSET_1    ";
+
  char S_SYM_BLD_MEMMOVE     []="SYM_BLD_MEMMOVE     ";
+ char S_SYM_BLD_MEMMOVE_1   []="SYM_BLD_MEMMOVE_1   ";
+
  char S_SYM_BLD_READ_MEM    []="SYM_BLD_READ_MEM    ";
+ char S_SYM_BLD_READ_MEM_1  []="SYM_BLD_READ_MEM_1  ";
+
+ char S_SYM_BLD_READ_MEM_HW   []="SYM_BLD_READ_MEM_HW  ";
+ char S_SYM_BLD_READ_MEM_HW_1 []="SYM_BLD_READ_MEM_HW_1";
+
  char S_SYM_BLD_READ_MEM_W  []="SYM_BLD_READ_MEM_W  ";
- char S_SYM_BLD_READ_MEM_HW []="SYM_BLD_READ_MEM_HW ";
+ char S_SYM_BLD_READ_MEM_W_1[]="SYM_BLD_READ_MEM_W_1";
+
+
+
  char S_SYM_BLD_WRITE_MEM   []="SYM_BLD_WRITE_MEM   ";
- char S_SYM_SET_PAR_EXP     []="SYM_SET_PAR_EXP     ";
- char S_SYM_GET_PAR_EXP     []="SYM_GET_PAR_EXP     ";
- char S_SYM_SET_RET_EXP     []="SYM_SET_RET_EXP     ";
- char S_SYM_GET_RET_EXP     []="SYM_GET_RET_EXP     ";
+ char S_SYM_BLD_WRITE_MEM_1 []="SYM_BLD_WRITE_MEM_1 ";
+
+ //char S_SYM_SET_PAR_EXP     []="SYM_SET_PAR_EXP     ";
+ //char S_SYM_GET_PAR_EXP     []="SYM_GET_PAR_EXP     ";
+ //char S_SYM_SET_RET_EXP     []="SYM_SET_RET_EXP     ";
+ //char S_SYM_GET_RET_EXP     []="SYM_GET_RET_EXP     ";
  char S_SYM_NTFY_PHI        []="SYM_NTFY_PHI        ";
+ char S_SYM_NTFY_PHI_1      []="SYM_NTFY_PHI_1      ";
  char S_SYM_NTFY_CALL       []="SYM_NTFY_CALL       ";
  char S_SYM_NTFY_FUNC       []="SYM_NTFY_FUNC       ";
  char S_SYM_NTFY_RET        []="SYM_NTFY_RET        ";
@@ -68,24 +96,42 @@
 
 		 S_SYM_DUMMY            ,
 		 S_SYM_BLD_INT_1        ,
+		 S_SYM_BLD_INT_1_1      ,
 		 S_SYM_BLD_INT_2        ,
+		 S_SYM_BLD_INT_2_1      ,
 		 S_SYM_BLD_INT_4        ,
+		 S_SYM_BLD_INT_4_1      ,
 		 S_SYM_BLD_FLOAT        ,
+		 S_SYM_BLD_FLOAT_1      ,
 		 S_SYM_BLD_FLOAT_DBL    ,
+		 S_SYM_BLD_FLOAT_DBL_1  ,
 		 S_SYM_BLD_BOOL         ,
+		 S_SYM_BLD_BOOL_1       ,
 		 S_SYM_BLD_PATH_CNSTR   ,
+		 S_SYM_BLD_PATH_CNSTR_1 ,
 		 S_SYM_BLD_MEMCPY       ,
+		 S_SYM_BLD_MEMCPY_1     ,
 		 S_SYM_BLD_MEMSET       ,
+		 S_SYM_BLD_MEMSET_1     ,
 		 S_SYM_BLD_MEMMOVE      ,
+		 S_SYM_BLD_MEMMOVE_1    ,
 		 S_SYM_BLD_READ_MEM     ,
-		 S_SYM_BLD_READ_MEM_W   ,
+		 S_SYM_BLD_READ_MEM_1   ,
+
 		 S_SYM_BLD_READ_MEM_HW  ,
+		 S_SYM_BLD_READ_MEM_HW_1,
+
+		 S_SYM_BLD_READ_MEM_W   ,
+		 S_SYM_BLD_READ_MEM_W_1 ,
+
 		 S_SYM_BLD_WRITE_MEM    ,
-		 S_SYM_SET_PAR_EXP      ,
-		 S_SYM_GET_PAR_EXP      ,
-		 S_SYM_SET_RET_EXP      ,
-		 S_SYM_GET_RET_EXP      ,
+		 S_SYM_BLD_WRITE_MEM_1  ,
+		 //S_SYM_SET_PAR_EXP      ,
+		 //S_SYM_GET_PAR_EXP      ,
+		 //S_SYM_SET_RET_EXP      ,
+		 //S_SYM_GET_RET_EXP      ,
 		 S_SYM_NTFY_PHI         ,
+		 S_SYM_NTFY_PHI_1       ,
 		 S_SYM_NTFY_CALL        ,
 		 S_SYM_NTFY_FUNC        ,
 		 S_SYM_NTFY_RET         ,
@@ -197,7 +243,7 @@ bool _sym_get_return_expression()
 {
 	return return_exp;
 }
-
+/*
 inline void set_id(uint32_t userID)
 {
 	union ubytes_t aux;
@@ -206,7 +252,7 @@ inline void set_id(uint32_t userID)
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= aux.vbytes[1];
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= aux.vbytes[2];
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= aux.vbytes[3];
-}
+}*/
 
 inline void get_report(uint8_t * arg)
 {
@@ -242,7 +288,7 @@ inline void get_report(uint8_t * arg)
 
 }
 
-
+#define ONE_BYTE_SYMID_MAX 255
 
 bool _sym_build_integer(uint32_t int_val, uint8_t numBits, uint16_t symID)
 {
@@ -250,15 +296,28 @@ bool _sym_build_integer(uint32_t int_val, uint8_t numBits, uint16_t symID)
 	uint8_t msgCode;
 	uint8_t *byteval;
 
+	bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
 	if(numBits==1)
 	{
-		msgSize = SIZE_SYM_BLD_INT_1;
-		msgCode = SYM_BLD_INT_1;
+		if(isSmallSymID){
+			msgSize = SIZE_SYM_BLD_INT_1;
+			msgCode = SYM_BLD_INT_1;
+		}else{
+			msgSize = SIZE_SYM_BLD_INT_1_1;
+			msgCode = SYM_BLD_INT_1_1;
+		}
+
 	}
 	else if(numBits==2)
 	{
-		msgSize = SIZE_SYM_BLD_INT_2;
-		msgCode = SYM_BLD_INT_2;
+		if(isSmallSymID){
+			msgSize = SIZE_SYM_BLD_INT_2;
+			msgCode = SYM_BLD_INT_2;
+		}else{
+			msgSize = SIZE_SYM_BLD_INT_2_1;
+			msgCode = SYM_BLD_INT_2_1;
+		}
+
 	}
 	else
 	{
@@ -267,8 +326,14 @@ bool _sym_build_integer(uint32_t int_val, uint8_t numBits, uint16_t symID)
 	    	printf("Error! Integer more than 4 bytes! %d\n",(int)numBits );
 	    }
 #endif
-		msgSize = SIZE_SYM_BLD_INT_4;
-		msgCode = SYM_BLD_INT_4;
+	    if(isSmallSymID){
+	    	msgSize = SIZE_SYM_BLD_INT_4;
+	    	msgCode = SYM_BLD_INT_4;
+	    }else{
+	    	msgSize = SIZE_SYM_BLD_INT_4_1;
+	    	msgCode = SYM_BLD_INT_4_1;
+	    }
+
 	}
 
 	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
@@ -276,7 +341,10 @@ bool _sym_build_integer(uint32_t int_val, uint8_t numBits, uint16_t symID)
 	//set the ID
 	byteval = (uint8_t *)(&symID);
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval++;
-	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval;
+	if(! isSmallSymID){
+		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval;
+	}
+
 
 	//set the val
 	byteval = (uint8_t *)(&int_val);
@@ -296,16 +364,29 @@ bool _sym_build_float(uint64_t double_val, bool is_double, uint16_t symID)
     uint8_t *byteval;
     int numBits;
 
+    bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+
     if(is_double)
     {
-    	msgSize = SIZE_SYM_BLD_FLOAT_DBL;
-    	msgCode = SYM_BLD_FLOAT_DBL;
+    	if(isSmallSymID){
+    		msgSize = SIZE_SYM_BLD_FLOAT_DBL;
+    		msgCode = SYM_BLD_FLOAT_DBL;
+    	}else{
+    		msgSize = SIZE_SYM_BLD_FLOAT_DBL_1;
+    		msgCode = SYM_BLD_FLOAT_DBL_1;
+    	}
+
     	numBits = 8;
     }
     else
     {
-    	msgSize = SIZE_SYM_BLD_FLOAT;
-    	msgCode = SYM_BLD_FLOAT;
+    	if(isSmallSymID){
+    		msgSize = SIZE_SYM_BLD_FLOAT;
+    		msgCode = SYM_BLD_FLOAT;
+    	}else{
+    		msgSize = SIZE_SYM_BLD_FLOAT_1;
+    		msgCode = SYM_BLD_FLOAT_1;
+    	}
     	numBits = 4;
     }
 
@@ -314,7 +395,9 @@ bool _sym_build_float(uint64_t double_val, bool is_double, uint16_t symID)
     //set the ID
     byteval = (uint8_t *)(&symID);
     AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval++;
-    AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval;
+    if(! isSmallSymID){
+    	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval;
+    }
    	//set the val
    	byteval = (uint8_t *)(&double_val);
    	for(int i=0;i<numBits;i++)
@@ -332,16 +415,24 @@ bool _sym_build_bool(bool bool_val, uint16_t symID)
 	uint8_t msgCode;
     uint8_t *byteval;
 
+    bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+    if(isSmallSymID){
+    	msgSize = SIZE_SYM_BLD_BOOL;
+    	msgCode = SYM_BLD_BOOL;
+    }else{
+    	msgSize = SIZE_SYM_BLD_BOOL_1;
+    	msgCode = SYM_BLD_BOOL_1;
+    }
 
-    msgSize = SIZE_SYM_BLD_BOOL;
-    msgCode = SYM_BLD_BOOL;
 
     txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
     AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
     //set the ID
     byteval = (uint8_t *)(&symID);
     AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval++;
-    AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval;
+    if(! isSmallSymID){
+    	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval;
+    }
    	//set the val
     AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = (uint8_t) bool_val;
    	return true;
@@ -356,15 +447,26 @@ void _sym_build_path_constraint(bool input, bool runtimeVal, uint16_t symID)
 
 	if(!input) return;
 
-	msgSize = SIZE_SYM_BLD_PATH_CNSTR;
-    msgCode = SYM_BLD_PATH_CNSTR;
+	bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+
+	if(isSmallSymID){
+		msgSize = SIZE_SYM_BLD_PATH_CNSTR;
+		msgCode = SYM_BLD_PATH_CNSTR;
+	}else{
+		msgSize = SIZE_SYM_BLD_PATH_CNSTR_1;
+		msgCode = SYM_BLD_PATH_CNSTR_1;
+	}
+
 
 	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
 	//set the ID
 	byteval = (uint8_t *)(&symID);
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval++;
-	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval;
+	if( ! isSmallSymID){
+		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval;
+	}
+
 	//set the val
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = (uint8_t) runtimeVal;
 
@@ -376,16 +478,26 @@ void _sym_notify_phi(uint8_t branchNo, uint16_t symID)
 	uint8_t msgCode;
 	uint8_t *byteval;
 
+	bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
 
-	msgSize = SIZE_SYM_NTFY_PHI;
-	msgCode = SYM_NTFY_PHI;
+	if(isSmallSymID){
+		msgSize = SIZE_SYM_NTFY_PHI;
+		msgCode = SYM_NTFY_PHI;
+	}else{
+		msgSize = SIZE_SYM_NTFY_PHI_1;
+		msgCode = SYM_NTFY_PHI_1;
+	}
+
 
     txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
     AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
     //set the ID
     byteval = (uint8_t *)(&symID);
     AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval++;
-    AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval;
+    if(! isSmallSymID){
+    	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval;
+    }
+
     //set the val
     AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = (uint8_t) branchNo;
 }
@@ -526,13 +638,19 @@ void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t 
 	uint32_t addr;
 	uint8_t *byteval;
 
+	bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
 
 	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
-	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
+
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode;
+
 
 	byteval = (uint8_t*)(&symID);
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
-	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
+	if( ! isSmallSymID){
+		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
+	}
+
 
 
 	addr = (uint32_t) dest;
@@ -543,7 +661,7 @@ void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t 
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
 
 
-	if(msgCode == SYM_BLD_MEMCPY || msgCode == SYM_BLD_MEMMOVE)
+	if(msgCode == SYM_BLD_MEMCPY || msgCode == SYM_BLD_MEMCPY_1  || msgCode == SYM_BLD_MEMMOVE || msgCode == SYM_BLD_MEMMOVE_1)
 	{
 		addr = (uint32_t) src;
 		byteval = (uint8_t*)(&addr);
@@ -553,14 +671,17 @@ void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t 
 		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
 	}
 
-    if(msgCode != SYM_BLD_READ_MEM  && msgCode != SYM_BLD_WRITE_MEM ) // we don't need the length because it is already known on PC side for these functions
+    if(msgCode != SYM_BLD_READ_MEM  && msgCode != SYM_BLD_READ_MEM_1 \
+    	&&	msgCode != SYM_BLD_READ_MEM_HW  && msgCode != SYM_BLD_READ_MEM_HW_1 \
+    	&&	msgCode != SYM_BLD_READ_MEM_W  && msgCode != SYM_BLD_READ_MEM_W_1 \
+    		&& msgCode != SYM_BLD_WRITE_MEM && msgCode != SYM_BLD_WRITE_MEM_1 ) // we don't need the length because it is already known on PC side for these functions
     {
     	byteval = (uint8_t*)(&length);
     	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
     	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
     }
 
-    if(msgCode == SYM_BLD_READ_MEM_W ) // we need to send the concrete word
+    if(msgCode == SYM_BLD_READ_MEM_W || msgCode == SYM_BLD_READ_MEM_W_1) // we need to send the concrete word
     {
     		byteval = (uint8_t*)(dest);
     		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
@@ -569,7 +690,7 @@ void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t 
     		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
     }
 
-    if(msgCode == SYM_BLD_READ_MEM_HW ) // we need to send the concrete half  word
+    if(msgCode == SYM_BLD_READ_MEM_HW || msgCode ==  SYM_BLD_READ_MEM_HW_1) // we need to send the concrete half  word
     {
        		byteval = (uint8_t*)(dest);
        		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
@@ -607,7 +728,13 @@ void _sym_build_memcpy(char * dest, char * src, size_t length, uint16_t symID)
 
     if(report)
     {
-    	reportSymHelper( SYM_BLD_MEMCPY, SIZE_SYM_BLD_MEMCPY, dest, src, length, symID);
+    	bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+    	if(isSmallSymID){
+    		reportSymHelper( SYM_BLD_MEMCPY, SIZE_SYM_BLD_MEMCPY, dest, src, length, symID);
+    	}else{
+    		reportSymHelper( SYM_BLD_MEMCPY_1, SIZE_SYM_BLD_MEMCPY_1, dest, src, length, symID);
+    	}
+
     }
 
 }
@@ -638,7 +765,13 @@ void _sym_build_memset(char * mem, bool input, size_t length, uint16_t symID)
 
     if(report)
     {
-    	reportSymHelper( SYM_BLD_MEMSET, SIZE_SYM_BLD_MEMSET,mem,NULL, length, symID);
+    	bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+    	if(isSmallSymID){
+    		reportSymHelper( SYM_BLD_MEMSET, SIZE_SYM_BLD_MEMSET,mem,NULL, length, symID);
+    	}else{
+    		reportSymHelper( SYM_BLD_MEMSET_1, SIZE_SYM_BLD_MEMSET_1,mem,NULL, length, symID);
+    	}
+
     }
 }
 
@@ -670,7 +803,13 @@ void _sym_build_memmove(char * dest, char * src, size_t length, uint16_t symID)
 
     if(report)
     {
-    	reportSymHelper( SYM_BLD_MEMMOVE, SIZE_SYM_BLD_MEMMOVE, dest, src, length, symID);
+    	bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+    	if(isSmallSymID){
+    		reportSymHelper( SYM_BLD_MEMMOVE, SIZE_SYM_BLD_MEMMOVE, dest, src, length, symID);
+    	}else{
+    		reportSymHelper( SYM_BLD_MEMMOVE_1, SIZE_SYM_BLD_MEMMOVE_1, dest, src, length, symID);
+    	}
+
     }
 }
 
@@ -678,7 +817,6 @@ void _sym_build_memmove(char * dest, char * src, size_t length, uint16_t symID)
 
 bool _sym_build_read_memory(char * addr, size_t length, bool is_little_edian, uint16_t symID)
 {
-
 
 	if((uint32_t)addr>= SYM_PERIPHERAL_ADDR_START && (uint32_t)addr <=(SYM_PERIPHERAL_ADDR_START + SYM_PERIPHERAL_SIZE)  )
 	{
@@ -721,17 +859,35 @@ bool _sym_build_read_memory(char * addr, size_t length, bool is_little_edian, ui
 
 	if(countSymbols == length) // all bytes are symbols report only the address
 	{
-		reportSymHelper( SYM_BLD_READ_MEM, SIZE_SYM_BLD_READ_MEM, addr, NULL, 0, symID);
+		bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+		if(isSmallSymID){
+			reportSymHelper( SYM_BLD_READ_MEM, SIZE_SYM_BLD_READ_MEM, addr, NULL, 0, symID);
+		}
+		else{
+			reportSymHelper( SYM_BLD_READ_MEM_1, SIZE_SYM_BLD_READ_MEM_1, addr, NULL, 0, symID);
+		}
 		return true;
 	}
 	else if( length == 2 && countSymbols>0 ) // report address + value HalfWord
 	{
-		reportSymHelper(SYM_BLD_READ_MEM_HW, SIZE_SYM_BLD_READ_MEM_HW, addr, NULL, 0, symID);
+		bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+		if(isSmallSymID){
+			reportSymHelper(SYM_BLD_READ_MEM_HW, SIZE_SYM_BLD_READ_MEM_HW, addr, NULL, 0, symID);
+		}else{
+			reportSymHelper(SYM_BLD_READ_MEM_HW_1, SIZE_SYM_BLD_READ_MEM_HW_1, addr, NULL, 0, symID);
+		}
+
 		return true;
 	}
 	else if( length == 4 && countSymbols>0 ) // report address + value Word
 	{
-		reportSymHelper(SYM_BLD_READ_MEM_W, SIZE_SYM_BLD_READ_MEM_W, addr, NULL, 0, symID);
+		bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+		if(isSmallSymID){
+			reportSymHelper(SYM_BLD_READ_MEM_W, SIZE_SYM_BLD_READ_MEM_W, addr, NULL, 0, symID);
+		}else{
+			reportSymHelper(SYM_BLD_READ_MEM_W_1, SIZE_SYM_BLD_READ_MEM_W_1, addr, NULL, 0, symID);
+		}
+
 		return true;
 	}
 
@@ -766,7 +922,13 @@ void _sym_build_write_memory(char * addr, size_t length, bool input, bool little
 
 	if(report)
 	{
-		reportSymHelper( SYM_BLD_WRITE_MEM, SIZE_SYM_BLD_WRITE_MEM ,addr,NULL,0, symID);
+		bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+		if(isSmallSymID){
+			reportSymHelper( SYM_BLD_WRITE_MEM, SIZE_SYM_BLD_WRITE_MEM ,addr,NULL,0, symID);
+		}else{
+			reportSymHelper( SYM_BLD_WRITE_MEM_1, SIZE_SYM_BLD_WRITE_MEM_1 ,addr,NULL,0, symID);
+		}
+
 	}
 
 }

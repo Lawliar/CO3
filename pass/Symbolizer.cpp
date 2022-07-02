@@ -419,10 +419,12 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
 
     auto *dataType = I.getType();
     auto readMemSymID = getNextID();
+    auto intByteSize = dataLayout.getTypeStoreSize(dataType);
+    assert(intByteSize == 1 ||intByteSize == 2 ||intByteSize == 4 );
     auto *data = IRB.CreateCall(
       runtime.readMemory,
       {IRB.CreatePtrToInt(addr, intPtrType),
-       ConstantInt::get(intPtrType, dataLayout.getTypeStoreSize(dataType)),
+       ConstantInt::get(intPtrType, intByteSize),
        ConstantInt::get(IRB.getInt8Ty(), isLittleEndian(dataType) ? 1 : 0),
        ConstantHelper(runtime.symIntT,readMemSymID)});
     assignSymID(data,readMemSymID);
@@ -869,9 +871,11 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
         auto *memory = IRB.CreateAlloca(V->getType());
         IRB.CreateStore(V, memory);
         auto symid = getNextID();
+        auto intByteSize = dataLayout.getTypeStoreSize(V->getType());
+        assert(intByteSize == 1 || intByteSize == 2 || intByteSize == 4);
         ret = IRB.CreateCall(runtime.readMemory,
                              {IRB.CreatePtrToInt(memory, intPtrType),
-                              ConstantInt::get(intPtrType,dataLayout.getTypeStoreSize(V->getType())),
+                              ConstantInt::get(intPtrType,intByteSize),
                               IRB.getInt8(0),
                               ConstantHelper(runtime.symIntT, symid)});
         assignSymID(ret,symid);
