@@ -3,31 +3,46 @@ from enum import IntEnum
 import struct
 
 class MsgTypes(IntEnum):
-    SYM_BLD_INT_1 =      1
-    SYM_BLD_INT_2 = 2
-    SYM_BLD_INT_4  = 3 
-    SYM_BLD_FLOAT  = 4
-    SYM_BLD_FLOAT_DBL  = 5
-    SYM_BLD_BOOL       = 6
-    SYM_BLD_PATH_CNSTR = 7
-    SYM_BLD_MEMCPY    = 8
-    SYM_BLD_MEMSET    = 9
-    SYM_BLD_MEMMOVE   = 10
-    SYM_BLD_READ_MEM  = 11
-    SYM_BLD_WRITE_MEM =12
+    SYM_BLD_INT_1       =      1
+    SYM_BLD_INT_1_1     =      2
+    SYM_BLD_INT_2       =      3
+    SYM_BLD_INT_2_1     =      4
+    SYM_BLD_INT_4       =      5
+    SYM_BLD_INT_4_1     =      6 
+    SYM_BLD_FLOAT       =      7
+    SYM_BLD_FLOAT_1     =      8
+    SYM_BLD_FLOAT_DBL   =      9
+    SYM_BLD_FLOAT_DBL_1 =      10
+    SYM_BLD_BOOL        =      11
+    SYM_BLD_BOOL_1      =      12
+    SYM_BLD_PATH_CNSTR  =      13
+    SYM_BLD_PATH_CNSTR_1=      14
+    SYM_BLD_MEMCPY      =      15
+    SYM_BLD_MEMCPY_1    =      16
+    SYM_BLD_MEMSET      =      17
+    SYM_BLD_MEMSET_1    =      18
+    SYM_BLD_MEMMOVE     =      19
+    SYM_BLD_MEMMOVE_1   =      20
+    SYM_BLD_READ_MEM    =      21
+    SYM_BLD_READ_MEM_1  =      22
+    
+    SYM_BLD_READ_MEM_HW  =      23
+    SYM_BLD_READ_MEM_HW_1 =      24
+    SYM_BLD_READ_MEM_W   =      25
+    SYM_BLD_READ_MEM_W_1 =      26
+    
+    SYM_BLD_WRITE_MEM   =      27
+    SYM_BLD_WRITE_MEM_1 =      28
 
-    SYM_SET_PAR_EXP   = 13
-    SYM_GET_PAR_EXP   = 14
-    SYM_SET_RET_EXP   = 15
-    SYM_GET_RET_EXP   = 16
 
-    SYM_NTFY_PHI      = 17
-    SYM_NTFY_CALL     = 18
-    SYM_NTFY_FUNC     = 19
-    SYM_NTFY_RET      = 20
-    SYM_NTFY_BBLK     = 21
-    SYM_NTFY_BBLK1    = 22
-    SYM_INIT          = 23
+    SYM_NTFY_PHI      = 29
+    SYM_NTFY_PHI_1    = 30
+    SYM_NTFY_CALL     = 31
+    SYM_NTFY_FUNC     = 32
+    SYM_NTFY_RET      = 33
+    SYM_NTFY_BBLK     = 34
+    SYM_NTFY_BBLK1    = 35
+    SYM_INIT          = 36
 
 
 
@@ -40,71 +55,165 @@ def parsePackage(package):
     cur = 0
     while cur < len(package):
         if(package[cur] == MsgTypes.SYM_BLD_INT_1):
+            symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
+            val = int.from_bytes(package[cur + 2: cur + 3],byteorder='little')
+            cur += 3
+            print("BuildInt 1: symval:{}, val:{}".format(symid, val))
+        elif(package[cur] == MsgTypes.SYM_BLD_INT_1_1):
             symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             val = int.from_bytes(package[cur + 3: cur + 4],byteorder='little')
             cur += 4
-            print("BuildInt 1: symval:{}, val:{}".format(symid, val))
+            print("BuildInt 1_1: symval:{}, val:{}".format(symid, val))
         elif(package[cur] == MsgTypes.SYM_BLD_INT_2):
+            symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
+            val = int.from_bytes(package[cur + 2: cur + 4],byteorder='little')
+            cur += 4
+            print("BuildInt 2: symval:{}, val:{}".format(symid, val))
+        elif(package[cur] == MsgTypes.SYM_BLD_INT_2_1):
             symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             val = int.from_bytes(package[cur + 3: cur + 5],byteorder='little')
             cur += 5
-            print("BuildInt 2: symval:{}, val:{}".format(symid, val))
+            print("BuildInt 2_1: symval:{}, val:{}".format(symid, val))
         elif(package[cur] == MsgTypes.SYM_BLD_INT_4):
+            symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
+            val = int.from_bytes(package[cur + 2: cur + 6],byteorder='little')
+            cur += 6
+            print("BuildInt 4: symval:{}, val:{}".format(symid, val))
+        elif(package[cur] == MsgTypes.SYM_BLD_INT_4_1):
             symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             val = int.from_bytes(package[cur + 3: cur + 7],byteorder='little')
             cur += 7
-            print("BuildInt 4: symval:{}, val:{}".format(symid, val))
+            print("BuildInt 4_1: symval:{}, val:{}".format(symid, val))
         elif(package[cur] == MsgTypes.SYM_BLD_FLOAT):
+            symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
+            val = struct.unpack('f',package[cur + 2: cur + 6])
+            cur += 6
+            print("Build Float: symval:{}, val:{}".format(symid, val))
+        elif(package[cur] == MsgTypes.SYM_BLD_FLOAT_1):
             symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             val = struct.unpack('f',package[cur + 3: cur + 7])
             cur += 7
-            print("Build Float: symval:{}, val:{}".format(symid, val))
+            print("Build Float_1: symval:{}, val:{}".format(symid, val))
         elif(package[cur] == MsgTypes.SYM_BLD_FLOAT_DBL):
+            symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
+            val = struct.unpack('f',package[cur + 2: cur + 10])
+            cur += 10
+            print("Build DBL: symval:{}, val:{}".format(symid, val))
+        elif(package[cur] == MsgTypes.SYM_BLD_FLOAT_DBL_1):
             symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             val = struct.unpack('f',package[cur + 3: cur + 11])
             cur += 11
-            print("Build DBL: symval:{}, val:{}".format(symid, val))
+            print("Build DBL_1: symval:{}, val:{}".format(symid, val))
         elif(package[cur] == MsgTypes.SYM_BLD_BOOL):
-            symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
-            val = int.from_bytes(package[cur + 3: cur + 4],byteorder='little')
-            cur += 4
+            symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
+            val = int.from_bytes(package[cur + 2: cur + 3],byteorder='little')
+            cur += 3
             print("Build bool: symval:{}, val:{}".format(symid, val))
-        elif(package[cur] == MsgTypes.SYM_BLD_PATH_CNSTR):
+        elif(package[cur] == MsgTypes.SYM_BLD_BOOL_1):
             symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             val = int.from_bytes(package[cur + 3: cur + 4],byteorder='little')
             cur += 4
+            print("Build bool_1: symval:{}, val:{}".format(symid, val))
+        elif(package[cur] == MsgTypes.SYM_BLD_PATH_CNSTR):
+            symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
+            val = int.from_bytes(package[cur + 2: cur + 3],byteorder='little')
+            cur += 3
             print("Push Constraint: symval:{}, val:{}".format(symid, val))
+        elif(package[cur] == MsgTypes.SYM_BLD_PATH_CNSTR_1):
+            symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
+            val = int.from_bytes(package[cur + 3: cur + 4],byteorder='little')
+            cur += 4
+            print("Push Constraint_1: symval:{}, val:{}".format(symid, val))
         elif(package[cur] == MsgTypes.SYM_BLD_MEMCPY):
+            symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
+            dest = int.from_bytes(package[cur + 2: cur + 6],byteorder='little')
+            src = int.from_bytes(package[cur + 6: cur + 10],byteorder='little')
+            length = int.from_bytes(package[cur + 10: cur + 12],byteorder='little')
+            cur += 12
+            print("MemCpy: symval:{}, dest:{}, src:{}, length:{}".format(symid, dest, src, length))
+        elif(package[cur] == MsgTypes.SYM_BLD_MEMCPY_1):
             symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             dest = int.from_bytes(package[cur + 3: cur + 7],byteorder='little')
             src = int.from_bytes(package[cur + 7: cur + 11],byteorder='little')
             length = int.from_bytes(package[cur + 11: cur + 13],byteorder='little')
             cur += 13
-            print("MemCpy: symval:{}, dest:{}, src:{}, length:{}".format(symid, dest, src, length))
+            print("MemCpy_1: symval:{}, dest:{}, src:{}, length:{}".format(symid, dest, src, length))
         elif(package[cur] == MsgTypes.SYM_BLD_MEMSET):
+            symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
+            mem = int.from_bytes(package[cur + 2: cur + 6],byteorder='little')
+            length = int.from_bytes(package[cur + 6: cur + 8],byteorder='little')
+            cur += 8
+            print("MemSet: symval:{}, mem:{},  length:{}".format(symid, mem, length))
+        elif(package[cur] == MsgTypes.SYM_BLD_MEMSET_1):
             symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             mem = int.from_bytes(package[cur + 3: cur + 7],byteorder='little')
             length = int.from_bytes(package[cur + 7: cur + 9],byteorder='little')
             cur += 9
-            print("MemSet: symval:{}, mem:{},  length:{}".format(symid, mem, length))
+            print("MemSet_1: symval:{}, mem:{},  length:{}".format(symid, mem, length))
         elif(package[cur] == MsgTypes.SYM_BLD_MEMMOVE):
+            symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
+            dest = int.from_bytes(package[cur + 2: cur + 6],byteorder='little')
+            src = int.from_bytes(package[cur + 6: cur + 10],byteorder='little')
+            length = int.from_bytes(package[cur + 10: cur + 12],byteorder='little')
+            cur += 12
+            print("MemMove: symval:{}, dest:{}, src:{}, length:{}".format(symid, dest, src, length))
+        elif(package[cur] == MsgTypes.SYM_BLD_MEMMOVE_1):
             symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             dest = int.from_bytes(package[cur + 3: cur + 7],byteorder='little')
             src = int.from_bytes(package[cur + 7: cur + 11],byteorder='little')
             length = int.from_bytes(package[cur + 11: cur + 13],byteorder='little')
             cur += 13
-            print("MemMove: symval:{}, dest:{}, src:{}, length:{}".format(symid, dest, src, length))
+            print("MemMove_1: symval:{}, dest:{}, src:{}, length:{}".format(symid, dest, src, length))
         elif(package[cur] == MsgTypes.SYM_BLD_READ_MEM):
+            symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
+            addr = int.from_bytes(package[cur + 2: cur + 6],byteorder='little')
+            cur += 6
+            print("ReadMem: symval:{}, addr:{}".format(symid,addr))
+        elif(package[cur] == MsgTypes.SYM_BLD_READ_MEM_1):
             symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             addr = int.from_bytes(package[cur + 3: cur + 7],byteorder='little')
             cur += 7
-            print("ReadMem: symval:{}, addr:{}".format(symid,addr))
+            print("ReadMem_: symval:{}, addr:{}".format(symid,addr))
+        elif(package[cur] == MsgTypes.SYM_BLD_READ_MEM_HW):
+            symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
+            addr = int.from_bytes(package[cur + 2: cur + 6],byteorder='little')
+            val = int.from_bytes(package[cur + 6: cur + 8],byteorder='little')
+            cur += 8
+            print("ReadMem_HW: symval:{}, addr:{}, val:{}".format(symid,addr,val))
+        elif(package[cur] == MsgTypes.SYM_BLD_READ_MEM_HW_1):
+            symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
+            addr = int.from_bytes(package[cur + 3: cur + 7],byteorder='little')
+            val = int.from_bytes(package[cur + 7: cur + 9],byteorder='little')
+            cur += 9
+            print("ReadMem_HW_1: symval:{}, addr:{}, val:{}".format(symid,addr,val))
+        elif(package[cur] == MsgTypes.SYM_BLD_READ_MEM_W):
+            symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
+            addr = int.from_bytes(package[cur + 2: cur + 6],byteorder='little')
+            val = int.from_bytes(package[cur + 6: cur + 10],byteorder='little')
+            cur += 10
+            print("ReadMem_W: symval:{}, addr:{},val:{}".format(symid,addr,val))
+        elif(package[cur] == MsgTypes.SYM_BLD_READ_MEM_W_1):
+            symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
+            addr = int.from_bytes(package[cur + 3: cur + 7],byteorder='little')
+            val = int.from_bytes(package[cur + 7: cur + 11],byteorder='little')
+            cur += 11
+            print("ReadMem_W_1: symval:{}, addr:{},val:{}".format(symid,addr,val))
         elif(package[cur] == MsgTypes.SYM_BLD_WRITE_MEM):
+            symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
+            addr = int.from_bytes(package[cur + 2: cur + 6],byteorder='little')
+            cur += 6
+            print("WriteMem: symval:{}, addr:{}".format(symid,addr))
+        elif(package[cur] == MsgTypes.SYM_BLD_WRITE_MEM_1):
             symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             addr = int.from_bytes(package[cur + 3: cur + 7],byteorder='little')
             cur += 7
             print("WriteMem: symval:{}, addr:{}".format(symid,addr))
         elif(package[cur] == MsgTypes.SYM_NTFY_PHI):
+            symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
+            branchNo = int.from_bytes(package[cur + 2: cur + 3],byteorder='little')
+            cur += 3
+            print("NotifyPhi: symval:{}, phi branch:{}".format(symid,branchNo))
+        elif(package[cur] == MsgTypes.SYM_NTFY_PHI_1):
             symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             branchNo = int.from_bytes(package[cur + 3: cur + 4],byteorder='little')
             cur += 4
