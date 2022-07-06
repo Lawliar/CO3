@@ -68,6 +68,10 @@ public:
       splited2OriginalBB.clear();
       originalBB2ID.clear();
       stageSettingOperations.clear();
+      perBBConcretenessChecking.clear();
+
+      loopBB2Offset.clear();
+      truePhi2Offset.clear();
       //tryAlternativePairs.clear();
   }
 
@@ -468,16 +472,18 @@ public:
   bool isLittleEndian(llvm::Type *type) {
     return (!type->isAggregateType() && dataLayout.isLittleEndian());
   }
-  llvm::BasicBlock* findExistingBB(unsigned,std::set<llvm::BasicBlock*>&);
-  void outputDebugCFG(llvm::Function*);
-  unsigned GetBBID(llvm::BasicBlock* BB){
-      llvm::BasicBlock* realOriginal = BB;
-      while(splited2OriginalBB.find(realOriginal) != splited2OriginalBB.end()){
-          realOriginal = splited2OriginalBB.at(realOriginal);
-      }
-      return originalBB2ID.at(realOriginal);
+    llvm::BasicBlock* findExistingBB(unsigned,std::set<llvm::BasicBlock*>&);
+    void outputDebugCFG(llvm::Function*);
+    unsigned GetBBID(llvm::BasicBlock* BB){
+        llvm::BasicBlock* realOriginal = BB;
+        while(splited2OriginalBB.find(realOriginal) != splited2OriginalBB.end()){
+            realOriginal = splited2OriginalBB.at(realOriginal);
+        }
+        return originalBB2ID.at(realOriginal);
     }
-  void MapOriginalBlock(llvm::BasicBlock * splitted, llvm::BasicBlock* original){
+
+    void insertPerBBConcretenessCheck(unsigned BBID, llvm::Value * checking);
+    void MapOriginalBlock(llvm::BasicBlock * splitted, llvm::BasicBlock* original){
         llvm::BasicBlock* realOriginal = original;
         while(splited2OriginalBB.find(realOriginal) != splited2OriginalBB.end()){
             realOriginal = splited2OriginalBB.at(realOriginal);
@@ -657,8 +663,14 @@ public:
     std::vector<SymbolicComputation> expressionUses;
     std::map<llvm::BasicBlock*, llvm::BasicBlock*> splited2OriginalBB;
     std::map<llvm::BasicBlock*, unsigned> originalBB2ID;
+    std::map<unsigned, std::vector<llvm::Value*> > perBBConcretenessChecking;
     std::vector<unsigned> stageSettingOperations;
 
+    // map loopBB and phi to an bit
+    llvm::AllocaInst* loopBBBaseAddr = nullptr;
+    llvm::AllocaInst* truePhiBaseAddr = nullptr;
+    std::map<llvm::BasicBlock*, unsigned> loopBB2Offset;
+    std::map<llvm::PHINode*, unsigned> truePhi2Offset;
     //std::map<std::pair<unsigned, unsigned>, std::pair<llvm::Value*, llvm::Value *> > tryAlternativePairs;
     SymDepGraph g;
     const unsigned initialBBID = 1;

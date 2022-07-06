@@ -91,7 +91,6 @@ struct Runtime {
     SymFnT notifyRet{};
     SymFnT notifyPhi{};
     SymFnT notifyBasicBlock{};
-    SymFnT notifyBasicBlock1{};
     SymFnT tryAlternative{};
 
     /// Mapping from icmp predicates to the functions that build the corresponding

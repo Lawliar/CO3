@@ -43,6 +43,29 @@ void Symbolizer::initializeFunctions(Function &F) {
             }
         }
     }
+
+    // allocate some space for the BBs and PhiNodes
+    unsigned numOfLoopBBs = 0;
+    unsigned numOfTruePhis = 0;
+    for(auto & eachBB : F){
+        if(loopinfo.getLoopFor(&eachBB) != nullptr){
+            loopBB2Offset[&eachBB] = numOfLoopBBs;
+            numOfLoopBBs += 1;
+        }
+        for(auto & eachInst : eachBB){
+            if(isa<PHINode>(&eachInst)){
+                numOfTruePhis += 1;
+            }
+        }
+    }
+
+    ArrayType* space4LoopTy = ArrayType::get(IRB.getInt1Ty(), numOfLoopBBs);
+    ArrayType* space4TruePhiTy = ArrayType::get(IRB.getInt1Ty(), numOfTruePhis);
+    loopBBBaseAddr = IRB.CreateAlloca(space4LoopTy);
+    truePhiBaseAddr = IRB.CreateAlloca(space4TruePhiTy);
+    // initialize the created space to zero
+    IRB.CreateStore( ConstantAggregateZero::get(space4LoopTy), loopBBBaseAddr);
+    IRB.CreateStore( ConstantAggregateZero::get(space4TruePhiTy), truePhiBaseAddr);
 }
 
 void Symbolizer::recordBasicBlockMapping(llvm::BasicBlock &B) {
@@ -697,7 +720,7 @@ void Symbolizer::visitCastInst(CastInst &I) {
 void Symbolizer::visitPHINode(PHINode &I) {
     // PHI nodes just assign values based on the origin of the last jump, so we
     // assign the corresponding symbolic expression the same way.
-
+    static unsigned truePhiOff = 0;
     phiNodes.push_back(&I); // to be finalized later, see finalizePHINodes
 
     IRBuilder<> IRB(&I);
@@ -705,6 +728,7 @@ void Symbolizer::visitPHINode(PHINode &I) {
     auto *exprPHI = IRB.CreatePHI(runtime.isSymT, numIncomingValues);
     auto truePhi = new TruePhi(getNextID());
     assignSymIDPhi(exprPHI, truePhi);
+    truePhi2Offset[exprPHI] = truePhiOff++;
     for (unsigned incoming = 0; incoming < numIncomingValues; incoming++) {
         exprPHI->addIncoming(
                 // The null pointer will be replaced in finalizePHINodes.
@@ -716,6 +740,7 @@ void Symbolizer::visitPHINode(PHINode &I) {
 }
 
 void Symbolizer::visitInsertValueInst(InsertValueInst &I) {
+    llvm_unreachable("Insert Unsupported.");
     IRBuilder<> IRB(&I);
     auto insert = buildRuntimeCall(
             IRB, runtime.buildInsert,
@@ -729,6 +754,7 @@ void Symbolizer::visitInsertValueInst(InsertValueInst &I) {
 }
 
 void Symbolizer::visitExtractValueInst(ExtractValueInst &I) {
+    llvm_unreachable("Extract Unsupported.");
     IRBuilder<> IRB(&I);
     auto extract = buildRuntimeCall(
             IRB, runtime.buildExtract,
@@ -812,7 +838,6 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
         } else if (bits <= 64) {
             auto symid = getNextID();
             auto bytes = dataLayout.getTypeAllocSize(valueType);
-            assert(bytes == 1 || bytes == 2 || bytes == 4);
             ret = IRB.CreateCall(runtime.buildInteger,
                                  {IRB.CreateZExtOrBitCast(V, runtime.int_type),
                                   IRB.getInt8(bytes),
@@ -968,6 +993,13 @@ unsigned int getTypeWidth(Type* ty, const DataLayout& dataLayout){
     return width;
 }
 
+void Symbolizer::insertPerBBConcretenessCheck(unsigned BBID, llvm::Value * checking){
+    if(perBBConcretenessChecking.find(BBID) != perBBConcretenessChecking.end()){
+        perBBConcretenessChecking.at(BBID).push_back(checking);
+    }else{
+        perBBConcretenessChecking[BBID] = std::vector<Value*> {checking};
+    }
+}
 void Symbolizer::shortCircuitExpressionUses() {
     for (auto &symbolicComputation : expressionUses) {
         assert(!symbolicComputation.inputs.empty() &&
@@ -986,10 +1018,16 @@ void Symbolizer::shortCircuitExpressionUses() {
             allConcrete = IRB.CreateAnd(allConcrete, nullChecks[argIndex]);
         }
 
+
         // The main branch: if we don't enter here, we can short-circuit the
         // symbolic computation. Otherwise, we need to check all input expressions
         // and create an output expression.
         auto *head = symbolicComputation.firstInstruction->getParent();
+
+
+        unsigned headBBID = GetBBID(head);
+        insertPerBBConcretenessCheck(headBBID, allConcrete);
+
         auto *slowPath = SplitBlock(head, symbolicComputation.firstInstruction);
         MapOriginalBlock(slowPath, head);
         auto *tail = SplitBlock(slowPath,
@@ -1281,6 +1319,10 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                             errs()<<"arg:"<<*arg<<'\n';
                             llvm_unreachable("annotated constant is not constant\n");
                         }
+                        if(calleeName.equals("_sym_build_read_memory") && arg_idx == 2){
+                            auto byteLen = dyn_cast<ConstantInt>(arg)->getZExtValue();
+                            assert(byteLen == 1 || byteLen == 2 || byteLen == 4 );
+                        }
                         if(ConstantInt * cont_int = dyn_cast<ConstantInt>(arg)){
                             auto conVert = addConstantIntVertice(cont_int);
                             g.AddEdge(conVert,userNode, arg_idx);
@@ -1366,17 +1408,19 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
         for(auto & eachInst : basicBlock) {
             if (PHINode *symPhi = dyn_cast<PHINode>(&eachInst); symPhi != nullptr &&
                                                                 phiSymbolicIDs.find(symPhi) != phiSymbolicIDs.end()) {
-                PHINode *phi = phiSymbolicIDs.find(symPhi)->first;
-                PHINode* reportingPhi = nullptr;
-                unsigned numIncomingValue = phi->getNumIncomingValues();
-                unsigned userSymID = getSymIDFromSymPhi(phi);
 
+                PHINode* reportingPhi = nullptr;
+                unsigned numIncomingValue = symPhi->getNumIncomingValues();
+                unsigned userSymID = getSymIDFromSymPhi(symPhi);
                 auto phi_status = phiSymbolicIDs.find(symPhi)->second;
                 if(isa<TruePhi>(phi_status)){
-                    IRBuilder<> IRB(&*phi->getParent()->getFirstInsertionPt());
+                    IRBuilder<> IRB(&*symPhi->getParent()->getFirstInsertionPt());
                     reportingPhi = IRB.CreatePHI(runtime.int8T, numIncomingValue);
+                    auto truePhiOffset = truePhi2Offset.at(symPhi);
+                    auto gep = IRB.CreateGEP(truePhiBaseAddr,
+                                             {ConstantHelper(runtime.int16T, 0), ConstantHelper(runtime.int16T, truePhiOffset)});
                     IRB.CreateCall(runtime.notifyPhi,
-                                   {reportingPhi, ConstantHelper(runtime.symIntT, userSymID)});
+                                   {reportingPhi, ConstantHelper(runtime.symIntT, userSymID),symPhi, gep});
                 }else if(auto falsePhiRoot = dyn_cast<FalsePhiRoot>(phi_status)){
                     for(auto eachFalseLeave: falsePhiRoot->leaves){
                         g.AddPhiEdge(eachFalseLeave, userSymID, 2 , 0, 1);
@@ -1392,10 +1436,10 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                     }
                 }
                 for (unsigned incoming = 0, totalIncoming =numIncomingValue;incoming < totalIncoming; incoming++) {
-                    BasicBlock *incomingBB = phi->getIncomingBlock(incoming);
+                    BasicBlock *incomingBB = symPhi->getIncomingBlock(incoming);
                     unsigned incomingBBID = GetBBID(incomingBB);
-                    Value *incomingValue = phi->getIncomingValue(incoming);
-                    if(reportingPhi != nullptr){
+                    Value *incomingValue = symPhi->getIncomingValue(incoming);
+                    if(isa<TruePhi>(phi_status)){
                         reportingPhi->addIncoming(
                                 ConstantHelper(runtime.int8T, incoming),
                                 incomingBB);
@@ -1522,6 +1566,7 @@ void Symbolizer::insertNotifyBasicBlock(Function& F) {
     for(auto eachGroupOfBBs : splittedBBs){
         unsigned original_bbid = eachGroupOfBBs.first;
         BasicBlock* original_bb = nullptr;
+        // find the original BasicBlock
         for(auto eachOriginalBB : originalBB2ID){
             if(eachOriginalBB.second == original_bbid){
                 original_bb = eachOriginalBB.first;
@@ -1531,17 +1576,28 @@ void Symbolizer::insertNotifyBasicBlock(Function& F) {
         assert(original_bb != nullptr);
         if(loopinfo.getLoopFor(original_bb) != nullptr){
 
+            if(perBBConcretenessChecking.find(original_bbid) == perBBConcretenessChecking.end()){
+                // there is no registered Symbolic Computation in this loop BB, we don't have to insert the BB.
+                // the unregister read_mem, write_mem e.t.c., will report themselves
+                continue;
+            }
+
             BasicBlock* existing_bb = findExistingBB(original_bbid, eachGroupOfBBs.second);
             Instruction* terminator = existing_bb->getTerminator();
             IRBuilder<> irb(terminator);
 
-            if(original_bbid <= 255){
-                llvm::ConstantInt * valueToInsert = ConstantInt::get(runtime.int8T, original_bbid);
-                irb.CreateCall(runtime.notifyBasicBlock,valueToInsert);
-            }else{
-                llvm::ConstantInt * valueToInsert = ConstantInt::get(runtime.int16T, original_bbid);
-                irb.CreateCall(runtime.notifyBasicBlock1,valueToInsert);
+            auto& checkings = perBBConcretenessChecking.find(original_bbid)->second;
+            Value* allAllConcrete = checkings[0];
+            unsigned index = 1;
+            for(; index < checkings.size() ; index++){
+                allAllConcrete = irb.CreateAnd(allAllConcrete, checkings[index]);
             }
+            llvm::ConstantInt * bbid = ConstantInt::get(runtime.int16T, original_bbid);
+
+            auto offset = loopBB2Offset.at(original_bb);
+            auto gep = irb.CreateGEP(loopBBBaseAddr,
+                                     {ConstantHelper(runtime.int16T, 0), ConstantHelper(runtime.int16T, offset)});
+            irb.CreateCall(runtime.notifyBasicBlock,{bbid,allAllConcrete,gep} );
         }
     }
 }
