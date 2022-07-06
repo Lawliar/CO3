@@ -167,12 +167,11 @@ void _sym_set_return_expression(bool input);
 bool _sym_get_return_expression();
 
 //needs report
-void _sym_notify_phi(uint8_t branchNo, uint16_t symID);
+void _sym_notify_phi(uint8_t branchNo, uint16_t symID, bool isSym, char * base_addr, uint8_t offset );
 void _sym_notify_call(uint8_t call_inst_id);
 void _sym_notify_func(uint8_t func_id);
 void _sym_notify_ret(uint8_t call_inst_id);
-void _sym_notify_basic_block(uint8_t bbid);
-void _sym_notify_basic_block1(uint16_t bbid);
+void _sym_notify_basic_block(uint16_t bbid, bool isSym, char * base_addr, uint8_t offset );
 
 
 //symbolize buffer

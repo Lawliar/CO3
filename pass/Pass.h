@@ -22,6 +22,8 @@
 #include <llvm/Analysis/LoopInfo.h>
 #include <llvm/IR/Dominators.h>
 #include <llvm/Analysis/PostDominators.h>
+//#include <llvm/Transforms/Scalar/LoopUnrollAndJamPass.h>
+//#include <llvm/Transforms/Scalar/Reg2Mem.h>
 
 class SymbolizePass : public llvm::FunctionPass {
 public:
@@ -34,6 +36,9 @@ public:
   bool doFinalization(llvm::Module &M) override;
 
   void getAnalysisUsage(llvm::AnalysisUsage &AU) const override  {
+
+      //AU.addRequired<llvm::LoopUnrollAndJamWrapperPass>();
+      //AU.addRequired<llvm::RegToMemPass>();
       AU.addRequired<llvm::UnifyFunctionExitNodesLegacyPass>();
       AU.addRequired<llvm::DominatorTreeWrapperPass>();
       AU.addRequired<llvm::PostDominatorTreeWrapperPass>();

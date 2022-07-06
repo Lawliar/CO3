@@ -607,6 +607,13 @@ public:
           output<<"tryAlt:symid:"<<tryAltSymId<<",bbid:"<<tryAltBBid<<",symop:"<<*operandSym<<",op:"<<*operand<<'\n';
       }*/
   }
+  unsigned numBits2NumBytes(unsigned numBits){
+      unsigned ret = numBits / 8;
+      if(numBits % 8 != 0){
+          ret += 1;
+      }
+      return ret;
+  }
 
   /// Compute the offset of a member in a (possibly nested) aggregate.
   uint64_t aggregateMemberOffset(llvm::Type *aggregateType,
@@ -667,9 +674,10 @@ public:
     std::vector<unsigned> stageSettingOperations;
 
     // map loopBB and phi to an bit
-    llvm::AllocaInst* loopBBBaseAddr = nullptr;
-    llvm::AllocaInst* truePhiBaseAddr = nullptr;
+    llvm::Value* loopBBBaseAddr = nullptr;
+    llvm::Value* truePhiBaseAddr = nullptr;
     std::map<llvm::BasicBlock*, unsigned> loopBB2Offset;
+    unsigned truePhiOff = 0;
     std::map<llvm::PHINode*, unsigned> truePhi2Offset;
     //std::map<std::pair<unsigned, unsigned>, std::pair<llvm::Value*, llvm::Value *> > tryAlternativePairs;
     SymDepGraph g;

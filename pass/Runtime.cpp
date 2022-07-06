@@ -49,7 +49,6 @@ Runtime::Runtime(Module &M) {
         llvm_unreachable("integer width less than 16 bit?");
     }
     auto *ptrT = IRB.getInt8PtrTy();
-    auto * ptr1T = PointerType::get(IRB.getInt1Ty(),0) ;
     auto *voidT = IRB.getVoidTy();
     int8T = IRB.getInt8Ty();
     int32T = IRB.getInt32Ty();
@@ -313,7 +312,7 @@ Runtime::Runtime(Module &M) {
     isSymArgNo["_sym_try_alternative"] = {1};
     replaceToNone.push_back("_sym_try_alternative");
 
-    notifyPhi = import(M, "_sym_notify_phi", voidT, int8T, symIntT,isSymT,ptr1T);
+    notifyPhi = import(M, "_sym_notify_phi", voidT, int8T, symIntT,isSymT,ptrT,int8T);
     SymOperators.push_back(&notifyPhi);
     runtimeArgNo["_sym_notify_phi"] = {0};
     symIdArgNo["_sym_notify_phi"] = {1};
@@ -331,7 +330,7 @@ Runtime::Runtime(Module &M) {
     SymOperators.push_back(&notifyRet);
     runtimeArgNo["_sym_notify_ret"] = {0};
 
-    notifyBasicBlock = import(M, "_sym_notify_basic_block", voidT, int16T, isSymT,ptr1T );
+    notifyBasicBlock = import(M, "_sym_notify_basic_block", voidT, int16T, isSymT,ptrT,int8T );
     SymOperators.push_back(&notifyBasicBlock);
     runtimeArgNo["_sym_notify_basic_block"] = {0};
 

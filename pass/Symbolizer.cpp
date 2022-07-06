@@ -58,14 +58,31 @@ void Symbolizer::initializeFunctions(Function &F) {
             }
         }
     }
-
+    /*
+     * This is not working, it appears LLVM just regard i1 as i8
     ArrayType* space4LoopTy = ArrayType::get(IRB.getInt1Ty(), numOfLoopBBs);
     ArrayType* space4TruePhiTy = ArrayType::get(IRB.getInt1Ty(), numOfTruePhis);
     loopBBBaseAddr = IRB.CreateAlloca(space4LoopTy);
     truePhiBaseAddr = IRB.CreateAlloca(space4TruePhiTy);
-    // initialize the created space to zero
+    */
+    if(numOfLoopBBs > 255){
+        llvm_unreachable("Number of BBs in the loop exceeds 255, need to change the offset from uint8_t to uint16_t, I believe you can do it[wink].");
+    }
+    if(numOfTruePhis > 255){
+        llvm_unreachable("Number of TruePhis in the loop exceeds 255, need to change the offset from uint8_t to uint16_t, I believe you can do it[wink].");
+    }
+    unsigned numBytesForLoopBBs = numBits2NumBytes(numOfLoopBBs);
+    unsigned numBytesForTruePhis = numBits2NumBytes(numOfTruePhis);
+    ArrayType* space4LoopTy = ArrayType::get(runtime.int8T, numBytesForLoopBBs);
+    ArrayType* space4TruePhiTy = ArrayType::get(runtime.int8T, numBytesForTruePhis);
+    loopBBBaseAddr = IRB.CreateAlloca(space4LoopTy);
+    truePhiBaseAddr = IRB.CreateAlloca(space4TruePhiTy);
+     // initialize the created space to zero
     IRB.CreateStore( ConstantAggregateZero::get(space4LoopTy), loopBBBaseAddr);
     IRB.CreateStore( ConstantAggregateZero::get(space4TruePhiTy), truePhiBaseAddr);
+    loopBBBaseAddr = IRB.CreateGEP(loopBBBaseAddr, {ConstantHelper(runtime.int8T, 0), ConstantHelper(runtime.int8T, 0)});
+    truePhiBaseAddr = IRB.CreateGEP(truePhiBaseAddr,
+                                    {ConstantHelper(runtime.int8T, 0), ConstantHelper(runtime.int8T, 0)});
 }
 
 void Symbolizer::recordBasicBlockMapping(llvm::BasicBlock &B) {
@@ -720,7 +737,6 @@ void Symbolizer::visitCastInst(CastInst &I) {
 void Symbolizer::visitPHINode(PHINode &I) {
     // PHI nodes just assign values based on the origin of the last jump, so we
     // assign the corresponding symbolic expression the same way.
-    static unsigned truePhiOff = 0;
     phiNodes.push_back(&I); // to be finalized later, see finalizePHINodes
 
     IRBuilder<> IRB(&I);
@@ -1417,10 +1433,8 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                     IRBuilder<> IRB(&*symPhi->getParent()->getFirstInsertionPt());
                     reportingPhi = IRB.CreatePHI(runtime.int8T, numIncomingValue);
                     auto truePhiOffset = truePhi2Offset.at(symPhi);
-                    auto gep = IRB.CreateGEP(truePhiBaseAddr,
-                                             {ConstantHelper(runtime.int16T, 0), ConstantHelper(runtime.int16T, truePhiOffset)});
                     IRB.CreateCall(runtime.notifyPhi,
-                                   {reportingPhi, ConstantHelper(runtime.symIntT, userSymID),symPhi, gep});
+                                   {reportingPhi, ConstantHelper(runtime.symIntT, userSymID),symPhi, truePhiBaseAddr,ConstantHelper(runtime.int8T, truePhiOffset) });
                 }else if(auto falsePhiRoot = dyn_cast<FalsePhiRoot>(phi_status)){
                     for(auto eachFalseLeave: falsePhiRoot->leaves){
                         g.AddPhiEdge(eachFalseLeave, userSymID, 2 , 0, 1);
@@ -1592,12 +1606,12 @@ void Symbolizer::insertNotifyBasicBlock(Function& F) {
             for(; index < checkings.size() ; index++){
                 allAllConcrete = irb.CreateAnd(allAllConcrete, checkings[index]);
             }
+            Value * anySym = irb.CreateNot(allAllConcrete);
             llvm::ConstantInt * bbid = ConstantInt::get(runtime.int16T, original_bbid);
 
             auto offset = loopBB2Offset.at(original_bb);
-            auto gep = irb.CreateGEP(loopBBBaseAddr,
-                                     {ConstantHelper(runtime.int16T, 0), ConstantHelper(runtime.int16T, offset)});
-            irb.CreateCall(runtime.notifyBasicBlock,{bbid,allAllConcrete,gep} );
+
+            irb.CreateCall(runtime.notifyBasicBlock,{bbid,anySym,loopBBBaseAddr,ConstantHelper(runtime.int8T, offset) } );
         }
     }
 }

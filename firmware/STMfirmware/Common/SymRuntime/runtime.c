@@ -289,6 +289,7 @@ inline void get_report(uint8_t * arg)
 }
 
 #define ONE_BYTE_SYMID_MAX 255
+#define ONE_BYTE_BBID_MAX 255
 
 bool _sym_build_integer(uint32_t int_val, uint8_t numBits, uint16_t symID)
 {
@@ -472,11 +473,20 @@ void _sym_build_path_constraint(bool input, bool runtimeVal, uint16_t symID)
 
 }
 
-void _sym_notify_phi(uint8_t branchNo, uint16_t symID)
+void _sym_notify_phi(uint8_t branchNo, uint16_t symID, bool isSym, char * base_addr, uint8_t offset)
 {
 	int msgSize=0;
 	uint8_t msgCode;
 	uint8_t *byteval;
+
+
+	uint8_t byteOffset = offset / 8;
+	uint8_t bitOffsetInByte = offset % 8;
+	bool prev_state = bitRead( *(base_addr + byteOffset), bitOffsetInByte );
+	bitWrite(*(base_addr + byteOffset), bitOffsetInByte, isSym);
+	if(prev_state == false && isSym == false){
+		return;
+	}
 
 	bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
 
@@ -543,34 +553,38 @@ void _sym_notify_ret(uint8_t call_inst_id)
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = (uint8_t) call_inst_id;
 }
 
-void _sym_notify_basic_block(uint8_t bbid)
+void _sym_notify_basic_block(uint16_t bbid, bool isSym, char * base_addr, uint8_t offset )
 {
 	int msgSize=0;
     uint8_t msgCode;
+    uint8_t *byteval;
 
-    msgSize = SIZE_SYM_NTFY_BBLK;
-    msgCode = SYM_NTFY_BBLK;
-	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
-	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
-	//set the val
-	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = (uint8_t) bbid;
+    uint8_t byteOffset = offset / 8;
+    uint8_t bitOffsetInByte = offset % 8;
+    bool prev_state = bitRead( *(base_addr + byteOffset), bitOffsetInByte );
+    bitWrite(*(base_addr + byteOffset), bitOffsetInByte, isSym);
 
-}
+    if(prev_state == false && isSym == false){
+    	return;
+    }
 
-void _sym_notify_basic_block1(uint16_t bbid)
-{
-	int msgSize=0;
-    uint8_t msgCode;
-	uint8_t *byteval;
+    bool isSmallBBID = bbid <= ONE_BYTE_BBID_MAX ? true : false;
+    if(isSmallBBID){
+    	msgSize = SIZE_SYM_NTFY_BBLK;
+    	msgCode = SYM_NTFY_BBLK;
+    }else{
+    	msgSize = SIZE_SYM_NTFY_BBLK1;
+    	msgCode = SYM_NTFY_BBLK1;
+    }
 
-    msgSize = SIZE_SYM_NTFY_BBLK;
-    msgCode = SYM_NTFY_BBLK;
 	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
 	//set the val
 	byteval = (uint8_t *)(&bbid);
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval++;
-	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval;
+	if(!isSmallBBID){
+		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval;
+	}
 }
 
 

@@ -172,8 +172,9 @@ static void TargetTask( void * pvParameters )
 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // wait for the notification coming from the Monitor task
 		//HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
 		//here we should call the instrumented code
-        printf("\nStart\n");
-
+#if DEBUGPRINT ==1
+		printf("\nStart\n");
+#endif
 
 
         _sym_symbolize_memory((char*)(AFLfuzzer.inputAFL.uxBuffer+1),AFLfuzzer.inputAFL.u32available);
@@ -184,8 +185,9 @@ static void TargetTask( void * pvParameters )
 		//stop_time_val = DWT->CYCCNT;
 
 
-
+#if DEBUGPRINT ==1
 		printf("\nFinish\n");
+#endif
 		//printf("clocks:%u\n\n", stop_time_val - start_time_val);
 
 		//xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,10,eSetValueWithOverwrite);//notify that the test finished
