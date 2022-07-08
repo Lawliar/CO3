@@ -43,6 +43,7 @@ class MsgTypes(IntEnum):
     SYM_NTFY_BBLK     = 34
     SYM_NTFY_BBLK1    = 35
     SYM_INIT          = 36
+    SYM_END          = 37
 
 
 
@@ -238,6 +239,9 @@ def parsePackage(package):
             bbid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             cur += 3
             print("NotifyBB1: bb id:{}".format(bbid))
+        elif(package[cur] == MsgTypes.SYM_END):
+            cur += 1
+            print("SymEnd")
         else:
             embed()
             assert(False)
