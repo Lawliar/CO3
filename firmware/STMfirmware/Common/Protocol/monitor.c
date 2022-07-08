@@ -178,9 +178,9 @@ static void TargetTask( void * pvParameters )
 
 
         _sym_symbolize_memory((char*)(AFLfuzzer.inputAFL.uxBuffer+1),AFLfuzzer.inputAFL.u32available);
-
         //test((unsigned char*)(AFLfuzzer.inputAFL.uxBuffer+1),AFLfuzzer.inputAFL.u32available);
         test();
+        _sym_end();
 		//testprotocol(10); // this function will call instrumentation callbacks for testing
 		//stop_time_val = DWT->CYCCNT;
 

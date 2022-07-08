@@ -483,11 +483,11 @@ void _sym_notify_phi(uint8_t branchNo, uint16_t symID, bool isSym, char * base_a
 	uint8_t byteOffset = offset / 8;
 	uint8_t bitOffsetInByte = offset % 8;
 	bool prev_state = bitRead( *(base_addr + byteOffset), bitOffsetInByte );
-	bitWrite(*(base_addr + byteOffset), bitOffsetInByte, isSym);
+
 	if(prev_state == false && isSym == false){
 		return;
 	}
-
+	bitWrite(*(base_addr + byteOffset), bitOffsetInByte, isSym);
 	bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
 
 	if(isSmallSymID){
@@ -539,6 +539,14 @@ void _sym_notify_func(uint8_t call_inst_id)
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = (uint8_t) call_inst_id;
 }
 
+void _sym_end(){
+	int msgSize = 0;
+	uint8_t msgCode;
+	msgSize = SIZE_SYM_END;
+	msgCode = SYM_END;
+	txCommandtoMonitorF;
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode;
+}
 
 void _sym_notify_ret(uint8_t call_inst_id)
 {
@@ -562,12 +570,11 @@ void _sym_notify_basic_block(uint16_t bbid, bool isSym, char * base_addr, uint8_
     uint8_t byteOffset = offset / 8;
     uint8_t bitOffsetInByte = offset % 8;
     bool prev_state = bitRead( *(base_addr + byteOffset), bitOffsetInByte );
-    bitWrite(*(base_addr + byteOffset), bitOffsetInByte, isSym);
 
     if(prev_state == false && isSym == false){
     	return;
     }
-
+    bitWrite(*(base_addr + byteOffset), bitOffsetInByte, isSym);
     bool isSmallBBID = bbid <= ONE_BYTE_BBID_MAX ? true : false;
     if(isSmallBBID){
     	msgSize = SIZE_SYM_NTFY_BBLK;
