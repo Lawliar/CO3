@@ -12,13 +12,13 @@
 
 std::string dbgInputFileName;
 
-#define DEBUG_OUTPUT
+
 #ifdef DEBUG_OUTPUT
 int indent = 0;
 int indentNum = 4;
 #endif
 Orchestrator::Orchestrator(std::string inputDir, std::string sp_port, int baud_rate): \
-pool(12),sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
+pool(2),sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
 {
     boost::filesystem::path dir (inputDir);
     boost::filesystem::path funcIDFilePath = dir / "spear_func_id.txt";
@@ -334,7 +334,6 @@ void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, uns
     }
     cout<<'\n';
     std::cout.flush();
-
 #endif
     SymGraph* cur_func = getCurFunc();
 #ifdef DEBUG_CHECKING
@@ -352,8 +351,8 @@ void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, uns
 #ifdef  DEBUG_CHECKING
     if(target != nullptr){
         assert(!target->root->isThisNodeReady(source, targetReady));
-#endif
     }
+#endif
     bool shouldMoveForward = false;
     bool constructed = ExecuteNode(source, targetReady);
     if(! constructed && target == nullptr) {
@@ -380,7 +379,10 @@ void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, uns
             shouldMoveForward = true;
         }
         rootTask->occupied = false;
-    }else if(constructed){
+    }else if(constructed && target != nullptr && target->root == source){
+        shouldMoveForward = false;
+    }
+    else if(constructed){
         shouldMoveForward = true;
     }
 
@@ -527,7 +529,7 @@ int Orchestrator::Run() {
     while(true){
         Message* msg = msgQueue.Pop();
         if(auto cnt_msg = dynamic_cast<ControlMessgaes*>(msg); cnt_msg != nullptr){
-            if(auto bb_msg = dynamic_cast<NotifyBasicBlockMessage*>(msg) ; bb_msg != nullptr){
+            if(auto bb_msg = dynamic_cast<NotifyBasicBlockMessage*>(cnt_msg) ; bb_msg != nullptr){
                 // now a BB has been finished on the MCU side, we try to do the same here
 #ifdef DEBUG_CHECKING
                 auto cur_func = getCurFunc();
@@ -543,7 +545,7 @@ int Orchestrator::Run() {
                 cout<<"finish "<<bb_msg->Str()<<"\n\n";
                 cout.flush();
 #endif
-            }else if(auto func_msg = dynamic_cast<NotifyFuncMessage*>(msg); func_msg != nullptr){
+            }else if(auto func_msg = dynamic_cast<NotifyFuncMessage*>(cnt_msg); func_msg != nullptr){
                 auto nextFunc = symGraphs.at(func_msg->id);
 #ifdef DEBUG_OUTPUT
                 assert(indent == 0);
@@ -561,7 +563,7 @@ int Orchestrator::Run() {
                 cout<<"finish "<<func_msg->Str()<< ':'<<nextFunc->funcname<<"\n\n";
                 cout.flush();
 #endif
-            }else if(auto call_msg = dynamic_cast<NotifyCallMessage*>(msg) ; call_msg != nullptr){
+            }else if(auto call_msg = dynamic_cast<NotifyCallMessage*>(cnt_msg) ; call_msg != nullptr){
 #ifdef DEBUG_OUTPUT
                 assert(indent == 0);
                 cout <<call_msg->Str()<<'\n';
@@ -575,7 +577,7 @@ int Orchestrator::Run() {
                 cout <<"finish "<<call_msg->Str()<<"\n\n";
                 cout.flush();
 #endif
-            }else if(auto ret_msg = dynamic_cast<NotifyRetMessage*>(msg) ; ret_msg != nullptr){
+            }else if(auto ret_msg = dynamic_cast<NotifyRetMessage*>(cnt_msg) ; ret_msg != nullptr){
 #ifdef DEBUG_OUTPUT
                 assert(indent == 0);
                 cout  <<ret_msg->Str()<<'\n';
@@ -609,7 +611,7 @@ int Orchestrator::Run() {
                 cout <<"finish " <<ret_msg->Str()<<"\n\n";
                 cout.flush();
 #endif
-            }else if(auto phi_msg = dynamic_cast<PhiValueMessage*>(msg); phi_msg != nullptr){
+            }else if(auto phi_msg = dynamic_cast<PhiValueMessage*>(cnt_msg); phi_msg != nullptr){
 #ifdef DEBUG_OUTPUT
                 assert(indent == 0);
                 cout << phi_msg->Str()<<'\n';
@@ -636,6 +638,8 @@ int Orchestrator::Run() {
                 cout<< "finish "<<phi_msg->Str()<<"\n\n";
                 cout.flush();
 #endif
+            }else if(auto end_msg = dynamic_cast<EndMessage*>(cnt_msg); end_msg != nullptr ){
+                break;
             }
             else{
                 std::cerr<<"seriously?";

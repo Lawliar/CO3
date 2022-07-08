@@ -26,6 +26,7 @@ public:
         MemsetRuntimeMsg,
         MemmoveRuntimeMsg,
         WriteMemRuntimeMsg,
+        EndMsg,
     } MessageType;
     MessageType type;
     Message(MessageType t): type(t){}
@@ -226,6 +227,14 @@ public:
         std::ostringstream s;
         s<<"NotifyBBMsg:"<<static_cast<unsigned>(id);
         return s.str();
+    }
+};
+
+class EndMessage: public ControlMessgaes{
+public:
+    EndMessage(): ControlMessgaes(EndMsg){};
+    std::string Str(){
+        return "SymEnd";
     }
 };
 

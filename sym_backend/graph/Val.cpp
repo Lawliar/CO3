@@ -91,7 +91,7 @@ Val::ReadyType SymVal_sym_TruePhi::getDepTargetReady(Val * nodeInQuestion) {
 }
 
 
-inline vector<Val*> Val::realChildren() {
+vector<Val*> Val::realChildren() {
     vector<Val*> realChildren;
     SymVal_sym_FalsePhiRoot * false_phi_root = dynamic_cast<SymVal_sym_FalsePhiRoot*>(this);
     SymVal_sym_FalsePhiLeaf * false_phi_leaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(this);
@@ -145,11 +145,15 @@ void RuntimePtrVal::Assign(void *val) {
     ready++;
 }
 
-inline SymExpr SymVal::extractSymExprFromSymVal(SymVal * op, ReadyType targetReady) {
+SymExpr SymVal::extractSymExprFromSymVal(SymVal * op, ReadyType targetReady) {
     SymExpr ret = nullptr;
     if(auto tmpTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(op);tmpTruePhi != nullptr){
-        assert(tmpTruePhi->ready >= targetReady);
-        ret = tmpTruePhi->historyValues.back().second;
+        //assert(tmpTruePhi->ready >= targetReady);
+        if(tmpTruePhi->historyValues.size() == 0) {
+            ret = nullptr;
+        }else {
+            ret = tmpTruePhi->historyValues.back().second;
+        }
     }else if(auto tmpNull = dynamic_cast<SymVal_NULL*>(op);tmpNull != nullptr) {
         ret = nullptr;
     }

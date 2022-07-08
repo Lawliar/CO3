@@ -288,6 +288,9 @@ void MsgQueue::RenderAndPush(char * buf, char size){
             uint16_t  id = *(uint16_t*)(buf + cur + 1);
             msgQueue.push_back(new NotifyBasicBlockMessage(id));
             cur += SIZE_SYM_NTFY_BBLK1;
+        }else if(buf[cur] == SYM_END){
+            msgQueue.push_back(new EndMessage());
+            cur += SIZE_SYM_END;
         }else{
             std::cerr <<"unhandled msg type:"<< buf[cur] <<", the connection is corrupted";
             assert(false);

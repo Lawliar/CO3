@@ -62,7 +62,7 @@ public:
     std::map<ArgIndexType, ValVertexType> tmpIn_edges;
     std::map<ArgIndexType, Val*> In_edges;
     std::set<Val*> UsedBy;
-    inline vector<Val*> realChildren();
+    vector<Val*> realChildren();
     Val(ValType t, BasicBlockIdType bid): type(t), BBID(bid), ready(0){}
     bool isThisNodeReady(Val*, Val::ReadyType);
     virtual ~Val(){};
@@ -152,7 +152,7 @@ public:
     // todo: remove the targetReady parameter
     virtual void Construct(Val::ReadyType targetReady) {};
     bool directlyConstructable(Val::ReadyType targetReady);
-    inline static SymExpr extractSymExprFromSymVal(SymVal*, ReadyType);
+    static SymExpr extractSymExprFromSymVal(SymVal*, ReadyType);
     SymVal(SymIDType symid, std::string op, BasicBlockIdType bid):Val( SymValTy,  bid), Op(op), symID(symid){}
     string Str() {
         std::ostringstream ss;

@@ -54,7 +54,8 @@ enum {
     SYM_NTFY_BBLK         ,
     SYM_NTFY_BBLK1        ,
 
-    SYM_INIT
+    SYM_INIT              ,
+    SYM_END
 };
 
 
@@ -112,6 +113,9 @@ enum {
 #define SIZE_SYM_NTFY_RET           2      // | FCODE(1) | call_inst_id(1)  |
 #define SIZE_SYM_NTFY_BBLK          2      // | FCODE(1) | bbid(1)          |
 #define SIZE_SYM_NTFY_BBLK1         3      // | FCODE(1) | bbid(2)          |
+
+//#define SIZE_SYM_INIT
+#define SIZE_SYM_END                1      // | FCODE(1) |
 
 extern "C"{
 #include "serialport.h"
