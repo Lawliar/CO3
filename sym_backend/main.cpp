@@ -3,7 +3,9 @@
 #include <boost/program_options.hpp>
 #include <iostream>
 #include "Orchestrator.h"
-
+#ifdef GPROFILING
+#include <gperftools/profiler.h>
+#endif
 
 boost::program_options::variables_map ParseCommand(int argc, const char *argv[]){
     boost::program_options::options_description desc{"Options"};
@@ -17,12 +19,12 @@ boost::program_options::variables_map ParseCommand(int argc, const char *argv[])
     boost::program_options::notify(vm);
     return vm;
 }
-// for debug purpose only
+#ifdef DEBUG_OUTPUT
 extern set<string> SinkOps;
 extern set<string> leaveOps;
 extern set<string> leaves;
 extern set<string> nodesDepOnRuntime;
-// end of debug
+#endif
 int main(int argc, const char *argv[])
 {
     boost::program_options::variables_map vm = ParseCommand(argc, argv);
@@ -37,7 +39,13 @@ int main(int argc, const char *argv[])
     }
 
     Orchestrator orc(input_path,serial_port,baud_rate);
+#ifdef GPROFILING
+    ProfilerStart("orchestrator.prof");
+#endif
     orc.Run();
+#ifdef GPROFILING
+    ProfilerStop();
+#endif
     __asm__("nop");
 
 }

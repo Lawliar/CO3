@@ -18,6 +18,7 @@ project(SymBackend)
 option(QSYM_BACKEND "Use the Qsym backend instead of our own" ON)
 option(Z3_TRUST_SYSTEM_VERSION "Use the system-provided Z3 without a version check" ON)
 option(RELEASE_BUILD "BUILD for performance" ON)
+option(PROFILING_BUILD "BUILD for profiling" ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 if(NOT Z3_DIR)
   set(Z3_DIR "/home/lcm/github/tools/z3/install/lib/cmake")
@@ -27,6 +28,9 @@ if(NOT LLVM_DIR)
   set(LLVM_DIR "/home/lcm/github/toolchains/x86_64/clang+llvm-11.0.0-x86_64-linux-gnu-ubuntu-20.04")
 endif()
 
+if (${PROFILING_BUILD})
+  add_compile_definitions(GPROFILING)
+endif()
 if (${RELEASE_BUILD})
   set(CMAKE_BUILD_TYPE "Release")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
@@ -34,6 +38,8 @@ else()
   add_compile_definitions(DEBUG_OUTPUT)
   add_compile_definitions(DEBUG_CHECKING)
 endif()
+
+
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 \
 -Wredundant-decls -Wcast-align -g \

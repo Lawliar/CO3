@@ -107,8 +107,11 @@ public:
     };
 private:
     std::set<Val::BasicBlockIdType> domChildrenOf(Val::BasicBlockIdType, map<Val::BasicBlockIdType, RuntimeCFG::pd_vertex_t>, RuntimeCFG::DominanceTree&);
+
+#ifdef DEBUG_OUTPUT
     void dbgBBLeaves(Val::ValVertexType);
     void dbgBBRoot(Val::ValVertexType);
+#endif
     void prepareBBTask();
     bool sortNonLoopBB(BasicBlockTask*, BasicBlockTask*);
 public:

@@ -101,6 +101,9 @@ target_link_libraries( orchestrator boost_graph )
 target_link_libraries( orchestrator boost_filesystem )
 target_link_libraries( orchestrator boost_program_options)
 
+if (${PROFILING_BUILD})
+  target_link_libraries( orchestrator profiler)
+endif()
 
 target_include_directories(orchestrator PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}     # for our fake pin.H and Runtime.h

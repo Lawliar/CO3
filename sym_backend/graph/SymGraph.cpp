@@ -31,9 +31,11 @@
     assert(in_degree == 4);             \
     cur_node = new SymVal##OP(symid, bbid, in_paras.at(0),in_paras.at(1),in_paras.at(2),in_paras.at(3));}
 
-
+#ifdef DEBUG_OUTPUT
 set<string> leaves;
 set<string> nodesDepOnRuntime;
+#endif
+
 SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_filename, std::string pdt_filename, std::string dfg_filename) \
 :funcname(funcname),cfg(cfg_filename,dt_filename, pdt_filename),dfg(dfg_filename, cfg) {
 
@@ -473,9 +475,10 @@ bool SymGraph::sortNonLoopBB(BasicBlockTask* a, BasicBlockTask* b) {
 }
 
 
-
+#ifdef DEBUG_OUTPUT
 set<string> SinkOps;
 set<string> leaveOps;
+
 
 void SymGraph::dbgBBLeaves(Val::ValVertexType v) {
     SymVal*         tmpSymVal = dynamic_cast<SymVal*>(Nodes.at(ver2offMap.at(ver2offMap.at(v))));
@@ -514,8 +517,7 @@ void SymGraph::dbgBBRoot(Val::ValVertexType v) {
         SinkOps.insert("Runtime");
     }
 }
-
-
+#endif
 /*
 Val* SymGraph::stripPhis(Val* nodeInQuestion, Val* root) {
     Val* prev_node = nullptr;
