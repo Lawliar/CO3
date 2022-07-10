@@ -213,7 +213,7 @@ void SymVal##OP::Construct(Val::ReadyType targetReady){          \
     if(symInput == nullptr){     \
         symExpr = nullptr;                                  \
     }else{                              \
-        symExpr =  OP(symInput, constOp->Val); \
+        symExpr =  OP(symInput, constOp->Value); \
     }                                                     \
     ready++;                                             \
 }
@@ -230,7 +230,7 @@ void SymVal##OP::Construct(Val::ReadyType targetReady){          \
     if(symInput == nullptr){     \
         symExpr = nullptr;                                  \
     }else{                              \
-        symExpr =  OP(symInput, constOp1->Val,constOp2->Val); \
+        symExpr =  OP(symInput, constOp1->Value,constOp2->Value); \
     }                                                     \
     ready++;                                             \
 }
@@ -241,7 +241,7 @@ void SymVal_sym_build_integer::Construct(Val::ReadyType targetReady) {
     Val* op0 = In_edges.at(0);
     uint32_t op0_val = 0;
     if(auto tmp_const = dynamic_cast<ConstantIntVal*>(op0); tmp_const != nullptr){
-        op0_val = tmp_const->Val;
+        op0_val = tmp_const->Value;
     }else if(auto tmp_runtime = dynamic_cast<RuntimeIntVal*>(op0);tmp_runtime != nullptr){
         // build integer can be fed into various symVal(e.g., the bool value of the path contraint), not just FalsePhi
         if(tmp_runtime->Unassigned){
@@ -260,11 +260,11 @@ void SymVal_sym_build_integer::Construct(Val::ReadyType targetReady) {
     auto op1 = dynamic_cast<ConstantIntVal*>(In_edges.at(1));
     assert(op1 != nullptr);
 
-    assert(op1->Val % 8 != 0);// make sure it's byteLength, and then we convert it into bit length
+    assert(op1->Value % 8 != 0);// make sure it's byteLength, and then we convert it into bit length
 
 
     // construct the symExpr
-    symExpr = _sym_build_integer(op0_val, op1->Val * 8);
+    symExpr = _sym_build_integer(op0_val, op1->Value * 8);
     //ready ++
     ready++;
     return;
@@ -288,14 +288,14 @@ void SymVal_sym_build_float::Construct(Val::ReadyType targetReady) {
         }
         val = runtimeDouble->Val;
     }else if(auto constFloat = dynamic_cast<ConstantFloatVal*>(val_op); constFloat != nullptr){
-        val = static_cast<double>(constFloat->Val);
+        val = static_cast<double>(constFloat->Value);
     }else if(auto constDouble = dynamic_cast<ConstantDoubleVal*>(val_op) ; constDouble != nullptr){
-        val = constDouble->Val;
+        val = constDouble->Value;
     }
 
     auto whateverthisis = dynamic_cast<ConstantIntVal*>(In_edges.at(1));
     assert(whateverthisis != nullptr);
-    bool isDouble = whateverthisis->Val;
+    bool isDouble = whateverthisis->Value;
     symExpr = _sym_build_float(val, isDouble);
     ready++;
 }
@@ -320,7 +320,7 @@ void SymVal_sym_build_bool::Construct(Val::ReadyType targetReady) {
     auto val_op = In_edges.at(0);
     bool val;
     if(auto const_int = dynamic_cast<ConstantIntVal*>(val_op)){
-        val = static_cast<bool>(const_int->Val);
+        val = static_cast<bool>(const_int->Value);
     }else{
         auto runtime_int = dynamic_cast<RuntimeIntVal*>(val_op);
         assert(runtime_int != nullptr);
@@ -364,7 +364,7 @@ void SymVal_sym_set_parameter_expression::Construct(ReadyType targetReady) {
     auto paraIndex = dynamic_cast<ConstantIntVal*>(In_edges.at(0));
     auto symPara = dynamic_cast<SymVal*>(In_edges.at(1));
     assert(paraIndex != nullptr && symPara != nullptr);
-    unsigned paraOff = paraIndex->Val;
+    unsigned paraOff = paraIndex->Value;
 
     _sym_set_parameter_expression(paraOff, extractSymExprFromSymVal(symPara, targetReady));
     ready++;
@@ -459,7 +459,7 @@ void SymVal_sym_get_parameter_expression::Construct(Val::ReadyType targetReady) 
     assert(targetReady == (ready + 1) );
     auto const_op = dynamic_cast<ConstantIntVal*>(In_edges.at(0));
     assert(const_op != nullptr);
-    symExpr = _sym_get_parameter_expression(const_op->Val);
+    symExpr = _sym_get_parameter_expression(const_op->Value);
     ready++;
 }
 
@@ -506,9 +506,9 @@ void SymVal_sym_build_read_memory::Construct(Val::ReadyType targetReady) {
         assert(endianOperand != nullptr);
 
         if(! hasConcrete){
-            symExpr = _sym_build_read_memory(reinterpret_cast<uint8_t*>(ptrOperand->Val), lengthOperand->Val, endianOperand->Val);
+            symExpr = _sym_build_read_memory(reinterpret_cast<uint8_t*>(ptrOperand->Val), lengthOperand->Value, endianOperand->Value);
         }else{
-            symExpr = _sym_build_read_memory_concrete(reinterpret_cast<uint8_t*>(ptrOperand->Val), lengthOperand->Val, endianOperand->Val,concreteValue);
+            symExpr = _sym_build_read_memory_concrete(reinterpret_cast<uint8_t*>(ptrOperand->Val), lengthOperand->Value, endianOperand->Value,concreteValue);
         }
 
     }
@@ -536,8 +536,8 @@ void SymVal_sym_build_write_memory::Construct(ReadyType targetReady) {
             __asm__("nop");
         }
 #endif
-        _sym_build_write_memory(reinterpret_cast<uint8_t*>(addrOperand->Val), lengthOperand->Val, \
-                                symInput, isLittleEndianOperand->Val );
+        _sym_build_write_memory(reinterpret_cast<uint8_t*>(addrOperand->Val), lengthOperand->Value, \
+                                symInput, isLittleEndianOperand->Value );
     }
     ready++;
 }

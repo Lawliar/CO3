@@ -37,33 +37,34 @@ set<string> nodesDepOnRuntime;
 #endif
 
 SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_filename, std::string pdt_filename, std::string dfg_filename) \
-:funcname(funcname),cfg(cfg_filename,dt_filename, pdt_filename),dfg(dfg_filename, cfg) {
-
-    unsigned numNodes = boost::num_vertices(dfg.graph);
+:funcname(funcname) {
+    cfg = new RuntimeCFG(cfg_filename,dt_filename, pdt_filename);
+    dfg = new RuntimeSymFlowGraph(dfg_filename);
+    unsigned numNodes = boost::num_vertices(dfg->graph);
     Nodes.assign(numNodes, nullptr);
     RuntimeSymFlowGraph::vertex_it dfg_vi, dfg_vi_end;
     unsigned cur = 0;// must start from 0
-    for (boost::tie(dfg_vi, dfg_vi_end) = boost::vertices(dfg.graph); dfg_vi != dfg_vi_end; ++dfg_vi){
+    for (boost::tie(dfg_vi, dfg_vi_end) = boost::vertices(dfg->graph); dfg_vi != dfg_vi_end; ++dfg_vi){
         // SINCE in vecS, Vertex_t is also unsigned int, so this part of code is just mapping N to N, but we do this just in case
         assert(ver2offMap.find(*dfg_vi) == ver2offMap.end());
         ver2offMap[*dfg_vi] = cur;
         cur ++;
     }
     unsigned NULL_sym =0; // just for sanity check
-    for (boost::tie(dfg_vi, dfg_vi_end) = boost::vertices(dfg.graph); dfg_vi != dfg_vi_end; ++dfg_vi){
+    for (boost::tie(dfg_vi, dfg_vi_end) = boost::vertices(dfg->graph); dfg_vi != dfg_vi_end; ++dfg_vi){
         RuntimeSymFlowGraph::vertex_t cur_ver = *dfg_vi;
         //unpack the info
-        std::string nodeType = dfg.graph[cur_ver].nodeType;
-        unsigned bbid = dfg.graph[cur_ver].BBID;
-        int symid = dfg.graph[cur_ver].symID;
-        unsigned width = dfg.graph[cur_ver].byteWidth;
-        unsigned long const_val = dfg.graph[cur_ver].const_value;
-        unsigned stageSetting = dfg.graph[cur_ver].stageSetting;
-        std::string op = dfg.graph[cur_ver].op;
+        std::string nodeType = dfg->graph[cur_ver].nodeType;
+        unsigned bbid = dfg->graph[cur_ver].BBID;
+        int symid = dfg->graph[cur_ver].symID;
+        unsigned width = dfg->graph[cur_ver].byteWidth;
+        unsigned long const_val = dfg->graph[cur_ver].const_value;
+        unsigned stageSetting = dfg->graph[cur_ver].stageSetting;
+        std::string op = dfg->graph[cur_ver].op;
         // check in-edges
         RuntimeSymFlowGraph::in_edge_it in_eit, in_eit_end;
-        boost::tie(in_eit, in_eit_end) = boost::in_edges(cur_ver, dfg.graph);
-        unsigned in_degree = boost::in_degree(cur_ver, dfg.graph);
+        boost::tie(in_eit, in_eit_end) = boost::in_edges(cur_ver, dfg->graph);
+        unsigned in_degree = boost::in_degree(cur_ver, dfg->graph);
 
         Val* cur_node = nullptr;
         if(nodeType == NodeConstInt ||nodeType == NodeConstFloat || nodeType == NodeConstDouble){
@@ -95,8 +96,8 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
             assert(symid >= 0);
             map<unsigned, unsigned> in_paras;
             for(;in_eit != in_eit_end; in_eit++ ){
-                unsigned arg_index = dfg.graph[*in_eit].arg_no;
-                RuntimeSymFlowGraph::vertex_t source = boost::source(*in_eit,dfg.graph);
+                unsigned arg_index = dfg->graph[*in_eit].arg_no;
+                RuntimeSymFlowGraph::vertex_t source = boost::source(*in_eit,dfg->graph);
                 assert(in_paras.find(arg_index) == in_paras.end());
                 in_paras[arg_index] = ver2offMap.at(source);
             }
@@ -197,12 +198,12 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
             map<unsigned short, unsigned short> in_paras;
             map<unsigned short, unsigned short> argNo2BBMap;
             for(;in_eit != in_eit_end; in_eit++ ){
-                unsigned arg_index = dfg.graph[*in_eit].arg_no;
-                RuntimeSymFlowGraph::vertex_t source = boost::source(*in_eit,dfg.graph);
+                unsigned arg_index = dfg->graph[*in_eit].arg_no;
+                RuntimeSymFlowGraph::vertex_t source = boost::source(*in_eit,dfg->graph);
                 assert(in_paras.find(arg_index) == in_paras.end());
                 in_paras[arg_index] = ver2offMap.at(source);
-                assert(dfg.graph[*in_eit].incomingBB > 0);
-                argNo2BBMap[arg_index] = dfg.graph[*in_eit].incomingBB;
+                assert(dfg->graph[*in_eit].incomingBB > 0);
+                argNo2BBMap[arg_index] = dfg->graph[*in_eit].incomingBB;
             }
             cur_node = new  SymVal_sym_TruePhi(symid, bbid, in_paras,argNo2BBMap);
 
@@ -210,12 +211,12 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
             map<unsigned short, unsigned short> in_paras;
             set<Val::ValVertexType> leavesOrOriginal;// since both original to the falsePhiLeaf and falsePhiLeaf to root are all marked edged 2
             for(;in_eit != in_eit_end; in_eit++ ){
-                unsigned arg_index = dfg.graph[*in_eit].arg_no;
-                RuntimeSymFlowGraph::vertex_t source = boost::source(*in_eit,dfg.graph);
+                unsigned arg_index = dfg->graph[*in_eit].arg_no;
+                RuntimeSymFlowGraph::vertex_t source = boost::source(*in_eit,dfg->graph);
                 if(arg_index == 0 || arg_index == 1){
                     assert(in_paras.find(arg_index) == in_paras.end());
                     in_paras[arg_index] = ver2offMap.at(source);
-                    assert(dfg.graph[*in_eit].incomingBB > 0);
+                    assert(dfg->graph[*in_eit].incomingBB > 0);
                 }else{
                     assert(arg_index == 2);
                     leavesOrOriginal.insert(ver2offMap.at(source));
@@ -256,7 +257,7 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
                 if(falsePhiLeaf != nullptr){
 #ifdef DEBUG_CHECKING
                     assert(falsePhiRoot->tmpfalsePhiLeaves.size() > 1);
-                    falsePhiLeaf->root = falsePhiRoot;
+                    //falsePhiLeaf->root = falsePhiRoot;
 #endif
                 }
             }
@@ -290,7 +291,7 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
         if(cur_node->BBID == 0){
             cur_node->inLoop = false;
         }else{
-            cur_node->inLoop = cfg.bbid2loop.at(cur_node->BBID);
+            cur_node->inLoop = cfg->bbid2loop.at(cur_node->BBID);
         }
         for(auto each_in_edge : cur_node->In_edges){
             each_in_edge.second->UsedBy.insert(cur_node);
@@ -358,13 +359,11 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
 
     // get the getPara setRet, callInst for this function
 
-    Val::BasicBlockIdType entryBBID = static_cast<Val::BasicBlockIdType>(cfg.graph[cfg.cfgEntry].id);
-    Val::BasicBlockIdType exitBBID = static_cast<Val::BasicBlockIdType>(cfg.graph[cfg.cfgExit].id);
     for(auto nodeIt = Nodes.begin(); nodeIt != Nodes.end(); nodeIt ++){
         if(auto notifyCall = dynamic_cast<SymVal_sym_notify_call*>(*nodeIt)){
             auto idOperand = dynamic_cast<ConstantIntVal*>(notifyCall->In_edges.at(0));
             assert(idOperand != nullptr);
-            unsigned char callInstId = idOperand->Val;
+            unsigned char callInstId = idOperand->Value;
             assert(callInsts.find(callInstId) == callInsts.end());
             callInsts[callInstId] = notifyCall;
         }
@@ -373,6 +372,137 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
     //assert(setRetSym != nullptr);
 }
 
+#define COPY_CONSTRUCT_VAL(OP)               \
+    else if(auto old_Val = dynamic_cast<OP*>(old_one); old_Val != nullptr){                          \
+        new_one = new OP(*old_Val);  \
+    }
+#define COPY_CONSTRUCT_SymVAL(SYMOP)               \
+    else if(auto old_Val = dynamic_cast<SymVal##SYMOP*>(old_one); old_Val != nullptr){                          \
+        new_one = new SymVal##SYMOP(*old_Val);  \
+    }
+SymGraph::SymGraph(const SymGraph& other){
+    funcname = other.funcname;
+    //we're not going to use these 2 anyway
+    cfg = nullptr;
+    dfg = nullptr;
+    // this also won't be used
+    assert(ver2offMap.size() == 0);
+
+    symID2offMap.insert(other.symID2offMap.begin(), other.symID2offMap.end());
+    Nodes.assign(other.Nodes.size(), nullptr);
+    std::map<Val*, Val*> old2new;
+    for(auto i = 0 ; i < other.Nodes.size() ; i ++){
+        Val * old_one = other.Nodes[i];
+        Val * new_one = nullptr;
+        if(auto old_Val = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(old_one); old_Val != nullptr){
+            new_one = new SymVal_sym_FalsePhiLeaf(*old_Val);
+        }else if(auto old_Val = dynamic_cast<SymVal_sym_FalsePhiRoot*>(old_one); old_Val != nullptr){
+            new_one = new SymVal_sym_FalsePhiRoot(*old_Val);
+        }COPY_CONSTRUCT_VAL(ConstantIntVal)
+        COPY_CONSTRUCT_VAL(ConstantFloatVal)
+        COPY_CONSTRUCT_VAL(ConstantDoubleVal)
+        COPY_CONSTRUCT_VAL(RuntimeIntVal)
+        COPY_CONSTRUCT_VAL(RuntimeFloatVal)
+        COPY_CONSTRUCT_VAL(RuntimeDoubleVal)
+        COPY_CONSTRUCT_VAL(RuntimePtrVal)
+        COPY_CONSTRUCT_SymVAL(_sym_notify_call)
+        COPY_CONSTRUCT_SymVAL(_sym_try_alternative)
+        COPY_CONSTRUCT_SymVAL(_NULL)
+        COPY_CONSTRUCT_SymVAL(_sym_build_integer)
+        COPY_CONSTRUCT_SymVAL(_sym_build_float)
+        COPY_CONSTRUCT_SymVAL(_sym_build_null_pointer)
+        COPY_CONSTRUCT_SymVAL(_sym_build_true)
+        COPY_CONSTRUCT_SymVAL(_sym_build_false)
+        COPY_CONSTRUCT_SymVAL(_sym_build_bool)
+        COPY_CONSTRUCT_SymVAL(_sym_build_neg)
+        COPY_CONSTRUCT_SymVAL(_sym_build_add)
+        COPY_CONSTRUCT_SymVAL(_sym_build_sub)
+        COPY_CONSTRUCT_SymVAL(_sym_build_mul)
+        COPY_CONSTRUCT_SymVAL(_sym_build_unsigned_div)
+        COPY_CONSTRUCT_SymVAL(_sym_build_signed_div)
+        COPY_CONSTRUCT_SymVAL(_sym_build_unsigned_rem)
+        COPY_CONSTRUCT_SymVAL(_sym_build_signed_rem)
+        COPY_CONSTRUCT_SymVAL(_sym_build_shift_left)
+        COPY_CONSTRUCT_SymVAL(_sym_build_logical_shift_right)
+        COPY_CONSTRUCT_SymVAL(_sym_build_arithmetic_shift_right)
+        COPY_CONSTRUCT_SymVAL(_sym_build_fp_add)
+        COPY_CONSTRUCT_SymVAL(_sym_build_fp_sub)
+        COPY_CONSTRUCT_SymVAL(_sym_build_fp_mul)
+        COPY_CONSTRUCT_SymVAL(_sym_build_fp_div)
+        COPY_CONSTRUCT_SymVAL(_sym_build_fp_rem)
+        COPY_CONSTRUCT_SymVAL(_sym_build_fp_abs)
+        COPY_CONSTRUCT_SymVAL(_sym_build_not)
+        COPY_CONSTRUCT_SymVAL(_sym_build_signed_less_than)
+        COPY_CONSTRUCT_SymVAL(_sym_build_signed_less_equal)
+        COPY_CONSTRUCT_SymVAL(_sym_build_signed_greater_than)
+        COPY_CONSTRUCT_SymVAL(_sym_build_signed_greater_equal)
+        COPY_CONSTRUCT_SymVAL(_sym_build_unsigned_less_than)
+        COPY_CONSTRUCT_SymVAL(_sym_build_unsigned_less_equal)
+        COPY_CONSTRUCT_SymVAL(_sym_build_unsigned_greater_than)
+        COPY_CONSTRUCT_SymVAL(_sym_build_unsigned_greater_equal)
+        COPY_CONSTRUCT_SymVAL(_sym_build_equal)
+        COPY_CONSTRUCT_SymVAL(_sym_build_not_equal)
+        COPY_CONSTRUCT_SymVAL(_sym_build_bool_and)
+        COPY_CONSTRUCT_SymVAL(_sym_build_and)
+        COPY_CONSTRUCT_SymVAL(_sym_build_bool_or)
+        COPY_CONSTRUCT_SymVAL(_sym_build_or)
+        COPY_CONSTRUCT_SymVAL(_sym_build_bool_xor)
+        COPY_CONSTRUCT_SymVAL(_sym_build_xor)
+        COPY_CONSTRUCT_SymVAL(_sym_build_float_ordered_greater_than)
+        COPY_CONSTRUCT_SymVAL(_sym_build_float_ordered_greater_equal)
+        COPY_CONSTRUCT_SymVAL(_sym_build_float_ordered_less_than)
+        COPY_CONSTRUCT_SymVAL(_sym_build_float_ordered_less_equal)
+        COPY_CONSTRUCT_SymVAL(_sym_build_float_ordered_equal)
+        COPY_CONSTRUCT_SymVAL(_sym_build_float_ordered_not_equal)
+        COPY_CONSTRUCT_SymVAL(_sym_build_float_ordered)
+        COPY_CONSTRUCT_SymVAL(_sym_build_float_unordered)
+        COPY_CONSTRUCT_SymVAL(_sym_build_float_unordered_greater_than)
+        COPY_CONSTRUCT_SymVAL(_sym_build_float_unordered_greater_equal)
+        COPY_CONSTRUCT_SymVAL(_sym_build_float_unordered_less_than)
+        COPY_CONSTRUCT_SymVAL(_sym_build_float_unordered_less_equal)
+        COPY_CONSTRUCT_SymVAL(_sym_build_float_unordered_equal)
+        COPY_CONSTRUCT_SymVAL(_sym_build_float_unordered_not_equal)
+        COPY_CONSTRUCT_SymVAL(_sym_build_sext)
+        COPY_CONSTRUCT_SymVAL(_sym_build_zext)
+        COPY_CONSTRUCT_SymVAL(_sym_build_trunc)
+        COPY_CONSTRUCT_SymVAL(_sym_build_bswap)
+        COPY_CONSTRUCT_SymVAL(_sym_build_int_to_float)
+        COPY_CONSTRUCT_SymVAL(_sym_build_float_to_float)
+        COPY_CONSTRUCT_SymVAL(_sym_build_bits_to_float)
+        COPY_CONSTRUCT_SymVAL(_sym_build_float_to_bits)
+        COPY_CONSTRUCT_SymVAL(_sym_build_float_to_signed_integer)
+        COPY_CONSTRUCT_SymVAL(_sym_build_float_to_unsigned_integer)
+        COPY_CONSTRUCT_SymVAL(_sym_build_bool_to_bits)
+        COPY_CONSTRUCT_SymVAL(_sym_set_parameter_expression)
+        COPY_CONSTRUCT_SymVAL(_sym_get_parameter_expression)
+        COPY_CONSTRUCT_SymVAL(_sym_set_return_expression)
+        COPY_CONSTRUCT_SymVAL(_sym_get_return_expression)
+        COPY_CONSTRUCT_SymVAL(_sym_build_read_memory)
+        COPY_CONSTRUCT_SymVAL(_sym_build_write_memory)
+        COPY_CONSTRUCT_SymVAL(_sym_build_memcpy)
+        COPY_CONSTRUCT_SymVAL(_sym_build_memset)
+        COPY_CONSTRUCT_SymVAL(_sym_build_memmove)
+        COPY_CONSTRUCT_SymVAL(_sym_build_insert)
+        COPY_CONSTRUCT_SymVAL(_sym_build_extract)
+        COPY_CONSTRUCT_SymVAL(_sym_TruePhi)
+        else{
+            std::cerr << " unhandled node type";
+            assert(false);
+        }
+        Nodes[i] = new_one;
+        old2new.insert(make_pair(old_one, new_one));
+    }
+
+    for(auto each_new_node : Nodes){
+        each_new_node->FinishCopyConstructing(old2new);
+        if(auto false_phi_root = dynamic_cast<SymVal_sym_FalsePhiRoot*>(each_new_node)){
+            false_phi_root->FinishCopyConstructing(old2new);
+        }else if(auto false_phi_leaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(each_new_node)){
+            false_phi_leaf->FinishCopyConstructing(old2new);
+        }
+    }
+
+}
 std::set<Val::BasicBlockIdType> SymGraph::domChildrenOf(Val::BasicBlockIdType src_id, map<Val::BasicBlockIdType, RuntimeCFG::pd_vertex_t> id2vertMap, RuntimeCFG::DominanceTree& dGraph) {
 
     std::set<Val::BasicBlockIdType> visited;
@@ -678,24 +808,24 @@ void SymGraph::prepareBBTask() {
     // dominance BBID 2 Vert Map
     map<Val::BasicBlockIdType, RuntimeCFG::pd_vertex_t> dID2VertMap;
     RuntimeCFG::pd_vertex_it pd_v_it, pd_v_it_end;
-    boost::tie(pd_v_it, pd_v_it_end) = boost::vertices(cfg.domTree);
+    boost::tie(pd_v_it, pd_v_it_end) = boost::vertices(cfg->domTree);
     for(;pd_v_it != pd_v_it_end ; pd_v_it++){
-        Val::BasicBlockIdType cur_bbid = cfg.domTree[*pd_v_it].id;
+        Val::BasicBlockIdType cur_bbid = cfg->domTree[*pd_v_it].id;
         dID2VertMap[cur_bbid] = *pd_v_it;
     }
     //postDom BBID 2 Vert Map
     map<Val::BasicBlockIdType, RuntimeCFG::pd_vertex_t> pdId2VertMap;
-    boost::tie(pd_v_it, pd_v_it_end) = boost::vertices(cfg.postDomTree);
+    boost::tie(pd_v_it, pd_v_it_end) = boost::vertices(cfg->postDomTree);
     for(;pd_v_it != pd_v_it_end ; pd_v_it++){
-        Val::BasicBlockIdType cur_bbid = cfg.postDomTree[*pd_v_it].id;
+        Val::BasicBlockIdType cur_bbid = cfg->postDomTree[*pd_v_it].id;
         pdId2VertMap[cur_bbid] = *pd_v_it;
     }
 
     // prepare per-BB task
 
-    for(boost::tie(cfg_vi, cfg_vi_end) = boost::vertices(cfg.graph); cfg_vi != cfg_vi_end; cfg_vi++){
-        unsigned cur_bbid = cfg.graph[*cfg_vi].id;
-        bool inLoop = cfg.graph[*cfg_vi].inloop == '1' ? true : false;
+    for(boost::tie(cfg_vi, cfg_vi_end) = boost::vertices(cfg->graph); cfg_vi != cfg_vi_end; cfg_vi++){
+        unsigned cur_bbid = cfg->graph[*cfg_vi].id;
+        bool inLoop = cfg->graph[*cfg_vi].inloop == '1' ? true : false;
         BasicBlockTask* task = new BasicBlockTask(cur_bbid, inLoop);
         RuntimeSymFlowGraph::edge_it ei, ei_end;
         for(auto eachNode : Nodes ){
@@ -705,18 +835,18 @@ void SymGraph::prepareBBTask() {
         }
 
         //prepare leaves and roots
-        for(boost::tie(ei,ei_end) = boost::edges(dfg.graph); ei != ei_end ; ei++){
-            RuntimeSymFlowGraph::vertex_t from = boost::source(*ei, dfg.graph);
+        for(boost::tie(ei,ei_end) = boost::edges(dfg->graph); ei != ei_end ; ei++){
+            RuntimeSymFlowGraph::vertex_t from = boost::source(*ei, dfg->graph);
 
-            RuntimeSymFlowGraph::vertex_t to = boost::target(*ei, dfg.graph);
+            RuntimeSymFlowGraph::vertex_t to = boost::target(*ei, dfg->graph);
             auto from_node = Nodes.at(ver2offMap.at(from));
-            if(dfg.graph[from].BBID == cur_bbid && dfg.graph[to].BBID != cur_bbid){
+            if(dfg->graph[from].BBID == cur_bbid && dfg->graph[to].BBID != cur_bbid){
                 task->roots.insert(from_node);
 #ifdef DEBUG_OUTPUT
                 dbgBBRoot(ver2offMap.at(from));
 #endif
             }
-            if(dfg.graph[from].BBID != cur_bbid && dfg.graph[to].BBID == cur_bbid){
+            if(dfg->graph[from].BBID != cur_bbid && dfg->graph[to].BBID == cur_bbid){
                 task->leaves.insert(from_node);
 #ifdef DEBUG_OUTPUT
                 dbgBBLeaves(ver2offMap.at(from));
@@ -724,8 +854,8 @@ void SymGraph::prepareBBTask() {
             }
         }
         RuntimeSymFlowGraph::vertex_it  vi,vi_end;
-        for(boost::tie(vi, vi_end) = boost::vertices(dfg.graph) ; vi != vi_end ; vi++){
-            if(dfg.graph[*vi].BBID == cur_bbid){
+        for(boost::tie(vi, vi_end) = boost::vertices(dfg->graph) ; vi != vi_end ; vi++){
+            if(dfg->graph[*vi].BBID == cur_bbid){
                 auto cur_node = Nodes.at(ver2offMap.at(*vi));
 #ifdef DEBUG_CHECKING
                 auto sym_node = dynamic_cast<SymVal_sym_TruePhi*>(cur_node);
@@ -733,7 +863,7 @@ void SymGraph::prepareBBTask() {
                     __asm__("nop");
                 }
 #endif
-                if(boost::in_degree(*vi, dfg.graph) == 0){
+                if(boost::in_degree(*vi, dfg->graph) == 0){
                     task->leaves.insert(cur_node);
 #ifdef DEBUG_CHECKING
                     assert(cur_node->In_edges.size() == 0);
@@ -743,7 +873,7 @@ void SymGraph::prepareBBTask() {
 #endif
 
                 }
-                if(boost::out_degree(*vi, dfg.graph) == 0){
+                if(boost::out_degree(*vi, dfg->graph) == 0){
                     task->roots.insert(cur_node);
 #ifdef DEBUG_CHECKING
                     assert(cur_node->UsedBy.size() == 0);
@@ -755,8 +885,8 @@ void SymGraph::prepareBBTask() {
                     // even if it has out degree, if the only out edges from this node is to TruePhi inside the same BB, it's still a root
                     RuntimeSymFlowGraph::o_edge_it tmp_ei, tmp_ei_end;
                     auto allOutToTruePhiWithinSameBB = true;
-                    for(boost::tie(tmp_ei, tmp_ei_end) = boost::out_edges(  *vi, dfg.graph); tmp_ei != tmp_ei_end; tmp_ei++){
-                        auto targetNode = Nodes.at(boost::target(*tmp_ei, dfg.graph));
+                    for(boost::tie(tmp_ei, tmp_ei_end) = boost::out_edges(  *vi, dfg->graph); tmp_ei != tmp_ei_end; tmp_ei++){
+                        auto targetNode = Nodes.at(boost::target(*tmp_ei, dfg->graph));
                         auto targetTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(targetNode);
                         if(targetNode->BBID == cur_bbid && targetTruePhi == nullptr){
                             allOutToTruePhiWithinSameBB = false;
@@ -770,8 +900,8 @@ void SymGraph::prepareBBTask() {
         }
         task->nonReadyRoots.insert(task->roots.begin(), task->roots.end());
         // post-dom relation
-        task->dominance = domChildrenOf(cur_bbid, dID2VertMap, cfg.domTree);
-        task->post_dominance = domChildrenOf(cur_bbid, pdId2VertMap, cfg.postDomTree);
+        task->dominance = domChildrenOf(cur_bbid, dID2VertMap, cfg->domTree);
+        task->post_dominance = domChildrenOf(cur_bbid, pdId2VertMap, cfg->postDomTree);
         task->nonReadyPostDominance.insert(task->post_dominance.begin(), task->post_dominance.end());
         // construct bbid to postDomTree Ver Map
         bbTasks.insert(make_pair(cur_bbid, task));

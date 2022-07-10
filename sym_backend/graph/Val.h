@@ -54,14 +54,6 @@ public:
             return "seriously?";
         }
     }
-    std::mutex mutex;
-    ValType type;
-    BasicBlockIdType BBID;
-    ReadyType ready;
-    bool inLoop;
-    std::map<ArgIndexType, ValVertexType> tmpIn_edges;
-    std::map<ArgIndexType, Val*> In_edges;
-    std::set<Val*> UsedBy;
     vector<Val*> realChildren();
     Val(ValType t, BasicBlockIdType bid): type(t), BBID(bid), ready(0){}
     bool isThisNodeReady(Val*, Val::ReadyType);
@@ -69,6 +61,28 @@ public:
     string Str() {
         return valTypeString(type);
     }
+    Val(const Val& other):type(other.type),BBID(other.BBID),ready(0),inLoop(other.inLoop){
+        //we push the old values in, will update later
+        In_edges.insert(other.In_edges.begin(), other.In_edges.end());
+        UsedBy.insert(other.UsedBy.begin(), other.UsedBy.end());
+    }
+    void FinishCopyConstructing(std::map<Val*,Val*> &old2new){
+        for(auto each_in_edge : In_edges){
+            each_in_edge.second = old2new.at(each_in_edge.second);
+        }
+        for(auto each_used_by : UsedBy){
+            each_used_by = old2new.at(each_used_by);
+        }
+    }
+    //std::mutex mutex;
+    ValType type;
+    BasicBlockIdType BBID;
+    ReadyType ready = 0;
+    bool inLoop;
+    std::map<ArgIndexType, ValVertexType> tmpIn_edges;
+    std::map<ArgIndexType, Val*> In_edges;
+    std::set<Val*> UsedBy;
+
 };
 
 class ConstantVal: public Val{
@@ -78,87 +92,93 @@ public:
         assert(bid == 0);
         assert(t >= ConstantIntValTy && t <= ConstantDoubleValTy);
     }
+    ConstantVal(const ConstantVal& other): Val(other), ByteWidth(other.ByteWidth){};
 };
 
 class ConstantIntVal: public ConstantVal{
 public:
-    IntValType Val;
+    IntValType Value;
 
-    ConstantIntVal(BasicBlockIdType bid, IntValType val, ByteWidthType byte_width):\
-    ConstantVal(ConstantIntValTy, bid, byte_width), Val(val){}
+    ConstantIntVal(BasicBlockIdType bid, IntValType value, ByteWidthType byte_width):ConstantVal(ConstantIntValTy, bid, byte_width), Value(value){}
+    ConstantIntVal(const ConstantIntVal& other): ConstantVal(other), Value(other.Value){}
 };
 
 class ConstantFloatVal: public ConstantVal{
 public:
-    float Val;
-    ByteWidthType ByteWidth;
-    ConstantFloatVal(BasicBlockIdType bid, float val):\
-    ConstantVal(ConstantFloatValTy, bid, 4), Val(val){};
+    float Value;
+    ConstantFloatVal(BasicBlockIdType bid, float value):ConstantVal(ConstantFloatValTy, bid, 4), Value(value){}
+    ConstantFloatVal(const ConstantFloatVal&other): ConstantVal(other),Value(other.Value){}
 };
 
 class ConstantDoubleVal: public ConstantVal{
 public:
-    double Val;
-    ByteWidthType ByteWidth;
-    ConstantDoubleVal(BasicBlockIdType bid, double val):\
-    ConstantVal(ConstantFloatValTy, bid, 8), Val(val){};
+    double Value;
+    ConstantDoubleVal(BasicBlockIdType bid, double val):ConstantVal(ConstantFloatValTy, bid, 8), Value(val){}
+    ConstantDoubleVal(const ConstantDoubleVal&other): ConstantVal(other),Value(other.Value){}
 };
 
 class RuntimeVal: public Val{
 public:
     // when this is true, it means, this value is not reported from the MCU
     // thus, whatever SymVal that is using this should be concrete.
-    bool Unassigned;
+    bool Unassigned = false;
     ByteWidthType ByteWidth;
     void Unassign(){ Unassigned = true; ready++;};
     RuntimeVal(ValType t, BasicBlockIdType bid, ByteWidthType byteWidth): Val(t, bid), ByteWidth(byteWidth){
         assert(t >= RuntimeIntValTy && t <= RuntimePtrValTy);
     }
+    RuntimeVal(const RuntimeVal& other): Val(other), Unassigned(false), ByteWidth(other.ByteWidth){}
 };
 class RuntimeIntVal: public RuntimeVal{
 public:
     IntValType Val;// whether this is set is checked by the Ready Field
-    RuntimeIntVal(BasicBlockIdType bid, ByteWidthType byte_width):\
-    RuntimeVal(RuntimeIntValTy, bid, byte_width){}
     void Assign(IntValType val);
+    RuntimeIntVal(BasicBlockIdType bid, ByteWidthType byte_width):RuntimeVal(RuntimeIntValTy, bid, byte_width){}
+    RuntimeIntVal(const RuntimeIntVal& other): RuntimeVal(other), Val(other.Val){}
 };
 
 class RuntimeFloatVal: public RuntimeVal{
 public:
     float Val;
-    RuntimeFloatVal(BasicBlockIdType bid): RuntimeVal(RuntimeFloatValTy, bid, 4){};
     void Assign(float val);
+    RuntimeFloatVal(BasicBlockIdType bid): RuntimeVal(RuntimeFloatValTy, bid, 4){};
+    RuntimeFloatVal(const RuntimeFloatVal& other): RuntimeVal(other), Val(other.Val){}
 };
 
 class RuntimeDoubleVal: public RuntimeVal{
 public:
     double Val;
-    RuntimeDoubleVal(BasicBlockIdType bid): RuntimeVal(RuntimeDoubleValTy, bid, 8){};
     void Assign(double val);
+    RuntimeDoubleVal(BasicBlockIdType bid): RuntimeVal(RuntimeDoubleValTy, bid, 8){};
+    RuntimeDoubleVal(const RuntimeDoubleVal& other): RuntimeVal(other), Val(other.Val){}
 };
 
 class RuntimePtrVal: public RuntimeVal{
 public:
     void* Val = nullptr;
-    RuntimePtrVal(BasicBlockIdType bid): RuntimeVal(RuntimePtrValTy, bid, 4){};
     void Assign(void * val);
+    RuntimePtrVal(BasicBlockIdType bid): RuntimeVal(RuntimePtrValTy, bid, 4){};
+    RuntimePtrVal(const RuntimePtrVal& other): RuntimeVal(other), Val(other.Val){}
 };
 
 class SymVal: public Val{
 public:
     std::string Op;
-    SymIDType symID;
-    SymExpr symExpr;
+    SymIDType symID = 0;
+    SymExpr symExpr = nullptr;
+
     // todo: remove the targetReady parameter
     virtual void Construct(Val::ReadyType targetReady) {};
     bool directlyConstructable(Val::ReadyType targetReady);
     static SymExpr extractSymExprFromSymVal(SymVal*, ReadyType);
-    SymVal(SymIDType symid, std::string op, BasicBlockIdType bid):Val( SymValTy,  bid), Op(op), symID(symid){}
     string Str() {
         std::ostringstream ss;
         ss << "symID:"<<symID << ",op:"<<Op<<",BBID:"<<BBID<<",ready:"<<ready;
         return ss.str();
     }
+    SymVal(SymIDType symid, std::string op, BasicBlockIdType bid):Val( SymValTy,  bid), Op(op), symID(symid){}
+    SymVal(const SymVal& other): Val(other),Op(other.Op), symID(other.symID), symExpr(nullptr){};
+
 };
 
 
@@ -167,7 +187,8 @@ class SymVal##OP : public SymVal{                      \
 public:                                                    \
     static const unsigned numOps = 0;                      \
     void Construct(ReadyType) override;                                                       \
-    SymVal##OP(SymIDType symid, BasicBlockIdType bid): SymVal(symid, #OP, bid){}                         \
+    SymVal##OP(SymIDType symid, BasicBlockIdType bid): SymVal(symid, #OP, bid){}              \
+    SymVal##OP(const SymVal##OP & other): SymVal(other){}                                      \
     ~SymVal##OP(){In_edges.clear();tmpIn_edges.clear(); UsedBy.clear();}                        \
 };
 
@@ -176,8 +197,8 @@ class SymVal##OP : public SymVal{                      \
 public:                                                    \
     void Construct(ReadyType) override;                                                       \
     static const unsigned numOps = 1;                                                       \
-    SymVal##OP(SymIDType symid, BasicBlockIdType bid, ValVertexType dep): SymVal(symid, #OP,bid){ \
-               tmpIn_edges[0] = dep;}                         \
+    SymVal##OP(SymIDType symid, BasicBlockIdType bid, ValVertexType dep): SymVal(symid, #OP,bid){ tmpIn_edges[0] = dep;} \
+    SymVal##OP(const SymVal##OP & other): SymVal(other){}                                      \
     ~SymVal##OP(){In_edges.clear();tmpIn_edges.clear(); UsedBy.clear();}                        \
 };
 
@@ -190,7 +211,8 @@ public:                                                    \
                  ValVertexType dep1, ValVertexType dep2 ): \
                  SymVal(symid, #OP, bid){                          \
                tmpIn_edges[0] = dep1;                          \
-               tmpIn_edges[1] = dep2;}                        \
+               tmpIn_edges[1] = dep2;}                     \
+    SymVal##OP(const SymVal##OP & other): SymVal(other){}                                      \
     ~SymVal##OP(){In_edges.clear();tmpIn_edges.clear(); UsedBy.clear();}                        \
 };
 
@@ -204,7 +226,8 @@ public:                                                    \
                   ValVertexType dep3 ): SymVal(symid,#OP, bid){    \
                tmpIn_edges[0] = dep1;                          \
                tmpIn_edges[1] = dep2;                         \
-               tmpIn_edges[2] = dep3;}                        \
+               tmpIn_edges[2] = dep3;}                     \
+    SymVal##OP(const SymVal##OP & other): SymVal(other){}                                      \
     ~SymVal##OP(){In_edges.clear();tmpIn_edges.clear(); UsedBy.clear();}                        \
 };
 
@@ -220,7 +243,8 @@ public:                                                    \
                tmpIn_edges[0] = dep1;                          \
                tmpIn_edges[1] = dep2;                         \
                tmpIn_edges[2] = dep3;                         \
-               tmpIn_edges[3] = dep4;}                        \
+               tmpIn_edges[3] = dep4;}                     \
+    SymVal##OP(const SymVal##OP & other): SymVal(other){}                                      \
     ~SymVal##OP(){In_edges.clear();tmpIn_edges.clear(); UsedBy.clear();}                        \
 };
 
@@ -232,10 +256,11 @@ public:
             tmpIn_edges.insert(std::make_pair(eachPara.first, eachPara.second));
         }
     }
+    SymVal_sym_notify_call(SymVal_sym_notify_call&other): SymVal(other){}
     ~SymVal_sym_notify_call(){In_edges.clear();tmpIn_edges.clear(); UsedBy.clear();}
 };
 
-// try_alternative is different.
+
 class SymVal_sym_try_alternative: public SymVal{
 public:
     static const unsigned numOps = 2;
@@ -245,6 +270,7 @@ public:
             SymVal(symid,"_sym_try_alternative",bid){
         tmpIn_edges[0] = dep1;
         tmpIn_edges[1] = dep2;}
+    SymVal_sym_try_alternative(SymVal_sym_try_alternative&other): SymVal(other){}
     ~SymVal_sym_try_alternative(){In_edges.clear();tmpIn_edges.clear(); UsedBy.clear();}
 };
 
@@ -336,6 +362,7 @@ public:
     static const unsigned numOps = 3;
     bool hasConcrete = false;
     uint32_t concreteValue = 0;
+
     SymVal_sym_build_read_memory(SymIDType symid, BasicBlockIdType bid,
                   ValVertexType dep1, ValVertexType dep2,
                   ValVertexType dep3 ): SymVal(symid,"_sym_build_read_memory", bid){
@@ -343,6 +370,7 @@ public:
                tmpIn_edges[1] = dep2;
                tmpIn_edges[2] = dep3;
     }
+    SymVal_sym_build_read_memory(const SymVal_sym_build_read_memory&other): SymVal(other), hasConcrete(false),concreteValue(0) {}
     void AddConcreteValue(uint32_t val){
         hasConcrete = true;
         concreteValue = val;
@@ -362,10 +390,10 @@ class SymVal_sym_TruePhi: public SymVal{
 public:
     unsigned numOps;
     map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap;// not really used
-
     // at given time of execution, which branch this true phi took and what symExpr it represents
     // todo: replace these historyValue to just the newest value
     vector<pair<Val::ArgIndexType, SymExpr> > historyValues;
+
     Val::ReadyType getDepTargetReady(Val*);
     SymVal_sym_TruePhi(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges, map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap):
             SymVal(symid, NodeTruePhi, bid), ArgNo2BBMap(ArgNo2BBMap){
@@ -374,6 +402,7 @@ public:
             tmpIn_edges[eachPhiEdge.first] = eachPhiEdge.second;
         }
     }
+    SymVal_sym_TruePhi(const SymVal_sym_TruePhi&other):SymVal(other),ArgNo2BBMap(other.ArgNo2BBMap){}
     ~SymVal_sym_TruePhi(){In_edges.clear();tmpIn_edges.clear(); UsedBy.clear();}
 };
 
@@ -382,14 +411,21 @@ public:
 
 class SymVal_sym_FalsePhiRoot: public SymVal{
 public:
-    unsigned numOps;
+    //unsigned numOps;
     set<ValVertexType> tmpfalsePhiLeaves;
     set<Val*> falsePhiLeaves;
     SymVal_sym_FalsePhiRoot(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges,set<ValVertexType> falsePhiLeaves):
             SymVal(symid, NodeFalseRootPhi, bid), tmpfalsePhiLeaves(falsePhiLeaves){
-        numOps = PhiEdges.size();
+        //numOps = PhiEdges.size();
         for(auto eachPhiEdge : PhiEdges){
             tmpIn_edges[eachPhiEdge.first] = eachPhiEdge.second;
+        }
+    }
+    SymVal_sym_FalsePhiRoot(const SymVal_sym_FalsePhiRoot&other):SymVal(other),falsePhiLeaves(other.falsePhiLeaves){}
+    void FinishCopyConstructing(std::map<Val*,Val*> &old2new){
+        Val::FinishCopyConstructing(old2new);
+        for(auto eachFalsePhiLeaf: falsePhiLeaves){
+            eachFalsePhiLeaf = old2new.at(eachFalsePhiLeaf);
         }
     }
     ~SymVal_sym_FalsePhiRoot(){In_edges.clear();
@@ -402,12 +438,20 @@ public:
     unsigned numOps;
     set<ValVertexType> tmpPeerOriginals;
     set<SymVal*> peerOriginals;
-    SymVal_sym_FalsePhiRoot * root = nullptr;
+    //SymVal_sym_FalsePhiRoot * root = nullptr;
     SymVal_sym_FalsePhiLeaf(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges,set<ValVertexType> tmpOriginals):
             SymVal(symid, NodeFalseLeafPhi, bid), tmpPeerOriginals(tmpOriginals){
         numOps = PhiEdges.size();
         for(auto eachPhiEdge : PhiEdges){
             tmpIn_edges[eachPhiEdge.first] = eachPhiEdge.second;
+        }
+    }
+    SymVal_sym_FalsePhiLeaf(const SymVal_sym_FalsePhiLeaf&other):SymVal(other),peerOriginals(other.peerOriginals){}
+    void FinishCopyConstructing(std::map<Val*,Val*> &old2new){
+        //Val::FinishCopyConstructing(old2new);
+        for(auto eachPeerOrig: peerOriginals){
+            eachPeerOrig = dynamic_cast<SymVal*>(old2new.at(eachPeerOrig));
+            assert(eachPeerOrig != nullptr);
         }
     }
     ~SymVal_sym_FalsePhiLeaf(){In_edges.clear();

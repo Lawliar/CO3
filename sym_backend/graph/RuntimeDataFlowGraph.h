@@ -15,10 +15,9 @@ public:
 
    typedef boost::graph_traits<Graph>::in_edge_iterator in_edge_it;
 
-    RuntimeSymFlowGraph(std::string, RuntimeCFG&);
+    RuntimeSymFlowGraph(std::string);
     void readGraphViz(std::string filename);
     void loopCheck();
 
-    const RuntimeCFG& cfg;
 };
 #endif //SYMBACKEND_RUNTIMEDATAFLOWGRAPH_H

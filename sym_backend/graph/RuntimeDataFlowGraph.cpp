@@ -55,7 +55,7 @@ void RuntimeSymFlowGraph::loopCheck() {
     */
 }
 
-RuntimeSymFlowGraph::RuntimeSymFlowGraph(std::string filename, RuntimeCFG & cfg): SymDepGraph(false),cfg(cfg){
+RuntimeSymFlowGraph::RuntimeSymFlowGraph(std::string filename): SymDepGraph(false){
     readGraphViz(filename);
 
     /*

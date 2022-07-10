@@ -105,6 +105,8 @@ public:
             root = nullptr;
         }
     };
+    RootTask* GetRootTask(SymVal*);
+    void RefreshBBTask(Val::BasicBlockIdType, Val::ReadyType);
 private:
     std::set<Val::BasicBlockIdType> domChildrenOf(Val::BasicBlockIdType, map<Val::BasicBlockIdType, RuntimeCFG::pd_vertex_t>, RuntimeCFG::DominanceTree&);
 
@@ -118,6 +120,7 @@ public:
 
 
     SymGraph(std::string funcname, std::string cfg, std::string dt, std::string pdt, std::string dfg );
+    SymGraph(const SymGraph&);
     ~SymGraph(){
         ver2offMap.clear();
         symID2offMap.clear();
@@ -138,8 +141,8 @@ public:
 
     // some basic information
     std::string funcname;
-    RuntimeCFG cfg;
-    RuntimeSymFlowGraph dfg;
+    RuntimeCFG *cfg;
+    RuntimeSymFlowGraph *dfg;
 
     // some mapping just to trade space for speed
     map<RuntimeSymFlowGraph::vertex_t, Val::ValVertexType> ver2offMap;
@@ -152,11 +155,6 @@ public:
     SymVal_sym_set_return_expression* setRetSym = nullptr;
     map<unsigned char, SymVal_sym_notify_call*> callInsts;
 
-    //Val* stripPhis(Val*, Val*);
-    //Val* stripTruePhi(Val*, Val*);
-
-    RootTask* GetRootTask(SymVal*);
-    void RefreshBBTask(Val::BasicBlockIdType, Val::ReadyType);
     map<SymVal*,RootTask*> rootTasks;
 };
 
