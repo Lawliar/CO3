@@ -61,17 +61,13 @@ public:
     string Str() {
         return valTypeString(type);
     }
-    Val(const Val& other):type(other.type),BBID(other.BBID),ready(0),inLoop(other.inLoop){
-        //we push the old values in, will update later
-        In_edges.insert(other.In_edges.begin(), other.In_edges.end());
-        UsedBy.insert(other.UsedBy.begin(), other.UsedBy.end());
-    }
-    void FinishCopyConstructing(std::map<Val*,Val*> &old2new){
-        for(auto each_in_edge : In_edges){
-            each_in_edge.second = old2new.at(each_in_edge.second);
+    Val(const Val& other):type(other.type),BBID(other.BBID),ready(0),inLoop(other.inLoop){}
+    void FinishCopyConstructing(std::map<ArgIndexType, Val*>& old_In_edges,std::set<Val*>& old_UsedBy,std::map<Val*,Val*> &old2new){
+        for(auto each_old_in_edge : old_In_edges){
+            In_edges.insert(make_pair(each_old_in_edge.first, old2new.at(each_old_in_edge.second)));
         }
-        for(auto each_used_by : UsedBy){
-            each_used_by = old2new.at(each_used_by);
+        for(auto each_used_by : old_UsedBy){
+            UsedBy.insert(old2new.at(each_used_by));
         }
     }
     //std::mutex mutex;
@@ -421,11 +417,10 @@ public:
             tmpIn_edges[eachPhiEdge.first] = eachPhiEdge.second;
         }
     }
-    SymVal_sym_FalsePhiRoot(const SymVal_sym_FalsePhiRoot&other):SymVal(other),falsePhiLeaves(other.falsePhiLeaves){}
-    void FinishCopyConstructing(std::map<Val*,Val*> &old2new){
-        Val::FinishCopyConstructing(old2new);
-        for(auto eachFalsePhiLeaf: falsePhiLeaves){
-            eachFalsePhiLeaf = old2new.at(eachFalsePhiLeaf);
+    SymVal_sym_FalsePhiRoot(const SymVal_sym_FalsePhiRoot&other):SymVal(other){}
+    void FinishCopyConstructing(set<Val*>& old_falsePhiLeaves,std::map<Val*,Val*>& old2new){
+        for(auto each_old_FalsePhiLeaf: old_falsePhiLeaves){
+            falsePhiLeaves.insert(old2new.at(each_old_FalsePhiLeaf));
         }
     }
     ~SymVal_sym_FalsePhiRoot(){In_edges.clear();
@@ -446,12 +441,12 @@ public:
             tmpIn_edges[eachPhiEdge.first] = eachPhiEdge.second;
         }
     }
-    SymVal_sym_FalsePhiLeaf(const SymVal_sym_FalsePhiLeaf&other):SymVal(other),peerOriginals(other.peerOriginals){}
-    void FinishCopyConstructing(std::map<Val*,Val*> &old2new){
+    SymVal_sym_FalsePhiLeaf(const SymVal_sym_FalsePhiLeaf&other):SymVal(other){}
+    void FinishCopyConstructing(set<SymVal*>& old_peerOriginals,std::map<Val*,Val*> &old2new){
         //Val::FinishCopyConstructing(old2new);
-        for(auto eachPeerOrig: peerOriginals){
-            eachPeerOrig = dynamic_cast<SymVal*>(old2new.at(eachPeerOrig));
-            assert(eachPeerOrig != nullptr);
+        for(auto each_old_PeerOrig: old_peerOriginals){
+            auto* new_peer_orig = dynamic_cast<SymVal*>(old2new.at(each_old_PeerOrig));
+            peerOriginals.insert(new_peer_orig);
         }
     }
     ~SymVal_sym_FalsePhiLeaf(){In_edges.clear();

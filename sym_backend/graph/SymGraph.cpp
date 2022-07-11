@@ -380,15 +380,13 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
     else if(auto old_Val = dynamic_cast<SymVal##SYMOP*>(old_one); old_Val != nullptr){                          \
         new_one = new SymVal##SYMOP(*old_Val);  \
     }
-SymGraph::SymGraph(const SymGraph& other){
-    funcname = other.funcname;
+SymGraph::SymGraph(const SymGraph& other):funcname(other.funcname),symID2offMap(other.symID2offMap){
     //we're not going to use these 2 anyway
     cfg = nullptr;
     dfg = nullptr;
     // this also won't be used
     assert(ver2offMap.size() == 0);
 
-    symID2offMap.insert(other.symID2offMap.begin(), other.symID2offMap.end());
     Nodes.assign(other.Nodes.size(), nullptr);
     std::map<Val*, Val*> old2new;
     for(auto i = 0 ; i < other.Nodes.size() ; i ++){
@@ -477,6 +475,7 @@ SymGraph::SymGraph(const SymGraph& other){
         COPY_CONSTRUCT_SymVAL(_sym_get_parameter_expression)
         COPY_CONSTRUCT_SymVAL(_sym_set_return_expression)
         COPY_CONSTRUCT_SymVAL(_sym_get_return_expression)
+        COPY_CONSTRUCT_SymVAL(_sym_build_path_constraint)
         COPY_CONSTRUCT_SymVAL(_sym_build_read_memory)
         COPY_CONSTRUCT_SymVAL(_sym_build_write_memory)
         COPY_CONSTRUCT_SymVAL(_sym_build_memcpy)
@@ -486,20 +485,50 @@ SymGraph::SymGraph(const SymGraph& other){
         COPY_CONSTRUCT_SymVAL(_sym_build_extract)
         COPY_CONSTRUCT_SymVAL(_sym_TruePhi)
         else{
-            std::cerr << " unhandled node type";
+            std::cerr << " unhandled node in copy constructing type";
             assert(false);
         }
         Nodes[i] = new_one;
+        //old2new[old_one] = new_one;
+
         old2new.insert(make_pair(old_one, new_one));
     }
-
-    for(auto each_new_node : Nodes){
-        each_new_node->FinishCopyConstructing(old2new);
-        if(auto false_phi_root = dynamic_cast<SymVal_sym_FalsePhiRoot*>(each_new_node)){
-            false_phi_root->FinishCopyConstructing(old2new);
-        }else if(auto false_phi_leaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(each_new_node)){
-            false_phi_leaf->FinishCopyConstructing(old2new);
+    for(auto each_old2new:  old2new){
+        auto old_one = each_old2new.first;
+        auto new_one = each_old2new.second;
+        new_one->FinishCopyConstructing(old_one->In_edges, old_one->UsedBy, old2new);
+        if(auto new_false_phi_root = dynamic_cast<SymVal_sym_FalsePhiRoot*>(new_one); new_false_phi_root != nullptr){
+            auto old_false_phi_root = dynamic_cast<SymVal_sym_FalsePhiRoot*>(old_one);
+            new_false_phi_root->FinishCopyConstructing(old_false_phi_root->falsePhiLeaves,old2new);
+        }else if(auto new_false_phi_leaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(new_one); new_false_phi_leaf != nullptr){
+            auto old_false_phi_leaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(old_one);
+            new_false_phi_leaf->FinishCopyConstructing(old_false_phi_leaf->peerOriginals,old2new);
         }
+    }
+    for(auto eachOldGetPara : other.getParametersSym){
+        auto newGetPara = dynamic_cast<SymVal_sym_get_parameter_expression*>(old2new.at(eachOldGetPara));
+        assert(newGetPara != nullptr);
+        getParametersSym.push_back(newGetPara);
+    }
+    if(other.setRetSym != nullptr){
+        auto new_set_ret = dynamic_cast<SymVal_sym_set_return_expression*>(old2new.at(other.setRetSym));
+        assert(new_set_ret != nullptr);
+        setRetSym = new_set_ret;
+    }
+
+    for(auto old_call : other.callInsts){
+        auto new_call = dynamic_cast<SymVal_sym_notify_call*>(old2new.at(old_call.second));
+        assert(new_call != nullptr);
+        callInsts.insert(make_pair(old_call.first, new_call));
+    }
+
+    assert(rootTasks.size() == 0);
+    for(auto eachOldBBTask : other.bbTasks){
+        auto* oldBBTask = eachOldBBTask.second;
+        auto* newBBTask = new BasicBlockTask(*oldBBTask);
+
+        newBBTask->FinishCopyConstructing(oldBBTask->nonReadyRoots, oldBBTask->leaves, oldBBTask->roots,old2new);
+        bbTasks.insert(make_pair(eachOldBBTask.first,newBBTask));
     }
 
 }
@@ -828,11 +857,12 @@ void SymGraph::prepareBBTask() {
         bool inLoop = cfg->graph[*cfg_vi].inloop == '1' ? true : false;
         BasicBlockTask* task = new BasicBlockTask(cur_bbid, inLoop);
         RuntimeSymFlowGraph::edge_it ei, ei_end;
+        /*
         for(auto eachNode : Nodes ){
             if(eachNode->BBID == cur_bbid){
                 task->allNodes.insert(eachNode);
             }
-        }
+        }*/
 
         //prepare leaves and roots
         for(boost::tie(ei,ei_end) = boost::edges(dfg->graph); ei != ei_end ; ei++){

@@ -57,6 +57,7 @@ public:
     Val::BasicBlockIdType lastBBID = 0;
     std::stack<SymGraph*> callStack;
     std::map<unsigned, SymGraph*> symGraphs;
-    std::map<string, FuncFileNames> funcFiles;
+    std::map<unsigned, SymGraph*> vanillaSymGraphs;
+    //std::map<string, FuncFileNames> funcFiles;
 };
 #endif //SYMBACKEND_ORCHESTRATOR_H

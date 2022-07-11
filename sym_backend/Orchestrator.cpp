@@ -70,11 +70,11 @@ pool(2),sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
         cout << "processing func:"<< cur_funcname<<'\n';
         cout.flush();
 #endif
-        funcFiles[cur_funcname] = FuncFileNames{cfg_file.string(), dom_file.string(), postDom_file.string(), dfg_file.string()};
-        SymGraph* cur_symgraph = new SymGraph(cur_funcname, funcFiles[cur_funcname].cfg_file,\
-                                        funcFiles[cur_funcname].dom_file,funcFiles[cur_funcname].postDom_file,\
-                                        funcFiles[cur_funcname].dfg_file);
+        SymGraph* cur_symgraph = new SymGraph(cur_funcname, cfg_file.string(),\
+                                        dom_file.string(),postDom_file.string(),\
+                                        dfg_file.string());
         symGraphs[cur_id] = cur_symgraph;
+        vanillaSymGraphs[cur_id] = new SymGraph(*cur_symgraph);
     }
     _sym_initialize(inputDir);
 }
@@ -84,7 +84,10 @@ Orchestrator::~Orchestrator() {
         delete eachFunc.second;
     }
     symGraphs.clear();
-    funcFiles.clear();
+    for(auto eachFunc :vanillaSymGraphs){
+        delete eachFunc.second;
+    }
+    vanillaSymGraphs.clear();
 }
 
 SymGraph* Orchestrator::getCurFunc() {
@@ -519,8 +522,9 @@ void Orchestrator::SetRetAndRefreshGraph() {
     }
     assert(funcId != UINT_MAX);
     delete cur_func;
-    symGraphs[funcId] = new SymGraph(cur_func_name, funcFiles.at(cur_func_name).cfg_file,funcFiles.at(cur_func_name).dom_file,\
-                                funcFiles.at(cur_func_name).postDom_file, funcFiles.at(cur_func_name).dfg_file);
+    symGraphs[funcId] = new SymGraph(*vanillaSymGraphs.at(funcId));
+    //symGraphs[funcId] = new SymGraph(cur_func_name, funcFiles.at(cur_func_name).cfg_file,funcFiles.at(cur_func_name).dom_file,\
+    //                            funcFiles.at(cur_func_name).postDom_file, funcFiles.at(cur_func_name).dfg_file);
 }
 
 int Orchestrator::Run() {

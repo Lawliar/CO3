@@ -37,10 +37,24 @@ public:
     public:
 
         BasicBlockTask(unsigned id, bool loop):BBID(id),inLoop(loop),ready(0){}
+        BasicBlockTask(const BasicBlockTask& other):BBID(other.BBID),inLoop(other.inLoop),ready(0),dominance(other.dominance),\
+        post_dominance(other.post_dominance),nonReadyPostDominance(other.nonReadyPostDominance){}
+        void FinishCopyConstructing(std::set<Val*>& old_nonReadyRoots,std::set<Val*>& old_leaves,\
+        std::set<Val*>& old_roots,std::map<Val*,Val*>& old2new){
+            for(auto eachOldNonReadyRoot : old_nonReadyRoots){
+                nonReadyRoots.insert(old2new.at(eachOldNonReadyRoot));
+            }
+            for(auto eachOldLeaf : old_leaves){
+                leaves.insert(old2new.at(eachOldLeaf));
+            }
+            for(auto eachOldRoot : old_roots){
+                roots.insert(old2new.at(eachOldRoot));
+            }
+        }
         ~BasicBlockTask(){
             dominance.clear();
             post_dominance.clear();
-            allNodes.clear();
+            //allNodes.clear();
             nonReadyRoots.clear();
             leaves.clear();
             roots.clear();
@@ -49,21 +63,23 @@ public:
             //}
             //nonLoopRootDependents.clear();
         }
+        bool isPostDominatedReady(Val::BasicBlockIdType);
+        bool isBBReady();
+
         Val::BasicBlockIdType BBID = 0;
         bool inLoop = false;
         Val::ReadyType ready = 0;
 
         std::set<Val::BasicBlockIdType> dominance;
         std::set<Val::BasicBlockIdType > post_dominance;// this BB post dominate these BBs
-        std::set<Val*> allNodes;
+        //std::set<Val*> allNodes;
         std::set<Val::BasicBlockIdType> nonReadyPostDominance;
         std::set<Val*> nonReadyRoots;
         // leaves are the "inputs" to this basic block
         std::set<Val*> leaves;
         // roots are the non-out vertices and the direct out vertices
         std::set<Val*> roots;
-        bool isPostDominatedReady(Val::BasicBlockIdType);
-        bool isBBReady();
+
         // map the root to its Dependent BBs that are not in the loop(because we already make sure loop is properly executed)
         //std::map<Val*, DataDependents* > nonLoopRootDependents;
     };
@@ -147,7 +163,7 @@ public:
     // some mapping just to trade space for speed
     map<RuntimeSymFlowGraph::vertex_t, Val::ValVertexType> ver2offMap;
     map<Val::SymIDType , Val::ValVertexType> symID2offMap;
-    std::map<Val::BasicBlockIdType, BasicBlockTask*> bbTasks;
+
 
     // the real thing
     vector<Val*> Nodes;
@@ -156,6 +172,7 @@ public:
     map<unsigned char, SymVal_sym_notify_call*> callInsts;
 
     map<SymVal*,RootTask*> rootTasks;
+    std::map<Val::BasicBlockIdType, BasicBlockTask*> bbTasks;
 };
 
 
