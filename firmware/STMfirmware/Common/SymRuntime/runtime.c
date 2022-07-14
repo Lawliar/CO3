@@ -91,6 +91,7 @@
  char S_SYM_NTFY_BBLK       []="SYM_NTFY_BBLK       ";
  char S_SYM_NTFY_BBLK1      []="SYM_NTFY_BBLK1      ";
  char S_SYM_INIT            []="SYM_INIT            ";
+ char S_SYM_END             []="SYM_END            ";
 
  char *fstrings[]={
 
@@ -137,7 +138,8 @@
 		 S_SYM_NTFY_RET         ,
 		 S_SYM_NTFY_BBLK        ,
 		 S_SYM_NTFY_BBLK1       ,
-		 S_SYM_INIT
+		 S_SYM_INIT             ,
+		 S_SYM_END
  };
 
 #endif
@@ -195,7 +197,7 @@ void txCommandtoMonitor(uint8_t size)
 
 	}
 #if DEBUGPRINT ==1
-	printf("F.: %s, C.I.: %d\n",fstrings[func], (int)AFLfuzzer.txCurrentIndex );
+	//printf("F.: %s, C.I.: %d\n",fstrings[func], (int)AFLfuzzer.txCurrentIndex );
 #endif
 	AFLfuzzer.txTotalFunctions++;
 }
@@ -445,7 +447,6 @@ void _sym_build_path_constraint(bool input, bool runtimeVal, uint16_t symID)
 	int msgSize=0;
 	uint8_t msgCode;
 	uint8_t *byteval;
-
 	if(!input) return;
 
 	bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
