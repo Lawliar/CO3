@@ -42,13 +42,6 @@ public:
     void BackwardExecution(SymVal*, Val::ReadyType);
     ~Orchestrator();
 
-    typedef struct _FuncFileNames{
-    public:
-        string cfg_file;
-        string dom_file;
-        string postDom_file;
-        string dfg_file;
-    } FuncFileNames;
 
     ThreadPool pool;
 

@@ -485,9 +485,6 @@ void Orchestrator::PreparingCalling(NotifyCallMessage* callMsg){
     SymGraph* cur_graph = getCurFunc();
     auto notifyCallVal = dynamic_cast<SymVal_sym_notify_call*>(cur_graph->callInsts.at(callMsg->id));
 
-    if(cur_graph->funcname == "allocate_cgc"){
-        __asm__("nop");
-    }
     for(unsigned index = 1; index < notifyCallVal->In_edges.size() ; index ++){
         auto setPara = dynamic_cast<SymVal_sym_set_parameter_expression*>(notifyCallVal->In_edges.at(index));
 #ifdef DEBUG_CHECKING

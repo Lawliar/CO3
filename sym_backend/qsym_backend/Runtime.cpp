@@ -148,7 +148,7 @@ void _sym_initialize(string inputDirName) {
     _common_initialize();
 
     //initially symbolize the memory buffer
-    ReadWriteShadow shadow((void*)0x2400aaa1, inputSize);
+    ReadWriteShadow shadow((void*)0x2400a701, inputSize);
     unsigned cursor = 0;
     std::generate(shadow.begin(), shadow.end(),
                   [&cursor]() { return _sym_get_input_byte(cursor++); });
@@ -260,10 +260,21 @@ SymExpr _sym_build_trunc(SymExpr expr, uint8_t bits) {
 
 void _sym_build_path_constraint(SymExpr constraint, int taken,
                                uintptr_t site_id) {
-  if (constraint == nullptr)
-    return;
+    /*
+    int isConcrete = 0;
+    if (constraint == nullptr){
+        isConcrete = 1;
+    }else{
+        isConcrete = 0;
+    }
+    printf("is concrete:%d,site_id:%d\n",isConcrete, site_id);
+    //std::cout << "is concrete:"<< isConcrete<<",site_id:"<< site_id<<'\n';
+    //std::cout.flush();
+    */
+    if (constraint == nullptr)
+        return;
 
-  g_solver->addJcc(allocatedExpressions.at(constraint), taken != 0, site_id);
+    g_solver->addJcc(allocatedExpressions.at(constraint), taken != 0, site_id);
 }
 
 SymExpr _sym_get_input_byte(size_t offset) {
