@@ -20,7 +20,7 @@ typedef long int _fd_mask;
 
 typedef struct {
 	_fd_mask _fd_bits[FD_SETSIZE / _NFDBITS];
-} fd_set;
+} fd_set_cgc;
 
 #define	FD_ZERO(set)							\
 	do {								\
@@ -35,7 +35,7 @@ typedef struct {
 #define	FD_ISSET(b, set) \
 	((set)->_fd_bits[b / _NFDBITS] & (1 << (b & (_NFDBITS - 1))))
 
-struct timeval {
+struct timeval_cgc {
 	int tv_sec;
 	int tv_usec;
 };
@@ -50,8 +50,8 @@ struct timeval {
 //void _terminate(unsigned int status);
 int transmit(int fd, const void *buf, size_t_cgc count, size_t_cgc *tx_bytes);
 int receive_cgc( void *buf, size_t_cgc count, size_t_cgc *rx_bytes);
-int fdwait(int nfds, fd_set *readfds, fd_set *writefds,
-	   const struct timeval *timeout, int *readyfds);
+int fdwait(int nfds, fd_set_cgc *readfds, fd_set_cgc *writefds,
+	   const struct timeval_cgc *timeout, int *readyfds);
 int allocate_cgc(size_t_cgc length, int is_X, void **addr);
 int deallocate_cgc(void *addr, size_t_cgc length);
 int random_cgc(void *buf, size_t_cgc count, size_t_cgc *rnd_bytes);

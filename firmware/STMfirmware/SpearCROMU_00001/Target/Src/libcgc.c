@@ -25,6 +25,7 @@
 #include "stdlib.h" // for free and malloc
 #include "string.h"
 #include "protocol.h"
+//#include "stdio.h"
 // lame so we don't have to include over-riding .h files
 #define MAP_ANONYMOUS 0x20
 #define MAP_PRIVATE 0x02
@@ -62,6 +63,7 @@ int transmit(int fd, const void *buf, size_t_cgc count, size_t_cgc *tx_bytes){
 
 int receive_cgc( void *buf, size_t_cgc count, size_t_cgc *rx_bytes){
 #ifdef USE_USB_AS_INPUT
+	//printf("cur:%d\n",cur);
 	if(cur >= AFLfuzzer.inputAFL.u32available){
 		return EFAULT;
 	}
@@ -69,10 +71,12 @@ int receive_cgc( void *buf, size_t_cgc count, size_t_cgc *rx_bytes){
 		memcpy(buf, AFLfuzzer.inputAFL.uxBuffer + 1 + cur, AFLfuzzer.inputAFL.u32available - cur);
 		cur = AFLfuzzer.inputAFL.u32available;
 		*rx_bytes = (size_t_cgc) AFLfuzzer.inputAFL.u32available - cur;
+		return 0;
 	}else{
 		memcpy(buf, AFLfuzzer.inputAFL.uxBuffer + 1 + cur,count);
 		cur += count;
 		*rx_bytes = count;
+		return 0;
 	}
 #else
 	if(cur >= available_input){
@@ -82,10 +86,12 @@ int receive_cgc( void *buf, size_t_cgc count, size_t_cgc *rx_bytes){
 		memcpy(buf, input + cur, available_input - cur);
 		cur = available_input;
 		*rx_bytes = (size_t_cgc) available_input - cur;
+		return 0;
 	}else{
 		memcpy(buf, input + cur,count);
 		cur += count;
 		*rx_bytes = count;
+		return 0;
 	}
 #endif
 		
