@@ -24,7 +24,7 @@
 #define SYM_PERIPHERAL_ADDR_START    0x40000000
 #define SYM_PERIPHERAL_SIZE          0x1FFFFFFF
 
-#define DEBUGPRINT 1
+#define DEBUGPRINT 0
 
 
 //types and enums

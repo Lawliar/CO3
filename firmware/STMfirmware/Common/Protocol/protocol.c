@@ -72,7 +72,9 @@ void TransmitPack(void)
     // Transmit all functions in output buffer if any
 	if(AFLfuzzer.txTotalFunctions)
 	{
+#if DEBUGPRINT==1
 		printf("TX buffer f. num: %d\n", AFLfuzzer.txTotalFunctions);
+#endif
 		AFLfuzzer.txbuffer[0]= AFLfuzzer.txCurrentIndex-1; //set the total length of the payload without considering size itself
 		CDC_Transmit_FS(AFLfuzzer.txbuffer, AFLfuzzer.txCurrentIndex); //transmit data
 	}
@@ -92,12 +94,11 @@ void FuzzingInputHandler(uint8_t* Buf, uint32_t *Len)
 
 	  error = 0;
 
-
 	  if( AFLfuzzer.inputLength == 0 && error == 0 )
 	  {
 
-	      AFLfuzzer.inputLength = Buf[0];
-	      AFLfuzzer.inputLengthpadded  = Buf[0];;
+	      AFLfuzzer.inputLength = *(uint32_t*)Buf;
+	      AFLfuzzer.inputLengthpadded  = *(uint32_t*)Buf;
 
 	      if((AFLfuzzer.inputLengthpadded)> MAX_BUFFER_INPUT)
 	      {

@@ -25,7 +25,7 @@
 #include "stdlib.h" // for free and malloc
 #include "string.h"
 #include "protocol.h"
-//#include "stdio.h"
+#include "stdio.h"
 // lame so we don't have to include over-riding .h files
 #define MAP_ANONYMOUS 0x20
 #define MAP_PRIVATE 0x02
@@ -68,12 +68,12 @@ int receive_cgc( void *buf, size_t_cgc count, size_t_cgc *rx_bytes){
 		return EFAULT;
 	}
 	else if( (AFLfuzzer.inputAFL.u32available - cur) < count ){
-		memcpy(buf, AFLfuzzer.inputAFL.uxBuffer + 1 + cur, AFLfuzzer.inputAFL.u32available - cur);
+		memcpy(buf, AFLfuzzer.inputAFL.uxBuffer + AFL_BUFFER_STARTING_POINT + cur, AFLfuzzer.inputAFL.u32available - cur);
 		cur = AFLfuzzer.inputAFL.u32available;
 		*rx_bytes = (size_t_cgc) AFLfuzzer.inputAFL.u32available - cur;
 		return 0;
 	}else{
-		memcpy(buf, AFLfuzzer.inputAFL.uxBuffer + 1 + cur,count);
+		memcpy(buf, AFLfuzzer.inputAFL.uxBuffer + AFL_BUFFER_STARTING_POINT + cur,count);
 		cur += count;
 		*rx_bytes = count;
 		return 0;

@@ -197,7 +197,7 @@ void txCommandtoMonitor(uint8_t size)
 
 	}
 #if DEBUGPRINT ==1
-	//printf("F.: %s, C.I.: %d\n",fstrings[func], (int)AFLfuzzer.txCurrentIndex );
+	printf("F.: %s, C.I.: %d\n",fstrings[func], (int)AFLfuzzer.txCurrentIndex );
 #endif
 	AFLfuzzer.txTotalFunctions++;
 }
