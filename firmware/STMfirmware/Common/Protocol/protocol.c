@@ -33,7 +33,7 @@ void notifyTXfinish()
 	}
 	}*/
 
-	AFLfuzzer.txCurrentIndex=1;  //we reserve the first byte for size
+	AFLfuzzer.txCurrentIndex=REPORTING_BUFFER_STARTING_POINT;  //we reserve the first byte for size
 	//clean the tx buffer
 	for(uint8_t j = 0; j<MAX_USB_FRAME; j++ )
 	{

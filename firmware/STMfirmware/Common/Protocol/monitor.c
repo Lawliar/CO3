@@ -110,7 +110,7 @@ static void MonitorTask( void * pvParameters )
 		}
 		*/
 
-    	AFLfuzzer.txCurrentIndex=AFL_BUFFER_STARTING_POINT; //Index Zero is reserved for the total length of the message, which  includes the first byte
+    	AFLfuzzer.txCurrentIndex=REPORTING_BUFFER_STARTING_POINT; //Index Zero is reserved for the total length of the message, which  includes the first byte
 
 
 
@@ -150,7 +150,7 @@ static void MonitorTask( void * pvParameters )
 		{
 			AFLfuzzer.txbuffer[i]=0;
 		}
-		AFLfuzzer.txCurrentIndex=8;
+		AFLfuzzer.txCurrentIndex=REPORTING_BUFFER_STARTING_POINT;
 		for(uint8_t j = 0; j<MAX_USB_FRAME; j++ )
 		{
 			AFLfuzzer.txbuffer[j]=0;
