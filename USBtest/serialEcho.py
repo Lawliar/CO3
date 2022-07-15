@@ -22,7 +22,7 @@ if(len(input_data) == 0):
 else:
     data = input_data
 
-inputLen = len(data)
+inputLen = len(data) + 4
 data =  pack('<I', inputLen) + data
 
 with open("input_data","wb") as wfile:
@@ -31,7 +31,7 @@ with open("input_data","wb") as wfile:
 with serial.Serial('/dev/ttyACM1') as ser:
     ser.timeout = 2
     print('timeout: {}'.format(ser.timeout))
-
+    print("msg len:{}".format(len(data)))
     ser.write(data)
     frameNum = 1024
     r = b''
