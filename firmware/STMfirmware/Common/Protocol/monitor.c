@@ -110,7 +110,7 @@ static void MonitorTask( void * pvParameters )
 		}
 		*/
 
-    	AFLfuzzer.txCurrentIndex=1; //Index Zero is reserved for the total length of the message, which  includes the first byte
+    	AFLfuzzer.txCurrentIndex=AFL_BUFFER_STARTING_POINT; //Index Zero is reserved for the total length of the message, which  includes the first byte
 
 
 
@@ -164,7 +164,7 @@ static void MonitorTask( void * pvParameters )
 
 static void TargetTask( void * pvParameters )
 {
-
+	//printf("\n new target spawned\n");
 	xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,1,eSetValueWithOverwrite); //notify the monitor task the target is ready
 	while(1){
 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // wait for the notification coming from the Monitor task
