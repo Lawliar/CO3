@@ -861,7 +861,26 @@ int Orchestrator::Run() {
                 cout << memsetMsg->Str()<<'\n';
                 cout.flush();
 #endif
-                assert(false);
+                auto memsetVal = dynamic_cast<SymVal_sym_build_memset*>(cur_val);
+                assert(memsetVal != nullptr);
+
+                UpdateCallStackHashBB(memsetVal->BBID);
+
+
+                auto ptrVal = dynamic_cast<RuntimePtrVal*>(memsetVal->In_edges.at(0));
+                assert(ptrVal != nullptr);
+                ptrVal->Assign(reinterpret_cast<void*>(memsetMsg->ptr));
+
+
+                auto lengthVal = dynamic_cast<RuntimeIntVal*>(memsetVal->In_edges.at(2));
+                assert(lengthVal != nullptr);
+                lengthVal->Assign(memsetMsg->length);
+
+                BackwardExecution(memsetVal, memsetVal->ready + 1);
+#ifdef DEBUG_OUTPUT
+                cout << "finish "<<memsetMsg->Str()<<"\n\n";
+                cout.flush();
+#endif
             }else if(auto memmoveMsg = dynamic_cast<MemMoveMessage*>(sym_sink_msg); memmoveMsg != nullptr){
 #ifdef DEBUG_OUTPUT
                 assert(indent == 0);

@@ -515,7 +515,8 @@ void SymVal_sym_build_read_memory::Construct(Val::ReadyType targetReady) {
         }else{
             symExpr = _sym_build_read_memory_concrete(reinterpret_cast<uint8_t*>(ptrOperand->Val), lengthOperand->Value, endianOperand->Value,concreteValue);
         }
-
+        // the MCU think this is not concrete.
+        assert(symExpr != nullptr);
     }
     ready++;
 }
@@ -565,7 +566,7 @@ void SymVal_sym_build_memcpy::Construct(ReadyType targetReady) {
 }
 void SymVal_sym_build_memset::Construct(ReadyType targetReady) {
     assert(targetReady == (ready + 1));
-    auto memOperand = dynamic_cast<RuntimeIntVal*>(In_edges.at(0));
+    auto memOperand = dynamic_cast<RuntimePtrVal*>(In_edges.at(0));
     assert(memOperand != nullptr);
 
     auto symVal = dynamic_cast<SymVal*>(In_edges.at(1));
@@ -574,8 +575,8 @@ void SymVal_sym_build_memset::Construct(ReadyType targetReady) {
     auto lengthOperand = dynamic_cast<RuntimeIntVal*>(In_edges.at(2));
     assert(lengthOperand != nullptr);
 
-    if(memOperand->Unassigned){
-        assert(symVal->symExpr == nullptr && lengthOperand->Unassigned);
+    if(memOperand->Unassigned || lengthOperand->Unassigned){
+        assert(symVal->symExpr == nullptr && memOperand->Unassigned && lengthOperand->Unassigned);
     }else{
         _sym_build_memset(reinterpret_cast<uint8_t*>(memOperand->Val), extractSymExprFromSymVal(symVal, targetReady), lengthOperand->Val);
     }

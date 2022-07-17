@@ -175,7 +175,7 @@ static void TargetTask( void * pvParameters )
 //#endif
 
 
-        _sym_symbolize_memory((char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT),AFLfuzzer.inputAFL.u32available);
+        _sym_symbolize_memory((char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT),AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT);
         //test((unsigned char*)(AFLfuzzer.inputAFL.uxBuffer+1),AFLfuzzer.inputAFL.u32available);
         test();
         _sym_end();
