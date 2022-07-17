@@ -97,6 +97,7 @@ public:
         // instead of the individual node.
         std::vector<BasicBlockTask*> depNonReadyNonLoopBB;
         SymVal *  root;
+        Val::ReadyType old_ready = 0;
         Val::BasicBlockIdType rootBBid = 0;
         BasicBlockTask* rootBBTask = nullptr;
         bool occupied = false;
@@ -113,7 +114,7 @@ public:
 
         void Refresh();
 
-        RootTask(SymVal* r, BasicBlockTask* rootBBTask): root(r), rootBBid(r->BBID),rootBBTask(rootBBTask){};
+        RootTask(SymVal* r, BasicBlockTask* rootBBTask): root(r), old_ready(r->ready),rootBBid(r->BBID),rootBBTask(rootBBTask){};
         ~RootTask(){
             inBBNonReadyLeafDeps.clear();
             inBBNonReadyDeps.clear();
@@ -122,6 +123,7 @@ public:
         }
     };
     RootTask* GetRootTask(SymVal*);
+    bool ReleaseOrRemoveRootTask(SymVal*);
     void RefreshBBTask(Val::BasicBlockIdType, Val::ReadyType);
 private:
     std::set<Val::BasicBlockIdType> domChildrenOf(Val::BasicBlockIdType, map<Val::BasicBlockIdType, RuntimeCFG::pd_vertex_t>, RuntimeCFG::DominanceTree&);

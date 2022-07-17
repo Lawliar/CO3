@@ -61,8 +61,13 @@ bool Val::isThisNodeReady(Val * nodeInQuestion, unsigned targetReady) {
             // for BB in the loop we execute in the per-BB level
             // given the root is under construction, no matter it's in the loop or not
             // the nodeInQuestion is inside a loop, and they are in different BB
-            // then it must mean the construction for the nodeInQuestion must have been finished.
-            assert(nodeInQuestion->ready >= 1);
+            // then it must has been executed on the MCU side
+            // however on the PC side there are different cases:
+            //     1. the nodeInQuestion's BB has been reported
+            //     2. the nodeInquestion's BB has not been reported
+            // if it's been reported, then this BB is updated(i.e., executed on the PC proactively)
+            // if it's not reported, then it means, this nodeInQuestion is concrete, and we just leave it as it is(since the symExpr for every symVal is initialized to nullptr)
+            //assert(nodeInQuestion->ready >= 1);
             return true;
         }
     }

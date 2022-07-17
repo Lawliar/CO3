@@ -29,6 +29,9 @@ public:
     int Run();
     SymGraph* getCurFunc();
 
+    void UpdateCallStackHashBB(Val::BasicBlockIdType);
+    void UpdateCallStackHashCall(unsigned);
+    void UpdateCallStackRet(unsigned);
     bool ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot*, Val::ReadyType);
     bool ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf*, Val::ReadyType);
 

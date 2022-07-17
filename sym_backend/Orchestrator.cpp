@@ -94,21 +94,37 @@ SymGraph* Orchestrator::getCurFunc() {
     return callStack.top();
 }
 
+void Orchestrator::UpdateCallStackHashBB(Val::BasicBlockIdType cur_bbid) {
+    if(cur_bbid != lastBBID){
+        _sym_notify_basic_block(cur_bbid);
+        lastBBID = cur_bbid;
+    }
+}
+
+
+void Orchestrator::UpdateCallStackHashCall(unsigned funcID) {
+    _sym_notify_call(funcID);
+}
+
+void Orchestrator::UpdateCallStackRet(unsigned funcID) {
+    _sym_notify_ret(funcID);
+}
 void Orchestrator::ExecuteBasicBlock(Val::BasicBlockIdType bbid) {
     SymGraph* cur_func = getCurFunc();
-    _sym_notify_basic_block(bbid);
+    UpdateCallStackHashBB(bbid);
 #ifdef DEBUG_OUTPUT
     indent += indentNum;
     cout << string(indent, ' ')<<"Executing BB:"<<bbid<<'\n';
     cout.flush();
 #endif
-    cur_func->RefreshBBTask(bbid, cur_func->bbTasks.at(bbid)->ready + 1);
-    auto bbTask = cur_func->bbTasks.at(bbid);
 #ifdef DEBUG_CHECKING
-    if(cur_func->funcname == "strlen_cgc" and bbid == 1){
+    if(cur_func->funcname == "strlen_cgc" and bbid == 6){
         __asm__("nop");
     }
 #endif
+    cur_func->RefreshBBTask(bbid, cur_func->bbTasks.at(bbid)->ready + 1);
+    auto bbTask = cur_func->bbTasks.at(bbid);
+
 /*
     for(auto eachNonReadyPostDomBB : bbTask->nonReadyPostDominance){
         if(eachNonReadyPostDomBB == bbTask->BBID){
@@ -302,6 +318,7 @@ bool Orchestrator::ExecuteNode(Val* nodeToExecute, Val::ReadyType targetReady) {
             std::cout.flush();
             indent -= indentNum;
 #endif
+            getCurFunc()->ReleaseOrRemoveRootTask(symVal);
             return true;
         }else if(isSpecial == NotSpecial){
             if(symVal->directlyConstructable(targetReady)) {
@@ -312,6 +329,7 @@ bool Orchestrator::ExecuteNode(Val* nodeToExecute, Val::ReadyType targetReady) {
                 std::cout.flush();
                 indent -= indentNum;
 #endif
+                getCurFunc()->ReleaseOrRemoveRootTask(symVal);
                 return true;
             }
         }
@@ -381,7 +399,10 @@ void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, uns
             assert( rootTask->root->ready ==(old_ready + 1));
             shouldMoveForward = true;
         }
-        rootTask->occupied = false;
+        rootTask->occupied=false;
+        // if this root task is successfully executed, remove the task
+        cur_func->ReleaseOrRemoveRootTask(symVal);
+
     }else if(constructed && target != nullptr && target->root == source){
         shouldMoveForward = false;
     }
@@ -419,8 +440,11 @@ void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, uns
                 if(eachUser->BBID == source->BBID || (eachUser->BBID != source->BBID  && sourceDominance.find(eachUser->BBID) != sourceDominance.end() ) ){
                     auto tmpFalsePhiRoot = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(eachUser);
                     auto tmpFalsePhiLeaf = dynamic_cast<SymVal_sym_FalsePhiRoot*>(eachUser);
+                    auto tmpTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(eachUser);
                     if(tmpFalsePhiLeaf != nullptr || tmpFalsePhiRoot != nullptr){
                         // since these 2 nodes involves backward execution, which might force runtimeInt to be Unassigned, we don't explore these 2, for now.
+                        continue;
+                    }else if(tmpTruePhi != nullptr){
                         continue;
                     }
                     ForwardExecution(eachUser,  target, targetReady);
@@ -455,7 +479,7 @@ void Orchestrator::BackwardExecution(SymVal* sink, Val::ReadyType targetReady) {
         //already constructed or can be constructed right away
     }else{
 #ifdef DEBUG_CHECKING
-        if(cur_func->funcname == "receive_cgc_until" && sink->symID == 23){
+        if(cur_func->funcname == "allocate_cgc" && sink->symID == 8){
             __asm__("nop");
         }
 #endif
@@ -469,7 +493,8 @@ void Orchestrator::BackwardExecution(SymVal* sink, Val::ReadyType targetReady) {
             // we are forcing the dependent unready runtime value to unassign themselves
             ForwardExecution(eachInBBLeaf,rootTask,targetReady);
         }
-        rootTask->occupied = false;
+        rootTask->occupied=false;
+        cur_func->ReleaseOrRemoveRootTask(sink);
         // we hope the execution above ful-filled its job properly
         assert(sink->ready == targetReady);
     }
@@ -525,10 +550,19 @@ void Orchestrator::SetRetAndRefreshGraph() {
 }
 
 int Orchestrator::Run() {
-
+    int msgCounter = 0;
     pool.enqueue(&MsgQueue::Listen,&(this->msgQueue));
     while(true){
         Message* msg = msgQueue.Pop();
+        if(msg == nullptr){
+            usleep(100);
+            continue;
+        }
+        msgCounter += 1;
+#ifdef DEBUG_OUTPUT
+        cout<<msgCounter<< "th msg,";
+        cout.flush();
+#endif
         if(auto cnt_msg = dynamic_cast<ControlMessgaes*>(msg); cnt_msg != nullptr){
             if(auto bb_msg = dynamic_cast<NotifyBasicBlockMessage*>(cnt_msg) ; bb_msg != nullptr){
                 // now a BB has been finished on the MCU side, we try to do the same here
@@ -553,7 +587,8 @@ int Orchestrator::Run() {
                 cout<<func_msg->Str()<< ':'<<nextFunc->funcname<<'\n';
                 cout.flush();
 #endif
-                _sym_notify_call(func_msg->id);
+
+                UpdateCallStackHashCall(func_msg->id);
                 if(callStack.size() == 0){
                     callStack.push(nextFunc);
                 }else{
@@ -590,6 +625,7 @@ int Orchestrator::Run() {
                     cout <<"back from:"<<callStack.top()->funcname<<'\n';
                     cout.flush();
 #endif
+                    //get the funcID of the callee
                     auto funcId = INT32_MAX;
                     for(auto eachFunc = symGraphs.begin(); eachFunc != symGraphs.end(); eachFunc++){
                         if(eachFunc->second == callStack.top()){
@@ -598,7 +634,7 @@ int Orchestrator::Run() {
                         }
                     }
                     assert(funcId != INT32_MAX);
-                    _sym_notify_ret(funcId);
+                    UpdateCallStackRet(funcId);
                     SetRetAndRefreshGraph();
                 }else{
 #ifdef DEBUG_OUTPUT
@@ -620,13 +656,10 @@ int Orchestrator::Run() {
 #endif
                 auto cur_func = getCurFunc();
                 auto truePhi =  dynamic_cast<SymVal_sym_TruePhi*>(cur_func->Nodes.at(cur_func->symID2offMap.at(phi_msg->symid)));
-                auto truePhiBBID = truePhi->BBID;
-                if(truePhiBBID != lastBBID){
-                    _sym_notify_basic_block(truePhiBBID);
-                    lastBBID = truePhi->BBID;
-                }
-                auto val = dynamic_cast<SymVal*>(truePhi->In_edges.at(phi_msg->value));
+                UpdateCallStackHashBB(truePhi->BBID);
 
+                // get the chosen Symval
+                auto val = dynamic_cast<SymVal*>(truePhi->In_edges.at(phi_msg->value));
                 auto desiredReady = truePhi->getDepTargetReady(val);
                 BackwardExecution(val,  desiredReady);
                 assert(truePhi->isThisNodeReady(val, desiredReady));
@@ -662,11 +695,8 @@ int Orchestrator::Run() {
                 // at compilation, we already ensure, operand 1, 2 are constant, and operand 0 is runtime, so we just
                 // assign the Val from msg to the RuntimePtr's Val, and increase the ready value of that runtime operand by 1, and build this node
                 // and then move on to this parents
-                auto readMemSymBBID = readMemSymVal->BBID;
-                if(readMemSymBBID != lastBBID){
-                    _sym_notify_basic_block(readMemSymBBID);
-                    lastBBID = readMemSymBBID;
-                }
+                UpdateCallStackHashBB(readMemSymVal->BBID);
+
                 auto runtime_operand = dynamic_cast<RuntimeIntVal*>(readMemSymVal->In_edges.at(0));
                 assert(runtime_operand != nullptr);
                 runtime_operand->Assign(sym_read_mem_msg->ptr);
@@ -684,11 +714,7 @@ int Orchestrator::Run() {
 #endif
                 auto buildBoolSymVal = dynamic_cast<SymVal_sym_build_bool*>(cur_val);
                 assert(buildBoolSymVal != nullptr);
-                auto buildBoolSymValBBID = buildBoolSymVal->BBID;
-                if(buildBoolSymValBBID != lastBBID){
-                    _sym_notify_basic_block(buildBoolSymValBBID);
-                    lastBBID = buildBoolSymValBBID;
-                }
+                UpdateCallStackHashBB(buildBoolSymVal->BBID);
                 auto runtimeBoolVal = dynamic_cast<RuntimeIntVal*>(buildBoolSymVal->In_edges.at(0));
                 runtimeBoolVal->Assign(runtimeBoolMsg->value);
                 ForwardExecution(buildBoolSymVal,nullptr, buildBoolSymVal->ready + 1);
@@ -705,11 +731,7 @@ int Orchestrator::Run() {
                 auto buildIntSymVal = dynamic_cast<SymVal_sym_build_integer*>(cur_val);
                 assert(buildIntSymVal != nullptr);
 
-                auto buildIntSymValBBID = buildIntSymVal->BBID;
-                if(buildIntSymValBBID != lastBBID){
-                    _sym_notify_basic_block(buildIntSymValBBID);
-                    lastBBID = buildIntSymValBBID;
-                }
+                UpdateCallStackHashBB(buildIntSymVal->BBID);
 
                 auto runtimeIntVal = dynamic_cast<RuntimeIntVal*>(buildIntSymVal->In_edges.at(0));
                 assert(runtimeIntVal != nullptr);
@@ -728,11 +750,7 @@ int Orchestrator::Run() {
                 auto buildFloatSymVal = dynamic_cast<SymVal_sym_build_float*>(cur_val);
                 assert(buildFloatSymVal != nullptr);
 
-                auto buildFloatSymValBBID = buildFloatSymVal->BBID;
-                if(buildFloatSymValBBID != lastBBID){
-                    _sym_notify_basic_block(buildFloatSymValBBID);
-                    lastBBID = buildFloatSymValBBID;
-                }
+                UpdateCallStackHashBB(buildFloatSymVal->BBID);
 
                 auto runtimeFloatVal = dynamic_cast<RuntimeFloatVal*>(buildFloatSymVal->In_edges.at(0));
                 assert(runtimeFloatVal != nullptr);
@@ -751,11 +769,7 @@ int Orchestrator::Run() {
                 auto buildDoubleSymVar = dynamic_cast<SymVal_sym_build_float*>(cur_val);
                 assert(buildDoubleSymVar != nullptr);
 
-                auto buildDoubleSymVarBBID = buildDoubleSymVar->BBID;
-                if(buildDoubleSymVarBBID != lastBBID){
-                    _sym_notify_basic_block(buildDoubleSymVarBBID);
-                    lastBBID = buildDoubleSymVarBBID;
-                }
+                UpdateCallStackHashBB(buildDoubleSymVar->BBID);
 
                 auto runtimeDoubleVar = dynamic_cast<RuntimeDoubleVal*>(buildDoubleSymVar->In_edges.at(0));
                 assert(runtimeDoubleVar != nullptr);
@@ -775,20 +789,16 @@ int Orchestrator::Run() {
                 cout <<  sym_constraint_msg->Str()<<'\n';
                 cout.flush();
 #endif
-                auto constraintVal = dynamic_cast<SymVal_sym_build_path_constraint*>(cur_val);
-                assert(constraintVal != nullptr);
+                auto buildConstraintVal = dynamic_cast<SymVal_sym_build_path_constraint*>(cur_val);
+                assert(buildConstraintVal != nullptr);
 
-                auto pushConstraintSymVarBBID = constraintVal->BBID;
-                if(pushConstraintSymVarBBID != lastBBID){
-                    _sym_notify_basic_block(pushConstraintSymVarBBID);
-                    lastBBID = pushConstraintSymVarBBID;
-                }
+                UpdateCallStackHashBB(buildConstraintVal->BBID);
 
-                auto runtime_value = dynamic_cast<RuntimeIntVal*>(constraintVal->In_edges.at(1));
+                auto runtime_value = dynamic_cast<RuntimeIntVal*>(buildConstraintVal->In_edges.at(1));
                 assert(runtime_value != nullptr);
                 runtime_value->Assign(sym_constraint_msg->runtimeVal);
-                BackwardExecution(constraintVal, (constraintVal->ready + 1) );
-                assert(dynamic_cast<SymVal*>(constraintVal->In_edges.at(0))->symExpr != nullptr);
+                BackwardExecution(buildConstraintVal, (buildConstraintVal->ready + 1) );
+                assert(dynamic_cast<SymVal*>(buildConstraintVal->In_edges.at(0))->symExpr != nullptr);
 #ifdef DEBUG_OUTPUT
                 cout << "finish "<< sym_constraint_msg->Str()<<"\n\n";
                 cout.flush();
@@ -803,11 +813,7 @@ int Orchestrator::Run() {
                 auto memWriteVal = dynamic_cast<SymVal_sym_build_write_memory*>(cur_val);
                 assert(memWriteVal != nullptr);
 
-                auto memWriteBBID = memWriteVal->BBID;
-                if(memWriteBBID != lastBBID){
-                    _sym_notify_basic_block(memWriteBBID);
-                    lastBBID = memWriteBBID;
-                }
+                UpdateCallStackHashBB(memWriteVal->BBID);
 
                 auto addrOperand = dynamic_cast<RuntimeIntVal*>(memWriteVal->In_edges.at(0));
                 assert(addrOperand != nullptr);
@@ -829,11 +835,7 @@ int Orchestrator::Run() {
                 auto memcpyVal = dynamic_cast<SymVal_sym_build_memcpy*>(cur_val);
                 assert(memcpyVal != nullptr);
 
-                auto memcpyValBBID = memcpyVal->BBID;
-                if(memcpyValBBID != lastBBID){
-                    _sym_notify_basic_block(memcpyValBBID);
-                    lastBBID = memcpyValBBID;
-                }
+                UpdateCallStackHashBB(memcpyVal->BBID);
 
 
                 auto destPtrVal = dynamic_cast<RuntimePtrVal*>(memcpyVal->In_edges.at(0));
@@ -868,8 +870,6 @@ int Orchestrator::Run() {
 #endif
                 assert(false);
             }
-        }else if(msg == nullptr){
-            usleep(100);
         }
         else{
             std::cerr<<"seriously?";

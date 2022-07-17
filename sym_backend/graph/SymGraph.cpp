@@ -737,6 +737,29 @@ Val* SymGraph::stripTruePhi(Val* nodeInQuestion, Val* root) {
     return cur_node;
 }
 */
+bool SymGraph::ReleaseOrRemoveRootTask(SymVal * root) {
+    if(funcname == "receive_cgc_until" && root->symID == 25){
+        __asm__("nop");
+    }
+    if(rootTasks.find(root) != rootTasks.end()){
+        auto * target_rootTask = rootTasks.at(root);
+        if(target_rootTask->occupied){
+            return false;
+        }
+        if(root->ready == (target_rootTask->old_ready + 1)){
+            rootTasks.erase(root);
+            delete target_rootTask;
+            return true;
+        }else{
+#ifdef DEBUG_CHECKING
+            assert(root->ready == target_rootTask->old_ready);
+#endif
+            return false;
+        }
+    }else{
+        return false;
+    }
+}
 
 SymGraph::RootTask* SymGraph::GetRootTask(SymVal * root) {
     {
@@ -744,17 +767,24 @@ SymGraph::RootTask* SymGraph::GetRootTask(SymVal * root) {
         SymVal_sym_TruePhi * true_phi = dynamic_cast<SymVal_sym_TruePhi*>(root);
         assert(true_phi == nullptr);
     }
-
+    Val::ReadyType cur_ready = root->ready;
     if(rootTasks.find(root) != rootTasks.end()){
         RootTask* old_rootTask = rootTasks.at(root);
-        if(old_rootTask->occupied){
-            return nullptr;
-        }else{
-            old_rootTask->occupied = true;
-            old_rootTask->Refresh();
-            return old_rootTask;
-        }
+
+        assert(! old_rootTask->occupied);
+        //only refresh when the ready value matches
+        // otherwise, this task is not built for that, should start over
+        assert(old_rootTask->old_ready == cur_ready);
+
+        old_rootTask->occupied = true;
+        old_rootTask->Refresh();
+        return old_rootTask;
     }
+#ifdef DEBUG_CHECKING
+    if(funcname == "receive_cgc_until" && root->symID){
+        __asm__("nop");
+    }
+#endif
     SymGraph::BasicBlockTask* rootBBTask = bbTasks.at(root->BBID);
     RootTask* rootTask = new RootTask(root, rootBBTask);
     queue<Val*> work_queue;
@@ -943,12 +973,13 @@ void SymGraph::RootTask::InsertNonReadyDep(Val *v, std::map<Val::BasicBlockIdTyp
     if(v->BBID == root->BBID){
         inBBNonReadyDeps.insert(v);
     }
-    BasicBlockTask* curBBTask = bbTasks.at(v->BBID);
-    if(curBBTask->BBID != rootBBid && curBBTask->BBID != 0 && curBBTask->inLoop == false){
+    BasicBlockTask* depBBTask = bbTasks.at(v->BBID);
+    //if(depBBTask->BBID != rootBBid && depBBTask->BBID != 0 && depBBTask->inLoop == false){
         // this BB is not in the loop, and it has node that has not been executed, then it must not be ready
-        assert(curBBTask->ready == 0);
-        if(std::find(depNonReadyNonLoopBB.begin(), depNonReadyNonLoopBB.end(), curBBTask) == depNonReadyNonLoopBB.end()){
-            depNonReadyNonLoopBB.push_back(curBBTask);
+    if(depBBTask->BBID != rootBBid && depBBTask->BBID != 0){
+        assert(depBBTask->ready == 0);
+        if(std::find(depNonReadyNonLoopBB.begin(), depNonReadyNonLoopBB.end(), depBBTask) == depNonReadyNonLoopBB.end()){
+            depNonReadyNonLoopBB.push_back(depBBTask);
         }
     }
 }
@@ -996,6 +1027,9 @@ void SymGraph::RootTask::Refresh() {
 
 bool SymGraph::BasicBlockTask::isBBReady() {
     for(auto eachRoot : roots){
+        if(auto tmpTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(eachRoot); tmpTruePhi != nullptr){
+            continue;
+        }
         assert( eachRoot->ready == (ready + 1) );
     }
     return true;
@@ -1016,12 +1050,16 @@ void SymGraph::RefreshBBTask(Val::BasicBlockIdType bbid,Val::ReadyType targetRea
         }
     }
     // in bb nodes
-    auto nodeIter = bbtask->nonReadyRoots.begin();
-    while(nodeIter != bbtask->nonReadyRoots.end()){
-        if((*nodeIter)->ready == targetReady){
-            nodeIter = bbtask->nonReadyRoots.erase(nodeIter);
-        }else{
-            ++nodeIter;
+    bbtask->nonReadyRoots.clear();
+    for(auto * eachRoot : bbtask->roots){
+        if(eachRoot->ready < targetReady){
+            bbtask->nonReadyRoots.insert(eachRoot);
         }
+#ifdef DEBUG_CHECKING
+        else if(eachRoot->ready > targetReady){
+            std::cerr<<" nodes' ready should not exceed its BB ready";
+            assert(false);
+        }
+#endif
     }
 }
