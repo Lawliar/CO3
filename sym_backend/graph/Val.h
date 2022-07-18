@@ -433,6 +433,7 @@ public:
     unsigned numOps;
     set<ValVertexType> tmpPeerOriginals;
     set<SymVal*> peerOriginals;
+    ReadyType originalNotNull = 0;
     //SymVal_sym_FalsePhiRoot * root = nullptr;
     SymVal_sym_FalsePhiLeaf(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges,set<ValVertexType> tmpOriginals):
             SymVal(symid, NodeFalseLeafPhi, bid), tmpPeerOriginals(tmpOriginals){
@@ -441,7 +442,7 @@ public:
             tmpIn_edges[eachPhiEdge.first] = eachPhiEdge.second;
         }
     }
-    SymVal_sym_FalsePhiLeaf(const SymVal_sym_FalsePhiLeaf&other):SymVal(other){}
+    SymVal_sym_FalsePhiLeaf(const SymVal_sym_FalsePhiLeaf&other):SymVal(other),originalNotNull(0){}
     void FinishCopyConstructing(set<SymVal*>& old_peerOriginals,std::map<Val*,Val*> &old2new){
         //Val::FinishCopyConstructing(old2new);
         for(auto each_old_PeerOrig: old_peerOriginals){

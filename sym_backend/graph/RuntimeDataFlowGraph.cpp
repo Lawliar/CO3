@@ -18,8 +18,10 @@ void RuntimeSymFlowGraph::readGraphViz(std::string filename) {
     dp.property(widthPrefix,           boost::get(&Vertex_Properties::byteWidth,            graph));
     dp.property(BasicBlockPrefix,      boost::get(&Vertex_Properties::BBID,                 graph));
     dp.property(stageSettingPrefix,    boost::get(&Vertex_Properties::stageSetting,         graph));
+    dp.property(symIDReditectPrefix,   boost::get(&Vertex_Properties::symIDReditect,        graph));
     dp.property(argNoPrefix,           boost::get(&Edge_Properties::arg_no,                 graph));
     dp.property(incomingBBPrefix,      boost::get(&Edge_Properties::incomingBB,             graph));
+
     std::ifstream myfile (filename);
     boost::read_graphviz(myfile, graph, dp);
     myfile.close();

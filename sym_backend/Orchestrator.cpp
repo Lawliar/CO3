@@ -16,6 +16,7 @@ std::string dbgInputFileName;
 #ifdef DEBUG_OUTPUT
 int indent = 0;
 int indentNum = 4;
+int msgCounter = 0;
 #endif
 Orchestrator::Orchestrator(std::string inputDir, std::string sp_port, int baud_rate): \
 pool(2),sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
@@ -211,6 +212,7 @@ bool Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot, Va
     return true;
 }
 
+
 bool Orchestrator::ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf * falsePhiLeaf, Val::ReadyType targetReady) {
     auto falsePhiLeafOriginalVal = dynamic_cast<SymVal*>(falsePhiLeaf->In_edges.at(0));
     assert(falsePhiLeafOriginalVal != nullptr);
@@ -223,6 +225,7 @@ bool Orchestrator::ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf * falsePhiLeaf, V
         originalSymExpr = SymVal::extractSymExprFromSymVal(falsePhiLeafOriginalVal, targetReady);
         if(originalSymExpr != nullptr){
             allConcrete = false;
+            falsePhiLeaf->originalNotNull += 1;
         }
     }
     for(auto eachPeerOrig: falsePhiLeaf->peerOriginals){
@@ -244,11 +247,16 @@ bool Orchestrator::ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf * falsePhiLeaf, V
     }else if(originalSymExpr == nullptr && (! allConcrete)){
         // the original is concrete, but the peers are not, we need to construct the newExpr
         auto newVal = dynamic_cast<SymVal*>(falsePhiLeaf->In_edges.at(1));
-        if(! falsePhiLeaf->isThisNodeReady(newVal, targetReady)){
-            BackwardExecution(newVal, targetReady );
+        // this is very important:  if this falsePhiLeaf were to choose this newVal branch
+        // this new Val branch is not necessarily executed the same time as the falsePhiLeaf itself
+        // it should be:
+        //      <the number of time it chose the original branch> +  <the number of times it chose the new branch> = targetReady
+        auto newValTargetReady = targetReady - falsePhiLeaf->originalNotNull;
+        if(! falsePhiLeaf->isThisNodeReady(newVal, newValTargetReady)){
+            BackwardExecution(newVal, newValTargetReady );
         }
-        assert(falsePhiLeaf->isThisNodeReady(newVal, targetReady ));
-        falsePhiLeaf->symExpr = SymVal::extractSymExprFromSymVal(newVal, targetReady);
+        assert(falsePhiLeaf->isThisNodeReady(newVal, newValTargetReady ));
+        falsePhiLeaf->symExpr = SymVal::extractSymExprFromSymVal(newVal, newValTargetReady);
         falsePhiLeaf->ready++;
     }else if(originalSymExpr != nullptr){
         falsePhiLeaf->symExpr = originalSymExpr;
@@ -550,7 +558,6 @@ void Orchestrator::SetRetAndRefreshGraph() {
 }
 
 int Orchestrator::Run() {
-    int msgCounter = 0;
     pool.enqueue(&MsgQueue::Listen,&(this->msgQueue));
     while(true){
         Message* msg = msgQueue.Pop();

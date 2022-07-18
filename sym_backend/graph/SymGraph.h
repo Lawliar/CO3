@@ -172,6 +172,7 @@ public:
     vector<SymVal_sym_get_parameter_expression*> getParametersSym;
     SymVal_sym_set_return_expression* setRetSym = nullptr;
     map<unsigned char, SymVal_sym_notify_call*> callInsts;
+    map<Val::SymIDType, Val::SymIDType> symIDReditectMap;
 
     map<SymVal*,RootTask*> rootTasks;
     std::map<Val::BasicBlockIdType, BasicBlockTask*> bbTasks;

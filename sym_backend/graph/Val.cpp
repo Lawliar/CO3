@@ -199,8 +199,8 @@ void SymVal##OP::Construct(Val::ReadyType targetReady){          \
     assert(symOp2 != nullptr);          \
     auto symInput1 = extractSymExprFromSymVal(symOp1, targetReady);  \
     auto symInput2 = extractSymExprFromSymVal(symOp2, targetReady);  \
-    if(symInput1 == nullptr){     \
-        assert(symInput2 ==nullptr);                  \
+    if(symInput1 == nullptr || symInput2 == nullptr){     \
+        assert(symInput1 == nullptr && symInput2 ==nullptr);                  \
         symExpr = nullptr;                                  \
     }else{                                \
         symExpr =  OP(symInput1,symInput2);  \
@@ -417,8 +417,8 @@ void SymVal_sym_build_equal::Construct(ReadyType targetReady) {
     assert(symOp2 != nullptr);
     auto symInput1 = extractSymExprFromSymVal(symOp1, targetReady);
     auto symInput2 = extractSymExprFromSymVal(symOp2, targetReady);
-    if(symInput1 == nullptr){
-        assert(symInput2 ==nullptr);
+    if(symInput1 == nullptr || symInput2 == nullptr){
+        assert(symInput1 == nullptr && symInput2 ==nullptr);
         symExpr = nullptr;
     }else{
         symExpr =  _sym_build_equal(symInput1,symInput2);

@@ -60,12 +60,16 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
         unsigned width = dfg->graph[cur_ver].byteWidth;
         unsigned long const_val = dfg->graph[cur_ver].const_value;
         unsigned stageSetting = dfg->graph[cur_ver].stageSetting;
+        unsigned symidR = dfg->graph[cur_ver].symIDReditect;
         std::string op = dfg->graph[cur_ver].op;
         // check in-edges
         RuntimeSymFlowGraph::in_edge_it in_eit, in_eit_end;
         boost::tie(in_eit, in_eit_end) = boost::in_edges(cur_ver, dfg->graph);
         unsigned in_degree = boost::in_degree(cur_ver, dfg->graph);
 
+        if(symidR != 0){
+            symIDReditectMap.insert(make_pair(symid, symidR));
+        }
         Val* cur_node = nullptr;
         if(nodeType == NodeConstInt ||nodeType == NodeConstFloat || nodeType == NodeConstDouble){
             assert(symid == -1);
@@ -380,7 +384,7 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
     else if(auto old_Val = dynamic_cast<SymVal##SYMOP*>(old_one); old_Val != nullptr){                          \
         new_one = new SymVal##SYMOP(*old_Val);  \
     }
-SymGraph::SymGraph(const SymGraph& other):funcname(other.funcname),symID2offMap(other.symID2offMap){
+SymGraph::SymGraph(const SymGraph& other):funcname(other.funcname),symID2offMap(other.symID2offMap),symIDReditectMap(other.symIDReditectMap){
     //we're not going to use these 2 anyway
     cfg = nullptr;
     dfg = nullptr;
