@@ -58,6 +58,7 @@ public:
       for(auto eachSymPhi: phiSymbolicIDs){
           delete eachSymPhi.second;
       }
+      symIdRedirect.clear();
       phiSymbolicIDs.clear();
       for(auto eachCallToSetPara: callToSetParaMap){
           eachCallToSetPara.second.clear();
@@ -363,6 +364,12 @@ public:
         }
         return id;
     }
+    void addRedirect(std::vector<unsigned int>& ids ){
+        unsigned int symidR = ids.at(0);
+        for(auto eachId : ids){
+            symIdRedirect.insert(std::make_pair(eachId, symidR));
+        }
+    }
     unsigned int getNextBBID(){
         unsigned id;
         id = BBID;
@@ -644,6 +651,8 @@ public:
   llvm::ValueMap<llvm::Value *, llvm::Value *> symbolicExpressions;
   /// Maps symbolic value to its IDs
   llvm::ValueMap<llvm::CallInst *, unsigned int> symbolicIDs;
+  // redirect the symID into a new one(as we are finer-grained by symcc(e.g, they didn't distinguish different branches for the SwitchInst, but we need to))
+  std::map<unsigned int, unsigned int> symIdRedirect;
   /// Maps phi nodes to its IDs
   llvm::ValueMap<llvm::PHINode* , PhiStatus* > phiSymbolicIDs;
   //map call inst to its corresponding set paras

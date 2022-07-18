@@ -37,6 +37,7 @@ public:
         unsigned int byteWidth;
         unsigned long BBID;
         unsigned stageSetting;
+        unsigned symIDReditect;
     };
     struct Edge_Properties                                    // property bundle for vertices
     {
@@ -61,11 +62,12 @@ public:
     inline static const std::string widthPrefix         = "bw";
     inline static const std::string BasicBlockPrefix    = "BB";
     inline static const std::string stageSettingPrefix    = "SS";
+    inline static const std::string symIDReditectPrefix    = "symidR";
 
-    template <class symIDMap,class opMap, class nodeTypeMap, class constValueMap, class byteWidthMap,class BBMap, class SSMap>
+    template <class symIDMap,class opMap, class nodeTypeMap, class constValueMap, class byteWidthMap,class BBMap, class SSMap, class SRMap>
     class node_writer {
     public:
-        node_writer(symIDMap s, opMap o,nodeTypeMap n,constValueMap c ,byteWidthMap b, BBMap bb, SSMap ss, bool visualize) : sm(s),om(o),nm(n),cm(c),bm(b),bbm(bb),ssm(ss), visualize(visualize){}
+        node_writer(symIDMap s, opMap o,nodeTypeMap n,constValueMap c ,byteWidthMap b, BBMap bb, SSMap ss, SRMap sr, bool visualize) : sm(s),om(o),nm(n),cm(c),bm(b),bbm(bb),ssm(ss),srm(sr), visualize(visualize){}
         template <class Node>
         void operator()(std::ostream &out, const Node& n) const {
             if(visualize){
@@ -80,7 +82,8 @@ public:
                     <<constantValuePrefix <<"="  <<cm[n] <<','  \
                     <<widthPrefix         <<"="  <<bm[n] <<',' \
                     <<BasicBlockPrefix    <<"="  <<bbm[n]<<','\
-                    << stageSettingPrefix << "=" << ssm[n];
+                    << stageSettingPrefix << "=" << ssm[n]<<','\
+                    <<symIDReditectPrefix << "=" << srm[n];
                 if(nm[n] == NodeFalseLeafPhi){
                     out <<",color=blue";
                 }
@@ -103,13 +106,14 @@ public:
         byteWidthMap bm;
         BBMap bbm;
         SSMap ssm;
+        SRMap srm;
         bool visualize;
     };
 
-    template <class symIDMap,class opMap, class nodeTypeMap, class constValueMap, class byteWidthMap,class BBMap,class SSMap>
-    inline node_writer<symIDMap,opMap,nodeTypeMap,constValueMap,byteWidthMap,BBMap,SSMap>
-    make_node_writer(symIDMap s, opMap o,nodeTypeMap n,constValueMap c ,byteWidthMap b, BBMap bb,SSMap ss, bool v) {
-        return node_writer<symIDMap,opMap,nodeTypeMap,constValueMap,byteWidthMap,BBMap,SSMap>(s,o,n,c,b,bb,ss,v);
+    template <class symIDMap,class opMap, class nodeTypeMap, class constValueMap, class byteWidthMap,class BBMap,class SSMap, class SRMap>
+    inline node_writer<symIDMap,opMap,nodeTypeMap,constValueMap,byteWidthMap,BBMap,SSMap, SRMap>
+    make_node_writer(symIDMap s, opMap o,nodeTypeMap n,constValueMap c ,byteWidthMap b, BBMap bb,SSMap ss, SRMap sr, bool v) {
+        return node_writer<symIDMap,opMap,nodeTypeMap,constValueMap,byteWidthMap,BBMap,SSMap,SRMap>(s,o,n,c,b,bb,ss,sr,v);
     }
 
     inline static const std::string argNoPrefix              = "label";
@@ -142,12 +146,12 @@ public:
 
 
     SymDepGraph(bool AddNullSym);
-    SymDepGraph::vertex_t AddSymVertice(unsigned symID, std::string op,unsigned long, unsigned);
+    SymDepGraph::vertex_t AddSymVertice(unsigned symID, std::string op,unsigned long, unsigned, unsigned);
     SymDepGraph::vertex_t AddPhiVertice(std::string, unsigned symID, unsigned long);
     SymDepGraph::vertex_t AddInterFuncVertice(unsigned symID, std::string op,unsigned long);
     SymDepGraph::vertex_t AddConstVertice(std::string, long value, unsigned int byte_width);
     SymDepGraph::vertex_t AddRuntimeVertice(std::string, unsigned int byte_width,unsigned long);
-    SymDepGraph::vertex_t AddVertice(int symID,std::string op,NodeType nodeType,long const_value,unsigned int, unsigned long,unsigned);
+    SymDepGraph::vertex_t AddVertice(int symID,std::string op,NodeType nodeType,long const_value,unsigned int, unsigned long,unsigned, unsigned);
 
     void AddEdge(unsigned from_symid, unsigned to_symid, unsigned arg_no);
     void AddEdge(vertex_t, vertex_t, unsigned);

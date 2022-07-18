@@ -101,6 +101,8 @@ def main():
         f_node = f_cluster.nodes()[0]
 
         t_cluster = cdfg.get_subgraph('cluster'+t.name)
+        if(len(t_cluster.nodes()) == 0):
+            continue
         t_node = t_cluster.nodes()[0]
 
         cdfg.add_edge(f_node, t_node, color="red", lhead ='cluster'+t.name , ltail = 'cluster'+f.name )

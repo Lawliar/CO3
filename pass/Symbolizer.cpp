@@ -806,6 +806,8 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
     MapOriginalBlock(I.getParent(), head);
     // In the constraint block, we push one path constraint per case.
     IRB.SetInsertPoint(constraintBlock);
+
+    std::vector<unsigned int> groupedIds;
     for (auto &caseHandle : I.cases()) {
         auto *caseTaken = IRB.CreateICmpEQ(condition, caseHandle.getCaseValue());
         auto *caseConstraint = IRB.CreateCall(
@@ -816,7 +818,9 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
         auto callToPushConstraint = IRB.CreateCall(runtime.pushPathConstraint,
                        {caseConstraint, caseTaken, ConstantHelper(runtime.symIntT, pushConstraintId)});
         assignSymID(callToPushConstraint, pushConstraintId);
+        groupedIds.push_back(pushConstraintId);
     }
+    addRedirect(groupedIds);
 }
 
 void Symbolizer::visitUnreachableInst(UnreachableInst & /*unused*/) {
@@ -939,19 +943,9 @@ Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
     // some sanity check
     /// check if this function needs report
     auto numArgs = function.getFunctionType()->getNumParams();
-    Type* lastArgType = function.getFunctionType()->getParamType(numArgs - 1);
-
-    if(lastArgType != runtime.symIntT){
-        // then the parameters are either constants or isSym-Typed, cannot be anything else
-        for(auto eachSymFuncArg : functionArgs){
-            assert(isa<Constant>(eachSymFuncArg) || eachSymFuncArg->getType() == runtime.isSymT);
-        }
-    }
-    // end of sanity check
-    else{
+    if(isSymIdType(numArgs - 1, function.getCallee()->getName())){
         functionArgs.push_back(ConstantHelper(runtime.symIntT,symID));
     }
-
     auto *call = IRB.CreateCall(function, functionArgs);
     assignSymID(call,symID);
     std::vector<Input> inputs;
@@ -960,9 +954,7 @@ Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
         if (symbolic){
             inputs.push_back({arg, i, call});
         }
-
     }
-
 
     return SymbolicComputation(call, call, inputs);
 }
@@ -1303,12 +1295,19 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                 }
                 unsigned userSymID = getSymIDFromSym(callInst);
                 SymDepGraph::vertex_t userNode;
+                unsigned stageSetting;
+                unsigned reditect;
                 if(std::find(stageSettingOperations.begin(), stageSettingOperations.end(),userSymID) != stageSettingOperations.end()){
-                    userNode = g.AddSymVertice(userSymID, calleeName.str(),blockID, 1);
+                    stageSetting = 1;
                 }else{
-                    userNode = g.AddSymVertice(userSymID, calleeName.str(),blockID, 0);
+                    stageSetting = 0;
                 }
-
+                if(symIdRedirect.find(userSymID) != symIdRedirect.end()){
+                    reditect = symIdRedirect.at(userSymID);
+                }else{
+                    reditect = 0;
+                }
+                userNode = g.AddSymVertice(userSymID, calleeName.str(),blockID, stageSetting,reditect);
                 if(calleeName.equals("_sym_notify_call")){
                     auto conVert = addConstantIntVertice(callToCallId.at(callInst));
                     g.AddEdge(conVert,userNode, 0);

@@ -312,6 +312,7 @@ Runtime::Runtime(Module &M) {
     isSymArgNo["_sym_try_alternative"] = {1};
     replaceToNone.push_back("_sym_try_alternative");
 
+    // this notifyPhi is not gonna be passed to forceBuildRuntimeCall anyway
     notifyPhi = import(M, "_sym_notify_phi", voidT, int8T, symIntT,isSymT,ptrT,int8T);
     SymOperators.push_back(&notifyPhi);
     runtimeArgNo["_sym_notify_phi"] = {0};
