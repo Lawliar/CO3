@@ -9,27 +9,27 @@
 #define CHECK_SYM_OP0(OP)               \
     else if(op == #OP){                          \
     assert(in_degree == 0);                           \
-    cur_node = new SymVal##OP(symid, bbid);}
+    cur_node = new SymVal##OP(symid,symidR, bbid);}
 
 #define CHECK_SYM_OP1(OP)               \
     else if(op == #OP){                          \
     assert(in_degree == 1);             \
-    cur_node = new SymVal##OP(symid, bbid, in_paras.at(0));}
+    cur_node = new SymVal##OP(symid,symidR, bbid, in_paras.at(0));}
 
 #define CHECK_SYM_OP2(OP)               \
     else if(op == #OP){                          \
     assert(in_degree == 2);             \
-    cur_node = new SymVal##OP(symid, bbid, in_paras.at(0),in_paras.at(1));}
+    cur_node = new SymVal##OP(symid,symidR, bbid, in_paras.at(0),in_paras.at(1));}
 
 #define CHECK_SYM_OP3(OP)               \
     else if(op == #OP){                          \
     assert(in_degree == 3);             \
-    cur_node = new SymVal##OP(symid, bbid, in_paras.at(0),in_paras.at(1),in_paras.at(2));}
+    cur_node = new SymVal##OP(symid,symidR, bbid, in_paras.at(0),in_paras.at(1),in_paras.at(2));}
 
 #define CHECK_SYM_OP4(OP)               \
     else if(op == #OP){                          \
     assert(in_degree == 4);             \
-    cur_node = new SymVal##OP(symid, bbid, in_paras.at(0),in_paras.at(1),in_paras.at(2),in_paras.at(3));}
+    cur_node = new SymVal##OP(symid, symidR, bbid, in_paras.at(0),in_paras.at(1),in_paras.at(2),in_paras.at(3));}
 
 #ifdef DEBUG_OUTPUT
 set<string> leaves;
@@ -107,12 +107,12 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
             }
             if(op == VoidStr){
                 assert(bbid == 0);
-                cur_node = new SymVal_NULL(symid, bbid);
+                cur_node = new SymVal_NULL(symid,symidR, bbid);
                 dynamic_cast<SymVal_NULL*>(cur_node)->symExpr = nullptr;
                 NULL_sym++;
                 assert(NULL_sym == 1);
             } else if(op == "_sym_notify_call"){
-                cur_node = new SymVal_sym_notify_call(symid, bbid, in_paras);
+                cur_node = new SymVal_sym_notify_call(symid,symidR, bbid, in_paras);
             }
             CHECK_SYM_OP2(_sym_try_alternative)
             CHECK_SYM_OP2(_sym_build_integer)
@@ -209,7 +209,7 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
                 assert(dfg->graph[*in_eit].incomingBB > 0);
                 argNo2BBMap[arg_index] = dfg->graph[*in_eit].incomingBB;
             }
-            cur_node = new  SymVal_sym_TruePhi(symid, bbid, in_paras,argNo2BBMap);
+            cur_node = new  SymVal_sym_TruePhi(symid,symidR, bbid, in_paras,argNo2BBMap);
 
         }else if(nodeType == NodeFalseRootPhi || nodeType == NodeFalseLeafPhi ){
             map<unsigned short, unsigned short> in_paras;
@@ -228,9 +228,9 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
             }
             assert(in_paras.size() == 2);
             if(nodeType == NodeFalseRootPhi){
-                cur_node = new SymVal_sym_FalsePhiRoot(symid, bbid, in_paras, leavesOrOriginal);
+                cur_node = new SymVal_sym_FalsePhiRoot(symid,symidR, bbid, in_paras, leavesOrOriginal);
             }else{
-                cur_node = new SymVal_sym_FalsePhiLeaf(symid, bbid, in_paras, leavesOrOriginal);
+                cur_node = new SymVal_sym_FalsePhiLeaf(symid,symidR, bbid, in_paras, leavesOrOriginal);
             }
         }
         if(stageSetting == 1){

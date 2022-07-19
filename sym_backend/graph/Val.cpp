@@ -488,7 +488,8 @@ void SymVal_sym_build_path_constraint::Construct(Val::ReadyType targetReady) {
         assert(boolean_operand->Unassigned);
     }else{
         // We simply use the symid as the siteID
-        _sym_build_path_constraint(symInput, boolean_operand->Val, symID);
+        SymIDType redirectedSymID = symIDR != 0 ? symIDR : symID;
+        _sym_build_path_constraint(symInput, boolean_operand->Val, redirectedSymID);
     }
     ready++;
 }

@@ -384,6 +384,9 @@ z3::expr Solver::getMaxValue(z3::expr& z3_expr) {
 
 void Solver::addToSolver(ExprRef e, bool taken) {
   e->simplify();
+  //e->print(std::cerr);
+  //std::cerr<<"\n";
+  //std::cerr.flush();
   if (!taken)
     e = g_expr_builder->createLNot(e);
   add(e->toZ3Expr());

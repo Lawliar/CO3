@@ -161,6 +161,7 @@ class SymVal: public Val{
 public:
     std::string Op;
     SymIDType symID = 0;
+    SymIDType symIDR = 0;
     SymExpr symExpr = nullptr;
 
     // todo: remove the targetReady parameter
@@ -172,8 +173,8 @@ public:
         ss << "symID:"<<symID << ",op:"<<Op<<",BBID:"<<BBID<<",ready:"<<ready;
         return ss.str();
     }
-    SymVal(SymIDType symid, std::string op, BasicBlockIdType bid):Val( SymValTy,  bid), Op(op), symID(symid){}
-    SymVal(const SymVal& other): Val(other),Op(other.Op), symID(other.symID), symExpr(nullptr){};
+    SymVal(SymIDType symid,SymIDType  symIDR, std::string op, BasicBlockIdType bid):Val( SymValTy,  bid), Op(op), symID(symid),symIDR(symIDR){}
+    SymVal(const SymVal& other): Val(other),Op(other.Op), symID(other.symID),symIDR(other.symIDR), symExpr(nullptr){};
 
 };
 
@@ -183,7 +184,7 @@ class SymVal##OP : public SymVal{                      \
 public:                                                    \
     static const unsigned numOps = 0;                      \
     void Construct(ReadyType) override;                                                       \
-    SymVal##OP(SymIDType symid, BasicBlockIdType bid): SymVal(symid, #OP, bid){}              \
+    SymVal##OP(SymIDType symid, SymIDType symidr,BasicBlockIdType bid): SymVal(symid, symidr,#OP, bid){}              \
     SymVal##OP(const SymVal##OP & other): SymVal(other){}                                      \
     ~SymVal##OP(){In_edges.clear();tmpIn_edges.clear(); UsedBy.clear();}                        \
 };
@@ -193,7 +194,7 @@ class SymVal##OP : public SymVal{                      \
 public:                                                    \
     void Construct(ReadyType) override;                                                       \
     static const unsigned numOps = 1;                                                       \
-    SymVal##OP(SymIDType symid, BasicBlockIdType bid, ValVertexType dep): SymVal(symid, #OP,bid){ tmpIn_edges[0] = dep;} \
+    SymVal##OP(SymIDType symid,SymIDType symidr, BasicBlockIdType bid, ValVertexType dep): SymVal(symid,symidr, #OP,bid){ tmpIn_edges[0] = dep;} \
     SymVal##OP(const SymVal##OP & other): SymVal(other){}                                      \
     ~SymVal##OP(){In_edges.clear();tmpIn_edges.clear(); UsedBy.clear();}                        \
 };
@@ -203,9 +204,9 @@ class SymVal##OP : public SymVal{                      \
 public:                                                    \
     void Construct(ReadyType) override;                                                       \
     static const unsigned numOps = 2;                    \
-    SymVal##OP(SymIDType symid, BasicBlockIdType bid,     \
+    SymVal##OP(SymIDType symid,SymIDType symidr, BasicBlockIdType bid,     \
                  ValVertexType dep1, ValVertexType dep2 ): \
-                 SymVal(symid, #OP, bid){                          \
+                 SymVal(symid,symidr, #OP, bid){                          \
                tmpIn_edges[0] = dep1;                          \
                tmpIn_edges[1] = dep2;}                     \
     SymVal##OP(const SymVal##OP & other): SymVal(other){}                                      \
@@ -215,11 +216,11 @@ public:                                                    \
 #define DECLARE_SYMVAL_TYPE3(OP)                           \
 class SymVal##OP : public SymVal{                      \
 public:                                                    \
-    void Construct(ReadyType) override;                                                       \
+    void Construct(ReadyType) override;                \
     static const unsigned numOps = 3;                   \
-    SymVal##OP(SymIDType symid, BasicBlockIdType bid,     \
+    SymVal##OP(SymIDType symid,SymIDType symidr, BasicBlockIdType bid,     \
                   ValVertexType dep1, ValVertexType dep2,  \
-                  ValVertexType dep3 ): SymVal(symid,#OP, bid){    \
+                  ValVertexType dep3 ): SymVal(symid,symidr,#OP, bid){    \
                tmpIn_edges[0] = dep1;                          \
                tmpIn_edges[1] = dep2;                         \
                tmpIn_edges[2] = dep3;}                     \
@@ -232,10 +233,10 @@ class SymVal##OP : public SymVal{                      \
 public:                                                    \
     static const unsigned numOps = 4;                      \
     void Construct(ReadyType) override;                                                       \
-    SymVal##OP(SymIDType symid, BasicBlockIdType bid,    \
+    SymVal##OP(SymIDType symid,SymIDType symidr, BasicBlockIdType bid,    \
           ValVertexType dep1, ValVertexType dep2,         \
           ValVertexType dep3, ValVertexType dep4):        \
-          SymVal(symid, #OP,bid){                                 \
+          SymVal(symid,symidr, #OP,bid){                  \
                tmpIn_edges[0] = dep1;                          \
                tmpIn_edges[1] = dep2;                         \
                tmpIn_edges[2] = dep3;                         \
@@ -247,7 +248,7 @@ public:                                                    \
 class SymVal_sym_notify_call: public SymVal {
 public:
     void Construct(ReadyType) override;
-    SymVal_sym_notify_call(SymIDType symid, BasicBlockIdType bid, std::map<unsigned , unsigned>& paras): SymVal(symid, "_sym_notify_call", bid) {
+    SymVal_sym_notify_call(SymIDType symid,SymIDType symidr, BasicBlockIdType bid, std::map<unsigned , unsigned>& paras): SymVal(symid,symidr, "_sym_notify_call", bid) {
         for(auto eachPara: paras) {
             tmpIn_edges.insert(std::make_pair(eachPara.first, eachPara.second));
         }
@@ -261,9 +262,9 @@ class SymVal_sym_try_alternative: public SymVal{
 public:
     static const unsigned numOps = 2;
     void Construct(ReadyType) override;
-    SymVal_sym_try_alternative(SymIDType symid, BasicBlockIdType bid,
+    SymVal_sym_try_alternative(SymIDType symid,SymIDType symidr, BasicBlockIdType bid,
                                ValVertexType dep1, ValVertexType dep2 ):
-            SymVal(symid,"_sym_try_alternative",bid){
+            SymVal(symid,symidr,"_sym_try_alternative",bid){
         tmpIn_edges[0] = dep1;
         tmpIn_edges[1] = dep2;}
     SymVal_sym_try_alternative(SymVal_sym_try_alternative&other): SymVal(other){}
@@ -359,9 +360,9 @@ public:
     bool hasConcrete = false;
     uint32_t concreteValue = 0;
 
-    SymVal_sym_build_read_memory(SymIDType symid, BasicBlockIdType bid,
+    SymVal_sym_build_read_memory(SymIDType symid,SymIDType symidr, BasicBlockIdType bid,
                   ValVertexType dep1, ValVertexType dep2,
-                  ValVertexType dep3 ): SymVal(symid,"_sym_build_read_memory", bid){
+                  ValVertexType dep3 ): SymVal(symid,symidr,"_sym_build_read_memory", bid){
                tmpIn_edges[0] = dep1;
                tmpIn_edges[1] = dep2;
                tmpIn_edges[2] = dep3;
@@ -391,8 +392,8 @@ public:
     vector<pair<Val::ArgIndexType, SymExpr> > historyValues;
 
     Val::ReadyType getDepTargetReady(Val*);
-    SymVal_sym_TruePhi(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges, map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap):
-            SymVal(symid, NodeTruePhi, bid), ArgNo2BBMap(ArgNo2BBMap){
+    SymVal_sym_TruePhi(SymIDType symid,SymIDType symidr, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges, map<ArgIndexType , BasicBlockIdType> ArgNo2BBMap):
+            SymVal(symid,symidr, NodeTruePhi, bid), ArgNo2BBMap(ArgNo2BBMap){
         numOps = PhiEdges.size();
         for(auto eachPhiEdge : PhiEdges){
             tmpIn_edges[eachPhiEdge.first] = eachPhiEdge.second;
@@ -410,8 +411,8 @@ public:
     //unsigned numOps;
     set<ValVertexType> tmpfalsePhiLeaves;
     set<Val*> falsePhiLeaves;
-    SymVal_sym_FalsePhiRoot(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges,set<ValVertexType> falsePhiLeaves):
-            SymVal(symid, NodeFalseRootPhi, bid), tmpfalsePhiLeaves(falsePhiLeaves){
+    SymVal_sym_FalsePhiRoot(SymIDType symid,SymIDType symidr, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges,set<ValVertexType> falsePhiLeaves):
+            SymVal(symid,symidr, NodeFalseRootPhi, bid), tmpfalsePhiLeaves(falsePhiLeaves){
         //numOps = PhiEdges.size();
         for(auto eachPhiEdge : PhiEdges){
             tmpIn_edges[eachPhiEdge.first] = eachPhiEdge.second;
@@ -435,8 +436,8 @@ public:
     set<SymVal*> peerOriginals;
     ReadyType originalNotNull = 0;
     //SymVal_sym_FalsePhiRoot * root = nullptr;
-    SymVal_sym_FalsePhiLeaf(SymIDType symid, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges,set<ValVertexType> tmpOriginals):
-            SymVal(symid, NodeFalseLeafPhi, bid), tmpPeerOriginals(tmpOriginals){
+    SymVal_sym_FalsePhiLeaf(SymIDType symid,SymIDType symidr, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges,set<ValVertexType> tmpOriginals):
+            SymVal(symid,symidr, NodeFalseLeafPhi, bid), tmpPeerOriginals(tmpOriginals){
         numOps = PhiEdges.size();
         for(auto eachPhiEdge : PhiEdges){
             tmpIn_edges[eachPhiEdge.first] = eachPhiEdge.second;

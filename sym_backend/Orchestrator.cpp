@@ -567,9 +567,10 @@ int Orchestrator::Run() {
             usleep(100);
             continue;
         }
-        msgCounter += 1;
+
         auto init_msg = dynamic_cast<InitMessage*>(msg);
 #ifdef DEBUG_OUTPUT
+        msgCounter += 1;
         cout<<msgCounter<< "th msg,";
         cout.flush();
         assert(indent == 0);
@@ -590,8 +591,10 @@ int Orchestrator::Run() {
             usleep(100);
             continue;
         }
-        msgCounter += 1;
+
 #ifdef DEBUG_OUTPUT
+        msgCounter += 1;
+
         cout<<msgCounter<< "th msg,";
         cout.flush();
 #endif

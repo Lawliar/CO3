@@ -114,7 +114,7 @@ namespace fs = std::filesystem;
 namespace fs = std::experimental::filesystem;
 #endif
 
-void _sym_initialize(string inputDirName) {
+void _sym_initialize_config(string inputDirName) {
     if (g_initialized.test_and_set())
         return;
     boost::filesystem::path dir (inputDirName);
@@ -132,7 +132,6 @@ void _sym_initialize(string inputDirName) {
 
     g_config.outputDir = outputDir.string();
     g_config.inputFile = inputFile.string();
-    unsigned inputSize = boost::filesystem::file_size(inputFile);
     g_config.logFile = (dir / "qsymLog.txt").string();
     g_config.pruning = false;
     g_config.aflCoverageMap = "";
@@ -140,6 +139,9 @@ void _sym_initialize(string inputDirName) {
     if (g_config.fullyConcrete) {
         return;
     }
+}
+
+void _sym_initialize_mem(char * addr) {
     g_z3_context = new z3::context{};
     g_solver = new Solver(g_config.inputFile, g_config.outputDir, g_config.aflCoverageMap);
     g_expr_builder = g_config.pruning ? PruneExprBuilder::create()
@@ -148,12 +150,12 @@ void _sym_initialize(string inputDirName) {
     _common_initialize();
 
     //initially symbolize the memory buffer
-    ReadWriteShadow shadow((void*)0x2400a704, inputSize);
+    unsigned inputSize = boost::filesystem::file_size(g_config.inputFile);
+    ReadWriteShadow shadow((void*)addr, inputSize);
     unsigned cursor = 0;
     std::generate(shadow.begin(), shadow.end(),
                   [&cursor]() { return _sym_get_input_byte(cursor++); });
 }
-
 SymExpr _sym_build_integer(uint64_t value, uint8_t bits) {
   // Qsym's API takes uintptr_t, so we need to be careful when compiling for
   // 32-bit systems: the compiler would helpfully truncate our uint64_t to fit
@@ -260,17 +262,16 @@ SymExpr _sym_build_trunc(SymExpr expr, uint8_t bits) {
 
 void _sym_build_path_constraint(SymExpr constraint, int taken,
                                uintptr_t site_id) {
-    /*
+
     int isConcrete = 0;
     if (constraint == nullptr){
         isConcrete = 1;
     }else{
         isConcrete = 0;
     }
-    printf("is concrete:%d,site_id:%d\n",isConcrete, site_id);
-    //std::cout << "is concrete:"<< isConcrete<<",site_id:"<< site_id<<'\n';
-    //std::cout.flush();
-    */
+    //std::cerr<< "is concrete:"<< isConcrete<<",site_id:"<< site_id<<'\n';
+    //std::cerr.flush();
+
     if (constraint == nullptr)
         return;
 
