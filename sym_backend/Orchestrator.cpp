@@ -77,7 +77,7 @@ pool(2),sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
         symGraphs[cur_id] = cur_symgraph;
         vanillaSymGraphs[cur_id] = new SymGraph(*cur_symgraph);
     }
-    _sym_initialize(inputDir);
+    _sym_initialize_config(inputDir);
 }
 Orchestrator::~Orchestrator() {
     freeSerialPort(sp);
@@ -559,6 +559,31 @@ void Orchestrator::SetRetAndRefreshGraph() {
 
 int Orchestrator::Run() {
     pool.enqueue(&MsgQueue::Listen,&(this->msgQueue));
+    // get the initialization msg so that we can initialize on our side:
+    while(true){
+
+        Message* msg = msgQueue.Pop();
+        if(msg == nullptr){
+            usleep(100);
+            continue;
+        }
+        msgCounter += 1;
+        auto init_msg = dynamic_cast<InitMessage*>(msg);
+#ifdef DEBUG_OUTPUT
+        cout<<msgCounter<< "th msg,";
+        cout.flush();
+        assert(indent == 0);
+        cout<<init_msg->Str()<<'\n';
+        cout.flush();
+#endif
+        assert(init_msg != nullptr);
+        _sym_initialize_mem(init_msg->addr);
+#ifdef DEBUG_OUTPUT
+        cout<<"finish "<<init_msg->Str()<<"\n\n";
+        cout.flush();
+#endif
+        break;
+    }
     while(true){
         Message* msg = msgQueue.Pop();
         if(msg == nullptr){

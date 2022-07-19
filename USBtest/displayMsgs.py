@@ -243,6 +243,10 @@ def parsePackage(package):
             bbid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             cur += 3
             print("{}NotifyBB1: bb id:{}".format(indent * '\t',bbid))
+        elif(package[cur] == MsgTypes.SYM_INIT):
+            addr  = int.from_bytes(package[cur + 1: cur + 5],byteorder='little')
+            cur += 5
+            print("{}SymInit: addr:{}".format(indent * '\t',addr))
         elif(package[cur] == MsgTypes.SYM_END):
             cur += 1
             print("SymEnd")

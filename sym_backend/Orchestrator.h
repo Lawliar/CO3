@@ -29,6 +29,8 @@ public:
     int Run();
     SymGraph* getCurFunc();
 
+    void InitializeInputBuffer(char * addr);
+
     void UpdateCallStackHashBB(Val::BasicBlockIdType);
     void UpdateCallStackHashCall(unsigned);
     void UpdateCallStackRet(unsigned);

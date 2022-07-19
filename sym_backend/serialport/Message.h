@@ -26,6 +26,7 @@ public:
         MemsetRuntimeMsg,
         MemmoveRuntimeMsg,
         WriteMemRuntimeMsg,
+        InitMsg,
         EndMsg,
     } MessageType;
     MessageType type;
@@ -230,6 +231,16 @@ public:
     }
 };
 
+class InitMessage : public ControlMessgaes{
+public:
+    char * addr = nullptr;
+    InitMessage(char* addr): ControlMessgaes(InitMsg),addr(addr){};
+    std::string Str(){
+        std::ostringstream s;
+        s << "SymInit: Addr:"<<reinterpret_cast<std::uintptr_t>(addr);
+        return s.str();
+    }
+};
 class EndMessage: public ControlMessgaes{
 public:
     EndMessage(): ControlMessgaes(EndMsg){};

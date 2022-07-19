@@ -132,7 +132,7 @@ enum {
 #define SIZE_SYM_NTFY_RET           2      // | FCODE(1) | call_inst_id(1)  |
 #define SIZE_SYM_NTFY_BBLK          2      // | FCODE(1) | bbid(1)          |
 #define SIZE_SYM_NTFY_BBLK1         3      // | FCODE(1) | bbid(2)          |
-//#define SIZE_SYM_INIT
+#define SIZE_SYM_INIT               5      // | FCODE(1) | addr(4)          |
 #define SIZE_SYM_END                1      // | FCODE(1) |
 
 #define NUMBER_SYM_PERI           10

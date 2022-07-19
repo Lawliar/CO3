@@ -14,8 +14,8 @@ if(len(args) == 2 ):
     with open(args[1],"rb") as rfile:
         input_data = rfile.read()
 
-if(len(input_data) > 1024):
-    input_data = input_data[:1024]
+if(len(input_data) > MAX_INPUT_LEN):
+    input_data = input_data[:MAX_INPUT_LEN]
 
 if(len(input_data) == 0):
     data = plaintext_input

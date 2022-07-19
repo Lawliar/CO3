@@ -657,7 +657,7 @@ void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t 
 
 	int msgSize=0;
 	msgSize = size;
-	uint32_t addr;
+	//uint32_t addr;
 	uint8_t *byteval;
 
 	bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
@@ -675,22 +675,26 @@ void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t 
 
 
 
-	addr = (uint32_t) dest;
-	byteval = (uint8_t*)(&addr);
-	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
-	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
-	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
-	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
+	//addr = (uint32_t) dest;
+	//byteval = (uint8_t*)(&addr);
+	//AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+	//AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+	//AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+	//AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
+	*(uint32_t*)(AFLfuzzer.txbuffer + AFLfuzzer.txCurrentIndex) = (uint32_t) dest;
+	AFLfuzzer.txCurrentIndex += 4;
 
 
 	if(msgCode == SYM_BLD_MEMCPY || msgCode == SYM_BLD_MEMCPY_1  || msgCode == SYM_BLD_MEMMOVE || msgCode == SYM_BLD_MEMMOVE_1)
 	{
-		addr = (uint32_t) src;
-		byteval = (uint8_t*)(&addr);
-		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
-		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
-		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
-		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
+		//addr = (uint32_t) src;
+		//byteval = (uint8_t*)(&addr);
+		//AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+		//AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+		//AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+		//AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
+		*(uint32_t*)(AFLfuzzer.txbuffer + AFLfuzzer.txCurrentIndex) = (uint32_t) src;
+		AFLfuzzer.txCurrentIndex += 4;
 	}
 
     if(msgCode != SYM_BLD_READ_MEM  && msgCode != SYM_BLD_READ_MEM_1 \
@@ -706,10 +710,12 @@ void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t 
     if(msgCode == SYM_BLD_READ_MEM_W || msgCode == SYM_BLD_READ_MEM_W_1) // we need to send the concrete word
     {
     		byteval = (uint8_t*)(dest);
-    		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
-    		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
-    		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
-    		AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
+    		//AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+    		//AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+    		//AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval++;
+    		//AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++]= *byteval;
+    		*(uint32_t*)(AFLfuzzer.txbuffer + AFLfuzzer.txCurrentIndex) = *(uint32_t*)(dest);
+    		AFLfuzzer.txCurrentIndex += 4;
     }
 
     if(msgCode == SYM_BLD_READ_MEM_HW || msgCode ==  SYM_BLD_READ_MEM_HW_1) // we need to send the concrete half  word
@@ -965,7 +971,15 @@ void _sym_symbolize_memory(char * addr, size_t length)
 		SetSymbolic(pChar);
 		pChar++;
 	}
-
+	// send the addr value
+	int msgSize = 0;
+	uint8_t msgCode;
+	msgSize = SIZE_SYM_INIT;
+	msgCode = SYM_INIT;
+	txCommandtoMonitorF;
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode;
+	*(uint32_t*)(AFLfuzzer.txbuffer + AFLfuzzer.txCurrentIndex) = (uint32_t) addr;
+	AFLfuzzer.txCurrentIndex += 4;
 }
 
 

@@ -288,7 +288,12 @@ void MsgQueue::RenderAndPush(char * buf, char size){
             uint16_t  id = *(uint16_t*)(buf + cur + 1);
             msgQueue.push_back(new NotifyBasicBlockMessage(id));
             cur += SIZE_SYM_NTFY_BBLK1;
-        }else if(buf[cur] == SYM_END){
+        }else if(buf[cur] == SYM_INIT){
+            char * addr = reinterpret_cast<char *>(*(uint32_t*)(buf + cur + 1));
+            msgQueue.push_back(new InitMessage(addr));
+            cur += SIZE_SYM_INIT;
+        }
+        else if(buf[cur] == SYM_END){
             msgQueue.push_back(new EndMessage());
             cur += SIZE_SYM_END;
         }else{
