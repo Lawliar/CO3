@@ -460,7 +460,10 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
     auto *dataType = I.getType();
     auto readMemSymID = getNextID();
     auto intByteSize = dataLayout.getTypeStoreSize(dataType);
-    assert(intByteSize == 1 ||intByteSize == 2 ||intByteSize == 4 );
+    if(intByteSize != 1  && intByteSize != 2 &&intByteSize != 4 ){
+        errs()<<I<<'\n';
+        llvm_unreachable("loads more than 4 bytes");
+    }
     auto *data = IRB.CreateCall(
       runtime.readMemory,
       {IRB.CreatePtrToInt(addr, intPtrType),
@@ -1055,6 +1058,7 @@ void Symbolizer::shortCircuitExpressionUses() {
         std::set<unsigned> falsePhiLeavesSymIDs;
         std::set<unsigned> peerOriginalSymIDs;
         std::set<FalsePhiLeaf*> falsePhiPeers;
+
         for (unsigned argIndex = 0; argIndex < symbolicComputation.inputs.size();
              argIndex++) {
             auto &argument = symbolicComputation.inputs[argIndex];
@@ -1123,7 +1127,12 @@ void Symbolizer::shortCircuitExpressionUses() {
         if(falsePhiLeavesSymIDs.size() == 0 || falsePhiLeavesSymIDs.size() == 1){
             assert(peerOriginalSymIDs.size() == 0);
         }else{
-            assert(falsePhiLeavesSymIDs.size() == peerOriginalSymIDs.size());
+            // there can be 1 function accepting 2 parameters that are the same original value
+            // in this case, there is only one original value, but 2 different faslePhiLeaf will be created
+            if(falsePhiLeavesSymIDs.size() != peerOriginalSymIDs.size()){
+                errs()<<symbolicComputation<<'\n';
+                errs()<<" same value feeding into different parameters\n";
+            }
             for(auto eachPeer1 : falsePhiPeers){
                 for(auto orig : peerOriginalSymIDs){
                     eachPeer1->InsertPeer(orig);
@@ -1476,8 +1485,8 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
     for(auto eachToReplaceToInput : toReplaceToInput){
         // although different functions in this category has different number of parameters
         // but the input is always the first parameter, and that is the only thing that matters
+        assert(isSymStatusType(0,eachToReplaceToInput->getCalledFunction()->getName()));
         Value * input = eachToReplaceToInput->getArgOperand(0);
-        assert(input->getType() == runtime.isSymT);
         replaceAllUseWith(eachToReplaceToInput, input);
         eachToReplaceToInput->eraseFromParent();
     }
@@ -1485,9 +1494,9 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
         // although different functions in this category has different number of parameters
         // but the inputs are always the first and the 2nd parameter, and that is the only thing that matters
         Value * input1 = eachToReplaceWithOr->getArgOperand(0);
-        assert(input1->getType() == runtime.isSymT);
+        assert(isSymStatusType(0,eachToReplaceWithOr->getCalledFunction()->getName()));
         Value * input2 = eachToReplaceWithOr->getArgOperand(1);
-        assert(input2->getType() == runtime.isSymT);
+        assert(isSymStatusType(1,eachToReplaceWithOr->getCalledFunction()->getName()));
 
         IRBuilder<> IRB(eachToReplaceWithOr);
         Value * orExpression = IRB.CreateOr(input1, input2);
