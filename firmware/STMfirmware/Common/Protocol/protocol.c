@@ -75,7 +75,7 @@ void TransmitPack(void)
 #if DEBUGPRINT==1
 		printf("TX buffer f. num: %d\n", AFLfuzzer.txTotalFunctions);
 #endif
-		AFLfuzzer.txbuffer[0]= AFLfuzzer.txCurrentIndex-1; //set the total length of the payload without considering size itself
+		AFLfuzzer.txbuffer[0]= AFLfuzzer.txCurrentIndex; //set the total length of the payload without considering size itself
 		CDC_Transmit_FS(AFLfuzzer.txbuffer, AFLfuzzer.txCurrentIndex); //transmit data
 	}
 

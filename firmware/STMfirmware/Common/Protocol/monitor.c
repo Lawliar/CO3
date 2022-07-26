@@ -162,6 +162,7 @@ static void MonitorTask( void * pvParameters )
 	}
 }
 
+extern unsigned int input_cur;
 static void TargetTask( void * pvParameters )
 {
 	//printf("\n new target spawned\n");
@@ -179,6 +180,7 @@ static void TargetTask( void * pvParameters )
         //test((unsigned char*)(AFLfuzzer.inputAFL.uxBuffer+1),AFLfuzzer.inputAFL.u32available);
         test();
         _sym_end();
+        input_cur = 0;
 		//testprotocol(10); // this function will call instrumentation callbacks for testing
 		//stop_time_val = DWT->CYCCNT;
 
