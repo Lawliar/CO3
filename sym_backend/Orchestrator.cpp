@@ -10,7 +10,7 @@
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "UnreachableCode"
 
-std::string dbgInputFileName;
+std::string dbgUsbFileName;
 
 
 #ifdef DEBUG_OUTPUT
@@ -24,13 +24,18 @@ pool(2),sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
     boost::filesystem::path dir (inputDir);
     boost::filesystem::path funcIDFilePath = dir / "spear_func_id.txt";
 
-    boost::filesystem::path fileInputFilePath = dir / "fileUSB.bin";
-    if(!boost::filesystem::exists(fileInputFilePath)){
+    boost::filesystem::path usbFilePath = dir / "fileUSB.bin";
+    boost::filesystem::path inputFile = dir / inputFileBasicName;
+    if(!boost::filesystem::exists(usbFilePath)){
         cerr<<"fileUSB.bin file does not exist, even if you don't use file for USB, please create an empty file there.";
         assert(false);
     }
-
-    dbgInputFileName.append(fileInputFilePath.string());
+    if(!boost::filesystem::exists(inputFile)){
+        cerr<<"input file does not exist";
+        assert(false);
+    }
+    symInputFile = inputFile.string();
+    dbgUsbFileName.append(usbFilePath.string());
 
     if(!boost::filesystem::exists(funcIDFilePath)){
         cerr<<"func id file does not exist";
@@ -557,6 +562,29 @@ void Orchestrator::SetRetAndRefreshGraph() {
     //                            funcFiles.at(cur_func_name).postDom_file, funcFiles.at(cur_func_name).dfg_file);
 }
 
+void Orchestrator::SendInput() {
+    ifstream inputFile (symInputFile,ios::in | ios::binary);
+    assert(inputFile.is_open());
+    // get its size:
+    inputFile.seekg(0, std::ios::end);
+    std::streampos fileSize = inputFile.tellg();
+    inputFile.seekg(0, std::ios::beg);
+    unsigned fileSize_int = 0;
+    if(fileSize > 1024){
+        fileSize_int = 1024;
+    }else{
+        fileSize_int = fileSize;
+    }
+    char * input = (char*) malloc(1024 + 4);
+    inputFile.read(input + 4, fileSize);
+    input[0] = fileSize_int & 0x000000ff;
+    input[1] = (fileSize_int & 0x0000ff00) >> 8;
+    input[2] = (fileSize_int & 0x00ff0000) >> 16;
+    input[3] = (fileSize_int & 0xff000000) >> 24;
+
+    sendDataSerialPort(sp.port, (uint8_t *)input, fileSize_int + 4);
+    delete input;
+}
 int Orchestrator::Run() {
     pool.enqueue(&MsgQueue::Listen,&(this->msgQueue));
     // get the initialization msg so that we can initialize on our side:
@@ -708,6 +736,10 @@ int Orchestrator::Run() {
                 cout.flush();
 #endif
             }else if(auto end_msg = dynamic_cast<EndMessage*>(cnt_msg); end_msg != nullptr ){
+#ifdef DEBUG_OUTPUT
+                cout<< "finish "<<end_msg->Str()<<"\n\n";
+                cout.flush();
+#endif
                 break;
             }
             else{

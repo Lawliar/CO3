@@ -115,19 +115,19 @@ inline void sendDataSerialPort(struct sp_port* port, uint8_t * buf, uint32_t siz
 }
 
 
-void receiveData(struct sp_port* port, unsigned numBytesWaiting, unsigned timeout){
-    if(numBytesWaiting == 0 ){
-        return;
+int receiveData(struct sp_port* port, unsigned byteToRead, unsigned timeout){
+    if(byteToRead == 0 ){
+        return 0;
     }
-    u8 * buf = (u8 *)malloc(numBytesWaiting + 1);
-    int result = check(sp_blocking_read(port, buf, numBytesWaiting, timeout));
-    buf[result] = '\0';
+    u8 * buf = (u8 *)malloc(byteToRead );
+    int result = check(sp_blocking_read(port, buf, byteToRead, timeout));
     unsigned freeBytes = ring_buffer_num_empty_items(&RingBuffer);
-    if(freeBytes < numBytesWaiting){
+    if(freeBytes < byteToRead){
         fprintf(stderr,"no enough space in the ringbuffer to write %d bytes!\n", freeBytes);
         abort();
     }
 
-    ring_buffer_queue_arr(&RingBuffer, buf, numBytesWaiting);
-    return;
+    ring_buffer_queue_arr(&RingBuffer, buf, byteToRead);
+    free(buf);
+    return result;
 }

@@ -23,9 +23,11 @@ typedef enum _SpecialNodeReturn{
     NotSpecial
 }SpecialNodeReturn;
 
+
 class Orchestrator{
 public:
     Orchestrator(std::string inputDir, std::string sp_port, int);
+    void SendInput();
     int Run();
     SymGraph* getCurFunc();
 
@@ -52,6 +54,7 @@ public:
 
     OpenedSP sp;
     MsgQueue msgQueue;
+    std::string symInputFile;
     Val::BasicBlockIdType lastBBID = 0;
     std::stack<SymGraph*> callStack;
     std::map<unsigned, SymGraph*> symGraphs;

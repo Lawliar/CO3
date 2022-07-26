@@ -131,9 +131,10 @@ public:
     int Listen();
     size_t GetQueueSize();
     Message* Pop();
+    void Push(Message*);
 private:
     OpenedSP sp;
-    //std::mutex msgQMutex;
+    std::mutex msgQMutex;
     std::deque<Message*> msgQueue;
 };
 

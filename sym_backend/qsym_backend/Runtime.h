@@ -20,4 +20,5 @@
 typedef qsym::Expr *SymExpr;
 #include <RuntimeCommon.h>
 
+#define inputFileBasicName "concreteInputs.bin"
 #endif

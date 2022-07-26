@@ -120,7 +120,7 @@ void _sym_initialize_config(string inputDirName) {
     boost::filesystem::path dir (inputDirName);
     //loadConfig();
     boost::filesystem::path outputDir = dir / "output";
-    boost::filesystem::path inputFile = dir /"concreteInputs.bin";
+    boost::filesystem::path inputFile = dir / inputFileBasicName;
 
     if(!boost::filesystem::exists(outputDir)){
         boost::filesystem::create_directory(outputDir);

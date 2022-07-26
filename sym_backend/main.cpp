@@ -42,6 +42,9 @@ int main(int argc, const char *argv[])
 #ifdef GPROFILING
     ProfilerStart("orchestrator.prof");
 #endif
+    if(orc.sp.port != nullptr){
+        orc.SendInput();
+    }
     orc.Run();
 #ifdef GPROFILING
     ProfilerStop();

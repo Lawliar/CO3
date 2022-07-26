@@ -259,8 +259,9 @@ size = len(data)
 print("total len:{}".format(size))
 while cur < size:
     package_len = data[cur]
-    package = data[cur + 1 : cur + 1 +  package_len]
+    payload_len = package_len - 1
+    package = data[cur + 1 : cur + 1 +  payload_len]
 
     parsePackage(package)
 
-    cur =  cur + 1 +  package_len
+    cur =  cur +  package_len
