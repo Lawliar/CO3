@@ -464,12 +464,12 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
         errs()<<I<<'\n';
         llvm_unreachable("loads more than 4 bytes");
     }
-    Value* ptrOperand = nullptr;
-    if(isa<Constant>(addr)){
-        ptrOperand = CastInst::Create( llvm::AddrSpaceCastInst::PtrToInt ,addr, intPtrType, "", &I);
-    }else{
-        ptrOperand = IRB.CreatePtrToInt(addr, intPtrType);
-    }
+    Value* ptrOperand  = IRB.CreatePtrToInt(addr, intPtrType);;
+    //if(isa<Constant>(addr)){
+    //    ptrOperand = CastInst::Create( llvm::AddrSpaceCastInst::PtrToInt ,addr, intPtrType, "", &I);
+    //}else{
+
+    //}
     auto *data = IRB.CreateCall(
       runtime.readMemory,
       {ptrOperand,
@@ -934,6 +934,10 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
                               ConstantHelper(runtime.symIntT, symid)});
         assignSymID(ret,symid);
         return ret;
+    }
+    if(isa<UndefValue>(V)){
+        llvm_unreachable("Undef Value not support, not because itself is hard to support, but the composite value after it. \
+        Plus this is most likely caused by some unintialized struct or integer, just give it some initialized value and get rid off this undef");
     }
     errs()<<*V<<'\n';
     llvm_unreachable("Unhandled type for constant expression");
