@@ -464,9 +464,15 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
         errs()<<I<<'\n';
         llvm_unreachable("loads more than 4 bytes");
     }
+    Value* ptrOperand = nullptr;
+    if(isa<Constant>(addr)){
+        ptrOperand = CastInst::Create( llvm::AddrSpaceCastInst::PtrToInt ,addr, intPtrType, "", &I);
+    }else{
+        ptrOperand = IRB.CreatePtrToInt(addr, intPtrType);
+    }
     auto *data = IRB.CreateCall(
       runtime.readMemory,
-      {IRB.CreatePtrToInt(addr, intPtrType),
+      {ptrOperand,
        ConstantInt::get(intPtrType, intByteSize),
        ConstantInt::get(IRB.getInt8Ty(), isLittleEndian(dataType) ? 1 : 0),
        ConstantHelper(runtime.symIntT,readMemSymID)});
