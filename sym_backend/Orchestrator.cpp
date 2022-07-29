@@ -253,7 +253,7 @@ bool Orchestrator::ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf * falsePhiLeaf, V
         // the original is concrete, but the peers are not, we need to construct the newExpr
         auto newVal = dynamic_cast<SymVal*>(falsePhiLeaf->In_edges.at(1));
         // this is very important:  if this falsePhiLeaf were to choose this newVal branch
-        // this new Val branch is not necessarily executed the same time as the falsePhiLeaf itself
+        // this new Val branch is not necessarily executed the same numer of times as the falsePhiLeaf itself
         // it should be:
         //      <the number of time it chose the original branch> +  <the number of times it chose the new branch> = targetReady
         auto newValTargetReady = targetReady - falsePhiLeaf->originalNotNull;
@@ -954,11 +954,14 @@ int Orchestrator::Run() {
                 cout << memmoveMsg->Str()<<'\n';
                 cout.flush();
 #endif
-                assert(false);
+                std::cerr<<"unsupported memmove\n";
+                std::cerr.flush();
+                abort();
             }
         }
         else{
             std::cerr<<"seriously?";
+            std::cerr.flush();
             assert(false);
         }
         delete(msg);

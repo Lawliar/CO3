@@ -21,10 +21,12 @@ bool Val::isThisNodeReady(Val * nodeInQuestion, unsigned targetReady) {
     if(nodeInQuestion->BBID == 0){
         // if it's a constant or symNULL, then of course it's ready.
         //todo: for debugging only
+#ifdef DEBUG_CHECKING
         auto tmpSymNull = dynamic_cast<SymVal_NULL*>(nodeInQuestion);
         auto tmpConst = dynamic_cast<ConstantVal*>(nodeInQuestion);
         assert(tmpSymNull != nullptr || tmpConst != nullptr);
         //end of debug
+#endif
         return true;
     }
     if(!nodeInQuestion->inLoop){
@@ -34,7 +36,7 @@ bool Val::isThisNodeReady(Val * nodeInQuestion, unsigned targetReady) {
             return false;
         }else{
             cerr<<"Nodes in the non-loop BB should at executed at most once.";
-            assert(false);
+            abort();
         }
     }else{
         // now nodeInQuestion is in loop, and root is in or out of a loop
@@ -192,7 +194,8 @@ void SymVal##OP::Construct(Val::ReadyType targetReady){ \
 
 
 #define DEFINE_SYMVAL_CONSTRUCTION2(OP) \
-void SymVal##OP::Construct(Val::ReadyType targetReady){          \
+void SymVal##OP::Construct(Val::ReadyType targetReady){ \
+    assert(targetReady == (ready + 1));                     \
     auto symOp1 = dynamic_cast<SymVal*>(In_edges.at(0));    \
     assert(symOp1 != nullptr);                              \
     auto symOp2 = dynamic_cast<SymVal*>(In_edges.at(1));    \
@@ -209,7 +212,8 @@ void SymVal##OP::Construct(Val::ReadyType targetReady){          \
 }
 
 #define DEFINE_SYMVAL_SYM_1CONSTINT(OP) \
-void SymVal##OP::Construct(Val::ReadyType targetReady){          \
+void SymVal##OP::Construct(Val::ReadyType targetReady){ \
+    assert(targetReady == (ready + 1));                     \
     auto symOp = dynamic_cast<SymVal*>(In_edges.at(0));    \
     assert(symOp != nullptr);                              \
     auto constOp = dynamic_cast<ConstantIntVal*>(In_edges.at(1));    \
@@ -224,7 +228,8 @@ void SymVal##OP::Construct(Val::ReadyType targetReady){          \
 }
 
 #define DEFINE_SYMVAL_SYM_2CONSTINT(OP) \
-void SymVal##OP::Construct(Val::ReadyType targetReady){          \
+void SymVal##OP::Construct(Val::ReadyType targetReady){ \
+    assert(targetReady == (ready + 1));                     \
     auto symOp = dynamic_cast<SymVal*>(In_edges.at(0));    \
     assert(symOp != nullptr);                              \
     auto constOp1 = dynamic_cast<ConstantIntVal*>(In_edges.at(1));    \
@@ -587,11 +592,43 @@ void SymVal_sym_build_memmove::Construct(ReadyType) {
     std::cerr <<"not supported yet\n";
     assert(false);
 }
-void SymVal_sym_build_insert::Construct(ReadyType) {
-    std::cerr <<"not supported yet\n";
-    assert(false);
+void SymVal_sym_build_insert::Construct(ReadyType targetReady) {
+    assert(targetReady == (ready + 1));
+    auto target_symOp = dynamic_cast<SymVal*>(In_edges.at(0));
+    assert(target_symOp != nullptr);
+    auto toInsert_symOp = dynamic_cast<SymVal*>(In_edges.at(1));
+    assert(toInsert_symOp != nullptr);
+    auto offset_const = dynamic_cast<ConstantIntVal*>(In_edges.at(2));
+    assert(offset_const != nullptr);
+    auto little_endian_const = dynamic_cast<ConstantIntVal*>(In_edges.at(3));
+    assert(little_endian_const != nullptr);
+    auto target_symExpr = extractSymExprFromSymVal(target_symOp, targetReady);
+    auto toInsert_symExpr = extractSymExprFromSymVal(toInsert_symOp, targetReady);
+
+    if(target_symExpr == nullptr || toInsert_symExpr == nullptr){
+        assert(target_symExpr == nullptr && toInsert_symExpr == nullptr);
+        symExpr = nullptr;
+    }else{
+        symExpr =  _sym_build_insert(target_symExpr, toInsert_symExpr, offset_const->Value,little_endian_const->Value);
+    }
+    ready++;
 }
-void SymVal_sym_build_extract::Construct(ReadyType) {
-    std::cerr <<"not supported yet\n";
-    assert(false);
+void SymVal_sym_build_extract::Construct(ReadyType targetReady) {
+    assert(targetReady == (ready + 1));
+    auto symOp = dynamic_cast<SymVal*>(In_edges.at(0));
+    assert(symOp != nullptr);
+    auto offset_const = dynamic_cast<ConstantIntVal*>(In_edges.at(1));
+    assert(offset_const != nullptr);
+    auto length_const = dynamic_cast<ConstantIntVal*>(In_edges.at(2));
+    assert(length_const != nullptr);
+    auto little_endian_const = dynamic_cast<ConstantIntVal*>(In_edges.at(3));
+    assert(little_endian_const != nullptr);
+    auto input_symexpr = extractSymExprFromSymVal(symOp, targetReady);
+
+    if(input_symexpr == nullptr){
+        symExpr = nullptr;
+    }else{
+        symExpr =  _sym_build_extract(input_symexpr, offset_const->Value, length_const->Value,little_endian_const->Value);
+    }
+    ready++;
 }

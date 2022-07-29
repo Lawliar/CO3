@@ -41,9 +41,7 @@ int MsgQueue::Listen() {
     if(sp.port != nullptr){
         while(true){
             int received = receiveData(sp.port, frameLen, 1000);
-            if(received < frameLen){
-                __asm__("nop");
-            }
+
             ProcessMsgs();
             if(received < frameLen){
                 //assert(ring_buffer_num_items(&RingBuffer) == 0);

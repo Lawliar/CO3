@@ -45,6 +45,7 @@ int main(int argc, const char *argv[])
     if(orc.sp.port != nullptr){
         orc.SendInput();
     }
+
     orc.Run();
 #ifdef GPROFILING
     ProfilerStop();
