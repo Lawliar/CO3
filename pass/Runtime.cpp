@@ -291,14 +291,14 @@ Runtime::Runtime(Module &M) {
     isSymArgNo["_sym_build_write_memory"] = {2};
     symIdArgNo["_sym_build_write_memory"] = {4};
 
-    // logic or ..?
+
     buildInsert = import(M, "_sym_build_insert", isSymT, isSymT, isSymT, int_type, int8T);
     SymOperators.push_back(&buildInsert);
     isSymArgNo["_sym_build_insert"] = {0,1};
     constArgNo["_sym_build_insert"] = {2,3};
     replaceToLogicOr.push_back("_sym_build_insert");
 
-    // same with input..?
+    // same with input
     buildExtract = import(M, "_sym_build_extract", isSymT, isSymT, int_type, int_type, int8T);
     SymOperators.push_back(&buildExtract);
     isSymArgNo["_sym_build_extract"] = {0};

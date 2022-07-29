@@ -765,7 +765,7 @@ void Symbolizer::visitPHINode(PHINode &I) {
 }
 
 void Symbolizer::visitInsertValueInst(InsertValueInst &I) {
-    llvm_unreachable("Insert Unsupported.");
+    //llvm_unreachable("Insert Unsupported.");
     IRBuilder<> IRB(&I);
     auto insert = buildRuntimeCall(
             IRB, runtime.buildInsert,
@@ -779,7 +779,7 @@ void Symbolizer::visitInsertValueInst(InsertValueInst &I) {
 }
 
 void Symbolizer::visitExtractValueInst(ExtractValueInst &I) {
-    llvm_unreachable("Extract Unsupported.");
+    //llvm_unreachable("Extract Unsupported.");
     IRBuilder<> IRB(&I);
     auto extract = buildRuntimeCall(
             IRB, runtime.buildExtract,
@@ -1370,7 +1370,15 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                     }else if(isRuntimeType(arg_idx, calleeName)){
                         if(isa<Constant>(arg)){
                             // even if it's annotated as runtime val, it still can be constant.
-                            if( not(calleeName.equals("_sym_build_integer") || calleeName.equals("_sym_build_float") || calleeName.equals("_sym_build_bool") ) ){
+                            if (calleeName.equals("_sym_build_integer") && arg_idx == 0 ){
+                                toReplaceToTrue.push_back(callInst);
+                            }else if( calleeName.equals("_sym_build_float") && arg_idx == 0 ){
+                                toReplaceToTrue.push_back(callInst);
+                            }else if(calleeName.equals("_sym_build_bool") && arg_idx == 0){
+                                toReplaceToTrue.push_back(callInst);
+                            }else if(calleeName.equals("_sym_build_memset") && arg_idx == 2){
+                                // this is also allowed, but since the mem ptr is not a constant, this is not to be replaced
+                            }else{
                                 errs()<<"callinst:"<<*callInst<<'\n';
                                 errs()<<"argid:"<<arg_idx<<'\n';
                                 errs()<<"arg:"<<*arg<<'\n';
@@ -1387,7 +1395,7 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                                 errs()<<*arg->getType()<<'\n';
                                 llvm_unreachable("unhandled constant");
                             }
-                            toReplaceToTrue.push_back(callInst);
+
                         }else{
                             Type* val_type = arg->getType();
                             unsigned runtimeValueBBID = 0;
