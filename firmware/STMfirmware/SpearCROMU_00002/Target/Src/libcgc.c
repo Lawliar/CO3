@@ -45,7 +45,7 @@ char * input = string_literal;
 unsigned available_input = sizeof(string_literal) - 1;
 #endif
 
-unsigned int cur = 0;
+unsigned int input_cur = 0;
 
 /*
 void _terminate(unsigned int status){
@@ -64,32 +64,32 @@ int transmit(int fd, const void *buf, size_t_cgc count, size_t_cgc *tx_bytes){
 int receive_cgc( void *buf, size_t_cgc count, size_t_cgc *rx_bytes){
 #ifdef USE_USB_AS_INPUT
 	//printf("cur:%d\n",cur);
-	if(cur >= AFLfuzzer.inputAFL.u32available){
+	if(input_cur >= AFLfuzzer.inputAFL.u32available){
 		return EFAULT;
 	}
-	else if( (AFLfuzzer.inputAFL.u32available - cur) < count ){
-		memcpy(buf, AFLfuzzer.inputAFL.uxBuffer + AFL_BUFFER_STARTING_POINT + cur, AFLfuzzer.inputAFL.u32available - cur);
-		cur = AFLfuzzer.inputAFL.u32available;
-		*rx_bytes = (size_t_cgc) AFLfuzzer.inputAFL.u32available - cur;
+	else if( (AFLfuzzer.inputAFL.u32available - input_cur) < count ){
+		memcpy(buf, AFLfuzzer.inputAFL.uxBuffer + AFL_BUFFER_STARTING_POINT + input_cur, AFLfuzzer.inputAFL.u32available - input_cur);
+		input_cur = AFLfuzzer.inputAFL.u32available;
+		*rx_bytes = (size_t_cgc) AFLfuzzer.inputAFL.u32available - input_cur;
 		return 0;
 	}else{
-		memcpy(buf, AFLfuzzer.inputAFL.uxBuffer + AFL_BUFFER_STARTING_POINT + cur,count);
-		cur += count;
+		memcpy(buf, AFLfuzzer.inputAFL.uxBuffer + AFL_BUFFER_STARTING_POINT + input_cur,count);
+		input_cur += count;
 		*rx_bytes = count;
 		return 0;
 	}
 #else
-	if(cur >= available_input){
+	if(input_cur >= available_input){
 		return EFAULT;
 	}
-	else if( (available_input - cur) < count ){
-		memcpy(buf, input + cur, available_input - cur);
-		cur = available_input;
-		*rx_bytes = (size_t_cgc) available_input - cur;
+	else if( (available_input - input_cur) < count ){
+		memcpy(buf, input + input_cur, available_input - input_cur);
+		input_cur = available_input;
+		*rx_bytes = (size_t_cgc) available_input - input_cur;
 		return 0;
 	}else{
-		memcpy(buf, input + cur,count);
-		cur += count;
+		memcpy(buf, input + input_cur,count);
+		input_cur += count;
 		*rx_bytes = count;
 		return 0;
 	}

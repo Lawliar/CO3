@@ -460,6 +460,11 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
     auto *dataType = I.getType();
     auto readMemSymID = getNextID();
     auto intByteSize = dataLayout.getTypeStoreSize(dataType);
+    if(intByteSize == 8){
+        assert(I.getType()->isDoubleTy()); // since the backend does not support double, we just assign concrete
+        symbolicExpressions[&I] = ConstantHelper(runtime.isSymT,0);
+        return;
+    }
     if(intByteSize != 1  && intByteSize != 2 &&intByteSize != 4 ){
         errs()<<I<<'\n';
         llvm_unreachable("loads more than 4 bytes");
@@ -1280,6 +1285,7 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
     }
 
     std::vector<CallInst*> toReplaceToNone;
+    std::vector<CallInst*> toReplaceToFalse;
     std::vector<CallInst*> toReplaceToTrue;
     std::vector<CallInst*> toReplaceToInput;
     std::vector<CallInst*> toReplaceToOr;
@@ -1372,9 +1378,11 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                             // even if it's annotated as runtime val, it still can be constant.
                             if (calleeName.equals("_sym_build_integer") && arg_idx == 0 ){
                                 toReplaceToTrue.push_back(callInst);
-                            }else if( calleeName.equals("_sym_build_float") && arg_idx == 0 ){
-                                toReplaceToTrue.push_back(callInst);
-                            }else if(calleeName.equals("_sym_build_bool") && arg_idx == 0){
+                            }
+                            else if( calleeName.equals("_sym_build_float") && arg_idx == 0 ){
+                                //toReplaceToFalse.push_back(callInst);
+                            }
+                            else if(calleeName.equals("_sym_build_bool") && arg_idx == 0){
                                 toReplaceToTrue.push_back(callInst);
                             }else if(calleeName.equals("_sym_build_memset") && arg_idx == 2){
                                 // this is also allowed, but since the mem ptr is not a constant, this is not to be replaced
@@ -1434,6 +1442,8 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                 }
                 if(find(runtime.replaceToNone.begin(), runtime.replaceToNone.end(), calleeName) != runtime.replaceToNone.end()){
                     toReplaceToNone.push_back(callInst);
+                }else if(find(runtime.replaceToFalse.begin(), runtime.replaceToFalse.end(), calleeName) != runtime.replaceToFalse.end()){
+                    toReplaceToFalse.push_back(callInst);
                 }else if(find(runtime.replaceToTrue.begin(), runtime.replaceToTrue.end(), calleeName) != runtime.replaceToTrue.end()){
                     toReplaceToTrue.push_back(callInst);
                 }else if(find(runtime.replaceToInput.begin(), runtime.replaceToInput.end(), calleeName) != runtime.replaceToInput.end()){
@@ -1495,6 +1505,10 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
     }
     for(auto eachToBeRemoved: toReplaceToNone){
         eachToBeRemoved->eraseFromParent();
+    }
+    for(auto eachToReplaceToFalse : toReplaceToFalse){
+        replaceAllUseWith(eachToReplaceToFalse, ConstantHelper(runtime.isSymT,0));
+        eachToReplaceToFalse->eraseFromParent();
     }
     for(auto eachToReplaceToTrue : toReplaceToTrue){
         replaceAllUseWith(eachToReplaceToTrue, ConstantHelper(runtime.isSymT,1));

@@ -34,6 +34,9 @@ SymFnT import(llvm::Module &M, llvm::StringRef name, llvm::Type *ret,
 
 } // namespace
 
+//#define SUPPORT_FLOAT
+
+
 Runtime::Runtime(Module &M) {
 
     IRBuilder<> IRB(M.getContext());
@@ -82,7 +85,9 @@ Runtime::Runtime(Module &M) {
     runtimeArgNo["_sym_build_float"] = {0};
     constArgNo["_sym_build_float"] = {1};
     symIdArgNo["_sym_build_float"] = {2};
-
+#ifndef SUPPORT_FLOAT
+    replaceToFalse.push_back("_sym_build_float");
+#endif
     /*
     buildFloat1 = import(M, "_sym_build_float1", isSymT, IRB.getDoubleTy(), IRB.getInt1Ty(), symIntT);
     SymOperators.push_back(&buildFloat);
@@ -154,27 +159,42 @@ Runtime::Runtime(Module &M) {
     SymOperators.push_back(&buildIntToFloat);
     isSymArgNo["_sym_build_int_to_float"] = {0};
     constArgNo["_sym_build_int_to_float"] = {1,2};
+#ifdef SUPPORT_FLOAT
     replaceToInput.push_back("_sym_build_int_to_float");
-
+#else
+    replaceToFalse.push_back("_sym_build_int_to_float");
+#endif
     // should always be the same with the input
     buildFloatToFloat = import(M, "_sym_build_float_to_float", isSymT, isSymT, IRB.getInt1Ty());
     SymOperators.push_back(&buildFloatToFloat);
     isSymArgNo["_sym_build_float_to_float"] = {0};
     constArgNo["_sym_build_float_to_float"] = {1};
+#ifdef SUPPORT_FLOAT
     replaceToInput.push_back("_sym_build_float_to_float");
-
+#else
+    replaceToFalse.push_back("_sym_build_float_to_float");
+#endif
     // should always be the same with the input
     buildBitsToFloat = import(M, "_sym_build_bits_to_float", isSymT, isSymT, IRB.getInt1Ty());
     SymOperators.push_back(&buildBitsToFloat);
     isSymArgNo["_sym_build_bits_to_float"] = {0};
     constArgNo["_sym_build_bits_to_float"] = {1};
+#ifdef SUPPORT_FLOAT
     replaceToInput.push_back("_sym_build_bits_to_float");
+#else
+    replaceToFalse.push_back("_sym_build_bits_to_float");
+#endif
 
     // should always be the same with the input
     buildFloatToBits = import(M, "_sym_build_float_to_bits", isSymT, isSymT);
     SymOperators.push_back(&buildFloatToBits);
     isSymArgNo["_sym_build_float_to_bits"] = {0};
+#ifdef SUPPORT_FLOAT
     replaceToInput.push_back("_sym_build_float_to_bits");
+#else
+    replaceToFalse.push_back("_sym_build_float_to_bits");
+#endif
+
 
     // should always be the same with the input
     buildFloatToSignedInt =
@@ -182,7 +202,12 @@ Runtime::Runtime(Module &M) {
     SymOperators.push_back(&buildFloatToSignedInt);
     isSymArgNo["_sym_build_float_to_signed_integer"] = {0};
     constArgNo["_sym_build_float_to_signed_integer"] = {1};
+#ifdef SUPPORT_FLOAT
     replaceToInput.push_back("_sym_build_float_to_signed_integer");
+#else
+    replaceToFalse.push_back("_sym_build_float_to_signed_integer");
+#endif
+
 
     // should always be the same with the input
     buildFloatToUnsignedInt =
@@ -190,14 +215,22 @@ Runtime::Runtime(Module &M) {
     SymOperators.push_back(&buildFloatToUnsignedInt);
     isSymArgNo["_sym_build_float_to_unsigned_integer"] = {0};
     constArgNo["_sym_build_float_to_unsigned_integer"] = {1};
+#ifdef SUPPORT_FLOAT
     replaceToInput.push_back("_sym_build_float_to_unsigned_integer");
+#else
+    replaceToFalse.push_back("_sym_build_float_to_unsigned_integer");
+#endif
+
 
     // should always be the same with the input
     buildFloatAbs = import(M, "_sym_build_fp_abs", isSymT, isSymT);
     SymOperators.push_back(&buildFloatAbs);
     isSymArgNo["_sym_build_fp_abs"] = {0};
+#ifdef SUPPORT_FLOAT
     replaceToInput.push_back("_sym_build_fp_abs");
-
+#else
+    replaceToFalse.push_back("_sym_build_fp_abs");
+#endif
     // logic OR
     buildBoolAnd = import(M, "_sym_build_bool_and", isSymT, isSymT, isSymT);
     SymOperators.push_back(&buildBoolAnd);
@@ -340,7 +373,13 @@ Runtime::Runtime(Module &M) {
   binaryOperatorHandlers[Instruction::constant] =                              \
       import(M, "_sym_build_" #name, isSymT, isSymT, isSymT);                  \
       isSymArgNo["_sym_build_" #name] = {0,1};                                \
-       replaceToLogicOr.push_back("_sym_build_" #name);
+      replaceToLogicOr.push_back("_sym_build_" #name);
+
+#define LOAD_BINARY_OPERATOR_HANDLER_Unsupported(constant, name)                           \
+  binaryOperatorHandlers[Instruction::constant] =                              \
+      import(M, "_sym_build_" #name, isSymT, isSymT, isSymT);                  \
+      isSymArgNo["_sym_build_" #name] = {0,1};                                \
+      replaceToFalse.push_back("_sym_build_" #name);
 
   LOAD_BINARY_OPERATOR_HANDLER(Add, add)
   LOAD_BINARY_OPERATOR_HANDLER(Sub, sub)
@@ -357,12 +396,19 @@ Runtime::Runtime(Module &M) {
   LOAD_BINARY_OPERATOR_HANDLER(Xor, xor)
 
   // Floating-point arithmetic
+#ifdef SUPPORT_FLOAT
   LOAD_BINARY_OPERATOR_HANDLER(FAdd, fp_add)
   LOAD_BINARY_OPERATOR_HANDLER(FSub, fp_sub)
   LOAD_BINARY_OPERATOR_HANDLER(FMul, fp_mul)
   LOAD_BINARY_OPERATOR_HANDLER(FDiv, fp_div)
   LOAD_BINARY_OPERATOR_HANDLER(FRem, fp_rem)
-
+#else
+  LOAD_BINARY_OPERATOR_HANDLER_Unsupported(FAdd, fp_add)
+  LOAD_BINARY_OPERATOR_HANDLER_Unsupported(FSub, fp_sub)
+  LOAD_BINARY_OPERATOR_HANDLER_Unsupported(FMul, fp_mul)
+  LOAD_BINARY_OPERATOR_HANDLER_Unsupported(FDiv, fp_div)
+  LOAD_BINARY_OPERATOR_HANDLER_Unsupported(FRem, fp_rem)
+#endif
 #undef LOAD_BINARY_OPERATOR_HANDLER
 
 #define LOAD_COMPARISON_HANDLER(constant, name)                                \
@@ -370,6 +416,12 @@ Runtime::Runtime(Module &M) {
       import(M, "_sym_build_" #name, isSymT, isSymT, isSymT);                  \
       isSymArgNo["_sym_build_" #name] = {0,1};                                \
        replaceToLogicOr.push_back("_sym_build_" #name);
+
+#define LOAD_COMPARISON_HANDLER_Unsupported(constant, name)                                \
+  comparisonHandlers[CmpInst::constant] =                                      \
+      import(M, "_sym_build_" #name, isSymT, isSymT, isSymT);                  \
+      isSymArgNo["_sym_build_" #name] = {0,1};                                \
+       replaceToFalse.push_back("_sym_build_" #name);
 
   LOAD_COMPARISON_HANDLER(ICMP_EQ, equal)
   LOAD_COMPARISON_HANDLER(ICMP_NE, not_equal)
@@ -382,6 +434,7 @@ Runtime::Runtime(Module &M) {
   LOAD_COMPARISON_HANDLER(ICMP_SLT, signed_less_than)
   LOAD_COMPARISON_HANDLER(ICMP_SLE, signed_less_equal)
 
+#ifdef SUPPORT_FLOAT
   // Floating-point comparisons
   LOAD_COMPARISON_HANDLER(FCMP_OGT, float_ordered_greater_than)
   LOAD_COMPARISON_HANDLER(FCMP_OGE, float_ordered_greater_equal)
@@ -397,7 +450,22 @@ Runtime::Runtime(Module &M) {
   LOAD_COMPARISON_HANDLER(FCMP_ULE, float_unordered_less_equal)
   LOAD_COMPARISON_HANDLER(FCMP_UEQ, float_unordered_equal)
   LOAD_COMPARISON_HANDLER(FCMP_UNE, float_unordered_not_equal)
-
+#else
+    LOAD_COMPARISON_HANDLER_Unsupported(FCMP_OGT, float_ordered_greater_than)
+    LOAD_COMPARISON_HANDLER_Unsupported(FCMP_OGE, float_ordered_greater_equal)
+    LOAD_COMPARISON_HANDLER_Unsupported(FCMP_OLT, float_ordered_less_than)
+    LOAD_COMPARISON_HANDLER_Unsupported(FCMP_OLE, float_ordered_less_equal)
+    LOAD_COMPARISON_HANDLER_Unsupported(FCMP_OEQ, float_ordered_equal)
+    LOAD_COMPARISON_HANDLER_Unsupported(FCMP_ONE, float_ordered_not_equal)
+    LOAD_COMPARISON_HANDLER_Unsupported(FCMP_ORD, float_ordered)
+    LOAD_COMPARISON_HANDLER_Unsupported(FCMP_UNO, float_unordered)
+    LOAD_COMPARISON_HANDLER_Unsupported(FCMP_UGT, float_unordered_greater_than)
+    LOAD_COMPARISON_HANDLER_Unsupported(FCMP_UGE, float_unordered_greater_equal)
+    LOAD_COMPARISON_HANDLER_Unsupported(FCMP_ULT, float_unordered_less_than)
+    LOAD_COMPARISON_HANDLER_Unsupported(FCMP_ULE, float_unordered_less_equal)
+    LOAD_COMPARISON_HANDLER_Unsupported(FCMP_UEQ, float_unordered_equal)
+    LOAD_COMPARISON_HANDLER_Unsupported(FCMP_UNE, float_unordered_not_equal)
+#endif
 #undef LOAD_COMPARISON_HANDLER
 
     spearReport1 = import(M, "_spear_report1", voidT,symIntT, ptrT);

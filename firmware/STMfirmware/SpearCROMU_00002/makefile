@@ -260,7 +260,7 @@ COMPILER_SPECIFIC_LDFLAGS += \
 
 endif
 
-CFLAGS += -O2
+CFLAGS += -Os
 CFLAGS += -std=gnu11
 CFLAGS += -g
 CFLAGS += -ffunction-sections
@@ -317,6 +317,8 @@ all: $(TARGET_ELF)
 
 clean:
 	rm -rf $(BUILD_DIR)
+	rm $(OUTPUT_DIR)/*.ll $(OUTPUT_DIR)/*.dot $(OUTPUT_DIR)/*.svg $(OUTPUT_DIR)/*.txt
+	rm -rf $(OUTPUT_DIR)/output
 
 
 

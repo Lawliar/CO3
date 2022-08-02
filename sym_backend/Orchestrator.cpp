@@ -26,8 +26,8 @@ pool(2),sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
 
     boost::filesystem::path usbFilePath = dir / "fileUSB.bin";
     boost::filesystem::path inputFile = dir / inputFileBasicName;
-    if(!boost::filesystem::exists(usbFilePath)){
-        cerr<<"fileUSB.bin file does not exist, even if you don't use file for USB, please create an empty file there.";
+    if(! boost::filesystem::exists(usbFilePath)){
+        cerr<<" fileUSB.bin file does not exist, even if you don't use file for USB, please create an empty file there.";
         assert(false);
     }
     if(!boost::filesystem::exists(inputFile)){

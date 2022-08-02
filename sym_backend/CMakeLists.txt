@@ -17,7 +17,7 @@ project(SymBackend)
 
 option(QSYM_BACKEND "Use the Qsym backend instead of our own" ON)
 option(Z3_TRUST_SYSTEM_VERSION "Use the system-provided Z3 without a version check" ON)
-option(RELEASE_BUILD "BUILD for performance" ON)
+option(RELEASE_BUILD "BUILD for performance" OFF)
 option(PROFILING_BUILD "BUILD for profiling" OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 if(NOT Z3_DIR)

@@ -176,7 +176,7 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
             CHECK_SYM_OP3(_sym_build_int_to_float)
             CHECK_SYM_OP2(_sym_build_float_to_float)
             CHECK_SYM_OP2(_sym_build_bits_to_float)
-            CHECK_SYM_OP2(_sym_build_float_to_bits)
+            CHECK_SYM_OP1(_sym_build_float_to_bits)
             CHECK_SYM_OP2(_sym_build_float_to_signed_integer)
             CHECK_SYM_OP2(_sym_build_float_to_unsigned_integer)
             CHECK_SYM_OP2(_sym_build_bool_to_bits)

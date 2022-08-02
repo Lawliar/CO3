@@ -98,15 +98,16 @@ def main():
     
     for f,t in cfg.edges():
         f_cluster = cdfg.get_subgraph('cluster'+f.name)
+        if(len(f_cluster.nodes()) == 0):
+            continue
         f_node = f_cluster.nodes()[0]
-
         t_cluster = cdfg.get_subgraph('cluster'+t.name)
         if(len(t_cluster.nodes()) == 0):
             continue
         t_node = t_cluster.nodes()[0]
 
         cdfg.add_edge(f_node, t_node, color="red", lhead ='cluster'+t.name , ltail = 'cluster'+f.name )
-    cdfg.write("cdfg.dot")
+    cdfg.write("{}.dot".format(args.i))
 
     ## some check:
     for (f,t) in cdfg.edges():

@@ -303,9 +303,9 @@ void SymVal_sym_build_float::Construct(Val::ReadyType targetReady) {
         val = constDouble->Value;
     }
 
-    auto whateverthisis = dynamic_cast<ConstantIntVal*>(In_edges.at(1));
-    assert(whateverthisis != nullptr);
-    bool isDouble = whateverthisis->Value;
+    auto isDouble_Con = dynamic_cast<ConstantIntVal*>(In_edges.at(1));
+    assert(isDouble_Con != nullptr);
+    bool isDouble = static_cast<bool>(isDouble_Con->Value);
     symExpr = _sym_build_float(val, isDouble);
     ready++;
 }
