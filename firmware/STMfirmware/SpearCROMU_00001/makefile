@@ -237,8 +237,7 @@ ARM_CORTEXM_BUILTINS ?= \
 
 COMPILER_SPECIFIC_CFLAGS += \
   --target=arm-none-eabi \
-  --sysroot=$(ARM_CORTEXM_SYSROOT) \
-  -O1
+  --sysroot=$(ARM_CORTEXM_SYSROOT)
 
 
 #-Wthread-safety \
@@ -253,17 +252,15 @@ endif
 ifneq '' '$(findstring gcc,$(CC_VERSION_INFO))'
 $(info ===GCC Compiler Detected===)
 
-#COMPILER_SPECIFIC_CFLAGS += \
-#  -Os
 
 COMPILER_SPECIFIC_LDFLAGS += \
   -Wl,-lgcc 
 
 endif
 
-
+CFLAGS += -Os
 CFLAGS += -std=gnu11
-CFLAGS += -g3
+CFLAGS += -g
 CFLAGS += -ffunction-sections
 CFLAGS += -fdata-sections
 CFLAGS += -Wall
@@ -271,7 +268,7 @@ CFLAGS += -Wall
 #CFLAGS += --specs=nano.specs 
 CFLAGS += -Werror 
 CFLAGS += -nostdlib 
-CFLAGS += -DDEBUG 
+#CFLAGS += -DDEBUG 
 CFLAGS += -DUSE_HAL_DRIVER 
 CFLAGS += -DSTM32H743xx 
 #CFLAGS += -Wno-parentheses-equality 
@@ -431,8 +428,8 @@ $(BUILD_DIR)/$(PROJ_NAME)/Target/Src/%.o: $(PROJ_DIR)/Target/Src/%.c | $(BUILD_D
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
 	@mkdir -p $(OUTPUT_DIR)
-	$(Q) $(CLANG_COMPILER) $(DEP_CFLAGS) $(CFLAGS)  $(INCLUDE_PATHS) -S -emit-llvm -o $@_raw.ll $<
-	$(Q) $(OPT) -load ${INSTRUMENTATION_LIB} --symbolize -out $(OUTPUT_DIR) -o $@_ins.ll $@_raw.ll
+	$(Q) $(CLANG_COMPILER) $(DEP_CFLAGS) $(CFLAGS) -mllvm -debug-pass=Structure $(INCLUDE_PATHS) -S -emit-llvm -o $@_raw.ll $<
+	$(Q) $(OPT) -load ${INSTRUMENTATION_LIB} --symbolize -debug-pass=Structure -out $(OUTPUT_DIR) -o $@_ins.ll $@_raw.ll
 	$(Q) $(LLC) -filetype=obj -o $@ $@_ins.ll
 
 #build the uninstrumented coremark

@@ -360,8 +360,9 @@ bool _sym_build_integer(uint32_t int_val, uint8_t numBits, uint16_t symID)
 }
 
 
-bool _sym_build_float(uint64_t double_val, bool is_double, uint16_t symID)
+bool _sym_build_float(double double_val, bool is_double, uint16_t symID)
 {
+	// should never be called
 	int msgSize=0;
 	uint8_t msgCode;
     uint8_t *byteval;
@@ -956,9 +957,7 @@ void _sym_build_write_memory(char * addr, size_t length, bool input, bool little
 		}else{
 			reportSymHelper( SYM_BLD_WRITE_MEM_1, SIZE_SYM_BLD_WRITE_MEM_1 ,addr,NULL,0, symID);
 		}
-
 	}
-
 }
 
 

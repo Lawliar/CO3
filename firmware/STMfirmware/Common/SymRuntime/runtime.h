@@ -151,7 +151,7 @@ bool _sym_peripheral_symb(uint32_t *addr);   // call this function for each peri
 
 // all the following functions return true
 bool _sym_build_integer(uint32_t int_val, uint8_t numBits, uint16_t symID);
-bool _sym_build_float(uint64_t double_val, bool is_double, uint16_t symID);
+bool _sym_build_float(double double_val, bool is_double, uint16_t symID);
 bool _sym_build_bool(bool bool_val, uint16_t symID);
 void _sym_build_path_constraint(bool input, bool runtimeVal, uint16_t symID);
 
