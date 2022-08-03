@@ -45,7 +45,9 @@ COREMARK_HAL_SOURCES := \
 $(COREMARK_HAL_DIR)/Src/libcgc.c \
 $(COREMARK_HAL_DIR)/Src/mymath.c \
 $(COREMARK_HAL_DIR)/Src/printf.c \
+$(COREMARK_HAL_DIR)/Src/render.c \
 $(COREMARK_HAL_DIR)/Src/service.c \
+$(COREMARK_HAL_DIR)/Src/simulation.c \
 $(COREMARK_HAL_DIR)/Src/stdlib.c 
 
 

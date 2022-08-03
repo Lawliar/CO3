@@ -1,0 +1,6 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory '/home/lcm/github/spear/spear-code/code_coverage'
+make: Leaving directory '/home/lcm/github/spear/spear-code/code_coverage'
+ 
+make: *** No targets specified and no makefile found.  Stop.
+

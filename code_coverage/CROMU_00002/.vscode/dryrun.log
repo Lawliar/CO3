@@ -1,0 +1,14 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory '/home/lcm/github/spear/spear-code/code_coverage/CROMU_00002'
+/home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/clang
+mkdir -p /home/lcm/github/spear/spear-code/code_coverage/CROMU_00002/build
+make: Leaving directory '/home/lcm/github/spear/spear-code/code_coverage/CROMU_00002'
+ 
+make: Warning: File 'makefile' has modification time 0.041 s in the future
+make: *** No rule to make target '/home/lcm/github/spear/spear-code/code_coverage/CROMU_00002/Src/libcgc.c', needed by '/home/lcm/github/spear/spear-code/code_coverage/CROMU_00002/build/CROMU_00002/Src/libcgc.o'.
+make: *** No rule to make target '/home/lcm/github/spear/spear-code/code_coverage/CROMU_00002/Src/mymath.c', needed by '/home/lcm/github/spear/spear-code/code_coverage/CROMU_00002/build/CROMU_00002/Src/libcgc.o'.
+make: *** No rule to make target '/home/lcm/github/spear/spear-code/code_coverage/CROMU_00002/Src/printf.c', needed by '/home/lcm/github/spear/spear-code/code_coverage/CROMU_00002/build/CROMU_00002/Src/libcgc.o'.
+make: *** No rule to make target '/home/lcm/github/spear/spear-code/code_coverage/CROMU_00002/Src/service.c', needed by '/home/lcm/github/spear/spear-code/code_coverage/CROMU_00002/build/CROMU_00002/Src/libcgc.o'.
+make: *** No rule to make target '/home/lcm/github/spear/spear-code/code_coverage/CROMU_00002/Src/stdlib.c', needed by '/home/lcm/github/spear/spear-code/code_coverage/CROMU_00002/build/CROMU_00002/Src/libcgc.o'.
+make: warning:  Clock skew detected.  Your build may be incomplete.
+

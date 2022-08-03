@@ -1,0 +1,36 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory '/home/lcm/github/spear/symcc/shared_volume/CROMU_00002'
+/usr/lib/llvm-10/bin/clang
+mkdir -p /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build
+echo "Compiling CROMU_00002/Src/libcgc.c"
+mkdir -p /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/CROMU_00002/Src/
+mkdir -p /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/intermediate_results
+/symcc_build/symcc  -Os  -I/home/lcm/github/spear/symcc/shared_volume/CROMU_00002/Inc -c -g -o /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/CROMU_00002/Src/libcgc.o /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/Src/libcgc.c
+echo "Compiling CROMU_00002/Src/mymath.c"
+mkdir -p /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/CROMU_00002/Src/
+mkdir -p /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/intermediate_results
+/symcc_build/symcc  -Os  -I/home/lcm/github/spear/symcc/shared_volume/CROMU_00002/Inc -c -g -o /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/CROMU_00002/Src/mymath.o /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/Src/mymath.c
+echo "Compiling CROMU_00002/Src/printf.c"
+mkdir -p /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/CROMU_00002/Src/
+mkdir -p /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/intermediate_results
+/symcc_build/symcc  -Os  -I/home/lcm/github/spear/symcc/shared_volume/CROMU_00002/Inc -c -g -o /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/CROMU_00002/Src/printf.o /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/Src/printf.c
+echo "Compiling CROMU_00002/Src/render.c"
+mkdir -p /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/CROMU_00002/Src/
+mkdir -p /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/intermediate_results
+/symcc_build/symcc  -Os  -I/home/lcm/github/spear/symcc/shared_volume/CROMU_00002/Inc -c -g -o /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/CROMU_00002/Src/render.o /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/Src/render.c
+echo "Compiling CROMU_00002/Src/service.c"
+mkdir -p /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/CROMU_00002/Src/
+mkdir -p /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/intermediate_results
+/symcc_build/symcc  -Os  -I/home/lcm/github/spear/symcc/shared_volume/CROMU_00002/Inc -c -g -o /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/CROMU_00002/Src/service.o /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/Src/service.c
+echo "Compiling CROMU_00002/Src/simulation.c"
+mkdir -p /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/CROMU_00002/Src/
+mkdir -p /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/intermediate_results
+/symcc_build/symcc  -Os  -I/home/lcm/github/spear/symcc/shared_volume/CROMU_00002/Inc -c -g -o /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/CROMU_00002/Src/simulation.o /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/Src/simulation.c
+echo "Compiling CROMU_00002/Src/stdlib.c"
+mkdir -p /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/CROMU_00002/Src/
+mkdir -p /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/intermediate_results
+/symcc_build/symcc  -Os  -I/home/lcm/github/spear/symcc/shared_volume/CROMU_00002/Inc -c -g -o /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/CROMU_00002/Src/stdlib.o /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/Src/stdlib.c
+echo "Linking library"
+/usr/lib/llvm-10/bin/clang /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/CROMU_00002/Src/libcgc.o /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/CROMU_00002/Src/mymath.o /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/CROMU_00002/Src/printf.o /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/CROMU_00002/Src/render.o /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/CROMU_00002/Src/service.o /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/CROMU_00002/Src/simulation.o /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/CROMU_00002/Src/stdlib.o  -L"/symcc_build/SymRuntime-prefix/src/SymRuntime-build" -lSymRuntime -Wl,-rpath,"/symcc_build/SymRuntime-prefix/src/SymRuntime-build" -lm -o /home/lcm/github/spear/symcc/shared_volume/CROMU_00002/build/out
+make: Leaving directory '/home/lcm/github/spear/symcc/shared_volume/CROMU_00002'
+ 
