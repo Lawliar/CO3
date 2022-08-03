@@ -99,12 +99,12 @@ def parsePackage(package):
             print("{}Build Float_1: symval:{}, val:{}".format(indent * '\t',symid, val))
         elif(package[cur] == MsgTypes.SYM_BLD_FLOAT_DBL):
             symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
-            val = struct.unpack('f',package[cur + 2: cur + 10])
+            val = struct.unpack('d',package[cur + 2: cur + 10])
             cur += 10
             print("{}Build DBL: symval:{}, val:{}".format(indent * '\t',symid, val))
         elif(package[cur] == MsgTypes.SYM_BLD_FLOAT_DBL_1):
             symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
-            val = struct.unpack('f',package[cur + 3: cur + 11])
+            val = struct.unpack('d',package[cur + 3: cur + 11])
             cur += 11
             print("{}Build DBL_1: symval:{}, val:{}".format(indent * '\t',symid, val))
         elif(package[cur] == MsgTypes.SYM_BLD_BOOL):
@@ -176,7 +176,7 @@ def parsePackage(package):
             symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             addr = int.from_bytes(package[cur + 3: cur + 7],byteorder='little')
             cur += 7
-            print("{}ReadMem_: symval:{}, addr:{}".format(indent * '\t',symid,addr))
+            print("{}ReadMem_1: symval:{}, addr:{}".format(indent * '\t',symid,addr))
         elif(package[cur] == MsgTypes.SYM_BLD_READ_MEM_HW):
             symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
             addr = int.from_bytes(package[cur + 2: cur + 6],byteorder='little')
@@ -263,5 +263,5 @@ while cur < size:
     package = data[cur + 1 : cur + 1 +  payload_len]
 
     parsePackage(package)
-
     cur =  cur +  package_len
+    print("{}/{}".format(cur,size),end=' ')
