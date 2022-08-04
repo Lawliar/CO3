@@ -5,11 +5,11 @@ from IPython import embed
 from tqdm import tqdm
 import subprocess
 
-input_dir = "/home/lcm/github/spear/spear-code/code_coverage/CROMU_00001"
+input_dir = "/home/lcm/github/spear/spear-code/code_coverage/CROMU_00004"
 build_dir = os.path.join(input_dir,"build")
 executable = os.path.join(build_dir,"out")
-symcc_input = "/home/lcm/github/spear/spear-code/symcc_benchmark/shared_volume/CROMU_00001/output"
-spear_input = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearCROMU_00001/intermediate_results/output"
+symcc_input = "/home/lcm/github/spear/spear-code/symcc_benchmark/shared_volume/CROMU_00004/output"
+spear_input = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearCROMU_00004/intermediate_results/output"
 
 assert(os.path.exists(input_dir))
 assert(os.path.exists(build_dir))
@@ -52,7 +52,6 @@ def runTest():
     spear_bb = runOne(spear_input)
     print("symcc covered BB:{}\n".format(len(symcc_bb)))
     print("spear covered BB:{}\n".format(len(spear_bb)))
-    embed()
         
 def main():
     #checkMake()
