@@ -134,6 +134,9 @@ public:
     void Push(Message*);
 private:
     OpenedSP sp;
+#ifdef DEBUG_CHECKING
+    unsigned int dbgNumBytesReceived = 0;
+#endif
     std::mutex msgQMutex;
     std::deque<Message*> msgQueue;
 };

@@ -567,23 +567,24 @@ void Orchestrator::SendInput() {
     assert(inputFile.is_open());
     // get its size:
     inputFile.seekg(0, std::ios::end);
-    std::streampos fileSize = inputFile.tellg();
+    std::streampos payload_size = inputFile.tellg();
     inputFile.seekg(0, std::ios::beg);
-    unsigned fileSize_int = 0;
-    if(fileSize > 1024){
-        fileSize_int = 1024;
+    unsigned total_size = 0;
+    if(payload_size > 1024){
+        total_size = 1024;
     }else{
-        fileSize_int = fileSize;
+        total_size = payload_size;
     }
-    char * input = (char*) malloc(1024 + 4);
-    inputFile.read(input + 4, fileSize);
-    input[0] = fileSize_int & 0x000000ff;
-    input[1] = (fileSize_int & 0x0000ff00) >> 8;
-    input[2] = (fileSize_int & 0x00ff0000) >> 16;
-    input[3] = (fileSize_int & 0xff000000) >> 24;
+    total_size += 4;
+    char  input [1024 + 4];
+    inputFile.read(input + 4, payload_size);
 
-    sendDataSerialPort(sp.port, (uint8_t *)input, fileSize_int + 4);
-    delete input;
+    input[0] = total_size & 0x000000ff;
+    input[1] = (total_size & 0x0000ff00) >> 8;
+    input[2] = (total_size & 0x00ff0000) >> 16;
+    input[3] = (total_size & 0xff000000) >> 24;
+
+    sendDataSerialPort(sp.port, (uint8_t *)input, total_size);
 }
 int Orchestrator::Run() {
     pool.enqueue(&MsgQueue::Listen,&(this->msgQueue));

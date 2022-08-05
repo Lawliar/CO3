@@ -6,6 +6,8 @@
 #include <assert.h>
 #include <iostream>
 #include <fstream>
+#include "getTimeStamp.h"
+
 extern ring_buffer_t RingBuffer;
 
 size_t MsgQueue::GetQueueSize(){
@@ -37,12 +39,18 @@ void MsgQueue::Push(Message *msg) {
 
 extern std::string dbgUsbFileName;
 int MsgQueue::Listen() {
-    unsigned frameLen = 64;
+    unsigned frameLen = 128;
+    uint64_t total_time = 0;
     if(sp.port != nullptr){
         while(true){
+            uint64_t start_time  = getTimeStamp();
             int received = receiveData(sp.port, frameLen, 1000);
+            total_time  = getTimeStamp() - start_time;
 
             ProcessMsgs();
+#ifdef DEBUG_CHECKING
+            dbgNumBytesReceived += received;
+#endif
             if(received < frameLen){
                 //assert(ring_buffer_num_items(&RingBuffer) == 0);
                 break;
@@ -61,6 +69,8 @@ int MsgQueue::Listen() {
             ProcessMsgs();
         }
     }
+    std::cout << " receiving data costs:" <<total_time<<'\n';
+    std::cout.flush();
     return 0;
 }
 
@@ -237,7 +247,6 @@ void MsgQueue::RenderAndPush(char * buf, char size){
             Push(cur_msg);
             cur += SIZE_SYM_BLD_READ_MEM_W_1;
         }
-
         else if(buf[cur] == SYM_BLD_WRITE_MEM){
             uint8_t symid = *(uint8_t*)(buf + cur + 1);
             uint32_t ptr = *(uint32_t*)(buf + cur + 2);
@@ -309,9 +318,9 @@ void MsgQueue::ProcessMsgs() {
     ring_buffer_peek(&RingBuffer, &packetLen, 0);
     assert( packetLen >= 1 && packetLen<= 64);
     while( static_cast<unsigned>(packetLen) <= (avaiNumBytes)){
-        //we only deal with a whole packet, if what's remaining is not enough, we just wait for another turn
+        // for this packet, all the content is here, start parsing into the msg queue
 
-        //retrive packetLen out from the ring buffer
+        // retrive packetLen out from the ring buffer
         ring_buffer_dequeue(&RingBuffer, &packetLen); // dequeue one byte for the length
 
         ring_buffer_dequeue_arr(&RingBuffer,tempBuffer, packetLen - 1); // dequeue the content
@@ -323,7 +332,8 @@ void MsgQueue::ProcessMsgs() {
         // if no element is left, numBytesFor Packet will be 0;
         ring_buffer_peek(&RingBuffer, &packetLen, 0);
         assert( packetLen >= 1 && packetLen<= 64);
-        if(packetLen == 1){
+        if( packetLen == 1){
+            // if the packet length is 0, which means, which should not appear, this means we've reached the end
             // this packet length is only 1, which means, it's empty, then just dequeue this and move on
             ring_buffer_dequeue(&RingBuffer, &packetLen);
             assert(avaiNumBytes == 0);

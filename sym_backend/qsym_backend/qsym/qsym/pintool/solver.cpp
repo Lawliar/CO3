@@ -1,12 +1,12 @@
 #include <set>
 #include <byteswap.h>
 #include "solver.h"
-
+#include "getTimeStamp.h"
 namespace qsym {
 
 namespace {
 
-const uint64_t kUsToS = 1000000;
+
 const int kSessionIdLength = 32;
 const unsigned kSolverTimeout = 10000; // 10 seconds
 
@@ -17,11 +17,7 @@ std::string toString6digit(INT32 val) {
   return std::string(buf);
 }
 
-uint64_t getTimeStamp() {
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  return tv.tv_sec * kUsToS + tv.tv_usec;
-}
+
 
 void parseConstSym(ExprRef e, Kind &op, ExprRef& expr_sym, ExprRef& expr_const) {
   for (INT32 i = 0; i < 2; i++) {

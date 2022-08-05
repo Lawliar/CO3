@@ -64,13 +64,14 @@ int transmit(int fd, const void *buf, size_t_cgc count, size_t_cgc *tx_bytes){
 int receive_cgc( void *buf, size_t_cgc count, size_t_cgc *rx_bytes){
 #ifdef USE_USB_AS_INPUT
 	//printf("cur:%d\n",cur);
-	if(input_cur >= AFLfuzzer.inputAFL.u32available){
+	int total_available = AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT;
+	if(input_cur >= total_available){
 		return EFAULT;
 	}
-	else if( (AFLfuzzer.inputAFL.u32available - input_cur) < count ){
-		memcpy(buf, AFLfuzzer.inputAFL.uxBuffer + AFL_BUFFER_STARTING_POINT + input_cur, AFLfuzzer.inputAFL.u32available - input_cur);
-		input_cur = AFLfuzzer.inputAFL.u32available;
-		*rx_bytes = (size_t_cgc) AFLfuzzer.inputAFL.u32available - input_cur;
+	else if( (total_available - input_cur) < count ){
+		*rx_bytes = (size_t_cgc) total_available - input_cur;
+		memcpy(buf, AFLfuzzer.inputAFL.uxBuffer + AFL_BUFFER_STARTING_POINT + input_cur, *rx_bytes);
+		input_cur = total_available;
 		return 0;
 	}else{
 		memcpy(buf, AFLfuzzer.inputAFL.uxBuffer + AFL_BUFFER_STARTING_POINT + input_cur,count);
@@ -83,9 +84,10 @@ int receive_cgc( void *buf, size_t_cgc count, size_t_cgc *rx_bytes){
 		return EFAULT;
 	}
 	else if( (available_input - input_cur) < count ){
-		memcpy(buf, input + input_cur, available_input - input_cur);
-		input_cur = available_input;
 		*rx_bytes = (size_t_cgc) available_input - input_cur;
+		memcpy(buf, input + input_cur, *rx_bytes);
+		input_cur = available_input;
+		
 		return 0;
 	}else{
 		memcpy(buf, input + input_cur,count);

@@ -526,7 +526,7 @@ int parseUserInput(Move *movers)
 
 	bzero_cgc(buf,15);
 	int status;
-	status = receive_cgc( buf, sizeof(buf) - 1,&size);
+	status = receive_cgc( buf, sizeof(buf) - 1, &size);
 	if (status != 0)
 	{
 		// Error on receive

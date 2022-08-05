@@ -7,7 +7,6 @@
 #include <vector>
 
 namespace qsym {
-
   typedef std::set<size_t> DependencySet;
 
   class DependencyNode {
