@@ -38,26 +38,26 @@ void MsgQueue::Push(Message *msg) {
 }
 
 extern std::string dbgUsbFileName;
-int MsgQueue::Listen() {
-    unsigned frameLen = 128;
-    uint64_t total_time = 0;
+uint64_t MsgQueue::Listen() {
+
     if(sp.port != nullptr){
         while(true){
-            uint64_t start_time  = getTimeStamp();
-            int received = receiveData(sp.port, frameLen, 1000);
-            total_time  = getTimeStamp() - start_time;
-
-            ProcessMsgs();
+            int received = receiveData(sp.port);
 #ifdef DEBUG_CHECKING
             dbgNumBytesReceived += received;
 #endif
-            if(received < frameLen){
-                //assert(ring_buffer_num_items(&RingBuffer) == 0);
+            if(received != 0 && received != 1){
+                bool end_received = ProcessMsgs();
+                if(end_received){
+                    break;
+                }
+            }else{
                 break;
             }
         }
     }else{
         std::ifstream inputFile(dbgUsbFileName, std::ios::binary);
+        unsigned frameLen = 128;
         assert(inputFile.is_open());
         char buf[128];
         while(!inputFile.eof()){
@@ -69,9 +69,7 @@ int MsgQueue::Listen() {
             ProcessMsgs();
         }
     }
-    std::cout << " receiving data costs:" <<total_time<<'\n';
-    std::cout.flush();
-    return 0;
+    return  getTimeStamp();
 }
 
 MsgQueue::~MsgQueue() {
@@ -79,8 +77,9 @@ MsgQueue::~MsgQueue() {
     msgQueue.clear();
 }
 
-void MsgQueue::RenderAndPush(char * buf, char size){
+bool MsgQueue::RenderAndPush(char * buf, char size){
     int cur = 0;
+    bool ret_received = false;
     while(cur < size ){
         if(buf[cur] == SYM_BLD_INT_1){
             uint8_t symid = *(uint8_t*)(buf + cur + 1);
@@ -296,8 +295,9 @@ void MsgQueue::RenderAndPush(char * buf, char size){
         }
         else if(buf[cur] == SYM_END){
             Push(new EndMessage());
-            std::cout<<"Pushed end msg\n";
+            std::cout<<"end msg received\n";
             std::cout.flush();
+            ret_received = true;
             cur += SIZE_SYM_END;
         }else{
             std::cerr <<"unhandled msg type:"<< buf[cur] <<", the connection is corrupted";
@@ -305,40 +305,34 @@ void MsgQueue::RenderAndPush(char * buf, char size){
         }
     }
     assert(cur == size);
+    return ret_received;
 }
 
+
 #define frameByteNum 64
-void MsgQueue::ProcessMsgs() {
+bool MsgQueue::ProcessMsgs() {
     ring_buffer_size_t avaiNumBytes = ring_buffer_num_items(&RingBuffer);
     assert(avaiNumBytes > 0);
 
     char packetLen = 0;
     char tempBuffer[frameByteNum];
-
-    ring_buffer_peek(&RingBuffer, &packetLen, 0);
-    assert( packetLen >= 1 && packetLen<= 64);
-    while( static_cast<unsigned>(packetLen) <= (avaiNumBytes)){
-        // for this packet, all the content is here, start parsing into the msg queue
-
-        // retrive packetLen out from the ring buffer
-        ring_buffer_dequeue(&RingBuffer, &packetLen); // dequeue one byte for the length
-
-        ring_buffer_dequeue_arr(&RingBuffer,tempBuffer, packetLen - 1); // dequeue the content
-        //render these data and push to the queue
-        RenderAndPush(tempBuffer, static_cast<unsigned char>(packetLen - 1) );
-        // mark these are processed
-
-        // peek packetLen for the next packet
-        // if no element is left, numBytesFor Packet will be 0;
-        ring_buffer_peek(&RingBuffer, &packetLen, 0);
-        assert( packetLen >= 1 && packetLen<= 64);
-        if( packetLen == 1){
-            // if the packet length is 0, which means, which should not appear, this means we've reached the end
-            // this packet length is only 1, which means, it's empty, then just dequeue this and move on
-            ring_buffer_dequeue(&RingBuffer, &packetLen);
-            assert(avaiNumBytes == 0);
-            break;
+    bool end_received = false;
+    while( avaiNumBytes > 0){
+        int cur_len = 0;
+        if(avaiNumBytes > frameByteNum){
+            ring_buffer_dequeue_arr(&RingBuffer,tempBuffer, frameByteNum);
+            cur_len = frameByteNum;
+        }else{
+            ring_buffer_dequeue_arr(&RingBuffer,tempBuffer, avaiNumBytes);
+            cur_len = avaiNumBytes;
         }
-        avaiNumBytes = ring_buffer_num_items(&RingBuffer);
+        //render these data and push to the queue
+        end_received = RenderAndPush(tempBuffer,  cur_len);
+        if(end_received){
+            return true;
+        }else{
+            avaiNumBytes = ring_buffer_num_items(&RingBuffer);
+        }
     }
+    return end_received;
 }

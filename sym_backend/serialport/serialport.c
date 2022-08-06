@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-
+#include <assert.h>
 
 
 //#define MEASSURE_READ_ATTEMPTS
@@ -114,20 +114,32 @@ inline void sendDataSerialPort(struct sp_port* port, uint8_t * buf, uint32_t siz
     }
 }
 
-
-int receiveData(struct sp_port* port, unsigned byteToRead, unsigned timeout){
-    if(byteToRead == 0 ){
+#define FRAME_LEN 64
+#define HEADER_LEN 1
+int receiveData(struct sp_port* port){
+    u8 * buf[FRAME_LEN];
+    int result = check(sp_blocking_read(port, buf, HEADER_LEN, 1000));
+    if(result == 0){
         return 0;
     }
-    u8 * buf = (u8 *)malloc(byteToRead );
-    int result = check(sp_blocking_read(port, buf, byteToRead, timeout));
+    int packet_len = (int)*(char *)buf;
+    if(packet_len == 1){
+        // just the header itself
+        return HEADER_LEN;
+    }
+    // overwriting the header
+    result = check(sp_blocking_read(port, buf, packet_len - HEADER_LEN, 1000));
+    if(result != packet_len - HEADER_LEN){
+        fprintf(stderr,"payload is not as long as what the header says\n");
+        abort();
+    }
+    assert(result == packet_len - HEADER_LEN);
     unsigned freeBytes = ring_buffer_num_empty_items(&RingBuffer);
-    if(freeBytes < result){
+    if(freeBytes < packet_len){
         fprintf(stderr,"no enough space in the ringbuffer to write %d bytes!\n", freeBytes);
         abort();
     }
 
-    ring_buffer_queue_arr(&RingBuffer, buf, result);
-    free(buf);
-    return result;
+    ring_buffer_queue_arr(&RingBuffer, buf, packet_len - HEADER_LEN);
+    return packet_len;
 }

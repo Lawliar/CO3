@@ -126,9 +126,9 @@ public:
 
     }
     ~MsgQueue();
-    void RenderAndPush(char * buf, char size);
-    void ProcessMsgs();
-    int Listen();
+    bool RenderAndPush(char * buf, char size);
+    bool ProcessMsgs();
+    uint64_t Listen();
     size_t GetQueueSize();
     Message* Pop();
     void Push(Message*);

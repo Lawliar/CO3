@@ -53,6 +53,7 @@ public:
     ThreadPool pool;
 
     OpenedSP sp;
+    uint64_t start_time = 0;
     MsgQueue msgQueue;
     std::string symInputFile;
     Val::BasicBlockIdType lastBBID = 0;

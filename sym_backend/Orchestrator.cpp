@@ -5,6 +5,7 @@
 #include "Orchestrator.h"
 #include <iostream>
 #include <fstream>
+#include "getTimeStamp.h"
 
 
 #pragma clang diagnostic push
@@ -587,7 +588,8 @@ void Orchestrator::SendInput() {
     sendDataSerialPort(sp.port, (uint8_t *)input, total_size);
 }
 int Orchestrator::Run() {
-    pool.enqueue(&MsgQueue::Listen,&(this->msgQueue));
+    auto listen_job = pool.enqueue(&MsgQueue::Listen,&(this->msgQueue));
+
     // get the initialization msg so that we can initialize on our side:
     while(true){
 
@@ -608,6 +610,7 @@ int Orchestrator::Run() {
 #endif
         assert(init_msg != nullptr);
         _sym_initialize_mem(init_msg->addr);
+        start_time = getTimeStamp();
 #ifdef DEBUG_OUTPUT
         cout<<"finish "<<init_msg->Str()<<"\n\n";
         cout.flush();
@@ -737,6 +740,10 @@ int Orchestrator::Run() {
                 cout.flush();
 #endif
             }else if(auto end_msg = dynamic_cast<EndMessage*>(cnt_msg); end_msg != nullptr ){
+                uint64_t end_message_receive_time = listen_job.get();
+                cout << "End message received time:"<< end_message_receive_time - start_time <<'\n';
+                cout << "End message processed:"<< getTimeStamp() - start_time <<'\n';
+                cout.flush();
 #ifdef DEBUG_OUTPUT
                 cout<< "finish "<<end_msg->Str()<<"\n\n";
                 cout.flush();

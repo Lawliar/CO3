@@ -22,7 +22,7 @@ unsigned GetNumBytesWaiting(OpenedSP port);
 
 void sendDataSerialPort(struct sp_port* port, uint8_t * buf, uint32_t size);
 void flush_rx_tx_buffers(struct sp_port* port);
-int receiveData(struct sp_port* port,unsigned numBytesWaiting,unsigned timeout);
+int receiveData(struct sp_port* port);
 
 /* Get unix time in milliseconds */
 
