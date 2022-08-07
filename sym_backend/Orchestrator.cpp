@@ -17,8 +17,9 @@ std::string dbgUsbFileName;
 #ifdef DEBUG_OUTPUT
 int indent = 0;
 int indentNum = 4;
-int msgCounter = 0;
 #endif
+
+int msgCounter = 0;
 Orchestrator::Orchestrator(std::string inputDir, std::string sp_port, int baud_rate): \
 pool(2),sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
 {
@@ -542,10 +543,14 @@ void Orchestrator::SetRetAndRefreshGraph() {
     auto cur_func = getCurFunc();
     auto cur_func_name = getCurFunc()->funcname;// copy construct
     auto setRetSym = cur_func->setRetSym;
+    bool ret_sym_is_concrete = true;
     if(setRetSym != nullptr){
         auto targetReady = (setRetSym->ready + 1);
         BackwardExecution(setRetSym,  targetReady);
         assert(setRetSym->ready == targetReady);
+        if(SymVal::extractSymExprFromSymVal(setRetSym,targetReady) != nullptr){
+            ret_sym_is_concrete = false;
+        }
     }
 
 
@@ -557,8 +562,11 @@ void Orchestrator::SetRetAndRefreshGraph() {
         }
     }
     assert(funcId != UINT_MAX);
-    delete cur_func;
-    symGraphs[funcId] = new SymGraph(*vanillaSymGraphs.at(funcId));
+    if( ret_sym_is_concrete == false || cur_func->changed == true){
+        delete cur_func;
+        symGraphs[funcId] = new SymGraph(*vanillaSymGraphs.at(funcId));
+    }
+
     //symGraphs[funcId] = new SymGraph(cur_func_name, funcFiles.at(cur_func_name).cfg_file,funcFiles.at(cur_func_name).dom_file,\
     //                            funcFiles.at(cur_func_name).postDom_file, funcFiles.at(cur_func_name).dfg_file);
 }
@@ -600,8 +608,8 @@ int Orchestrator::Run() {
         }
 
         auto init_msg = dynamic_cast<InitMessage*>(msg);
-#ifdef DEBUG_OUTPUT
         msgCounter += 1;
+#ifdef DEBUG_OUTPUT
         cout<<msgCounter<< "th msg,";
         cout.flush();
         assert(indent == 0);
@@ -623,14 +631,13 @@ int Orchestrator::Run() {
             usleep(100);
             continue;
         }
-
-#ifdef DEBUG_OUTPUT
         msgCounter += 1;
-
+#ifdef DEBUG_OUTPUT
         cout<<msgCounter<< "th msg,";
         cout.flush();
 #endif
         if(auto cnt_msg = dynamic_cast<ControlMessgaes*>(msg); cnt_msg != nullptr){
+
             if(auto bb_msg = dynamic_cast<NotifyBasicBlockMessage*>(cnt_msg) ; bb_msg != nullptr){
                 // now a BB has been finished on the MCU side, we try to do the same here
 #ifdef DEBUG_CHECKING
@@ -642,6 +649,7 @@ int Orchestrator::Run() {
                 cout<<bb_msg->Str()<<'\n';
                 cout.flush();
 #endif
+                getCurFunc()->changed = true;
                 ExecuteBasicBlock(bb_msg->id);
 #ifdef DEBUG_OUTPUT
                 cout<<"finish "<<bb_msg->Str()<<"\n\n";
@@ -722,6 +730,7 @@ int Orchestrator::Run() {
                 cout.flush();
 #endif
                 auto cur_func = getCurFunc();
+                cur_func->changed = true;
                 auto truePhi =  dynamic_cast<SymVal_sym_TruePhi*>(cur_func->Nodes.at(cur_func->symID2offMap.at(phi_msg->symid)));
                 UpdateCallStackHashBB(truePhi->BBID);
 
@@ -758,6 +767,7 @@ int Orchestrator::Run() {
         }else if (auto sym_source_msg = dynamic_cast<SymSourceMessage*>(msg) ; sym_source_msg != nullptr){
             SymGraph * cur_func = callStack.top();
             Val * cur_val =  cur_func->Nodes.at(cur_func->symID2offMap.at(sym_source_msg->symid));
+            cur_func->changed = true;
             if(auto sym_read_mem_msg = dynamic_cast<ReadMemMessage*>(msg) ; sym_read_mem_msg != nullptr){
 #ifdef DEBUG_OUTPUT
                 assert(indent == 0);
@@ -857,6 +867,7 @@ int Orchestrator::Run() {
             }
         }else if (auto sym_sink_msg = dynamic_cast<SymSinkMessage*>(msg) ; sym_sink_msg != nullptr){
             SymGraph * cur_func = callStack.top();
+            cur_func->changed = true;
             Val * cur_val =  cur_func->Nodes.at(cur_func->symID2offMap.at(sym_sink_msg->symid));
             if(auto sym_constraint_msg = dynamic_cast<PushConstraintMessage*>(sym_sink_msg); sym_constraint_msg != nullptr){
 #ifdef DEBUG_OUTPUT

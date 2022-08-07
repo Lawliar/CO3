@@ -166,7 +166,7 @@ public:
     map<RuntimeSymFlowGraph::vertex_t, Val::ValVertexType> ver2offMap;
     map<Val::SymIDType , Val::ValVertexType> symID2offMap;
 
-
+    bool changed = false;
     // the real thing
     vector<Val*> Nodes;
     vector<SymVal_sym_get_parameter_expression*> getParametersSym;
