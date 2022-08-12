@@ -1034,6 +1034,9 @@ bool SymGraph::BasicBlockTask::isBBReady() {
         if(auto tmpTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(eachRoot); tmpTruePhi != nullptr){
             continue;
         }
+        else if(auto tmpRuntime = dynamic_cast<RuntimeVal*>(eachRoot); tmpRuntime != nullptr){
+            continue;
+        }
         assert( eachRoot->ready == (ready + 1) );
     }
     return true;

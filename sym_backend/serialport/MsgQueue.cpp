@@ -57,17 +57,28 @@ uint64_t MsgQueue::Listen() {
         }
     }else{
         std::ifstream inputFile(dbgUsbFileName, std::ios::binary);
-        unsigned frameLen = 128;
         assert(inputFile.is_open());
         char buf[128];
         while(!inputFile.eof()){
-            inputFile.read(buf, frameLen);
+            inputFile.read(buf, 1);
             std::streamsize s = inputFile.gcount();
+            if(s == 0){
+                break;
+            }
+            assert(s == 1);
+            int packet_len = (int)*(char *)buf;
+
+            inputFile.read(buf, packet_len - 1);
+            s = inputFile.gcount();
+            assert(s == packet_len - 1 );
+
             unsigned emptyBytes = ring_buffer_num_empty_items(&RingBuffer);
-            assert(emptyBytes >= frameLen);// I trusted when calling ProcessMsg, at least one whole frame is processed
-            ring_buffer_queue_arr(&RingBuffer, buf, s);
+            assert(emptyBytes >= packet_len - 1);// I trusted when calling ProcessMsg, at least one whole frame is processed
+
+            ring_buffer_queue_arr(&RingBuffer, buf, packet_len - 1);
             ProcessMsgs();
         }
+        inputFile.close();
     }
     return  getTimeStamp();
 }
@@ -300,7 +311,7 @@ bool MsgQueue::RenderAndPush(char * buf, char size){
             ret_received = true;
             cur += SIZE_SYM_END;
         }else{
-            std::cerr <<"unhandled msg type:"<< buf[cur] <<", the connection is corrupted";
+            std::cerr <<"unhandled msg type:"<< static_cast<unsigned>(buf[cur])  <<", the connection is corrupted";
             abort();
         }
     }

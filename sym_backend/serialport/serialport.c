@@ -117,7 +117,7 @@ inline void sendDataSerialPort(struct sp_port* port, uint8_t * buf, uint32_t siz
 #define FRAME_LEN 64
 #define HEADER_LEN 1
 int receiveData(struct sp_port* port){
-    u8 * buf[FRAME_LEN];
+    u8 buf[FRAME_LEN];
     int result = check(sp_blocking_read(port, buf, HEADER_LEN, 1000));
     if(result == 0){
         return 0;

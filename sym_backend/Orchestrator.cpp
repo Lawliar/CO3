@@ -6,7 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include "getTimeStamp.h"
-
+#include "Config.h"
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "UnreachableCode"
@@ -23,11 +23,14 @@ int msgCounter = 0;
 Orchestrator::Orchestrator(std::string inputDir, std::string sp_port, int baud_rate): \
 pool(2),sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
 {
+    _sym_initialize_config(inputDir);
     boost::filesystem::path dir (inputDir);
     boost::filesystem::path funcIDFilePath = dir / "spear_func_id.txt";
 
     boost::filesystem::path usbFilePath = dir / "fileUSB.bin";
-    boost::filesystem::path inputFile = dir / inputFileBasicName;
+
+
+    boost::filesystem::path inputFile = g_config.inputFile;
     if(! boost::filesystem::exists(usbFilePath)){
         cerr<<" fileUSB.bin file does not exist, even if you don't use file for USB, please create an empty file there.";
         assert(false);
@@ -37,7 +40,16 @@ pool(2),sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
         assert(false);
     }
     symInputFile = inputFile.string();
+
     dbgUsbFileName.append(usbFilePath.string());
+    /*
+    ofstream ofs;
+    ofs.open("tmpOut.txt");
+    ofs << "g_config.inputFile:"<<g_config.inputFile<<'\n';
+    ofs << "g_config.outputDir:"<<g_config.outputDir<<'\n';
+    ofs <<"symInputFile"<<symInputFile<<'\n';
+    ofs.close();
+    */
 
     if(!boost::filesystem::exists(funcIDFilePath)){
         cerr<<"func id file does not exist";
@@ -84,7 +96,6 @@ pool(2),sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
         symGraphs[cur_id] = cur_symgraph;
         vanillaSymGraphs[cur_id] = new SymGraph(*cur_symgraph);
     }
-    _sym_initialize_config(inputDir);
 }
 Orchestrator::~Orchestrator() {
     freeSerialPort(sp);
@@ -126,7 +137,7 @@ void Orchestrator::ExecuteBasicBlock(Val::BasicBlockIdType bbid) {
     cout.flush();
 #endif
 #ifdef DEBUG_CHECKING
-    if(cur_func->funcname == "strlen_cgc" and bbid == 6){
+    if(cur_func->funcname == "process_FC1" and bbid == 1){
         __asm__("nop");
     }
 #endif
@@ -147,7 +158,9 @@ void Orchestrator::ExecuteBasicBlock(Val::BasicBlockIdType bbid) {
                 BackwardExecution(tmpSymVal, bbTask->ready + 1);
             }
         }else if(auto tmpRuntime = dynamic_cast<RuntimeVal*>(eachNonReadyRoot);  tmpRuntime != nullptr){
-            tmpRuntime->Unassign();
+            // these runtimeVal is used by instructions located in other basicBlocks
+            // those instructions will take care of these by themselves
+            //tmpRuntime->Unassign();
         }else{
             cerr<<"Const should not be here";
             assert(false);

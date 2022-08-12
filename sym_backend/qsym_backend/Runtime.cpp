@@ -136,6 +136,7 @@ void _sym_initialize_config(string inputDirName) {
     g_config.pruning = false;
     g_config.aflCoverageMap = "";
     initLibcWrappers();
+    loadConfig();// let the env variable over write
     if (g_config.fullyConcrete) {
         return;
     }
