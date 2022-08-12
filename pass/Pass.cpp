@@ -76,8 +76,10 @@ bool SymbolizePass::doFinalization(llvm::Module & m) {
     delete r;
     return false;
 }
+
+std::string functionName;
 bool SymbolizePass::runOnFunction(Function &F) {
-    auto functionName = F.getName();
+    functionName = F.getName();
     if (functionName == kSymCtorName)
         return false;
     llvm::errs() << "Symbolizing function " << functionName << '\n';
@@ -91,7 +93,7 @@ bool SymbolizePass::runOnFunction(Function &F) {
         errs()<< outDir<<'\n';
         llvm_unreachable("output dir does not exist");
     }
-    boost::filesystem::path ddgFile = dir / (F.getName() + "_dfg.dot").str();
+    boost::filesystem::path dfgFile = dir / (F.getName() + "_dfg.dot").str();
     boost::filesystem::path cfgFile = dir / (F.getName() + "_cfg.dot").str();
     boost::filesystem::path postDomTreeFile = dir / (F.getName() + "_postDom.dot").str();
     boost::filesystem::path domTreeFile = dir / (F.getName() + "_dom.dot").str();
@@ -132,11 +134,14 @@ bool SymbolizePass::runOnFunction(Function &F) {
 
     // end of output intermediate info
 
-    symbolizer.createDFGAndReplace(F,ddgFile.string());
+    symbolizer.createDFGAndReplace(F,dfgFile.string());
 
 
     symbolizer.insertNotifyFunc(F, funcIDFile.string());
     symbolizer.insertNotifyBasicBlock(F);
+    if(functionName == "validateRequest"){
+        errs()<<F<<'\n';
+    }
     assert(!verifyFunction(F, &errs()) &&
          "SymbolizePass produced invalid bitcode");
     return true;

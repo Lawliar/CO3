@@ -809,6 +809,9 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
     if (auto tmpExpr = dyn_cast<ConstantInt>(conditionExpr); tmpExpr != nullptr && tmpExpr->isZero())
         return;
 
+    auto conditionExprSymId = getSymIDFromSym(conditionExpr);
+    assert(conditionExprSymId > 0);
+
     BasicBlock* head = I.getParent();
     // Build a check whether we have a symbolic condition, to be used later.
     auto *haveSymbolicCondition = IRB.CreateICmpNE(
@@ -820,20 +823,56 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
     // tail -> head
     MapOriginalBlock(I.getParent(), head);
     // In the constraint block, we push one path constraint per case.
-    IRB.SetInsertPoint(constraintBlock);
 
+    Instruction* first_constraint = nullptr;
+    Instruction* first_concrete_comp = nullptr;
     std::vector<unsigned int> groupedIds;
     for (auto &caseHandle : I.cases()) {
-        auto *caseTaken = IRB.CreateICmpEQ(condition, caseHandle.getCaseValue());
+        IRB.SetInsertPoint(constraintBlock);
+
         auto *caseConstraint = IRB.CreateCall(
                 runtime.comparisonHandlers[CmpInst::ICMP_EQ],
                 {conditionExpr, createValueExpression(caseHandle.getCaseValue(), IRB)});
         assignSymID(caseConstraint, getNextID());
+
+
+
+        if(first_concrete_comp == nullptr){
+            IRB.SetInsertPoint(&I);
+        }else{
+            IRB.SetInsertPoint(first_concrete_comp);
+        }
+
+        auto *finalExpression = IRB.CreatePHI(runtime.isSymT, 2);
+        auto falsePhiRoot = new FalsePhiRoot(getNextID(), {conditionExprSymId});
+        assignSymIDPhi(finalExpression,falsePhiRoot);
+
+        //symbolicComputation.lastInstruction->replaceAllUsesWith(finalExpression);
+        replaceAllUseWith(caseConstraint, finalExpression);
+
+        finalExpression->addIncoming(ConstantHelper(runtime.isSymT,0),head);
+        finalExpression->addIncoming(caseConstraint, caseConstraint->getParent());
+
+        if(first_constraint == nullptr){
+            IRB.SetInsertPoint(&I);
+        }else{
+            IRB.SetInsertPoint(first_constraint);
+        }
+
+        auto *caseTaken = IRB.CreateICmpEQ(condition, caseHandle.getCaseValue());
+        if(first_concrete_comp == nullptr){
+            first_concrete_comp = cast<Instruction>(caseTaken);
+        }
+
+        IRB.SetInsertPoint(&I);
         auto pushConstraintId = getNextID();
         auto callToPushConstraint = IRB.CreateCall(runtime.pushPathConstraint,
-                       {caseConstraint, caseTaken, ConstantHelper(runtime.symIntT, pushConstraintId)});
+                       {finalExpression, caseTaken, ConstantHelper(runtime.symIntT, pushConstraintId)});
         assignSymID(callToPushConstraint, pushConstraintId);
         groupedIds.push_back(pushConstraintId);
+        if(first_constraint == nullptr){
+            first_constraint = callToPushConstraint;
+        }
     }
     addRedirect(groupedIds);
 }
@@ -1075,9 +1114,9 @@ void Symbolizer::shortCircuitExpressionUses() {
         std::set<unsigned> peerOriginalSymIDs;
         std::set<FalsePhiLeaf*> falsePhiPeers;
 
-        //if(head->getParent()->getName().equals("calcCRC") && getSymIDFromSym(symbolicComputation.firstInstruction) == 27){
-        //    errs()<<symbolicComputation<<'\n';
-        //}
+        if(head->getParent()->getName().equals("modbusparsing") && getSymIDFromSym(symbolicComputation.lastInstruction) == 29){
+            errs()<<symbolicComputation<<'\n';
+        }
 
         for (unsigned argIndex = 0; argIndex < symbolicComputation.inputs.size();
              argIndex++) {

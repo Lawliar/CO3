@@ -31,7 +31,7 @@
 #include "dfg/DataFlowGraph.h"
 #include "Runtime.h"
 
-
+extern std::string functionName;
 class Symbolizer : public llvm::InstVisitor<Symbolizer> {
 public:
   explicit Symbolizer(llvm::Module &M, Runtime*r, llvm::LoopInfo& LI)
@@ -357,6 +357,7 @@ public:
         return false;
     }
     unsigned availableSymID = 1;
+
     unsigned int getNextID(){
         unsigned id;
         id = availableSymID;
@@ -364,6 +365,9 @@ public:
         if(availableSymID > maxNumSymVars){
             llvm_unreachable("current function has too many in memory sym variables");
         }
+        //if(id == 29 && functionName == "modbusparsing"){
+        //    __asm__("nop");
+        //}
         return id;
     }
     void addRedirect(std::vector<unsigned int>& ids ){

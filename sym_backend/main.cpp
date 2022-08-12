@@ -51,5 +51,5 @@ int main(int argc, const char *argv[])
     ProfilerStop();
 #endif
     __asm__("nop");
-
+    return 0;
 }
