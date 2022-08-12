@@ -364,6 +364,7 @@ void Symbolizer::visitBinaryOperator(BinaryOperator &I) {
     registerSymbolicComputation(runtimeCall, &I);
 }
 
+
 void Symbolizer::visitSelectInst(SelectInst &I) {
   // Select is like the ternary operator ("?:") in C. We push the (potentially
   // negated) condition to the path constraints and copy the symbolic
@@ -1074,6 +1075,10 @@ void Symbolizer::shortCircuitExpressionUses() {
         std::set<unsigned> peerOriginalSymIDs;
         std::set<FalsePhiLeaf*> falsePhiPeers;
 
+        //if(head->getParent()->getName().equals("calcCRC") && getSymIDFromSym(symbolicComputation.firstInstruction) == 27){
+        //    errs()<<symbolicComputation<<'\n';
+        //}
+
         for (unsigned argIndex = 0; argIndex < symbolicComputation.inputs.size();
              argIndex++) {
             auto &argument = symbolicComputation.inputs[argIndex];
@@ -1156,9 +1161,8 @@ void Symbolizer::shortCircuitExpressionUses() {
         }
 
 
-        if (!symbolicComputation.lastInstruction->use_empty()) {
+        if (dyn_cast<CallInst>(symbolicComputation.lastInstruction)->getCalledFunction()->getReturnType() != voidType ) {
             IRB.SetInsertPoint(&tail->front());
-
             auto *finalExpression = IRB.CreatePHI(runtime.isSymT, 2);
             if(falsePhiLeavesSymIDs.size() == 0){
                 //this simply means this is based on all constants, and this phiRootNode functionally equals false
@@ -1177,6 +1181,7 @@ void Symbolizer::shortCircuitExpressionUses() {
                     symbolicComputation.lastInstruction,
                     symbolicComputation.lastInstruction->getParent());
         }
+
     }
 }
 

@@ -39,7 +39,9 @@ public:
         ptrBits(M.getDataLayout().getPointerSizeInBits()),
         ptrBytes(M.getDataLayout().getPointerSize()),
         maxNumSymVars((1 << r->symIntT->getBitWidth()) - 1),
-        intPtrType(M.getDataLayout().getIntPtrType(M.getContext())),g(true)
+        intPtrType(M.getDataLayout().getIntPtrType(M.getContext())),
+        voidType(llvm::Type::getVoidTy(M.getContext())),
+        g(true)
         {
       assert(ptrBytes <= 8 );
       for(auto eachIntFunction : kInterceptedFunctions){
@@ -638,7 +640,7 @@ public:
   const unsigned maxNumSymVars;
   /// An integer type at least as wide as a pointer.
   llvm::IntegerType *intPtrType;
-
+  llvm::Type * voidType;
   /// Mapping from SSA values to symbolic expressions.
   ///
   /// For pointer values, the stored value is an expression describing the value
