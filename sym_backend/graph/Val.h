@@ -411,6 +411,7 @@ public:
     //unsigned numOps;
     set<ValVertexType> tmpfalsePhiLeaves;
     set<Val*> falsePhiLeaves;
+    ReadyType slowPathChosen = 0;
     SymVal_sym_FalsePhiRoot(SymIDType symid,SymIDType symidr, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges,set<ValVertexType> falsePhiLeaves):
             SymVal(symid,symidr, NodeFalseRootPhi, bid), tmpfalsePhiLeaves(falsePhiLeaves){
         //numOps = PhiEdges.size();
@@ -434,7 +435,7 @@ public:
     unsigned numOps;
     set<ValVertexType> tmpPeerOriginals;
     set<SymVal*> peerOriginals;
-    ReadyType originalNotNull = 0;
+    ReadyType slowPathChosen = 0;
     //SymVal_sym_FalsePhiRoot * root = nullptr;
     SymVal_sym_FalsePhiLeaf(SymIDType symid,SymIDType symidr, BasicBlockIdType bid, map<ArgIndexType , ValVertexType> PhiEdges,set<ValVertexType> tmpOriginals):
             SymVal(symid,symidr, NodeFalseLeafPhi, bid), tmpPeerOriginals(tmpOriginals){
@@ -443,7 +444,7 @@ public:
             tmpIn_edges[eachPhiEdge.first] = eachPhiEdge.second;
         }
     }
-    SymVal_sym_FalsePhiLeaf(const SymVal_sym_FalsePhiLeaf&other):SymVal(other),originalNotNull(0){}
+    SymVal_sym_FalsePhiLeaf(const SymVal_sym_FalsePhiLeaf&other):SymVal(other),slowPathChosen(0){}
     void FinishCopyConstructing(set<SymVal*>& old_peerOriginals,std::map<Val*,Val*> &old2new){
         //Val::FinishCopyConstructing(old2new);
         for(auto each_old_PeerOrig: old_peerOriginals){

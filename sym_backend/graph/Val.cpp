@@ -53,11 +53,22 @@ bool Val::isThisNodeReady(Val * nodeInQuestion, unsigned targetReady) {
                     std::cerr.flush();
                     abort();
                 }
-            }else if (nodeInQuestion->ready == (this->ready + 1)){
+            }else if (nodeInQuestion->ready > (this->ready )){
+                // nodeInQuestion is more ready than this current node
                 return true;
             }else{
-                cerr<<"the dep can only be one more or equal to the root in terms of ready value when they are in the same loop BB";
-                assert(false);
+                // this is the case where (nodeInquestion->ready < this->ready)
+                // nodeInQuestion can still be ready, if it matches targetReady
+                if(nodeInQuestion->ready == targetReady) {
+                    return true;
+                }else if(nodeInQuestion->ready < targetReady){
+                    return false;
+                }else{
+                    // nodeInQuestion is larger than targetReady? targetReady value must be wrong
+                    std::cerr << "TargetReady might be wrong\n";
+                    std::cerr.flush();
+                    exit(1);
+                }
             }
         }else{
             // for BB in the loop we execute in the per-BB level
@@ -481,6 +492,9 @@ void SymVal_sym_get_return_expression::Construct(Val::ReadyType targetReady) {
 }
 void SymVal_sym_build_path_constraint::Construct(Val::ReadyType targetReady) {
     // check symVal operand
+    if(symID == 28){
+        __asm__("nop");
+    }
     assert(targetReady == (ready + 1) );
     auto symVal = dynamic_cast<SymVal*>(In_edges.at(0));
     assert(symVal != nullptr);
@@ -494,6 +508,7 @@ void SymVal_sym_build_path_constraint::Construct(Val::ReadyType targetReady) {
         assert(boolean_operand->Unassigned);
     }else{
         // We simply use the symid as the siteID
+        assert(!boolean_operand->Unassigned);
         SymIDType redirectedSymID = symIDR != 0 ? symIDR : symID;
         _sym_build_path_constraint(symInput, boolean_operand->Val, redirectedSymID);
     }

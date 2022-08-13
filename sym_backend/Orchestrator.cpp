@@ -190,17 +190,19 @@ bool Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot, Va
             return false;
         }
         if(SymVal::extractSymExprFromSymVal(leaf, targetReady) ==  nullptr){
-            // the only leaf is concrete, thus, this root is also concrete
+            // the only leaf is concrete, thus, so this root is also concrete
             falsePhiRoot->symExpr = nullptr;
             falsePhiRoot->ready ++;
         }else{
             // the only leaf is not concrete, then we try to execute the slow branch
             SymVal* slowBranchVal = dynamic_cast<SymVal*>(falsePhiRoot->In_edges.at(1));
             assert(slowBranchVal != nullptr);
-            BackwardExecution(slowBranchVal, targetReady);
-            assert(falsePhiRoot->isThisNodeReady(slowBranchVal, targetReady ));
+            Val::ReadyType newTargetReady = falsePhiRoot->slowPathChosen + 1;
+            BackwardExecution(slowBranchVal, newTargetReady);
+            assert(falsePhiRoot->isThisNodeReady(slowBranchVal, newTargetReady ));
             falsePhiRoot->symExpr = slowBranchVal->symExpr;
             falsePhiRoot->ready ++;
+            falsePhiRoot->slowPathChosen ++;
         }
     }else{
         // we have multiple leaves
@@ -223,10 +225,12 @@ bool Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot, Va
         }else{
             SymVal* slowBranchVal = dynamic_cast<SymVal*>(falsePhiRoot->In_edges.at(1));
             assert(slowBranchVal != nullptr);
-            BackwardExecution(slowBranchVal, targetReady );
-            assert(falsePhiRoot->isThisNodeReady(slowBranchVal, targetReady ));
+            Val::ReadyType newTargetReady = falsePhiRoot->slowPathChosen + 1;
+            BackwardExecution(slowBranchVal, newTargetReady );
+            assert(falsePhiRoot->isThisNodeReady(slowBranchVal, newTargetReady ));
             falsePhiRoot->symExpr = slowBranchVal->symExpr;
             falsePhiRoot->ready ++;
+            falsePhiRoot->slowPathChosen ++;
         }
     }
     return true;
@@ -245,7 +249,7 @@ bool Orchestrator::ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf * falsePhiLeaf, V
         originalSymExpr = SymVal::extractSymExprFromSymVal(falsePhiLeafOriginalVal, targetReady);
         if(originalSymExpr != nullptr){
             allConcrete = false;
-            falsePhiLeaf->originalNotNull += 1;
+            //falsePhiLeaf->fastPathChosen += 1;
         }
     }
     for(auto eachPeerOrig: falsePhiLeaf->peerOriginals){
@@ -270,14 +274,15 @@ bool Orchestrator::ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf * falsePhiLeaf, V
         // this is very important:  if this falsePhiLeaf were to choose this newVal branch
         // this new Val branch is not necessarily executed the same numer of times as the falsePhiLeaf itself
         // it should be:
-        //      <the number of time it chose the original branch> +  <the number of times it chose the new branch> = targetReady
-        auto newValTargetReady = targetReady - falsePhiLeaf->originalNotNull;
+        //      <the number of time it chose the original value branch> +  <the number of times it chose the new branch> = targetReady
+        auto newValTargetReady = falsePhiLeaf->slowPathChosen + 1;
         if(! falsePhiLeaf->isThisNodeReady(newVal, newValTargetReady)){
             BackwardExecution(newVal, newValTargetReady );
         }
         assert(falsePhiLeaf->isThisNodeReady(newVal, newValTargetReady ));
         falsePhiLeaf->symExpr = SymVal::extractSymExprFromSymVal(newVal, newValTargetReady);
         falsePhiLeaf->ready++;
+        falsePhiLeaf->slowPathChosen++;
     }else if(originalSymExpr != nullptr){
         falsePhiLeaf->symExpr = originalSymExpr;
         falsePhiLeaf->ready++;
@@ -507,7 +512,7 @@ void Orchestrator::BackwardExecution(SymVal* sink, Val::ReadyType targetReady) {
         //already constructed or can be constructed right away
     }else{
 #ifdef DEBUG_CHECKING
-        if(cur_func->funcname == "allocate_cgc" && sink->symID == 8){
+        if(cur_func->funcname == "calcCRC" && sink->symID == 28 && targetReady == 3){
             __asm__("nop");
         }
 #endif
