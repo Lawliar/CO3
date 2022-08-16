@@ -190,12 +190,20 @@ impl State {
     /// subdirectories.
     fn initialize(output_dir: impl AsRef<Path>) -> Result<Self> {
         let symcc_dir = output_dir.as_ref();
-
-        fs::create_dir(&symcc_dir).with_context(|| {
-            format!("Failed to create SymCC's directory {}", symcc_dir.display())
-        })?;
-        let symcc_queue =
-            TestcaseDir::new(symcc_dir.join("queue")).context("Failed to create SymCC's queue")?;
+        
+        if symcc_dir.join("queue").is_dir(){
+            fs::remove_dir_all(symcc_dir.join("queue"));
+        }
+        if symcc_dir.join("hangs").is_dir() {
+            fs::remove_dir_all(symcc_dir.join("hangs"));
+        }
+        if symcc_dir.join("crashes").is_dir() {
+            fs::remove_dir_all(symcc_dir.join("crashes"));
+        }
+        if symcc_dir.join("stats").exists() {
+            fs::remove_file(symcc_dir.join("stats"));
+        }
+        let symcc_queue = TestcaseDir::new(symcc_dir.join("queue")).context("Failed to create SymCC's queue")?;
         let symcc_hangs = TestcaseDir::new(symcc_dir.join("hangs"))?;
         let symcc_crashes = TestcaseDir::new(symcc_dir.join("crashes"))?;
         let stats_file = File::create(symcc_dir.join("stats"))?;
@@ -227,7 +235,7 @@ impl State {
 
         let mut num_interesting = 0u64;
         let mut num_total = 0u64;
-
+        symcc.pauseFuzzer();
         let symcc_result = symcc
             .run(&input, tmp_dir.path().join("output"))
             .context("Failed to run SymCC")?;
@@ -246,7 +254,7 @@ impl State {
             num_total,
             num_interesting
         );
-
+        afl_config.resumeFuzzer();
         if symcc_result.killed {
             log::info!(
                 "The target process was killed (probably timeout or out of memory); \
@@ -288,19 +296,31 @@ fn main() -> Result<()> {
     }
 
     let symcc_dir = options.output_dir.join(&options.name);
-    if symcc_dir.is_dir() {
+    if ! symcc_dir.exists() {
         log::error!(
-            "{} already exists; we do not currently support resuming",
+            "{} does not exist.",
             symcc_dir.display()
         );
         return Ok(());
     }
+    let fuzzer_pid_path = symcc_dir.join("fuzzer_pid");
+    if ! fuzzer_pid_path.exists() {
+        log::error!(
+            "{} does not exist, please run fuzzer first.",
+            fuzzer_pid_path.display()
+        );
+        return Ok(());
+    }
 
-    let symcc = SymCC::new(symcc_dir.clone(), &options.command);
+    let fuzzer_pid_str = fs::read_to_string(fuzzer_pid_path).expect("Unable to read file");
+    let fuzzer_pid : i32 = fuzzer_pid_str.parse().unwrap();
+
+    let symcc = SymCC::new(fuzzer_pid, symcc_dir.clone(), &options.command);
     log::debug!("SymCC configuration: {:?}", &symcc);
-    let afl_config = AflConfig::load(options.output_dir.join(&options.fuzzer_name))?;
+    let afl_config = AflConfig::load(fuzzer_pid, symcc_dir.clone(), options.output_dir.join(&options.fuzzer_name))?;
     log::debug!("AFL configuration: {:?}", &afl_config);
     let mut state = State::initialize(symcc_dir)?;
+    
 
     loop {
         match afl_config
@@ -342,7 +362,14 @@ fn process_new_testcase(
     state: &mut State,
 ) -> Result<TestcaseResult> {
     log::debug!("Processing test case {}", testcase.as_ref().display());
-
+    symcc::copy_testcase(&testcase, &mut state.queue, parent).with_context(|| {
+        format!(
+            "Failed to enqueue the new test case {}",
+            testcase.as_ref().display()
+        )
+    })?;
+    Ok(TestcaseResult::New)
+    /*
     let testcase_bitmap_path = tmp_dir.as_ref().join("testcase_bitmap");
     match afl_config
         .run_showmap(&testcase_bitmap_path, &testcase)
@@ -368,11 +395,21 @@ fn process_new_testcase(
             }
         }
         AflShowmapResult::Hang => {
+            /*
             log::info!(
                 "Ignoring new test case {} because afl-showmap timed out on it",
                 testcase.as_ref().display()
             );
             Ok(TestcaseResult::Hang)
+            */
+            symcc::copy_testcase(&testcase, &mut state.queue, parent).with_context(|| {
+                format!(
+                    "Failed to enqueue the new test case {}",
+                    testcase.as_ref().display()
+                )
+            })?;
+
+            Ok(TestcaseResult::New)
         }
         AflShowmapResult::Crash => {
             log::info!(
@@ -388,5 +425,5 @@ fn process_new_testcase(
             })?;
             Ok(TestcaseResult::Crash)
         }
-    }
+    }*/
 }
