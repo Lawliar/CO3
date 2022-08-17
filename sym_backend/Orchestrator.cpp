@@ -200,7 +200,7 @@ bool Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot, Va
             Val::ReadyType newTargetReady = falsePhiRoot->slowPathChosen + 1;
             BackwardExecution(slowBranchVal, newTargetReady);
             assert(falsePhiRoot->isThisNodeReady(slowBranchVal, newTargetReady ));
-            falsePhiRoot->symExpr = slowBranchVal->symExpr;
+            falsePhiRoot->symExpr = SymVal::extractSymExprFromSymVal(slowBranchVal, newTargetReady);
             falsePhiRoot->ready ++;
             falsePhiRoot->slowPathChosen ++;
         }
@@ -228,7 +228,7 @@ bool Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot, Va
             Val::ReadyType newTargetReady = falsePhiRoot->slowPathChosen + 1;
             BackwardExecution(slowBranchVal, newTargetReady );
             assert(falsePhiRoot->isThisNodeReady(slowBranchVal, newTargetReady ));
-            falsePhiRoot->symExpr = slowBranchVal->symExpr;
+            falsePhiRoot->symExpr = SymVal::extractSymExprFromSymVal(slowBranchVal, newTargetReady);
             falsePhiRoot->ready ++;
             falsePhiRoot->slowPathChosen ++;
         }
@@ -508,7 +508,7 @@ void Orchestrator::BackwardExecution(SymVal* sink, Val::ReadyType targetReady) {
         __asm__("nop");
     }
 #endif
-    if(sink->ready == targetReady || ExecuteNode(sink, targetReady)){
+    if(sink->ready >= targetReady || ExecuteNode(sink, targetReady)){
         //already constructed or can be constructed right away
     }else{
 #ifdef DEBUG_CHECKING
@@ -902,7 +902,12 @@ int Orchestrator::Run() {
                 assert(runtime_value != nullptr);
                 runtime_value->Assign(sym_constraint_msg->runtimeVal);
                 BackwardExecution(buildConstraintVal, (buildConstraintVal->ready + 1) );
-                assert(dynamic_cast<SymVal*>(buildConstraintVal->In_edges.at(0))->symExpr != nullptr);
+
+#ifdef DEBUG_CHECKING
+                SymVal * cond_var = dynamic_cast<SymVal*>(buildConstraintVal->In_edges.at(0));
+                assert(cond_var != nullptr);
+                assert(SymVal::extractSymExprFromSymVal(cond_var, cond_var->ready) != nullptr);
+#endif
 #ifdef DEBUG_OUTPUT
                 cout << "finish "<< sym_constraint_msg->Str()<<"\n\n";
                 cout.flush();

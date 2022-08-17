@@ -1037,7 +1037,7 @@ bool SymGraph::BasicBlockTask::isBBReady() {
         else if(auto tmpRuntime = dynamic_cast<RuntimeVal*>(eachRoot); tmpRuntime != nullptr){
             continue;
         }
-        assert( eachRoot->ready == (ready + 1) );
+        assert( eachRoot->ready >= (ready + 1) );
     }
     return true;
 }
@@ -1064,8 +1064,8 @@ void SymGraph::RefreshBBTask(Val::BasicBlockIdType bbid,Val::ReadyType targetRea
         }
 #ifdef DEBUG_CHECKING
         else if(eachRoot->ready > targetReady){
-            std::cerr<<" nodes' ready should not exceed its BB ready";
-            assert(false);
+            //std::cerr<<" nodes' ready should not exceed its BB ready";
+            //assert(false);
         }
 #endif
     }

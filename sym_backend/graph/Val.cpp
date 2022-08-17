@@ -49,7 +49,7 @@ bool Val::isThisNodeReady(Val * nodeInQuestion, unsigned targetReady) {
                 }else if(this->ready < targetReady){
                     return false;
                 }else{
-                    std::cerr<<"target Ready is less than this node's ready?";
+                    std::cerr<<"this node's ready is even more than target Ready ?";
                     std::cerr.flush();
                     abort();
                 }
@@ -492,9 +492,6 @@ void SymVal_sym_get_return_expression::Construct(Val::ReadyType targetReady) {
 }
 void SymVal_sym_build_path_constraint::Construct(Val::ReadyType targetReady) {
     // check symVal operand
-    if(symID == 28){
-        __asm__("nop");
-    }
     assert(targetReady == (ready + 1) );
     auto symVal = dynamic_cast<SymVal*>(In_edges.at(0));
     assert(symVal != nullptr);
