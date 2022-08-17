@@ -162,7 +162,11 @@ static void MonitorTask( void * pvParameters )
 	}
 }
 
+#define CGC_BENCHMARK
+
+#ifdef CGC_BENCHMARK
 extern unsigned int input_cur;
+#endif
 static void TargetTask( void * pvParameters )
 {
 	//printf("\n new target spawned\n");
@@ -177,12 +181,16 @@ static void TargetTask( void * pvParameters )
 
 
         _sym_symbolize_memory((char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT),AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT);
-        //test((unsigned char*)(AFLfuzzer.inputAFL.uxBuffer+1),AFLfuzzer.inputAFL.u32available);
+#ifdef CGC_BENCHMARK
         test();
+#else
+        modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
+#endif
         _sym_end();
+#ifdef CGC_BENCHMARK
         input_cur = 0;
-		//testprotocol(10); // this function will call instrumentation callbacks for testing
-		//stop_time_val = DWT->CYCCNT;
+#endif
+        //stop_time_val = DWT->CYCCNT;
 
 
 //#if DEBUGPRINT ==1

@@ -176,6 +176,33 @@ bool _sym_peripheral_symb(uint32_t *addr)
    return false;
 }
 
+int checkSymPeripheral(uint32_t * addr){
+	if((uint32_t)addr>= SYM_PERIPHERAL_ADDR_START && (uint32_t)addr <=(SYM_PERIPHERAL_ADDR_START + SYM_PERIPHERAL_SIZE)  )
+	{
+		//address is a peripheral
+		//here check the list of addresses in the initialization
+		//we only check the first byte TODO: check if this works with the instrumentation
+		for(int i=0; i<total_sym_peripherals; i++)
+		{
+			if((uint32_t*)addr == sym_peripherals[i])
+			{
+				//reportSymHelper( SYM_BLD_READ_MEM, SIZE_SYM_BLD_READ_MEM, addr, NULL, 0, symID);
+				return 1;
+			}
+		}
+		return 0;
+	}
+	return -1;
+}
+
+int checkSymFlash(uint32_t * addr){
+	if((uint32_t)addr>= SYM_FLASH_ADDR_START && (uint32_t)addr <=(SYM_FLASH_ADDR_START + SYM_FLASH_SIZE)  )
+	{
+		//flash is always concrete
+		return 0;
+	}
+	return -1;
+}
 #if DEBUGPRINT ==1
 void txCommandtoMonitor(uint8_t size, uint8_t func)
 #else
@@ -607,25 +634,41 @@ uint32_t AddressToShadow(char *addr)
 //return true if byte is symbolic
 bool checkSymbolic(char *addr)
 {
-   char *addrShadow = (char *)AddressToShadow(addr);
-   char val = *addrShadow;
-   uint32_t bitnum = ((uint32_t)addr) & 0x07;
-   return bitRead(val,bitnum);
+	int peri = checkSymPeripheral((uint32_t *)addr);
+	int flash = checkSymFlash((uint32_t *)addr);
+	if(peri != -1){
+		return peri > 0 ? true : false;
+	}else if(flash != -1){
+		return false;
+	}
+
+	char *addrShadow = (char *)AddressToShadow(addr);
+	char val = *addrShadow;
+	uint32_t bitnum = ((uint32_t)addr) & 0x07;
+	return bitRead(val,bitnum);
 }
 
 
 //return true if byte was symbolic and convert it to concrete
 bool checkSymbolicSetConcrete(char *addr)
 {
-   char *addrShadow = (char *)AddressToShadow(addr);
-   char val = *addrShadow;
-   uint32_t bitnum = ((uint32_t)addr) & 0x07;
-   bool symbolic  = bitRead(val,bitnum);
-   if(symbolic) bitClear(*addrShadow,  bitnum);
-   return symbolic;
+	int peri = checkSymPeripheral((uint32_t *)addr);
+	int flash = checkSymFlash((uint32_t *)addr);
+	if(peri != -1){
+		return peri > 0 ? true : false;
+	}else if(flash != -1){
+		return false;
+	}
+	
+	char *addrShadow = (char *)AddressToShadow(addr);
+	char val = *addrShadow;
+	uint32_t bitnum = ((uint32_t)addr) & 0x07;
+	bool symbolic  = bitRead(val,bitnum);
+	if(symbolic) bitClear(*addrShadow,  bitnum);
+	return symbolic;
 }
 
-
+/*
 //return true if byte was symbolic and convert it to symbolic
 bool checkSymbolicSetSymbolic(char *addr)
 {
@@ -635,22 +678,32 @@ bool checkSymbolicSetSymbolic(char *addr)
    bool symbolic  = bitRead(val,bitnum);
    if(!symbolic)bitSet(*addrShadow,  bitnum);
    return symbolic;
-}
+}*/
 
 
 void SetSymbolic(char *addr)
 {
-   char *addrShadow =  (char *)AddressToShadow (addr);
-   uint32_t bitnum = ((uint32_t)addr) & 0x07;
-   bitSet(*addrShadow,  bitnum);
+	int peri = checkSymPeripheral((uint32_t *)addr);
+	int flash = checkSymFlash((uint32_t *)addr);
+	if(peri != -1){
+		return;
+	}else if(flash != -1){
+		return;
+	}
+
+	char *addrShadow =  (char *)AddressToShadow (addr);
+	uint32_t bitnum = ((uint32_t)addr) & 0x07;
+	bitSet(*addrShadow,  bitnum);
+	
 }
 
+/*
 void SetConcrete(char *addr)
 {
    char *addrShadow =  (char *)AddressToShadow (addr);
    uint32_t bitnum = ((uint32_t)addr) & 0x07;
    bitClear(*addrShadow,  bitnum);
-}
+}*/
 
 
 void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t length, uint16_t symID)
@@ -735,6 +788,7 @@ void _sym_build_memcpy(char * dest, char * src, size_t length, uint16_t symID)
 	char *pCharSrc = src;
     bool report;
     report =false;
+	
 
     for(size_t i=0; i<length; i++)
     {
@@ -846,29 +900,6 @@ void _sym_build_memmove(char * dest, char * src, size_t length, uint16_t symID)
 
 bool _sym_build_read_memory(char * addr, size_t length, bool is_little_edian, uint16_t symID)
 {
-
-	if((uint32_t)addr>= SYM_PERIPHERAL_ADDR_START && (uint32_t)addr <=(SYM_PERIPHERAL_ADDR_START + SYM_PERIPHERAL_SIZE)  )
-	{
-		//address is a peripheral
-		//here check the list of addresses in the initialization
-		//we only check the first byte TODO: check if this works with the instrumentation
-		for(int i=0; i<total_sym_peripherals; i++)
-		{
-			if((uint32_t*)addr == sym_peripherals[i])
-			{
-				reportSymHelper( SYM_BLD_READ_MEM, SIZE_SYM_BLD_READ_MEM, addr, NULL, 0, symID);
-				return true;
-			}
-		}
-		return false;
-	}
-
-	if((uint32_t)addr>= SYM_FLASH_ADDR_START && (uint32_t)addr <=(SYM_FLASH_ADDR_START + SYM_FLASH_SIZE)  )
-	{
-		//flash is always concrete
-		return false;
-	}
-
 	char *pChar=addr;
 	uint8_t countSymbols;
 	size_t i;
