@@ -5,11 +5,12 @@ from IPython import embed
 from tqdm import tqdm
 import subprocess
 
-input_dir = "/home/lcm/github/spear/spear-code/code_coverage/CROMU_00005"
+benchmark = "CROMU_00003"
+input_dir = "/home/lcm/github/spear/spear-code/code_coverage/{}".format(benchmark)
 build_dir = os.path.join(input_dir,"build")
 executable = os.path.join(build_dir,"out")
-symcc_input = "/home/lcm/github/spear/spear-code/symcc_benchmark/shared_volume/CROMU_00005/output"
-spear_input = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearCROMU_00005/intermediate_results/output"
+symcc_input = "/home/lcm/github/spear/spear-code/symcc_benchmark/shared_volume/{}/output".format(benchmark)
+spear_input = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/Spear{}/intermediate_results/output".format(benchmark)
 
 assert(os.path.exists(input_dir))
 assert(os.path.exists(build_dir))
@@ -52,7 +53,9 @@ def runTest():
     spear_bb = runOne(spear_input)
     print("symcc covered BB:{}\n".format(len(symcc_bb)))
     print("spear covered BB:{}\n".format(len(spear_bb)))
-        
+    print("\n\ndiff : ",end='')
+    for each_diff in symcc_bb - spear_bb:
+        print("{}".format(int('0x'+each_diff, 16)), end=' ')
 def main():
     #checkMake()
     runTest()
