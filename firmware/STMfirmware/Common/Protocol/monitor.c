@@ -179,7 +179,9 @@ static void TargetTask( void * pvParameters )
 		printf("\nStart\n");
 //#endif
 
-
+#ifdef CGC_BENCHMARK
+        input_cur = 0;
+#endif
         _sym_symbolize_memory((char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT),AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT);
 #ifdef CGC_BENCHMARK
         test();
@@ -187,9 +189,7 @@ static void TargetTask( void * pvParameters )
         modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
 #endif
         _sym_end();
-#ifdef CGC_BENCHMARK
-        input_cur = 0;
-#endif
+
         //stop_time_val = DWT->CYCCNT;
 
 

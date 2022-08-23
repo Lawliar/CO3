@@ -133,84 +133,84 @@ def parsePackage(package):
             src = int.from_bytes(package[cur + 6: cur + 10],byteorder='little')
             length = int.from_bytes(package[cur + 10: cur + 12],byteorder='little')
             cur += 12
-            print("{}MemCpy: symval:{}, dest:{}, src:{}, length:{}".format(indent * '\t',symid, dest, src, length))
+            print("{}MemCpy: symval:{}, dest:{}, src:{}, length:{}".format(indent * '\t',symid, hex(dest), hex(src), length))
         elif(package[cur] == MsgTypes.SYM_BLD_MEMCPY_1):
             symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             dest = int.from_bytes(package[cur + 3: cur + 7],byteorder='little')
             src = int.from_bytes(package[cur + 7: cur + 11],byteorder='little')
             length = int.from_bytes(package[cur + 11: cur + 13],byteorder='little')
             cur += 13
-            print("{}MemCpy_1: symval:{}, dest:{}, src:{}, length:{}".format(indent * '\t',symid, dest, src, length))
+            print("{}MemCpy_1: symval:{}, dest:{}, src:{}, length:{}".format(indent * '\t',symid, hex(dest), hex(src), length))
         elif(package[cur] == MsgTypes.SYM_BLD_MEMSET):
             symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
             mem = int.from_bytes(package[cur + 2: cur + 6],byteorder='little')
             length = int.from_bytes(package[cur + 6: cur + 8],byteorder='little')
             cur += 8
-            print("{}MemSet: symval:{}, mem:{},  length:{}".format(indent * '\t',symid, mem, length))
+            print("{}MemSet: symval:{}, mem:{},  length:{}".format(indent * '\t',symid, hex(mem), length))
         elif(package[cur] == MsgTypes.SYM_BLD_MEMSET_1):
             symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             mem = int.from_bytes(package[cur + 3: cur + 7],byteorder='little')
             length = int.from_bytes(package[cur + 7: cur + 9],byteorder='little')
             cur += 9
-            print("{}MemSet_1: symval:{}, mem:{},  length:{}".format(indent * '\t',symid, mem, length))
+            print("{}MemSet_1: symval:{}, mem:{},  length:{}".format(indent * '\t',symid, hex(mem), length))
         elif(package[cur] == MsgTypes.SYM_BLD_MEMMOVE):
             symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
             dest = int.from_bytes(package[cur + 2: cur + 6],byteorder='little')
             src = int.from_bytes(package[cur + 6: cur + 10],byteorder='little')
             length = int.from_bytes(package[cur + 10: cur + 12],byteorder='little')
             cur += 12
-            print("{}MemMove: symval:{}, dest:{}, src:{}, length:{}".format(indent * '\t',symid, dest, src, length))
+            print("{}MemMove: symval:{}, dest:{}, src:{}, length:{}".format(indent * '\t',symid, hex(dest), hex(src), length))
         elif(package[cur] == MsgTypes.SYM_BLD_MEMMOVE_1):
             symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             dest = int.from_bytes(package[cur + 3: cur + 7],byteorder='little')
             src = int.from_bytes(package[cur + 7: cur + 11],byteorder='little')
             length = int.from_bytes(package[cur + 11: cur + 13],byteorder='little')
             cur += 13
-            print("{}MemMove_1: symval:{}, dest:{}, src:{}, length:{}".format(indent * '\t',symid, dest, src, length))
+            print("{}MemMove_1: symval:{}, dest:{}, src:{}, length:{}".format(indent * '\t',symid, hex(dest), hex(src), length))
         elif(package[cur] == MsgTypes.SYM_BLD_READ_MEM):
             symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
             addr = int.from_bytes(package[cur + 2: cur + 6],byteorder='little')
             cur += 6
-            print("{}ReadMem: symval:{}, addr:{}".format(indent * '\t',symid,addr))
+            print("{}ReadMem: symval:{}, addr:{}".format(indent * '\t',symid,hex(addr)))
         elif(package[cur] == MsgTypes.SYM_BLD_READ_MEM_1):
             symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             addr = int.from_bytes(package[cur + 3: cur + 7],byteorder='little')
             cur += 7
-            print("{}ReadMem_1: symval:{}, addr:{}".format(indent * '\t',symid,addr))
+            print("{}ReadMem_1: symval:{}, addr:{}".format(indent * '\t',symid,hex(addr)))
         elif(package[cur] == MsgTypes.SYM_BLD_READ_MEM_HW):
             symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
             addr = int.from_bytes(package[cur + 2: cur + 6],byteorder='little')
             val = int.from_bytes(package[cur + 6: cur + 8],byteorder='little')
             cur += 8
-            print("{}ReadMem_HW: symval:{}, addr:{}, val:{}".format(indent * '\t',symid,addr,val))
+            print("{}ReadMem_HW: symval:{}, addr:{}, val:{}".format(indent * '\t',symid,hex(addr),val))
         elif(package[cur] == MsgTypes.SYM_BLD_READ_MEM_HW_1):
             symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             addr = int.from_bytes(package[cur + 3: cur + 7],byteorder='little')
             val = int.from_bytes(package[cur + 7: cur + 9],byteorder='little')
             cur += 9
-            print("{}ReadMem_HW_1: symval:{}, addr:{}, val:{}".format(indent * '\t',symid,addr,val))
+            print("{}ReadMem_HW_1: symval:{}, addr:{}, val:{}".format(indent * '\t',symid,hex(addr),val))
         elif(package[cur] == MsgTypes.SYM_BLD_READ_MEM_W):
             symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
             addr = int.from_bytes(package[cur + 2: cur + 6],byteorder='little')
             val = int.from_bytes(package[cur + 6: cur + 10],byteorder='little')
             cur += 10
-            print("{}ReadMem_W: symval:{}, addr:{},val:{}".format(indent * '\t',symid,addr,val))
+            print("{}ReadMem_W: symval:{}, addr:{},val:{}".format(indent * '\t',symid,hex(addr),val))
         elif(package[cur] == MsgTypes.SYM_BLD_READ_MEM_W_1):
             symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             addr = int.from_bytes(package[cur + 3: cur + 7],byteorder='little')
             val = int.from_bytes(package[cur + 7: cur + 11],byteorder='little')
             cur += 11
-            print("{}ReadMem_W_1: symval:{}, addr:{},val:{}".format(indent * '\t',symid,addr,val))
+            print("{}ReadMem_W_1: symval:{}, addr:{},val:{}".format(indent * '\t',symid,hex(addr),val))
         elif(package[cur] == MsgTypes.SYM_BLD_WRITE_MEM):
             symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
             addr = int.from_bytes(package[cur + 2: cur + 6],byteorder='little')
             cur += 6
-            print("{}WriteMem: symval:{}, addr:{}".format(indent * '\t',symid,addr))
+            print("{}WriteMem: symval:{}, addr:{}".format(indent * '\t',symid,hex(addr)))
         elif(package[cur] == MsgTypes.SYM_BLD_WRITE_MEM_1):
             symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             addr = int.from_bytes(package[cur + 3: cur + 7],byteorder='little')
             cur += 7
-            print("{}WriteMem: symval:{}, addr:{}".format(indent * '\t',symid,addr))
+            print("{}WriteMem: symval:{}, addr:{}".format(indent * '\t',symid,hex(addr)))
         elif(package[cur] == MsgTypes.SYM_NTFY_PHI):
             symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
             branchNo = int.from_bytes(package[cur + 2: cur + 3],byteorder='little')
@@ -246,7 +246,7 @@ def parsePackage(package):
         elif(package[cur] == MsgTypes.SYM_INIT):
             addr  = int.from_bytes(package[cur + 1: cur + 5],byteorder='little')
             cur += 5
-            print("{}SymInit: addr:{}".format(indent * '\t',addr))
+            print("{}SymInit: addr:{}".format(indent * '\t',hex(addr)))
         elif(package[cur] == MsgTypes.SYM_END):
             cur += 1
             print("SymEnd")
@@ -264,4 +264,4 @@ while cur < size:
 
     parsePackage(package)
     cur =  cur +  package_len
-    print("{}/{}".format(cur,size),end=' ')
+    #print("{}/{}".format(cur,size),end=' ')
