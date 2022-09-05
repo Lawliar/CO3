@@ -606,7 +606,7 @@ int test(void)
 	ptr_array = &array;
 
 	initboard();
-	displayer();
+	//displayer();
 
 	Move move = {.src_x = 0, .src_y = 0, .dst_x = 0, .dst_y = 0};
 	
@@ -630,7 +630,7 @@ int test(void)
 		}
 		else if (ret == DISPLAY_BOARD)
 		{
-			displayer();
+			//displayer();
 			continue;
 		}
 		else if (ret == END_GAME)
