@@ -13,10 +13,10 @@
 #include  "ring.h"
 #include "stdio.h"
 #include "string.h"
-#include "test.h"
+//#include "test.h"
 #include "runtime.h"
 
-
+extern UART_HandleTypeDef huart2;
 static uint32_t start_time_val, stop_time_val;
 
 // for getting time
@@ -107,9 +107,23 @@ static void MonitorTask( void * pvParameters )
 			AFLfuzzer.txbuffer[i]=0;
 		}
 		*/
-
+		HAL_UART_Transmit(&huart2,&AFLfuzzer.inputAFL.uxBuffer[4] , AFLfuzzer.inputAFL.u32availablenopad-4, 100);
     	AFLfuzzer.txCurrentIndex=REPORTING_BUFFER_STARTING_POINT; //Index Zero is reserved for the total length of the message, which  includes the first byte
+    	while(ulTaskNotifyTakeIndexed(2,pdTRUE, TARGET_TIMEOUT) != 1) //check if data was received by the target through USART on index 2
+    	{
+    		//if we do not receive  a confirmation we delete and recreate the target
+    		// the target will reconfigure USART4 in RX DMA mode
+    		vTaskDelete(AFLfuzzer.xTaskTarget);
+    		taskYIELD(); //lets the kernel clean the TCB
+    		//numberofcycles = 0;
+    		spawnNewTarget();
+    		// wait for the target task notification when ready
+    		ulTaskNotifyTakeIndexed(2,pdTRUE, TARGET_TIMEOUT/2);
+    		//send the payload through USART TX  pin PD5
+    		HAL_UART_Transmit(&huart2,&AFLfuzzer.inputAFL.uxBuffer[4] , AFLfuzzer.inputAFL.u32availablenopad-4, 100);
+    		//refreshtarget = 0;
 
+    	}
 
 
 		//notify the target that data has arrived, and it should start execution
@@ -160,7 +174,7 @@ static void MonitorTask( void * pvParameters )
 	}
 }
 
-#define CGC_BENCHMARK
+//#define CGC_BENCHMARK
 
 #ifdef CGC_BENCHMARK
 extern unsigned int input_cur;
@@ -180,11 +194,12 @@ static void TargetTask( void * pvParameters )
 #ifdef CGC_BENCHMARK
         input_cur = 0;
 #endif
-		_sym_symbolize_memory((char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT),AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT);
+		//_sym_symbolize_memory((char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT),AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT);
 #ifdef CGC_BENCHMARK
         test();
 #else
-        modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
+        //modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
+        modbusSlaveHandler();
 #endif
         _sym_end();
 
@@ -201,5 +216,76 @@ static void TargetTask( void * pvParameters )
 
 	}
 }
+
+/*-----------------------------------------------------------*/
+
+void vApplicationStackOverflowHook( TaskHandle_t pxTask, char *pcTaskName )
+{
+	/* If configCHECK_FOR_STACK_OVERFLOW is set to either 1 or 2 then this
+	function will automatically get called if a task overflows its stack. */
+	( void ) pxTask;
+	( void ) pcTaskName;
+	for( ;; );
+}
+/*-----------------------------------------------------------*/
+
+void vApplicationMallocFailedHook( void )
+{
+	/* If configUSE_MALLOC_FAILED_HOOK is set to 1 then this function will
+	be called automatically if a call to pvPortMalloc() fails.  pvPortMalloc()
+	is called automatically when a task, queue or semaphore is created. */
+	for( ;; );
+}
+/*-----------------------------------------------------------*/
+
+/* configUSE_STATIC_ALLOCATION is set to 1, so the application must provide an
+implementation of vApplicationGetIdleTaskMemory() to provide the memory that is
+used by the Idle task. */
+void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize )
+{
+/* If the buffers to be provided to the Idle task are declared inside this
+function then they must be declared static - otherwise they will be allocated on
+the stack and so not exists after this function exits. */
+static StaticTask_t xIdleTaskTCB;
+static StackType_t uxIdleTaskStack[ configMINIMAL_STACK_SIZE ];
+
+	/* Pass out a pointer to the StaticTask_t structure in which the Idle task's
+	state will be stored. */
+	*ppxIdleTaskTCBBuffer = &xIdleTaskTCB;
+
+	/* Pass out the array that will be used as the Idle task's stack. */
+	*ppxIdleTaskStackBuffer = uxIdleTaskStack;
+
+	/* Pass out the size of the array pointed to by *ppxIdleTaskStackBuffer.
+	Note that, as the array is necessarily of type StackType_t,
+	configMINIMAL_STACK_SIZE is specified in words, not bytes. */
+	*pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+}
+/*-----------------------------------------------------------*/
+
+/* configUSE_STATIC_ALLOCATION and configUSE_TIMERS are both set to 1, so the
+application must provide an implementation of vApplicationGetTimerTaskMemory()
+to provide the memory that is used by the Timer service task. */
+void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer, StackType_t **ppxTimerTaskStackBuffer, uint32_t *pulTimerTaskStackSize )
+{
+/* If the buffers to be provided to the Timer task are declared inside this
+function then they must be declared static - otherwise they will be allocated on
+the stack and so not exists after this function exits. */
+static StaticTask_t xTimerTaskTCB;
+static StackType_t uxTimerTaskStack[ configTIMER_TASK_STACK_DEPTH ];
+
+	/* Pass out a pointer to the StaticTask_t structure in which the Timer
+	task's state will be stored. */
+	*ppxTimerTaskTCBBuffer = &xTimerTaskTCB;
+
+	/* Pass out the array that will be used as the Timer task's stack. */
+	*ppxTimerTaskStackBuffer = uxTimerTaskStack;
+
+	/* Pass out the size of the array pointed to by *ppxTimerTaskStackBuffer.
+	Note that, as the array is necessarily of type StackType_t,
+	configMINIMAL_STACK_SIZE is specified in words, not bytes. */
+	*pulTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
+}
+/*-----------------------------------------------------------*/
 
 
