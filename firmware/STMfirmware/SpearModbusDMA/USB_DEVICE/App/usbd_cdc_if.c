@@ -30,19 +30,6 @@
 
 
 
-/*
-
-#include "main.h"
-#include "ring.h"
-
-
-extern RingBuffer_t inputAFL;
-extern uint32_t inputLength;
-extern volatile bool bRXcomplete;
-extern volatile bool bTXcomplete;
-extern volatile uint32_t timespan;
-
-*/
 
 /* USER CODE END INCLUDE */
 
@@ -338,21 +325,7 @@ static int8_t CDC_TransmitCplt_FS(uint8_t *Buf, uint32_t *Len, uint8_t epnum)
   UNUSED(Len);
   UNUSED(epnum);
 
-
-  BaseType_t xHigherPriorityTaskWoken;
-    xHigherPriorityTaskWoken = pdFALSE;
-
-
-
-    AFLfuzzer.bTXcomplete = true;
-    xTaskNotifyIndexedFromISR(AFLfuzzer.xTaskMonitor,
-  	  	    				1, //index
-  							2, //value = 2 data TX complete
-  							eSetBits,
-  							&xHigherPriorityTaskWoken);
-
-    portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
-
+  notifyTXfinish();
 
   /* USER CODE END 13 */
   return result;
