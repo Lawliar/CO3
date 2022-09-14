@@ -1,12 +1,9 @@
 
 #include "modbus_rtu.h"
-
-#include "string.h"
-
 #include "modbus_rtu_conf.h"
-//#include "afl.h"
-//#include "fuzzing.h"
-#include "main.h"
+#include "string.h"
+#include "afl.h"
+#include "fuzzing.h"
 
 /*
 -fsanitize-coverage=trace-pc
@@ -20,11 +17,15 @@
 
 
 
-uint16_t modbusMemory[MODBUS_SLAVE_REGISTERS_NUM];
-uint8_t modbusRxTxBuffer[MODBUS_MAX_FRAME_SIZE];
-modbus_t  modbusVars __attribute__( ( aligned( next_power_of_2(sizeof(modbus_t)) ) ) );
+extern uint16_t modbusMemory[MODBUS_SLAVE_REGISTERS_NUM];
+extern uint8_t modbusRxTxBuffer[MODBUS_MAX_FRAME_SIZE];
+extern modbus_t  modbusVars __attribute__( ( aligned( next_power_of_2(sizeof(modbus_t)) ) ) );
 //extern UART_HandleTypeDef huart4;
 extern UART_HandleTypeDef huart4 __attribute__( ( aligned( next_power_of_2(sizeof(modbus_t)) ) ) );;
+
+#if DUALCOREFUZZ == 0
+uint8_t AFLfuzzerRegion[AFLINPUTREGION_SIZE ] __attribute__( ( aligned( AFLINPUTREGION_SIZE ) ) );
+#endif
 
 
 
@@ -172,7 +173,7 @@ void modbusSlaveStartReceiving(void)
      */
 
 
-     //SytemCall_2(); // configures serial por to recive data
+     SytemCall_2(); // configures serial por to recive data
 
      modbusRxCount = 0;
 

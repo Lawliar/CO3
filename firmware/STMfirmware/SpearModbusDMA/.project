@@ -31,19 +31,9 @@
 	</natures>
 	<linkedResources>
 		<link>
-			<name>FreeRTOS-Kernel</name>
+			<name>CommonSHIFT</name>
 			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Common/FreeRTOS-Kernel</locationURI>
-		</link>
-		<link>
-			<name>Protocol</name>
-			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Common/Protocol</locationURI>
-		</link>
-		<link>
-			<name>SymRuntime</name>
-			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Common/SymRuntime</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/CommonSHIFT</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>

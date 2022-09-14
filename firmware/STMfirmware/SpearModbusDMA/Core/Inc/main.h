@@ -33,29 +33,30 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stdbool.h"
-//#include "ConfigFuzzing.h"
+#include "ConfigFuzzing.h"
 #include "FreeRTOS.h"
 #include "task.h"
 
-#define b2(x)   (   (x) | (   (x) >> 1) )
-#define b4(x)   ( b2(x) | ( b2(x) >> 2) )
-#define b8(x)   ( b4(x) | ( b4(x) >> 4) )
-#define b16(x)  ( b8(x) | ( b8(x) >> 8) )
-#define b32(x)  (b16(x) | (b16(x) >>16) )
-#define next_power_of_2(x)      (b32(x-1) + 1)
 
-enum {
-  /* 00 */ FAULT_NONE,
-  /* 01 */ FAULT_TMOUT,
-  /* 02 */ FAULT_CRASH,
-  /* 03 */ FAULT_ERROR,
-  /* 04 */ FAULT_NOINST,
-  /* 05 */ FAULT_NOBITS,
-  /* 06 */ FAULT_COMM,
-  /* 07 */ FAULT_INLEGTH,
-  /* 08 */ FAULT_NONE_RTOS,
-  /* 09 */ FAULT_ASAN,
-};
+
+#if DUALCOREFUZZ == 0
+
+#define DTCMRAMORIGIN  0x20000000
+#define AFLINPUTREGION_SIZE (1024*64)
+
+extern uint8_t AFLfuzzerRegion[AFLINPUTREGION_SIZE ] __attribute__( ( aligned( AFLINPUTREGION_SIZE ) ) );
+
+#else
+
+#define AFLINPUTREGION_SIZE (1024*128)
+#define AFLfuzzerRegion  (uint8_t*)0x24040000
+
+#endif
+
+
+#define AFLfuzzer  (*pAFLfuzzer)
+#define aflbitmap (*paflbitmap)
+
 
 
 /* USER CODE END Includes */

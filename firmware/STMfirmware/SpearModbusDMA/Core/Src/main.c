@@ -22,8 +22,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-//#include "fuzzing.h"
-#include "monitor.h"
+#include "fuzzing.h"
+#include "app_main.h"
 
 
 //#include "testmodbus.h"
