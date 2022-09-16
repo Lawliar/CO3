@@ -13,7 +13,7 @@
 #include  "ring.h"
 #include "stdio.h"
 #include "string.h"
-#include "test.h"
+//#include "test.h"
 #include "runtime.h"
 
 
