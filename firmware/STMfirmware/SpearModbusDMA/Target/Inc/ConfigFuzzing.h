@@ -16,14 +16,14 @@
 #define SIZE16  (1024 * 16)
 #define SIZE8  (1024 * 8)
 #define SIZE4  (1024 * 4)
-#define MAX_BUFFER_INPUT  (2048)       // 2 kb
+//#define MAX_BUFFER_INPUT  (2048)       // 2 kb
 #define AFL_BITMAP_SIZE   SIZE8
 
 
 
 #define FUZZING_CYCLES_IN_PROCESS 1000   //number of cycles that we will use the same task before deleting and spawning a new one
 #define McuASAN_MAX_NUMBER_ALLOCS 10
-#define TARGET_TIMEOUT 20
+//#define TARGET_TIMEOUT 20
 
 #define  PERSISTENT_MODE 1
 #define DUALCOREFUZZ 0

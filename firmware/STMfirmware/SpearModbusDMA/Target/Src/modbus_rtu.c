@@ -2,8 +2,9 @@
 #include "modbus_rtu.h"
 #include "modbus_rtu_conf.h"
 #include "string.h"
-#include "afl.h"
-#include "fuzzing.h"
+#include "stm32h7xx_hal.h"
+//#include "afl.h"
+//#include "fuzzing.h"
 
 /*
 -fsanitize-coverage=trace-pc
@@ -14,18 +15,23 @@
 
 //#define MODBUS_INTERRUPT_PRIORITY configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY + 2
 
+#define b2(x)   (   (x) | (   (x) >> 1) )
+#define b4(x)   ( b2(x) | ( b2(x) >> 2) )
+#define b8(x)   ( b4(x) | ( b4(x) >> 4) )
+#define b16(x)  ( b8(x) | ( b8(x) >> 8) )
+#define b32(x)  (b16(x) | (b16(x) >>16) )
+#define next_power_of_2(x)      (b32(x-1) + 1)
 
 
-
-extern uint16_t modbusMemory[MODBUS_SLAVE_REGISTERS_NUM];
-extern uint8_t modbusRxTxBuffer[MODBUS_MAX_FRAME_SIZE];
-extern modbus_t  modbusVars __attribute__( ( aligned( next_power_of_2(sizeof(modbus_t)) ) ) );
+uint16_t modbusMemory[MODBUS_SLAVE_REGISTERS_NUM] __attribute__( ( aligned( MODBUS_SLAVE_REGISTERS_NUM * sizeof(uint16_t) ) ) );
+uint8_t modbusRxTxBuffer[MODBUS_MAX_FRAME_SIZE] __attribute__( ( aligned( MODBUS_MAX_FRAME_SIZE  ) ) );
+modbus_t  modbusVars __attribute__( ( aligned( next_power_of_2(sizeof(modbus_t)) ) ) );
 //extern UART_HandleTypeDef huart4;
-extern UART_HandleTypeDef huart4 __attribute__( ( aligned( next_power_of_2(sizeof(modbus_t)) ) ) );;
+extern UART_HandleTypeDef huart4 __attribute__( ( aligned( next_power_of_2(sizeof(UART_HandleTypeDef)) ) ) );
 
-#if DUALCOREFUZZ == 0
-uint8_t AFLfuzzerRegion[AFLINPUTREGION_SIZE ] __attribute__( ( aligned( AFLINPUTREGION_SIZE ) ) );
-#endif
+//#if DUALCOREFUZZ == 0
+//uint8_t AFLfuzzerRegion[AFLINPUTREGION_SIZE ] __attribute__( ( aligned( AFLINPUTREGION_SIZE ) ) );
+//#endif
 
 
 
@@ -46,6 +52,7 @@ void modbusSlaveHandler();
 uint8_t modbusSlaveHardwareInit(void);
 void modbusSlaveStartTransmitting(uint16_t bytesNum);
 void modbusSlaveStartReceiving(void);
+void SytemCall_1_code();
 
 static uint8_t modbusSlaveCheckFrameSize(void);
 static uint8_t modbusSlaveCheckID(void);
@@ -75,22 +82,31 @@ void modbusSlavePutData(uint16_t address, void * value, uint16_t len)
 }
 
 
+
+
 void modbusSlaveHandler()
 {
 /*
    Fuzzer_t *pAFLfuzzer = (Fuzzer_t *)AFLfuzzerRegion;
    //Fuzzer_t *pAFLfuzzer = (Fuzzer_t *)AFLfuzzerRegion;
 
-
+   ***** Alejandro: This is the ERROR deleting lines without reading the comments...
+   ***** the system calls are quite important to perform task with elevated privileges
+   ***** since SPEAR is always running in the highest privilege it does not require to elevate privileges
+   ***** but it needs to execute the system call code
+   ***** I moved the execution of this line to the target
+   *****
    SytemCall_1(); //modbusSlaveHardwareInit();  // this only starts receiving data, the HW is initialized in
 
    // uint8_t firstRun=1;
    //cleanInitShadow();
-   xTaskNotifyIndexed(AFLfuzzer.xTaskFuzzer,2,1,eSetValueWithOverwrite); //notify the fuzzer task the target is ready
+   //xTaskNotifyIndexed(AFLfuzzer.xTaskFuzzer,2,1,eSetValueWithOverwrite); //notify the fuzzer task the target is ready
 */
 
  //  while(1)
   // {
+
+
 
 
 
@@ -152,7 +168,7 @@ uint8_t modbusSlaveHardwareInit(void)
     return status;
 }
 
-
+void SytemCall_2_code();
 void SytemCall_2_code()
 {
 	while(HAL_UARTEx_ReceiveToIdle_DMA(&huart4, modbusRxTxBuffer, MODBUS_MAX_FRAME_SIZE) != HAL_OK)
@@ -173,9 +189,11 @@ void modbusSlaveStartReceiving(void)
      */
 
 
-     SytemCall_2(); // configures serial por to recive data
+     //SytemCall_2(); // configures serial port to receive data
+	// *** here is another error without calling this line the por is never configured to receive data
 
-     modbusRxCount = 0;
+	SytemCall_2_code();
+	modbusRxCount = 0;
 
 
 }

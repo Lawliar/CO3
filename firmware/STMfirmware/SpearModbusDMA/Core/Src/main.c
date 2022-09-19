@@ -6,7 +6,7 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2021 STMicroelectronics.
+  * <h2><center>&copy; Copyright (c) 2022 STMicroelectronics.
   * All rights reserved.</center></h2>
   *
   * This software component is licensed by ST under BSD 3-Clause license,
@@ -19,30 +19,17 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "usb_device.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "fuzzing.h"
-#include "app_main.h"
+#include "monitor.h"
 
-
-//#include "testmodbus.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
-
-/*
-RingBuffer_t inputAFL;
-uint32_t inputLength, verify;
-volatile bool bRXcomplete;  // variable must be declared as volatile otherwise the compiler may optimize out it
-volatile bool bTXcomplete;
-volatile uint16_t previousGuard;
-uint8_t aflbitmap[AFL_BITMAP_SIZE]; // reserve  8 more bytes for return code and bitmap size
-uint8_t aflheader[8];
-extern USBD_HandleTypeDef hUsbDeviceFS;
-*/
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -51,14 +38,10 @@ extern USBD_HandleTypeDef hUsbDeviceFS;
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-//UART_HandleTypeDef huart4 __attribute__( ( aligned( next_power_of_2(sizeof(modbus_t)) ) ) );;
+
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-
-CRC_HandleTypeDef hcrc;
-
-RNG_HandleTypeDef hrng;
 
 UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart2;
@@ -73,21 +56,18 @@ DMA_HandleTypeDef hdma_uart4_rx;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART3_UART_Init(void);
-static void MX_RNG_Init(void);
 static void MX_DMA_Init(void);
 static void MX_UART4_Init(void);
 static void MX_USART2_UART_Init(void);
-static void MX_CRC_Init(void);
 /* USER CODE BEGIN PFP */
-void __io_putchar(uint8_t ch) {
-HAL_UART_Transmit(&huart3, &ch, 1, 1);
-}
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-
+void __io_putchar(uint8_t ch) {
+HAL_UART_Transmit(&huart3, &ch, 1, 1);
+}
 /* USER CODE END 0 */
 
 /**
@@ -98,12 +78,13 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 
-	/* Enable I-Cache */
-	SCB_EnableICache();  // we will only use the instruction cache
-	/* Enable D-Cache */
-	//SCB_EnableDCache();
-  
   /* USER CODE END 1 */
+
+  /* Enable I-Cache---------------------------------------------------------*/
+  SCB_EnableICache();
+
+  /* Enable D-Cache---------------------------------------------------------*/
+  SCB_EnableDCache();
 
   /* MCU Configuration--------------------------------------------------------*/
 
@@ -112,60 +93,39 @@ int main(void)
 
   /* USER CODE BEGIN Init */
 
-
   /* USER CODE END Init */
 
   /* Configure the system clock */
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-  //inputLength = 0;
-  //bRXcomplete = false;
 
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART3_UART_Init();
-  MX_RNG_Init();
   MX_DMA_Init();
   MX_UART4_Init();
   MX_USART2_UART_Init();
-  MX_CRC_Init();
+  MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
 
-  //activateCortexMtraps();
-
-  SCB->SHCSR |= SCB_SHCSR_USGFAULTENA_Msk
- 	  | SCB_SHCSR_BUSFAULTENA_Msk
- 	  | SCB_SHCSR_MEMFAULTENA_Msk; // enable Usage-/Bus-/MPU Fault
-
- 	  SCB->CCR |= SCB_CCR_DIV_0_TRP_Msk ; // enable div by zero trap
-
-
-  // call RTOS initialization routines
+  //entry point of the application it will create the
+  //monitor and target and start the kernel
+  //core_main();
   app_main();
-
- // ASAN_Test();
-
-   // it should never reach beyond this point since the RTOS kernel is in execution at this point
-
-
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-     //uint8_t dat[]="hello!\n";
-     while (1)
-     {
-   
-
-
+  while (1)
+  {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-      }
+  }
   /* USER CODE END 3 */
 }
 
@@ -223,64 +183,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-}
-
-/**
-  * @brief CRC Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_CRC_Init(void)
-{
-
-  /* USER CODE BEGIN CRC_Init 0 */
-
-  /* USER CODE END CRC_Init 0 */
-
-  /* USER CODE BEGIN CRC_Init 1 */
-
-  /* USER CODE END CRC_Init 1 */
-  hcrc.Instance = CRC;
-  hcrc.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_ENABLE;
-  hcrc.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_ENABLE;
-  hcrc.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_WORD;
-  hcrc.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_ENABLE;
-  hcrc.InputDataFormat = CRC_INPUTDATA_FORMAT_WORDS;
-  if (HAL_CRC_Init(&hcrc) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN CRC_Init 2 */
-
-  /* USER CODE END CRC_Init 2 */
-
-}
-
-/**
-  * @brief RNG Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_RNG_Init(void)
-{
-
-  /* USER CODE BEGIN RNG_Init 0 */
-
-  /* USER CODE END RNG_Init 0 */
-
-  /* USER CODE BEGIN RNG_Init 1 */
-
-  /* USER CODE END RNG_Init 1 */
-  hrng.Instance = RNG;
-  hrng.Init.ClockErrorDetection = RNG_CED_ENABLE;
-  if (HAL_RNG_Init(&hrng) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN RNG_Init 2 */
-
-  /* USER CODE END RNG_Init 2 */
-
 }
 
 /**
@@ -395,7 +297,7 @@ static void MX_USART3_UART_Init(void)
 
   /* USER CODE END USART3_Init 1 */
   huart3.Instance = USART3;
-  huart3.Init.BaudRate = 7500000;
+  huart3.Init.BaudRate = 1000000;
   huart3.Init.WordLength = UART_WORDLENGTH_8B;
   huart3.Init.StopBits = UART_STOPBITS_1;
   huart3.Init.Parity = UART_PARITY_NONE;
@@ -492,12 +394,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PA5 */
-  GPIO_InitStruct.Pin = GPIO_PIN_5;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
   /*Configure GPIO pins : LD1_Pin LD3_Pin */
   GPIO_InitStruct.Pin = LD1_Pin|LD3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -549,7 +445,7 @@ static void MX_GPIO_Init(void)
 
 /**
   * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM16 interrupt took place, inside
+  * @note   This function is called  when TIM17 interrupt took place, inside
   * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
   * a global variable "uwTick" used as application time base.
   * @param  htim : TIM handle
@@ -560,7 +456,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 0 */
 
   /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM16) {
+  if (htim->Instance == TIM17) {
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */

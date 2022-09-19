@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2021 STMicroelectronics.
+  * <h2><center>&copy; Copyright (c) 2022 STMicroelectronics.
   * All rights reserved.</center></h2>
   *
   * This software component is licensed by ST under BSD 3-Clause license,
@@ -32,38 +32,11 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "stdbool.h"
-#include "ConfigFuzzing.h"
-#include "FreeRTOS.h"
-#include "task.h"
-
-
-
-#if DUALCOREFUZZ == 0
-
-#define DTCMRAMORIGIN  0x20000000
-#define AFLINPUTREGION_SIZE (1024*64)
-
-extern uint8_t AFLfuzzerRegion[AFLINPUTREGION_SIZE ] __attribute__( ( aligned( AFLINPUTREGION_SIZE ) ) );
-
-#else
-
-#define AFLINPUTREGION_SIZE (1024*128)
-#define AFLfuzzerRegion  (uint8_t*)0x24040000
-
-#endif
-
-
-#define AFLfuzzer  (*pAFLfuzzer)
-#define aflbitmap (*paflbitmap)
-
-
 
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-
 
 /* USER CODE END ET */
 

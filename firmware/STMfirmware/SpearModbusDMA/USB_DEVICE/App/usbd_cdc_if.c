@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2021 STMicroelectronics.
+  * <h2><center>&copy; Copyright (c) 2022 STMicroelectronics.
   * All rights reserved.</center></h2>
   *
   * This software component is licensed by ST under Ultimate Liberty license
@@ -23,26 +23,7 @@
 #include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
-
-#include "main.h"
-#include "fuzzing.h"
-
-
-
-/*
-
-#include "main.h"
-#include "ring.h"
-
-
-extern RingBuffer_t inputAFL;
-extern uint32_t inputLength;
-extern volatile bool bRXcomplete;
-extern volatile bool bTXcomplete;
-extern volatile uint32_t timespan;
-
-*/
-
+#include "protocol.h"
 /* USER CODE END INCLUDE */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -282,9 +263,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
 
-
-	  FuzzingInputHandler(Buf, Len);
-
+  FuzzingInputHandler(Buf, Len);
 
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
@@ -337,21 +316,7 @@ static int8_t CDC_TransmitCplt_FS(uint8_t *Buf, uint32_t *Len, uint8_t epnum)
   UNUSED(Len);
   UNUSED(epnum);
 
-
-  BaseType_t xHigherPriorityTaskWoken;
-    xHigherPriorityTaskWoken = pdFALSE;
-
-    Fuzzer_t *pAFLfuzzer = (Fuzzer_t *)AFLfuzzerRegion;
-
-    AFLfuzzer.bTXcomplete = true;
-    xTaskNotifyIndexedFromISR(AFLfuzzer.xTaskFuzzer,
-  	  	    				1, //index
-  							2, //value = 2 data TX complete
-  							eSetBits,
-  							&xHigherPriorityTaskWoken);
-
-    portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
-
+  notifyTXfinish();
 
   /* USER CODE END 13 */
   return result;

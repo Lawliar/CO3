@@ -1,25 +1,9 @@
 ROOT_DIR := $(abspath ..)
 PROJ_DIR := $(abspath .)
+PROJ_NAME := $(notdir $(PROJ_DIR))
 BUILD_DIR  := $(PROJ_DIR)/build
+OUTPUT_DIR := $(PROJ_DIR)/intermediate_results
 Q ?= @
-
-# use the following command to compile using LLVM
-#COMPILER=clang make
-
-
-DRIVERS_ROOT_DIR := $(PROJ_DIR)/Drivers/STM32H7xx_HAL_Driver/Src
-
-MIDDLEWARES_ROOT_DIR := $(PROJ_DIR)/Middlewares
-
-USBDEVICE_ROOT_DIR := $(PROJ_DIR)/USB_DEVICE
-
-FUZZING_ROOT_DIR :=  $(ROOT_DIR)/Common/Fuzzing
-TEST_ROOT_DIR :=  $(ROOT_DIR)/Common/Test
-
-#SANITIZER_ROOT_DIR := $(ROOT_DIR)/Common/ASANMCU
-
-
-FREERTOS_ROOT := $(ROOT_DIR)/Common/FreeRTOS-Kernel
 
 # CFLAGS which can provided from the CLI
 # They will be appended last and will consequently override
@@ -31,113 +15,167 @@ CLI_LDFLAG_OVERRIDES ?=
 # our path by default but allow things to be easily overridden, i.e:
 #
 # COMPILER=<PATH_TO_OTHER_GCC_VERSION>/arm-none-eabi-gcc make
-# COMPILER=clang make
-COMPILER ?= arm-none-eabi-gcc
-CC = $(COMPILER)
+LLVM_TOOLCHAIN := /home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04
+
+GCC_COMPILER        := arm-none-eabi-gcc
+CLANG_COMPILER      := $(LLVM_TOOLCHAIN)/bin/clang
+OPT                 := $(LLVM_TOOLCHAIN)/bin/opt
+LLC                 := $(LLVM_TOOLCHAIN)/bin/llc
+INSTRUMENTATION_LIB := /home/lcm/github/spear/spear-code/pass/cmake-build-debug/libSymbolize.so 
+#COMPILER ?= arm-none-eabi-gcc
+CC := $(CLANG_COMPILER)
 
 $(info $(CC))
 
 
 
-DRIVERS_SOURCES += \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_cortex.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_crc.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_crc_ex.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_dma.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_dma_ex.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_exti.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_flash.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_flash_ex.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_gpio.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_hsem.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_i2c.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_i2c_ex.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_mdma.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_pcd.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_pcd_ex.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_pwr.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_pwr_ex.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_rcc.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_rcc_ex.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_rng.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_rng_ex.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_tim.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_tim_ex.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_uart.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_hal_uart_ex.c \
-$(DRIVERS_ROOT_DIR)/stm32h7xx_ll_usb.c
 
 
 
-FREERTOS_SOURCES += \
-$(FREERTOS_ROOT)/croutine.c \
-$(FREERTOS_ROOT)/event_groups.c \
-$(FREERTOS_ROOT)/list.c \
-$(FREERTOS_ROOT)/queue.c \
-$(FREERTOS_ROOT)/stream_buffer.c \
-$(FREERTOS_ROOT)/tasks.c \
-$(FREERTOS_ROOT)/timers.c \
-$(FREERTOS_ROOT)/portable/GCC/ARM_CM4_MPU/port.c \
-$(FREERTOS_ROOT)/portable/Common/mpu_wrappers.c \
-$(FREERTOS_ROOT)/portable/MemMang/heap_4.c
+## Middleware Dir, include and sources
+MIDDLEWARE_DIR := $(PROJ_DIR)/Middlewares
+
+MIDDLEWARE_INCLUDE_DIR := \
+-I$(MIDDLEWARE_DIR)/ST/STM32_USB_Device_Library/Core/Inc \
+-I$(MIDDLEWARE_DIR)/ST/STM32_USB_Device_Library/Class/CDC/Inc
+
+MIDDLEWARES_SOURCES := \
+$(MIDDLEWARE_DIR)/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c \
+$(MIDDLEWARE_DIR)/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c \
+$(MIDDLEWARE_DIR)/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c \
+$(MIDDLEWARE_DIR)/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c
 
 
-MIDDLEWARES_SOURCES += \
-$(MIDDLEWARES_ROOT_DIR)/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c \
-$(MIDDLEWARES_ROOT_DIR)/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c \
-$(MIDDLEWARES_ROOT_DIR)/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c \
-$(MIDDLEWARES_ROOT_DIR)/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c
+## USB-DEVICE Dir, include and sources
 
+USB_DEVICE_DIR := $(PROJ_DIR)/USB_DEVICE
 
-USB_DEVICE_SOURCES += \
-$(USBDEVICE_ROOT_DIR)/App/usbd_cdc_if.c \
-$(USBDEVICE_ROOT_DIR)/App/usbd_desc.c \
-$(USBDEVICE_ROOT_DIR)/App/usb_device.c \
-$(USBDEVICE_ROOT_DIR)/Target/usbd_conf.c
+USB_DEVICE_INCLUDE_DIR := -I$(USB_DEVICE_DIR)/App \
+-I$(USB_DEVICE_DIR)/Target
 
+USB_DEVICE_SOURCES := \
+$(USB_DEVICE_DIR)/App/usb_device.c \
+$(USB_DEVICE_DIR)/App/usbd_cdc_if.c \
+$(USB_DEVICE_DIR)/App/usbd_desc.c \
+$(USB_DEVICE_DIR)/Target/usbd_conf.c
 
-PROJECT_SRC_DIR = $(PROJ_DIR)/Core/Src
+## Drivers Dir, include and sources
+DRIVERS_ROOT_DIR := $(PROJ_DIR)/Drivers
 
-
-TEST_SRC = \
-$(TEST_ROOT_DIR)/Src/testmodbus.c \
-$(TEST_ROOT_DIR)/Src/test.c \
-$(TEST_ROOT_DIR)/Src/test2.c \
-
-
-#$(TEST_ROOT_DIR)/Src/asan_test.c
+DRIVERS_INCLUDE_DIR := -I$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Inc \
+-I$(DRIVERS_ROOT_DIR)/CMSIS/Device/ST/STM32H7xx/Include \
+-I$(DRIVERS_ROOT_DIR)/CMSIS/Include \
+-I$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Inc/Legacy
 
 
 
+DRIVERS_SOURCES := \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma_ex.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_exti.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash_ex.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_gpio.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_hsem.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c_ex.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_mdma.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pcd.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pcd_ex.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr_ex.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc_ex.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim_ex.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart_ex.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_ll_usb.c
 
-FUZZING_SOURCES += \
-$(FUZZING_ROOT_DIR)/Src/sanitizer.c \
-$(FUZZING_ROOT_DIR)/Src/ring.c \
-$(FUZZING_ROOT_DIR)/Src/fuzzing.c \
-$(FUZZING_ROOT_DIR)/Src/app_main.c \
-$(FUZZING_ROOT_DIR)/Src/memfault_handler.c \
-$(FUZZING_ROOT_DIR)/Src/FuzzerTargetSingleCore.c
+
+## Protocol Dir, include and sources
+PROTOCOL_DIR := $(ROOT_DIR)/Common/Protocol
+
+PROTOCOL_INCLUDE_DIR :=  -I$(PROTOCOL_DIR)
+
+PROTOCOL_SOURCES := \
+$(PROTOCOL_DIR)/monitor.c \
+$(PROTOCOL_DIR)/protocol.c \
+$(PROTOCOL_DIR)/ring.c
 
 
-#SANITIZER_SOURCES += \
-#$(SANITIZER_ROOT_DIR)/McuASAN.c 
 
-SRC_FILES += \
-$(PROJECT_SRC_DIR)/main.c \
-$(PROJECT_SRC_DIR)/stm32h7xx_hal_msp.c \
-$(PROJECT_SRC_DIR)/stm32h7xx_it.c \
-$(PROJECT_SRC_DIR)/stm32h7xx_hal_timebase_tim.c \
-$(PROJECT_SRC_DIR)/syscalls.c \
-$(PROJECT_SRC_DIR)/sysmem.c \
-$(PROJECT_SRC_DIR)/system_stm32h7xx.c \
-$(TEST_SRC) \
+
+## SymRuntime Dir, include and sources
+SYMRUNTIME_DIR := $(ROOT_DIR)/Common/SymRuntime
+
+SYMRUNTIME_INCLUDE_DIR := -I$(SYMRUNTIME_DIR)
+
+SYMRUNTIME_SOURCES := $(SYMRUNTIME_DIR)/runtime.c
+
+
+
+## FREERTOS Dir, include, sources
+FREERTOS_DIR := $(ROOT_DIR)/Common/FreeRTOS-Kernel
+
+FREERTOS_INCLUDE_DIR := \
+-I$(FREERTOS_DIR)/include \
+-I$(FREERTOS_DIR)/portable/GCC/ARM_CM4F
+
+FREERTOS_SOURCES := \
+$(FREERTOS_DIR)/tasks.c \
+$(FREERTOS_DIR)/stream_buffer.c \
+$(FREERTOS_DIR)/queue.c \
+$(FREERTOS_DIR)/croutine.c \
+$(FREERTOS_DIR)/event_groups.c \
+$(FREERTOS_DIR)/timers.c \
+$(FREERTOS_DIR)/list.c \
+$(FREERTOS_DIR)/portable/GCC/ARM_CM4F/port.c \
+$(FREERTOS_DIR)/portable/MemMang/heap_4.c
+
+## Coremark Dir, include, sources
+COREMARK_HAL_DIR := $(PROJ_DIR)/Target
+
+COREMARK_HAL_INCLUDE_DIR := \
+-I$(COREMARK_HAL_DIR)/Inc
+
+COREMARK_HAL_SOURCES := \
+$(COREMARK_HAL_DIR)/Src/libcgc.c \
+$(COREMARK_HAL_DIR)/Src/mymath.c \
+$(COREMARK_HAL_DIR)/Src/printf.c \
+$(COREMARK_HAL_DIR)/Src/service.c \
+$(COREMARK_HAL_DIR)/Src/stdlib.c 
+
+## Project core Dir, Include, sources
+
+PROJECT_CORE_DIR := $(PROJ_DIR)/Core
+
+PROJECT_CORE_INCLUDE_DIR := -I$(PROJECT_CORE_DIR)/Inc
+
+PROJECT_CORE_SOURCES := \
+$(PROJECT_CORE_DIR)/Src/main.c \
+$(PROJECT_CORE_DIR)/Src/stm32h7xx_hal_timebase_tim.c \
+$(PROJECT_CORE_DIR)/Src/syscalls.c \
+$(PROJECT_CORE_DIR)/Src/system_stm32h7xx.c \
+$(PROJECT_CORE_DIR)/Src/stm32h7xx_hal_msp.c \
+$(PROJECT_CORE_DIR)/Src/stm32h7xx_it.c \
+$(PROJECT_CORE_DIR)/Src/sysmem.c
+
+
+
+
+SRC_FILES +=  \
+$(PROJECT_CORE_SOURCES) \
 $(DRIVERS_SOURCES) \
-$(MIDDLEWARES_SOURCES) \
+$(COREMARK_HAL_SOURCES) \
+$(FREERTOS_SOURCES) \
+$(SYMRUNTIME_SOURCES) \
+$(PROTOCOL_SOURCES) \
 $(USB_DEVICE_SOURCES) \
-$(FUZZING_SOURCES) \
-$(FREERTOS_SOURCES)
-#$(SANITIZER_SOURCES)
+$(MIDDLEWARES_SOURCES)
+
 
 
 
@@ -155,18 +193,14 @@ $(patsubst $(ROOT_DIR)/%.s,$(BUILD_DIR)/%.o,$(STARTUP_SOURCES))
 
 
 INCLUDE_PATHS += \
-  -I$(PROJ_DIR)/Core/Inc \
-  -I$(PROJ_DIR)/Drivers/CMSIS/Device/ST/STM32H7xx/Include \
-  -I$(PROJ_DIR)/Drivers/CMSIS/Include \
-  -I$(PROJ_DIR)/Drivers/STM32H7xx_HAL_Driver/Inc \
-  -I$(PROJ_DIR)/Middlewares/ST/STM32_USB_Device_Library/Core/Inc \
-  -I$(PROJ_DIR)/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc \
-  -I$(PROJ_DIR)/USB_DEVICE/App \
-  -I$(PROJ_DIR)/USB_DEVICE/Target \
-  -I$(ROOT_DIR)/Common/Fuzzing/Inc \
-  -I$(ROOT_DIR)/Common/Test/Inc \
-  -I$(ROOT_DIR)/Common/FreeRTOS-Kernel/include \
-  -I$(ROOT_DIR)/Common/FreeRTOS-Kernel/portable/GCC/ARM_CM4_MPU 
+  $(DRIVERS_INCLUDE_DIR) \
+  $(PROJECT_CORE_INCLUDE_DIR) \
+  $(COREMARK_HAL_INCLUDE_DIR) \
+  $(FREERTOS_INCLUDE_DIR) \
+  $(SYMRUNTIME_INCLUDE_DIR) \
+  $(PROTOCOL_INCLUDE_DIR) \
+  $(USB_DEVICE_INCLUDE_DIR) \
+  $(MIDDLEWARE_INCLUDE_DIR)
 
 
 # Note: These arguments will be used by clang to select
@@ -203,8 +237,7 @@ ARM_CORTEXM_BUILTINS ?= \
 
 COMPILER_SPECIFIC_CFLAGS += \
   --target=arm-none-eabi \
-  --sysroot=$(ARM_CORTEXM_SYSROOT) \
-  -Oz 
+  --sysroot=$(ARM_CORTEXM_SYSROOT)
 
 
 #-Wthread-safety \
@@ -219,17 +252,15 @@ endif
 ifneq '' '$(findstring gcc,$(CC_VERSION_INFO))'
 $(info ===GCC Compiler Detected===)
 
-COMPILER_SPECIFIC_CFLAGS += \
-  -Os
 
 COMPILER_SPECIFIC_LDFLAGS += \
   -Wl,-lgcc 
 
 endif
 
-
+CFLAGS += -Os
 CFLAGS += -std=gnu11
-CFLAGS += -g3
+#CFLAGS += -g
 CFLAGS += -ffunction-sections
 CFLAGS += -fdata-sections
 CFLAGS += -Wall
@@ -237,24 +268,25 @@ CFLAGS += -Wall
 #CFLAGS += --specs=nano.specs 
 CFLAGS += -Werror 
 CFLAGS += -nostdlib 
-CFLAGS += -DDEBUG 
+#CFLAGS += -DDEBUG 
 CFLAGS += -DUSE_HAL_DRIVER 
 CFLAGS += -DSTM32H743xx 
-CFLAGS += -Wno-parentheses-equality 
+#CFLAGS += -Wno-parentheses-equality 
 CFLAGS +=  $(COMPILER_SPECIFIC_CFLAGS) 
 CFLAGS +=  $(ARCH_CFLAGS) 
 CFLAGS +=  $(CLI_CFLAG_OVERRIDES)
 
 
 
-ASFLAGS += -g3 -DDEBUG -c 
+#ASFLAGS += -g3
+ASFLAGS += -DDEBUG -c 
 ASFLAGS += -x assembler-with-cpp 
 #ASFLAGS += --specs=nano.specs 
 ASFLAGS += $(ARCH_CFLAGS)
 
 
 TARGET ?= stm32h743
-LDSCRIPT = $(PROJ_DIR)/STM32H743ZITX_FLASH_MPU.ld
+LDSCRIPT = $(PROJ_DIR)/STM32H743ZITX_FLASH.ld
 TARGET_ELF = $(BUILD_DIR)/$(TARGET).elf
 
 
@@ -262,10 +294,12 @@ LDFLAGS += $(COMPILER_SPECIFIC_LDFLAGS)
 LDFLAGS +=  $(ARCH_CFLAGS) 
 LDFLAGS += -T$(LDSCRIPT)
 LDFLAGS += --specs=nosys.specs
+LDFLAGS += -fno-short-enums
 LDFLAGS += -Wl,-Map="$(BUILD_DIR)/$(TARGET).map"
 LDFLAGS += -Wl,--gc-sections -static 
 LDFLAGS += --specs=nano.specs
 LDFLAGS += -Wl,--start-group -lc -lm -Wl,--end-group
+LDFLAGS += -u _printf_float
 LDFLAGS += $(CLI_LDFLAG_OVERRIDES)
 
 
@@ -274,13 +308,22 @@ LINKER_OVERRIDE ?=
 DEP_DIR = $(BUILD_DIR)/dep
 DEP_CFLAGS = -MT $@ -MMD -MP -MF $(DEP_DIR)/$(*F).d
 
+
 all: $(TARGET_ELF)
+	 
 
 -include $(wildcard $(DEP_DIR)/*.d)
 
 clean:
 	rm -rf $(BUILD_DIR)
+	rm -rf $(OUTPUT_DIR)/output
+	rm $(OUTPUT_DIR)/*.ll $(OUTPUT_DIR)/*.dot $(OUTPUT_DIR)/*.svg $(OUTPUT_DIR)/*.txt
 
+
+
+
+
+#flash: $(TARGET_ELF)
 
 H743AM := $(shell STM32_Programmer_CLI --Connect port=SWD sn=002800243156501420323443 > /dev/null 2>&1 ; echo $$?)
 H743CH := $(shell STM32_Programmer_CLI --Connect port=SWD sn=0046003D3137511239383538 > /dev/null 2>&1 ; echo $$?)
@@ -297,6 +340,10 @@ endif
 endif	
     
 
+# CheckBoard ="$(shell $(CC) -v 2>&1 | head -2)"
+
+
+
 
 $(TARGET_ELF): $(OBJ_FILES)  $(LDSCRIPT)
 	@echo "Linking library"
@@ -304,7 +351,7 @@ $(TARGET_ELF): $(OBJ_FILES)  $(LDSCRIPT)
 	$(Q) arm-none-eabi-gcc $(OBJ_FILES)  $(LDFLAGS) -o $@
 	@echo "Generated $(patsubst $(ROOT_DIR)/%,%,$@)"
 	arm-none-eabi-objcopy -O binary $(TARGET_ELF)  "$(BUILD_DIR)/$(TARGET).bin"
-  
+
 $(BUILD_DIR): 
 	@mkdir -p $(BUILD_DIR)
 
@@ -319,63 +366,80 @@ $(DEP_DIR):
 
 $(OBJ_FILES): $(SRC_FILES) makefile 
 
+
+# build Middleware
+
+$(BUILD_DIR)/$(PROJ_NAME)/Middlewares/%.o: $(PROJ_DIR)/Middlewares/%.c | $(BUILD_DIR) $(DEP_DIR) 
+	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
+	@mkdir -p $(dir $@)
+	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
+
+
+# build USB_DEVICES
+
+$(BUILD_DIR)/$(PROJ_NAME)/USB_DEVICE/%.o: $(PROJ_DIR)/USB_DEVICE/%.c | $(BUILD_DIR) $(DEP_DIR) 
+	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
+	@mkdir -p $(dir $@)
+	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
+
 # build core files
-$(BUILD_DIR)/SpearModbusDMA/Core/Src/%.o: $(PROJ_DIR)/Core/Src/%.c | $(BUILD_DIR) $(DEP_DIR) 
+$(BUILD_DIR)/$(PROJ_NAME)/Core/Src/%.o:  $(PROJ_DIR)/Core/Src/%.c | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
 	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
 
 # build drivers
-$(BUILD_DIR)/SpearModbusDMA/Drivers/%.o: $(PROJ_DIR)/Drivers/%.c | $(BUILD_DIR) $(DEP_DIR) 
+$(BUILD_DIR)/$(PROJ_NAME)/Drivers/%.o: $(PROJ_DIR)/Drivers/%.c  | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
 	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
-
-# build Fuzzing files
-$(BUILD_DIR)/Common/Fuzzing/%.o: $(ROOT_DIR)/Common/Fuzzing/%.c |  $(BUILD_DIR) $(DEP_DIR) 
-	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
-	@mkdir -p $(dir $@)
-	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
-
-
-# build middlewares
-$(BUILD_DIR)/SpearModbusDMA/Middlewares/%.o: $(PROJ_DIR)/Middlewares/%.c | $(BUILD_DIR) $(DEP_DIR) 
-	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
-	@mkdir -p $(dir $@)
-	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
-
-
-# build USB CDC DEVICE
-$(BUILD_DIR)/SpearModbusDMA/USB_DEVICE/%.o: $(PROJ_DIR)/USB_DEVICE/%.c | $(BUILD_DIR) $(DEP_DIR) 
-	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
-	@mkdir -p $(dir $@)
-	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
 # build Assembly startup code
-$(BUILD_DIR)/SpearModbusDMA/Core/Startup/%.o: $(PROJ_DIR)/Core/Startup/%.s | $(BUILD_DIR) $(DEP_DIR) 
+$(BUILD_DIR)/$(PROJ_NAME)/Core/Startup/%.o: $(PROJ_DIR)/Core/Startup/%.s | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
 	$(Q) $(CC) $(DEP_CFLAGS) $(ASFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
-
-#build FreeRTOS kernel
-$(BUILD_DIR)/Common/FreeRTOS-Kernel/%.o: $(ROOT_DIR)/Common/FreeRTOS-Kernel/%.c |  $(BUILD_DIR) $(DEP_DIR) 
+# build freertos
+$(BUILD_DIR)/Common/FreeRTOS-Kernel/%.o: $(ROOT_DIR)/Common/FreeRTOS-Kernel/%.c | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
 	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
-
-# build instrumented test
-$(BUILD_DIR)/Common/Test/%.o: $(ROOT_DIR)/Common/Test/%.c | $(BUILD_DIR) $(DEP_DIR) 
+# build protocol code
+$(BUILD_DIR)/Common/Protocol/%.o: $(ROOT_DIR)/Common/Protocol/%.c | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
-	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS)  -fsanitize-coverage=trace-pc-guard  $(INCLUDE_PATHS) -c -o $@ $<
+	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
-#	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS)   -fsanitize=kernel-address   $(INCLUDE_PATHS) -c -o $@ $<
+# build Runtime Code
+$(BUILD_DIR)/Common/SymRuntime/%.o: $(ROOT_DIR)/Common/SymRuntime/%.c  | $(BUILD_DIR) $(DEP_DIR) 
+	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
+	@mkdir -p $(dir $@)
+	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
+
+#$(BUILD_DIR)/$(PROJ_NAME)/Target/%.o: $(PROJ_DIR)/Target/%.c| $(BUILD_DIR) $(DEP_DIR) 
+#	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
+#	@mkdir -p $(dir $@)
+#	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
 
+#build instrumented coremark
+$(BUILD_DIR)/$(PROJ_NAME)/Target/Src/%.o: $(PROJ_DIR)/Target/Src/%.c | $(BUILD_DIR) $(DEP_DIR) 
+	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
+	@mkdir -p $(dir $@)
+	@mkdir -p $(OUTPUT_DIR)
+	$(Q) $(CLANG_COMPILER) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -S -emit-llvm -o $@_raw.ll $<
+	$(Q) $(OPT) -load ${INSTRUMENTATION_LIB} --symbolize -out $(OUTPUT_DIR) -o $@_ins.ll $@_raw.ll
+	$(Q) $(LLC) -filetype=obj -o $@ $@_ins.ll
+
+#build the uninstrumented coremark
+$(BUILD_DIR)/$(PROJ_NAME)/Target/UninstrumentedSrc/%.o: $(PROJ_DIR)/Target/UninstrumentedSrc/%.c | $(BUILD_DIR) $(DEP_DIR) 
+	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
+	@mkdir -p $(dir $@)
+	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
 #$(CC) -mcpu=cortex-m3 -g3 -DDEBUG -c -x assembler-with-cpp -MMD -MP -MF"$(DEP_DIR)/startup_stm32l152retx.d" -MT"$(BUILD_DIR)/Core/Startup/startup_stm32l152retx.o" --specs=nano.specs -mfloat-abi=soft -mthumb  -o $@ $< 
    
