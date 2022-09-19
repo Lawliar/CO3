@@ -174,6 +174,9 @@ extern unsigned int input_cur;
 static void TargetTask( void * pvParameters )
 {
 	//printf("\n new target spawned\n");
+
+	SytemCall_1_code(); //ERROR we need this line to receive data from serial port and it has to be called before it notifies to the monitor
+
 	xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,1,eSetValueWithOverwrite); //notify the monitor task the target is ready
 	while(1){
 		ulTaskNotifyTakeIndexed(0, pdTRUE, portMAX_DELAY); // wait for the notification coming from the Monitor task
@@ -191,7 +194,9 @@ static void TargetTask( void * pvParameters )
         test();
 #else
         //modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
-        modbusSlaveHandler();
+         modbusSlaveHandler(); //*** ERROR this line of code must be called before to initialize the serial port
+         	 	 	 	 	   // I modified the source code of this function so the system call is executed before this line
+
 #endif
         _sym_end();
 
