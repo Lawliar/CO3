@@ -223,9 +223,10 @@ pub fn copy_testcase(
 #[derive(Debug)]
 pub struct AflConfig {
     fuzzer_pid : i32,
-    sync_dir : PathBuf,
+    //sync_dir : PathBuf,
     /// The fuzzer instance's queue of test cases.
     afl_queue: PathBuf,
+    symcc_queue:PathBuf,
 }
 
 /// Possible results of afl-showmap.
@@ -243,14 +244,15 @@ impl AflConfig {
     pub fn load(fuzzer_pid : i32, symcc_dir : impl AsRef<Path>, fuzzer_output: impl AsRef<Path>) -> Result<Self> {
         Ok(AflConfig {
             fuzzer_pid: fuzzer_pid,
-            sync_dir: symcc_dir.as_ref().join("sync"),
+            //sync_dir: symcc_dir.as_ref().join("sync"),
             afl_queue: fuzzer_output.as_ref().join("queue"),
+            symcc_queue: symcc_dir.as_ref().join("queue"),
         })
     }
 
     /// Return the most promising unseen test case of this fuzzer.
     pub fn best_new_testcase(&self, seen: &HashSet<PathBuf>) -> Result<Option<PathBuf>> {
-        let best = fs::read_dir(&self.afl_queue)
+        let next = fs::read_dir(&self.afl_queue)
             .with_context(|| {
                 format!(
                     "Failed to open the fuzzer's queue at {}",
@@ -267,9 +269,34 @@ impl AflConfig {
             .into_iter()
             .map(|entry| entry.path())
             .filter(|path| path.is_file() && !seen.contains(path))
-            .max_by_key(|path| TestcaseScore::new(path));
+            .next();
+        /*
+        match next.clone() {
+            None => {
+                let symcc_next = fs::read_dir(&self.symcc_queue)
+                .with_context(|| {
+                    format!(
+                        "Failed to open the symcc's queue at {}",
+                        self.symcc_queue.display()
+                    )
+                })?
+                .collect::<io::Result<Vec<_>>>()
+                .with_context(|| {
+                    format!(
+                        "Failed to read the symcc's queue at {}",
+                        self.symcc_queue.display()
+                    )
+                })?
+                .into_iter()
+                .map(|entry| entry.path())
+                .filter(|path| path.is_file() && !seen.contains(path))
+                .next();
+                Ok(symcc_next)
+            }
+            Some(input) => Ok(next)
+        }*/
+        Ok(next)
 
-        Ok(best)
     }
     pub fn resumeFuzzer(&self) {
         signal::kill(self.fuzzer_pid, Signal::SIGCONT).unwrap();
@@ -327,7 +354,7 @@ pub struct SymCC {
     /// The command to run.
     command: Vec<OsString>,
 
-    sync_dir : PathBuf,
+    //sync_dir : PathBuf,
 }
 
 /// The result of executing SymCC.
@@ -352,7 +379,7 @@ impl SymCC {
             bitmap: symcc_dir.join("bitmap"),
             command: insert_input_file(command, &input_file),
             input_file: input_file,
-            sync_dir: symcc_dir.join("sync"),
+            //sync_dir: symcc_dir.join("sync"),
         }
     }
 
