@@ -8,14 +8,13 @@
 
 
 #include "modbus_rtu.h"
-#include "modbus_rtu_conf.h"
 #include "string.h"
 //#include "afl.h"
 //#include "fuzzing.h"
 #include "stm32h7xx_hal.h"
 #include "protocol.h"
 extern uint16_t modbusMemory[MODBUS_SLAVE_REGISTERS_NUM];
-extern uint8_t modbusRxTxBuffer[MODBUS_MAX_FRAME_SIZE];
+
 extern modbus_t  modbusVars;
 extern UART_HandleTypeDef huart4;
 
@@ -69,6 +68,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 		}
 		modbusRxCount = 0;
 		xTaskNotifyIndexedFromISR(AFLfuzzer.xTaskMonitor,4,FAULT_NONE_RTOS,eSetValueWithOverwrite, &xHigherPriorityTaskWoken);
+
 	}
 
   portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
@@ -143,3 +143,40 @@ void cleanInitShadow()
 	RingZeroes(&AFLfuzzer.inputAFL);
 
 }
+
+
+void SytemCall_1_code()
+{
+	modbusSlaveHardwareInit();
+}
+void _sym_symbolize_memory(char * addr, size_t length);
+
+uint8_t modbusSlaveHardwareInit(void)
+{
+
+	uint8_t status = 0;
+	modbusRxCount = 0;
+
+	HAL_UART_Abort(&huart4);
+	HAL_UART_DeInit(&huart4);
+	HAL_UART_Init(&huart4);
+
+
+	while(HAL_UARTEx_ReceiveToIdle_DMA(&huart4, modbusRxTxBuffer, MODBUS_MAX_FRAME_SIZE) != HAL_OK)
+	{
+		  HAL_UART_DMAStop(&huart4);
+	}
+
+    status = 1;
+    return status;
+}
+
+
+void SytemCall_2_code()
+{
+	while(HAL_UARTEx_ReceiveToIdle_DMA(&huart4, modbusRxTxBuffer, MODBUS_MAX_FRAME_SIZE) != HAL_OK)
+	{
+	 					HAL_UART_DMAStop(&huart4);
+	}
+}
+

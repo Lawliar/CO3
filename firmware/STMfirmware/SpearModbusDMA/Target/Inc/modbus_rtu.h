@@ -4,7 +4,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
-
+#include "modbus_rtu_conf.h"
 
 typedef struct
 {
@@ -27,8 +27,8 @@ void modbusSlaveHandler();
 uint8_t modbusSlaveHardwareInit(void);
 void modbusSlaveStartTransmitting(uint16_t bytesNum);
 void modbusSlaveStartReceiving(void);
-
+void SytemCall_1_code();
 void cleanInitShadow();
-
-
+extern uint8_t modbusRxTxBuffer[MODBUS_MAX_FRAME_SIZE];
+void SytemCall_2_code();
 #endif /* MODBUS_RTU_H_INCLUDED */

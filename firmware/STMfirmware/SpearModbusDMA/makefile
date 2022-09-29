@@ -70,28 +70,28 @@ DRIVERS_INCLUDE_DIR := -I$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Inc \
 
 
 DRIVERS_SOURCES := \
-$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c \
-$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma_ex.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_exti.c \
-$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash_ex.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_gpio.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_hsem.c \
-$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c_ex.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_mdma.c \
-$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pcd.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pcd_ex.c \
-$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pcd.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr_ex.c \
-$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc_ex.c \
-$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim_ex.c \
-$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart_ex.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c \
+$(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c \
 $(DRIVERS_ROOT_DIR)/STM32H7xx_HAL_Driver/Src/stm32h7xx_ll_usb.c
 
 
@@ -101,7 +101,7 @@ PROTOCOL_DIR := $(ROOT_DIR)/Common/Protocol
 PROTOCOL_INCLUDE_DIR :=  -I$(PROTOCOL_DIR)
 
 PROTOCOL_SOURCES := \
-$(PROTOCOL_DIR)/monitor.c \
+$(PROTOCOL_DIR)/monitor-dma.c \
 $(PROTOCOL_DIR)/protocol.c \
 $(PROTOCOL_DIR)/ring.c
 
@@ -125,13 +125,13 @@ FREERTOS_INCLUDE_DIR := \
 -I$(FREERTOS_DIR)/portable/GCC/ARM_CM4F
 
 FREERTOS_SOURCES := \
-$(FREERTOS_DIR)/tasks.c \
-$(FREERTOS_DIR)/stream_buffer.c \
-$(FREERTOS_DIR)/queue.c \
 $(FREERTOS_DIR)/croutine.c \
 $(FREERTOS_DIR)/event_groups.c \
-$(FREERTOS_DIR)/timers.c \
 $(FREERTOS_DIR)/list.c \
+$(FREERTOS_DIR)/queue.c \
+$(FREERTOS_DIR)/stream_buffer.c \
+$(FREERTOS_DIR)/tasks.c \
+$(FREERTOS_DIR)/timers.c \
 $(FREERTOS_DIR)/portable/GCC/ARM_CM4F/port.c \
 $(FREERTOS_DIR)/portable/MemMang/heap_4.c
 
@@ -142,12 +142,8 @@ COREMARK_HAL_INCLUDE_DIR := \
 -I$(COREMARK_HAL_DIR)/Inc
 
 COREMARK_HAL_SOURCES := \
-$(COREMARK_HAL_DIR)/Src/libcgc.c \
-$(COREMARK_HAL_DIR)/Src/mymath.c \
-$(COREMARK_HAL_DIR)/Src/printf.c \
-$(COREMARK_HAL_DIR)/Src/service.c \
-$(COREMARK_HAL_DIR)/Src/stdlib.c 
-
+$(COREMARK_HAL_DIR)/Src/modbus_rtu.c \
+$(COREMARK_HAL_DIR)/UninstrumentedSrc/callbacks.c
 ## Project core Dir, Include, sources
 
 PROJECT_CORE_DIR := $(PROJ_DIR)/Core
@@ -156,12 +152,15 @@ PROJECT_CORE_INCLUDE_DIR := -I$(PROJECT_CORE_DIR)/Inc
 
 PROJECT_CORE_SOURCES := \
 $(PROJECT_CORE_DIR)/Src/main.c \
-$(PROJECT_CORE_DIR)/Src/stm32h7xx_hal_timebase_tim.c \
-$(PROJECT_CORE_DIR)/Src/syscalls.c \
-$(PROJECT_CORE_DIR)/Src/system_stm32h7xx.c \
 $(PROJECT_CORE_DIR)/Src/stm32h7xx_hal_msp.c \
+$(PROJECT_CORE_DIR)/Src/stm32h7xx_hal_timebase_tim.c \
 $(PROJECT_CORE_DIR)/Src/stm32h7xx_it.c \
-$(PROJECT_CORE_DIR)/Src/sysmem.c
+$(PROJECT_CORE_DIR)/Src/syscalls.c \
+$(PROJECT_CORE_DIR)/Src/sysmem.c \
+$(PROJECT_CORE_DIR)/Src/system_stm32h7xx.c
+
+
+
 
 
 
@@ -258,9 +257,9 @@ COMPILER_SPECIFIC_LDFLAGS += \
 
 endif
 
-CFLAGS += -Os
+CFLAGS += -O0
 CFLAGS += -std=gnu11
-#CFLAGS += -g
+CFLAGS += -g
 CFLAGS += -ffunction-sections
 CFLAGS += -fdata-sections
 CFLAGS += -Wall
@@ -420,7 +419,7 @@ $(BUILD_DIR)/Common/SymRuntime/%.o: $(ROOT_DIR)/Common/SymRuntime/%.c  | $(BUILD
 	@mkdir -p $(dir $@)
 	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
-#$(BUILD_DIR)/$(PROJ_NAME)/Target/%.o: $(PROJ_DIR)/Target/%.c| $(BUILD_DIR) $(DEP_DIR) 
+#$(BUILD_DIR)/$(PROJ_NAME)/Target/Src/%.o: $(PROJ_DIR)/Target/Src/%.c | $(BUILD_DIR) $(DEP_DIR) 
 #	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 #	@mkdir -p $(dir $@)
 #	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
