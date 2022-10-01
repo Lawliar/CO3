@@ -32,5 +32,5 @@ void MIDI_process_buffer(void);
 void MIDI_low_level_setup(void); 
 void MIDI_low_level_setup_nolib(void);
 void SytemCall_1_code();
-
+void SytemCall_2_code();
 #endif /* MIDI_LOWLEVEL_H */

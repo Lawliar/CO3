@@ -8,7 +8,7 @@ void MIDIEventBuilder_init(MIDIEventBuilder *meb)
     meb->event = NULL;
 }
 
-static void MIDIEventBuilder_updateIfSTATUS(MIDIEventBuilder *meb, MIDIMsg_Byte_t byte, uint64_t time)
+static void MIDIEventBuilder_updateIfSTATUS(MIDIEventBuilder *meb, MIDIMsg_Byte_t byte, MIDIEvent_Time_t time)
 {
     if (!(meb->event = MIDIEvent_newFromStatus(byte, time))) {
         /* couldn't make event, don't change state */

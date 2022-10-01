@@ -75,17 +75,24 @@ int main_midi(void)
     MIDI_low_level_setup_nolib();  // initialize USART with DMA RX
     xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,4,1,eSetValueWithOverwrite); //notify the fuzzer task the target is ready
 
-    while (1) {
+//    while (1) {
 
         MIDI_process_buffer();
         //xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,FAULT_NONE_RTOS,eSetValueWithOverwrite);//notify that the test finished
-    }
+//    }
+        return 0;
 }
 
 
 
 
-
+void MIDI_entry(int numItems){
+	int MIDIlastIndex = 0;
+	while (numItems--) {
+		MIDI_process_byte(midiBuffer[MIDIlastIndex]);
+		MIDIlastIndex = (MIDIlastIndex + 1) % MIDI_BUF_SIZE;
+	}
+}
 
 void do_stuff_with_msg(MIDIMsg *msg)
 {

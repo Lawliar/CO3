@@ -18,8 +18,8 @@ typedef struct __MIDIEvent {
     MIDIMsg msg;
 } MIDIEvent;
 
-MIDIEvent *MIDIEvent_new(size_t length, uint64_t time);
-MIDIEvent *MIDIEvent_newFromStatus(size_t status, uint64_t time);
+MIDIEvent *MIDIEvent_new(size_t length, MIDIEvent_Time_t time);
+MIDIEvent *MIDIEvent_newFromStatus(size_t status, MIDIEvent_Time_t time);
 
 #ifdef __cplusplus
 }
