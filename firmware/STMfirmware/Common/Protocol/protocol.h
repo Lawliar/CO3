@@ -69,10 +69,19 @@ typedef struct
 extern Symex_t AFLfuzzer;
 extern uint8_t notiTarget;
 
+
 void FuzzingInputHandler(uint8_t* Buf, uint32_t *Len);
 void PackFunction(uint8_t *Buf, uint32_t Len);
 void TransmitPack(void);
 void notifyTXfinish();
 
+// SHIFT stuff
+
+#define b2(x)   (   (x) | (   (x) >> 1) )
+#define b4(x)   ( b2(x) | ( b2(x) >> 2) )
+#define b8(x)   ( b4(x) | ( b4(x) >> 4) )
+#define b16(x)  ( b8(x) | ( b8(x) >> 8) )
+#define b32(x)  (b16(x) | (b16(x) >>16) )
+#define next_power_of_2(x)      (b32(x-1) + 1)
 
 #endif /* PROTOCOL_H_ */

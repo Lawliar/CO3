@@ -13,7 +13,7 @@
 #include  "ring.h"
 #include "stdio.h"
 #include "string.h"
-//#include "test.h"
+#include "test.h"
 #include "runtime.h"
 
 
@@ -156,15 +156,16 @@ static void MonitorTask( void * pvParameters )
 		AFLfuzzer.bRXcomplete = false;
 		AFLfuzzer.inputLength = 0;
 		RingZeroes(&AFLfuzzer.inputAFL);
-
 	}
 }
 
-#define CGC_BENCHMARK
+//#define CGC_BENCHMARK
 
 #ifdef CGC_BENCHMARK
 extern unsigned int input_cur;
 #endif
+
+extern uint8_t GPSHandleRegion[];
 static void TargetTask( void * pvParameters )
 {
 	//printf("\n new target spawned\n");
@@ -180,11 +181,16 @@ static void TargetTask( void * pvParameters )
 #ifdef CGC_BENCHMARK
         input_cur = 0;
 #endif
-		_sym_symbolize_memory((char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT),AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT);
+		_sym_symbolize_memory((char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT),AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT, false);
 #ifdef CGC_BENCHMARK
         test();
 #else
-        modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
+
+        //modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
+        //test((char*)&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4);
+        gps_init((gps_t*)GPSHandleRegion);
+        gps_process((gps_t*)GPSHandleRegion,&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
+		memset(GPSHandleRegion,0, next_power_of_2(gps_handle_t_size));
 #endif
         _sym_end();
 

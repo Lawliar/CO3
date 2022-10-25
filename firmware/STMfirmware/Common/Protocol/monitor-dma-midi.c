@@ -14,14 +14,21 @@
 #include "stdio.h"
 #include "string.h"
 //#include "test.h"
-#include "runtime.h"
 #include "usb_device.h"
-//#include "modbus_rtu.h"
+#include "midi_lowlevel.h"
+#include "mm_midimsgbuilder.h"
+#include "mm_midirouter_standard.h"
 extern UART_HandleTypeDef huart2;
+extern char midiBuffer[MIDI_BUF_SIZE] __attribute__( ( aligned( next_power_of_2(MIDI_BUF_SIZE)  ) ) );    /* for debugging */ //buffer
+extern MIDIMsgBuilder midiMsgBuilder;                   //buffers
+extern MIDI_Router_Standard midiRouter;                 //buffers
 static uint32_t start_time_val, stop_time_val;
 
 // for getting time
 //#include "stm32h7xx_hal.h"
+
+void MIDI_note_on_do(void *data, MIDIMsg *msg);
+void MIDI_note_off_do(void *data, MIDIMsg *msg);
 
 void vStartMonitor( void );
 void spawnNewTarget( void );
@@ -119,7 +126,7 @@ static void MonitorTask( void * pvParameters )
     		HAL_UART_Transmit(&huart2,&AFLfuzzer.inputAFL.uxBuffer[4] , AFLfuzzer.inputAFL.u32availablenopad-4, 100);
     	}
 		//notify the target that data has arrived, and it should start execution
-		xTaskNotify(AFLfuzzer.xTaskTarget,0,eSetValueWithOverwrite);
+    	xTaskNotify(AFLfuzzer.xTaskTarget,AFLfuzzer.inputAFL.u32availablenopad-4,eSetValueWithOverwrite);
 
 		// wait for the target command to transmit
 		// this command is generated when we have around 64 bytes ready to transmit in the buffer
@@ -166,6 +173,7 @@ static void MonitorTask( void * pvParameters )
 	}
 }
 
+void MIDI_entry(int);
 //#define CGC_BENCHMARK
 
 #ifdef CGC_BENCHMARK
@@ -176,30 +184,47 @@ static void TargetTask( void * pvParameters )
 	//printf("\n new target spawned\n");
 
 	SytemCall_1_code(); //ERROR we need this line to receive data from serial port and it has to be called before it notifies to the monitor
+	int dummy;
+
+
+   	/* Initialize MIDI Message builder */
+   	MIDIMsgBuilder_init(&midiMsgBuilder);
+
+       /* Initialize the MIDI router */
+    MIDI_Router_Standard_init(&midiRouter);
+    MIDI_Router_addCB(&midiRouter.router, MIDIMSG_NOTE_ON, 1, MIDI_note_on_do, &dummy);
+    MIDI_Router_addCB(&midiRouter.router, MIDIMSG_NOTE_OFF, 1, MIDI_note_off_do, &dummy);
+
+    /* Enable LEDs so we can toggle them */
+
+    //LEDs_Init();
+
+    /* Set up midi */
+    //MIDI_low_level_setup_nolib();  // initialize USART with DMA RX
 
 	xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,1,eSetValueWithOverwrite); //notify the monitor task the target is ready
 	while(1){
-		ulTaskNotifyTakeIndexed(0, pdTRUE, portMAX_DELAY); // wait for the notification coming from the Monitor task
+		//ulTaskNotifyTakeIndexed(0, pdTRUE, portMAX_DELAY); // wait for the notification coming from the Monitor task
+		int numItems = ulTaskNotifyTakeIndexed(0, pdTRUE, portMAX_DELAY); //wait for data coming from USART
 		//HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
 		//here we should call the instrumented code
 //#if DEBUGPRINT ==1
 		//printf("\nStart\n");
 //#endif
 		start_time_val = DWT->CYCCNT;
+		_sym_symbolize_memory((char*)midiBuffer,MIDI_BUF_SIZE, false);
 
-#ifdef CGC_BENCHMARK
-        input_cur = 0;
-#endif
-		//_sym_symbolize_memory((char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT),AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT,false);
-#ifdef CGC_BENCHMARK
-        test();
-#else
-        _sym_symbolize_memory((char*)modbusRxTxBuffer, MODBUS_MAX_FRAME_SIZE, false);
-        //modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
-         modbusSlaveHandler(); //*** ERROR this line of code must be called before to initialize the serial port
-         	 	 	 	 	   // I modified the source code of this function so the system call is executed before this line
+		MIDI_entry(numItems);
 
-#endif
+		SytemCall_2_code();  // configure port to receive more data
+
+		/* Initialize MIDI Message builder */
+        MIDIMsgBuilder_init(&midiMsgBuilder);
+        /* Initialize the MIDI router */
+        MIDI_Router_Standard_init(&midiRouter);
+        MIDI_Router_addCB(&midiRouter.router, MIDIMSG_NOTE_ON, 1, MIDI_note_on_do, &dummy);
+        MIDI_Router_addCB(&midiRouter.router, MIDIMSG_NOTE_OFF, 1, MIDI_note_off_do, &dummy);
+
         _sym_end();
 
         stop_time_val = DWT->CYCCNT;

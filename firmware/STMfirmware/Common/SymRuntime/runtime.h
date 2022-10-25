@@ -74,6 +74,7 @@ enum {
  SYM_NTFY_BBLK1        ,
 
  SYM_INIT              ,
+ SYM_INIT_DR           ,
  SYM_END
 };
 
@@ -133,6 +134,7 @@ enum {
 #define SIZE_SYM_NTFY_BBLK          2      // | FCODE(1) | bbid(1)          |
 #define SIZE_SYM_NTFY_BBLK1         3      // | FCODE(1) | bbid(2)          |
 #define SIZE_SYM_INIT               5      // | FCODE(1) | addr(4)          |
+#define SIZE_SYM_INIT_DR            5      // | FCODE(1) | addr(4)          |
 #define SIZE_SYM_END                1      // | FCODE(1) |
 
 #define NUMBER_SYM_PERI           10
@@ -177,7 +179,7 @@ void _sym_notify_basic_block(uint16_t bbid, bool isSym, char * base_addr, uint8_
 
 
 //symbolize buffer
-void _sym_symbolize_memory(char * addr, size_t length);
+void _sym_symbolize_memory(char * addr, size_t length, bool DR);
 
 void _sym_initialize();// allocate the shadow memory, and the space for the return values, parameters
 void _sym_end();

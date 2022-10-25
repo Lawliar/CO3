@@ -91,6 +91,7 @@
  char S_SYM_NTFY_BBLK       []="SYM_NTFY_BBLK       ";
  char S_SYM_NTFY_BBLK1      []="SYM_NTFY_BBLK1      ";
  char S_SYM_INIT            []="SYM_INIT            ";
+ char S_SYM_INIT_DR         []="SYM_INIT_DR         ";
  char S_SYM_END             []="SYM_END            ";
 
  char *fstrings[]={
@@ -139,6 +140,7 @@
 		 S_SYM_NTFY_BBLK        ,
 		 S_SYM_NTFY_BBLK1       ,
 		 S_SYM_INIT             ,
+		 S_SYM_INIT_DR          ,
 		 S_SYM_END
  };
 
@@ -992,7 +994,7 @@ void _sym_build_write_memory(char * addr, size_t length, bool input, bool little
 }
 
 
-void _sym_symbolize_memory(char * addr, size_t length)
+void _sym_symbolize_memory(char * addr, size_t length, bool DR)
 {
 	char *pChar=addr;
 
@@ -1004,8 +1006,15 @@ void _sym_symbolize_memory(char * addr, size_t length)
 	// send the addr value
 	int msgSize = 0;
 	uint8_t msgCode;
-	msgSize = SIZE_SYM_INIT;
-	msgCode = SYM_INIT;
+
+	if(DR == true){
+		msgSize = SIZE_SYM_INIT;
+		msgCode = SYM_INIT;
+	}else{
+		msgSize = SIZE_SYM_INIT_DR;
+		msgCode = SYM_INIT_DR;
+	}
+
 	txCommandtoMonitorF;
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode;
 	*(uint32_t*)(AFLfuzzer.txbuffer + AFLfuzzer.txCurrentIndex) = (uint32_t) addr;
