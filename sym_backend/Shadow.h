@@ -14,6 +14,7 @@
 
 #ifndef SHADOW_H
 #define SHADOW_H
+const unsigned int DR_SIZE = 4;
 
 #include <algorithm>
 #include <cassert>
@@ -40,6 +41,7 @@
 //
 
 constexpr uintptr_t kPageSize = 4096;
+
 
 /// Compute the corresponding page address.
 constexpr uintptr_t pageStart(uintptr_t addr) {
@@ -167,6 +169,68 @@ protected:
   }
 };
 
+class WriteShadowIteratorDR : public ReadShadowIterator {
+public:
+    uintptr_t orig_addr;
+    uint32_t cursor;
+    uint32_t len;
+    WriteShadowIteratorDR(uintptr_t address, uint32_t len) : ReadShadowIterator(address), orig_addr(address),cursor(0), len(len)  {
+        shadow_ = getOrCreateShadow(address);
+    }
+
+    WriteShadowIteratorDR &operator++() {
+        auto previousAddress = address_++;
+        if(address_ >= (orig_addr + DR_SIZE)){
+            // if the new incremented address goes beyond the DR
+            // reset the address and the shadow, then, fill the shadow of the DR
+            assert(address_ == (orig_addr + DR_SIZE));
+            address_ = orig_addr; // reset the address
+            shadow_ -= DR_SIZE;         // reset the shadow
+
+            // fill the shadow with input or null
+            for(int i = 0 ; i < DR_SIZE ; i ++){
+                if(cursor >= len){
+                    *(shadow_ + i) = nullptr;
+                }else{
+                    *(shadow_ + i) = _sym_get_input_byte(cursor);
+                }
+                cursor++;
+            }
+        }else{
+            shadow_++;
+        }
+
+        if (pageStart(address_) != pageStart(previousAddress))
+            shadow_ = getOrCreateShadow(address_);
+        return *this;
+    }
+
+    WriteShadowIteratorDR &operator--() {
+        std::cerr << " you cannot read backward from a DR"
+                  << std::endl;
+        assert(false);
+        auto previousAddress = address_--;
+        shadow_--;
+        if (pageStart(address_) != pageStart(previousAddress))
+            shadow_ = getOrCreateShadow(address_);
+        return *this;
+    }
+
+    SymExpr &operator*() { return *shadow_; }
+
+protected:
+    static SymExpr *getOrCreateShadow(uintptr_t address) {
+        if (auto *shadow = getShadow(address))
+            return shadow;
+
+        auto *newShadow =
+                static_cast<SymExpr *>(malloc(kPageSize * sizeof(SymExpr)));
+        memset(newShadow, 0, kPageSize * sizeof(SymExpr));
+        g_shadow_pages[pageStart(address)] = newShadow;
+        return newShadow + pageOffset(address);
+    }
+};
+
 /// A view on shadow memory that exposes read-only functionality.
 struct ReadOnlyShadow {
   template <typename T>
@@ -201,6 +265,7 @@ template <typename T> struct ReadWriteShadow {
   uintptr_t address_;
   size_t length_;
 };
+
 
 /// Check whether the indicated memory range is concrete, i.e., there is no
 /// symbolic byte in the entire region.

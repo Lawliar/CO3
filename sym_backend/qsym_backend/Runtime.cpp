@@ -142,7 +142,7 @@ void _sym_initialize_config(string inputDirName) {
     }
 }
 
-void _sym_initialize_mem(char * addr) {
+void _sym_initialize_mem(char * addr, bool for_dr) {
     g_z3_context = new z3::context{};
     g_solver = new Solver(g_config.inputFile, g_config.outputDir, g_config.aflCoverageMap);
     g_expr_builder = g_config.pruning ? PruneExprBuilder::create()
@@ -152,10 +152,14 @@ void _sym_initialize_mem(char * addr) {
 
     //initially symbolize the memory buffer
     unsigned inputSize = boost::filesystem::file_size(g_config.inputFile);
-    ReadWriteShadow shadow((void*)addr, inputSize);
-    unsigned cursor = 0;
-    std::generate(shadow.begin(), shadow.end(),
-                  [&cursor]() { return _sym_get_input_byte(cursor++); });
+    if(! for_dr){
+        ReadWriteShadow shadow((void*)addr, inputSize);
+        unsigned cursor = 0;
+        std::generate(shadow.begin(), shadow.end(),
+                      [&cursor]() { return _sym_get_input_byte(cursor++); });
+    }
+
+
 }
 SymExpr _sym_build_integer(uint64_t value, uint8_t bits) {
   // Qsym's API takes uintptr_t, so we need to be careful when compiling for

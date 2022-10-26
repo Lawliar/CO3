@@ -2,6 +2,9 @@
 // Created by charl on 6/14/2022.
 //
 #include "Val.h"
+#include "Shadow.h"
+
+extern WriteShadowIteratorDR * DR_INPUT;
 
 bool Val::isThisNodeReady(Val * nodeInQuestion, unsigned targetReady) {
     auto * nodeIsTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(nodeInQuestion);
@@ -529,6 +532,16 @@ void SymVal_sym_build_read_memory::Construct(Val::ReadyType targetReady) {
         auto endianOperand = dynamic_cast<ConstantIntVal*>(In_edges.at(2));
         assert(endianOperand != nullptr);
 
+        if(DR_INPUT != nullptr && ( ptrOperand->Val >= DR_INPUT->orig_addr && ptrOperand->Val < (DR_INPUT->orig_addr + DR_SIZE) ) ){
+            // reading from DR
+            symExpr = nullptr;//initialize
+            for(int i =  0 ; i < lengthOperand->Value ; i ++){
+                symExpr = endianOperand->Value
+                          ? _sym_concat_helper( *(*DR_INPUT), symExpr)
+                          : _sym_concat_helper(symExpr, *(*DR_INPUT));
+                ++(*DR_INPUT);
+            }
+        }
         if(! hasConcrete){
             symExpr = _sym_build_read_memory(reinterpret_cast<uint8_t*>(ptrOperand->Val), lengthOperand->Value, endianOperand->Value);
         }else{

@@ -15,7 +15,7 @@ extern "C" {
 #include "serialport.h"
 }
 #include "ThreadPool.h"
-
+#include "Shadow.h"
 
 typedef enum _SpecialNodeReturn{
     SpecialConstructed,
@@ -56,8 +56,13 @@ public:
     uint64_t start_time = 0;
     MsgQueue msgQueue;
     std::string symInputFile;
+
+
+
+
     Val::BasicBlockIdType lastBBID = 0;
     std::stack<SymGraph*> callStack;
+
     std::map<unsigned, SymGraph*> symGraphs;
     std::map<unsigned, SymGraph*> vanillaSymGraphs;
     //std::map<string, FuncFileNames> funcFiles;

@@ -20,6 +20,9 @@ int indentNum = 4;
 #endif
 
 int msgCounter = 0;
+
+extern WriteShadowIteratorDR * DR_INPUT;
+
 Orchestrator::Orchestrator(std::string inputDir, std::string sp_port, int baud_rate): \
 pool(2),sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
 {
@@ -626,6 +629,7 @@ int Orchestrator::Run() {
         }
 
         auto init_msg = dynamic_cast<InitMessage*>(msg);
+        assert(init_msg != nullptr);
         msgCounter += 1;
 #ifdef DEBUG_OUTPUT
         cout<<msgCounter<< "th msg,";
@@ -634,8 +638,12 @@ int Orchestrator::Run() {
         cout<<init_msg->Str()<<'\n';
         cout.flush();
 #endif
-        assert(init_msg != nullptr);
-        _sym_initialize_mem(init_msg->addr);
+        _sym_initialize_mem(init_msg->addr, init_msg->DR);
+        if(init_msg->DR == true){
+            // then the shadow mem is not set up in _sym_initialize_mem, we need to create a global iter for DR
+            unsigned inputSize = boost::filesystem::file_size(g_config.inputFile);
+            DR_INPUT = new WriteShadowIteratorDR(reinterpret_cast<uintptr_t>(init_msg->addr), inputSize);
+        }
         start_time = getTimeStamp();
 #ifdef DEBUG_OUTPUT
         cout<<"finish "<<init_msg->Str()<<"\n\n";
@@ -1008,6 +1016,11 @@ int Orchestrator::Run() {
         }
         delete(msg);
     }
+    if(DR_INPUT != nullptr){
+        delete(DR_INPUT);
+        DR_INPUT = nullptr;
+    }
+
     return 0;
 }
 #pragma clang diagnostic pop

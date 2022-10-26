@@ -39,7 +39,7 @@ extern "C" {
 #define kMaxFunctionArguments 256
 void _common_initialize();
 void _sym_initialize_config(string);
-void _sym_initialize_mem(char *);
+void _sym_initialize_mem(char *, bool for_dr);
 
 /*
  * Construction of simple values

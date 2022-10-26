@@ -55,6 +55,7 @@ enum {
     SYM_NTFY_BBLK1        ,
 
     SYM_INIT              ,
+    SYM_INIT_DR           ,
     SYM_END
 };
 
@@ -114,6 +115,7 @@ enum {
 #define SIZE_SYM_NTFY_BBLK          2      // | FCODE(1) | bbid(1)          |
 #define SIZE_SYM_NTFY_BBLK1         3      // | FCODE(1) | bbid(2)          |
 #define SIZE_SYM_INIT               5      // | FCODE(1) | addr(4)          |
+#define SIZE_SYM_INIT_DR            5      // | FCODE(1) | addr(4)          |
 #define SIZE_SYM_END                1      // | FCODE(1) |
 
 extern "C"{

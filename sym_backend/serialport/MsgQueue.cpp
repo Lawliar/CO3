@@ -301,7 +301,11 @@ bool MsgQueue::RenderAndPush(char * buf, char size){
             cur += SIZE_SYM_NTFY_BBLK1;
         }else if(buf[cur] == SYM_INIT){
             char * addr = reinterpret_cast<char *>(*(uint32_t*)(buf + cur + 1));
-            Push(new InitMessage(addr));
+            Push(new InitMessage(addr, false));
+            cur += SIZE_SYM_INIT;
+        }else if(buf[cur] == SYM_INIT_DR){
+            char * addr = reinterpret_cast<char *>(*(uint32_t*)(buf + cur + 1));
+            Push(new InitMessage(addr, true));
             cur += SIZE_SYM_INIT;
         }
         else if(buf[cur] == SYM_END){

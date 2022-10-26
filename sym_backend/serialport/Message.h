@@ -234,10 +234,11 @@ public:
 class InitMessage : public ControlMessgaes{
 public:
     char * addr = nullptr;
-    InitMessage(char* addr): ControlMessgaes(InitMsg),addr(addr){};
+    bool DR = false;
+    InitMessage(char* addr, bool is_dr): ControlMessgaes(InitMsg),addr(addr), DR(is_dr){};
     std::string Str(){
         std::ostringstream s;
-        s << "SymInit: Addr:"<<reinterpret_cast<std::uintptr_t>(addr);
+        s << "SymInit: Addr:"<<reinterpret_cast<std::uintptr_t>(addr)<<",for DR:"<< DR;
         return s.str();
     }
 };
