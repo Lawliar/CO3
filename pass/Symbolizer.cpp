@@ -140,9 +140,9 @@ void Symbolizer::handleIntrinsicCall(CallBase &I) {
         case Intrinsic::memcpy: {
             IRBuilder<> IRB(&I);
 
-            //tryAlternative(IRB, I.getOperand(0));
-            //tryAlternative(IRB, I.getOperand(1));
-            //tryAlternative(IRB, I.getOperand(2));
+            tryAlternative(IRB, I.getOperand(0));
+            tryAlternative(IRB, I.getOperand(1));
+            tryAlternative(IRB, I.getOperand(2));
 
             // The intrinsic allows both 32 and 64-bit integers to specify the length;
             // convert to the right type if necessary. This may truncate the value on
@@ -158,8 +158,8 @@ void Symbolizer::handleIntrinsicCall(CallBase &I) {
         case Intrinsic::memset: {
             IRBuilder<> IRB(&I);
 
-            //tryAlternative(IRB, I.getOperand(0));
-            //tryAlternative(IRB, I.getOperand(2));
+            tryAlternative(IRB, I.getOperand(0));
+            tryAlternative(IRB, I.getOperand(2));
 
             unsigned memSetId = getNextID();
             auto memSetCall = IRB.CreateCall(runtime.memset,
@@ -172,9 +172,9 @@ void Symbolizer::handleIntrinsicCall(CallBase &I) {
         case Intrinsic::memmove: {
             IRBuilder<> IRB(&I);
 
-            //tryAlternative(IRB, I.getOperand(0));
-            //tryAlternative(IRB, I.getOperand(1));
-            //tryAlternative(IRB, I.getOperand(2));
+            tryAlternative(IRB, I.getOperand(0));
+            tryAlternative(IRB, I.getOperand(1));
+            tryAlternative(IRB, I.getOperand(2));
 
             // The comment on memcpy's length parameter applies analogously.
             unsigned memMoveId = getNextID();
@@ -461,14 +461,13 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
     auto *dataType = I.getType();
     auto readMemSymID = getNextID();
     auto intByteSize = dataLayout.getTypeStoreSize(dataType);
-    if(intByteSize == 8){
-        assert(I.getType()->isDoubleTy()); // since the backend does not support double, we just assign concrete
+    if(intByteSize == 8 && I.getType()->isDoubleTy()){
         symbolicExpressions[&I] = ConstantHelper(runtime.isSymT,0);
         return;
     }
-    if(intByteSize != 1  && intByteSize != 2 &&intByteSize != 4 ){
+    if(!(intByteSize == 1 || intByteSize == 2 || intByteSize == 4)){
         errs()<<I<<'\n';
-        llvm_unreachable("loads more than 4 bytes");
+        llvm_unreachable("loading values not 1, or 2, or 4 bytes");
     }
     Value* ptrOperand  = IRB.CreatePtrToInt(addr, intPtrType);;
     //if(isa<Constant>(addr)){
@@ -971,7 +970,10 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
         IRB.CreateStore(V, memory);
         auto symid = getNextID();
         auto intByteSize = dataLayout.getTypeStoreSize(V->getType());
-        assert(intByteSize == 1 || intByteSize == 2 || intByteSize == 4);
+        if(!(intByteSize == 1 || intByteSize == 2 || intByteSize == 4)){
+            errs()<<V<<'\n';
+            llvm_unreachable("loading values not 1, or 2, or 4 bytes");
+        }
         ret = IRB.CreateCall(runtime.readMemory,
                              {IRB.CreatePtrToInt(memory, intPtrType),
                               ConstantInt::get(intPtrType,intByteSize),
@@ -981,8 +983,13 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
         return ret;
     }
     if(isa<UndefValue>(V)){
+        ret = IRB.CreateCall(runtime.buildNullPointer, {});
+        assignSymID(ret,getNextID());
+        return ret;
+        /*
         llvm_unreachable("Undef Value not support, not because itself is hard to support, but the composite value after it. \
         Plus this is most likely caused by some unintialized struct or integer, just give it some initialized value and get rid off this undef");
+        */
     }
     errs()<<*V<<'\n';
     llvm_unreachable("Unhandled type for constant expression");
@@ -1020,10 +1027,12 @@ Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
 void Symbolizer::tryAlternative(IRBuilder<> &IRB, Value *V) {
     auto *destSymExpr = getSymbolicExpression(V);
     if (auto tmpExpr = dyn_cast<llvm::ConstantInt>(destSymExpr); !(tmpExpr != nullptr && tmpExpr->isZero()) ) {
-        auto *destAssertion = IRB.CreateCall(runtime.tryAlternative,{V, destSymExpr});
+        //TODO
+        unsigned tryAlternativeSymID = getNextID();
+        auto *destAssertion = IRB.CreateCall(runtime.tryAlternative,{V, destSymExpr,ConstantHelper(runtime.symIntT, tryAlternativeSymID)});
         assignSymID(destAssertion,getNextID());
-        //unsigned tryAlternativeBBID = GetBBID(IRB.GetInsertBlock());
-        //tryAlternativePairs[std::make_pair(tryAlternativeSymID,tryAlternativeBBID)] = std::make_pair(destExpr, V);
+        unsigned tryAlternativeBBID = GetBBID(IRB.GetInsertBlock());
+        tryAlternatives.insert(new TryAlternativeUnit(tryAlternativeSymID, tryAlternativeBBID, destSymExpr, V));
     }
 }
 
@@ -1271,7 +1280,7 @@ SymDepGraph::vertex_t Symbolizer::addRuntimeVertice(llvm::Value * v, unsigned bi
 }
 /*
 void Symbolizer::addTryAlternativeToTheGraph(){
-    for(auto eachTryAlternative: tryAlternativePairs){
+    for(auto eachTryAlternative: tryAlternatives){
         unsigned tryAlterntiveSymID = eachTryAlternative.first.first;
         unsigned tryAlternativeBBID = eachTryAlternative.first.second;
         auto tryAlternativeVertice = g.AddSymVertice(tryAlterntiveSymID,"_sym_try_alternative", tryAlternativeBBID);
@@ -1307,8 +1316,8 @@ void Symbolizer::addTryAlternativeToTheGraph(){
             g.AddEdge(runtimeVert,tryAlternativeVertice,1);
         }
     }
-}
-*/
+}*/
+
 void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
     std::set<StringRef> symOperators;
     for(auto eachSymOperation: runtime.SymOperators){
@@ -1403,9 +1412,12 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                             errs()<<"arg:"<<*arg<<'\n';
                             llvm_unreachable("annotated constant is not constant\n");
                         }
-                        if(calleeName.equals("_sym_build_read_memory") && arg_idx == 2){
+                        if(calleeName.equals("_sym_build_read_memory") && arg_idx == 1){
                             auto byteLen = dyn_cast<ConstantInt>(arg)->getZExtValue();
-                            assert(byteLen == 1 || byteLen == 2 || byteLen == 4 );
+                            if(!(byteLen == 1 || byteLen == 2 || byteLen == 4)){
+                                errs()<< *callInst<<'\n';
+                                llvm_unreachable("loading value not 1, 2 or 4 bytes?");
+                            }
                         }
                         if(ConstantInt * cont_int = dyn_cast<ConstantInt>(arg)){
                             auto conVert = addConstantIntVertice(cont_int);
@@ -1430,7 +1442,10 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                                 toReplaceToTrue.push_back(callInst);
                             }else if(calleeName.equals("_sym_build_memset") && arg_idx == 2){
                                 // this is also allowed, but since the mem ptr is not a constant, this is not to be replaced
-                            }else{
+                            }else if(calleeName.equals("_sym_build_memcpy") && arg_idx == 2){
+
+                            }
+                            else{
                                 errs()<<"callinst:"<<*callInst<<'\n';
                                 errs()<<"argid:"<<arg_idx<<'\n';
                                 errs()<<"arg:"<<*arg<<'\n';
@@ -1471,7 +1486,11 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                             g.AddEdge(runtimeVert,userNode,arg_idx);
                             //sanity check
                             if(find(runtime.replaceToNone.begin(), runtime.replaceToNone.end(), calleeName) == runtime.replaceToNone.end()){
-                                assert(callInst->getOperand(callInst->getNumArgOperands() - 1)->getType() == runtime.symIntT);
+                                if(callInst->getOperand(callInst->getNumArgOperands() - 1)->getType() != runtime.symIntT){
+                                    errs()<<"callInst"<< *callInst<<'\n';
+                                    errs()<<arg_idx <<"th parameter\n";
+                                    llvm_unreachable("last para is not symInt");
+                                }
                             }
                         }
                     }
@@ -1863,7 +1882,7 @@ void Symbolizer::OutputCFG(llvm::Function & F, DominatorTree& dTree, PostDominat
     }
     BasicBlock* real_exit = tree_root->back()->getBlock();
     if(real_exit != exit_bb){
-        llvm_unreachable("real exit does not match");
+        llvm_unreachable("real exit does not match, maybe there is a dead loop");
     }
 
     RecursivePrintEdges(basicBlockMap,pd_file,tree_root->back(), 1);

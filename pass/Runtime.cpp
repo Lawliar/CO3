@@ -339,11 +339,12 @@ Runtime::Runtime(Module &M) {
     replaceToInput.push_back("_sym_build_extract");
 
     // just a place-holder, will be removed before lowered to machine code
-    tryAlternative = import(M,"_sym_try_alternative",voidT, intPtrType, isSymT );
+    tryAlternative = import(M,"_sym_try_alternative",voidT, intPtrType, isSymT,symIntT);
     SymOperators.push_back(&tryAlternative);
     runtimeArgNo["_sym_try_alternative"] = {0};
     isSymArgNo["_sym_try_alternative"] = {1};
-    replaceToNone.push_back("_sym_try_alternative");
+    symIdArgNo["_sym_try_alternative"] = {2};
+    //replaceToNone.push_back("_sym_try_alternative");
 
     // this notifyPhi is not gonna be passed to forceBuildRuntimeCall anyway
     notifyPhi = import(M, "_sym_notify_phi", voidT, int8T, symIntT,isSymT,ptrT,int8T);

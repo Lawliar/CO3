@@ -75,7 +75,10 @@ public:
 
       loopBB2Offset.clear();
       truePhi2Offset.clear();
-      //tryAlternativePairs.clear();
+      for(auto eachTryAltUnit : tryAlternatives){
+          delete eachTryAltUnit;
+      }
+      tryAlternatives.clear();
   }
 
   /// Insert code to obtain the symbolic expressions for the function arguments.
@@ -400,6 +403,16 @@ public:
         symbolicIDs[symcall] = ID;
     }
 
+    class TryAlternativeUnit{
+    public:
+        int symID;
+        unsigned BBID;
+        llvm::Value* symExpr;
+        llvm::Value* concreteExpr;
+        TryAlternativeUnit(int symID, unsigned BBID, llvm::Value* symExpr,llvm::Value* concreteExpr): \
+            symID(symID), BBID(BBID), symExpr(symExpr), concreteExpr(concreteExpr){}
+
+    };
     class PhiStatus{
     public:
         enum PhiStatusKind{
@@ -611,14 +624,14 @@ public:
       for(auto it = splited2OriginalBB.begin(); it != splited2OriginalBB.end();it++){
           output<< "BB:"<<it->first->getName() <<"->BB"<<it->second->getName()<<'\n';
       }
-      /*
-      for(auto eachTryAlternative : tryAlternativePairs){
-          auto tryAltSymId = eachTryAlternative.first.first;
-          auto tryAltBBid = eachTryAlternative.first.second;
-          auto operandSym = eachTryAlternative.second.first;
-          auto operand = eachTryAlternative.second.second;
+
+      for(auto eachTryAlternative : tryAlternatives){
+          auto tryAltSymId = eachTryAlternative->symID;
+          auto tryAltBBid = eachTryAlternative->BBID;
+          auto operandSym = eachTryAlternative->symExpr;
+          auto operand = eachTryAlternative->concreteExpr;
           output<<"tryAlt:symid:"<<tryAltSymId<<",bbid:"<<tryAltBBid<<",symop:"<<*operandSym<<",op:"<<*operand<<'\n';
-      }*/
+      }
   }
   unsigned numBits2NumBytes(unsigned numBits){
       unsigned ret = numBits / 8;
@@ -631,7 +644,7 @@ public:
   /// Compute the offset of a member in a (possibly nested) aggregate.
   uint64_t aggregateMemberOffset(llvm::Type *aggregateType,
                                  llvm::ArrayRef<unsigned> indices) const;
-  //void addTryAlternativeToTheGraph();
+  void addTryAlternativeToTheGraph();
   const Runtime& runtime;
   const llvm::LoopInfo& loopinfo;
   /// The data layout of the currently processed module.
@@ -694,7 +707,10 @@ public:
     std::map<llvm::BasicBlock*, unsigned> loopBB2Offset;
     unsigned truePhiOff = 0;
     std::map<llvm::PHINode*, unsigned> truePhi2Offset;
+
     //std::map<std::pair<unsigned, unsigned>, std::pair<llvm::Value*, llvm::Value *> > tryAlternativePairs;
+    std::set<TryAlternativeUnit*> tryAlternatives;
+
     SymDepGraph g;
     const unsigned initialBBID = 1;
     unsigned int BBID = initialBBID;
