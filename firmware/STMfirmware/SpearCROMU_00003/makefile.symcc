@@ -17,7 +17,8 @@ CLI_LDFLAG_OVERRIDES ?=
 # COMPILER=<PATH_TO_OTHER_GCC_VERSION>/arm-none-eabi-gcc make
 LLVM_TOOLCHAIN := /usr/lib/llvm-10
 
-GCC_COMPILER        := arm-none-eabi-gcc
+DEF_SYS_ROOT        := /home/ubuntu/arm-toolchain/bin/../arm-none-eabi
+GCC_COMPILER        := $(DEF_SYS_ROOT)/../bin/arm-none-eabi-gcc
 CLANG_COMPILER      := $(LLVM_TOOLCHAIN)/bin/clang
 OPT                 := $(LLVM_TOOLCHAIN)/bin/opt
 LLC                 := $(LLVM_TOOLCHAIN)/bin/llc
@@ -220,7 +221,7 @@ $(info ===Clang Compiler Detected===)
 # Default assumes an GNU ARM toolchain is on your path
 # but an explicit path can also be provided by doing
 # ARM_GNU_CC=<PATH_TO_GCC> make
-ARM_GNU_CC ?= arm-none-eabi-gcc
+ARM_GNU_CC ?= $(GCC_COMPILER)
 
 ARM_CORTEXM_SYSROOT = \
   $(shell $(ARM_GNU_CC) $(ARCH_CFLAGS) -print-sysroot 2>&1)
@@ -257,9 +258,9 @@ COMPILER_SPECIFIC_LDFLAGS += \
 
 endif
 
-CFLAGS += -Os
+CFLAGS += -O2
 CFLAGS += -std=gnu11
-CFLAGS += -g
+#CFLAGS += -g
 CFLAGS += -ffunction-sections
 CFLAGS += -fdata-sections
 CFLAGS += -Wall
@@ -277,7 +278,8 @@ CFLAGS +=  $(CLI_CFLAG_OVERRIDES)
 
 
 
-ASFLAGS += -g3 -DDEBUG -c 
+#ASFLAGS += -g3 
+ASFLAGS += -DDEBUG -c 
 ASFLAGS += -x assembler-with-cpp 
 #ASFLAGS += --specs=nano.specs 
 ASFLAGS += $(ARCH_CFLAGS)
@@ -324,9 +326,9 @@ clean:
 $(TARGET_ELF): $(OBJ_FILES)  $(LDSCRIPT)
 	@echo "Linking library"
   #$(Q) $(CC) $(OBJ_FILES)  $(LDFLAGS) -o $@
-	$(Q) arm-none-eabi-gcc $(OBJ_FILES)  $(LDFLAGS) -o $@
+	$(Q) $(GCC_COMPILER) $(OBJ_FILES)  $(LDFLAGS) -o $@
 	@echo "Generated $(patsubst $(ROOT_DIR)/%,%,$@)"
-	arm-none-eabi-objcopy -O binary $(TARGET_ELF)  "$(BUILD_DIR)/$(TARGET).bin"
+	$(GCC_COMPILER)/../bin/arm-none-eabi-objcopy -O binary $(TARGET_ELF)  "$(BUILD_DIR)/$(TARGET).bin"
 
 $(BUILD_DIR): 
 	@mkdir -p $(BUILD_DIR)
