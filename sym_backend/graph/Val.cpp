@@ -368,14 +368,21 @@ void SymVal_sym_try_alternative::Construct(ReadyType targetReady) {
     assert(targetReady == (ready + 1));
 
 
-    auto runtimeOperand = dynamic_cast<RuntimeVal*>(In_edges.at(0));
-    assert(runtimeOperand != nullptr);
-
-    auto symOperand = dynamic_cast<SymVal*>(In_edges.at(1));
-    assert(symOperand != nullptr);
-    extractSymExprFromSymVal(symOperand, targetReady);
+    auto symNode = dynamic_cast<SymVal*>(In_edges.at(0));
+    assert(symNode != nullptr);
+    auto symExpr = extractSymExprFromSymVal(symNode, targetReady);
 
 
+    auto concNode = dynamic_cast<SymVal*>(In_edges.at(1));
+    assert(concNode != nullptr);
+    auto concExpr = extractSymExprFromSymVal(concNode, targetReady);
+
+    SymIDType redirectedSymID = symIDR != 0 ? symIDR : symID;
+
+    _sym_build_path_constraint(
+            _sym_build_equal(symExpr,
+                             concExpr),
+            true, redirectedSymID);
     //we are not really gonna do anything
     ready++;
 }

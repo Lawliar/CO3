@@ -339,7 +339,7 @@ Runtime::Runtime(Module &M) {
     replaceToInput.push_back("_sym_build_extract");
 
     // just a place-holder, will be removed before lowered to machine code
-    tryAlternative = import(M,"_sym_try_alternative",voidT, intPtrType, isSymT,symIntT);
+    tryAlternative = import(M,"_sym_try_alternative",voidT, isSymT, isSymT,symIntT);
     SymOperators.push_back(&tryAlternative);
     runtimeArgNo["_sym_try_alternative"] = {0};
     isSymArgNo["_sym_try_alternative"] = {1};

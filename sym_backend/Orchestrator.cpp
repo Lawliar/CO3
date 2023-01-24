@@ -920,7 +920,24 @@ int Orchestrator::Run() {
                 cout << "finish "<< sym_constraint_msg->Str()<<"\n\n";
                 cout.flush();
 #endif
-            }else if(auto memWriteMsg = dynamic_cast<WriteMemMessage*>(sym_sink_msg); memWriteMsg != nullptr){
+            }else if(auto tryAltMsg = dynamic_cast<TryAltMessage*>(sym_sink_msg); tryAltMsg != nullptr){
+#ifdef DEBUG_OUTPUT
+                assert(indent == 0);
+                cout << tryAltMsg->Str()<<'\n';
+                cout.flush();
+#endif
+
+                auto tryAltVal = dynamic_cast<SymVal_sym_try_alternative*>(cur_val);
+                assert(tryAltVal != nullptr);
+
+                UpdateCallStackHashBB(tryAltVal->BBID);
+                BackwardExecution(tryAltVal,tryAltVal->ready + 1 );
+#ifdef DEBUG_OUTPUT
+                cout << "finish "<<tryAltMsg->Str()<<"\n\n";
+                cout.flush();
+#endif
+            }
+            else if(auto memWriteMsg = dynamic_cast<WriteMemMessage*>(sym_sink_msg); memWriteMsg != nullptr){
 #ifdef DEBUG_OUTPUT
                 assert(indent == 0);
                 cout << memWriteMsg->Str()<<'\n';

@@ -54,6 +54,9 @@ enum {
     SYM_NTFY_BBLK         ,
     SYM_NTFY_BBLK1        ,
 
+    SYM_TRY_ALT           ,
+    SYM_TRY_ALT_1         ,
+
     SYM_INIT              ,
     SYM_INIT_DR           ,
     SYM_END
@@ -114,6 +117,10 @@ enum {
 #define SIZE_SYM_NTFY_RET           2      // | FCODE(1) | call_inst_id(1)  |
 #define SIZE_SYM_NTFY_BBLK          2      // | FCODE(1) | bbid(1)          |
 #define SIZE_SYM_NTFY_BBLK1         3      // | FCODE(1) | bbid(2)          |
+
+#define SIZE_SYM_TRY_ALTERNATIVE    3      // | FCODE(1) | symID(2)         |
+#define SIZE_SYM_TRY_ALTERNATIVE_1  2      // | FCODE(1) | symID(1)         |
+
 #define SIZE_SYM_INIT               5      // | FCODE(1) | addr(4)          |
 #define SIZE_SYM_INIT_DR            5      // | FCODE(1) | addr(4)          |
 #define SIZE_SYM_END                1      // | FCODE(1) |

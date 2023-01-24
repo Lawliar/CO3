@@ -1027,10 +1027,12 @@ Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
 void Symbolizer::tryAlternative(IRBuilder<> &IRB, Value *V) {
     auto *destSymExpr = getSymbolicExpression(V);
     if (auto tmpExpr = dyn_cast<llvm::ConstantInt>(destSymExpr); !(tmpExpr != nullptr && tmpExpr->isZero()) ) {
-        //TODO
+        // if this V is symbolized
+        // create a symbolic constant for this V
+        auto *deskConcExpr = createValueExpression(V, IRB);
         unsigned tryAlternativeSymID = getNextID();
-        auto *destAssertion = IRB.CreateCall(runtime.tryAlternative,{V, destSymExpr,ConstantHelper(runtime.symIntT, tryAlternativeSymID)});
-        assignSymID(destAssertion,getNextID());
+        auto *destAssertion = IRB.CreateCall(runtime.tryAlternative,{destSymExpr,deskConcExpr ,ConstantHelper(runtime.symIntT, tryAlternativeSymID)});
+        assignSymID(destAssertion,tryAlternativeSymID);
         unsigned tryAlternativeBBID = GetBBID(IRB.GetInsertBlock());
         tryAlternatives.insert(new TryAlternativeUnit(tryAlternativeSymID, tryAlternativeBBID, destSymExpr, V));
     }

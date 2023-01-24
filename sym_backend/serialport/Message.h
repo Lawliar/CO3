@@ -26,6 +26,7 @@ public:
         MemsetRuntimeMsg,
         MemmoveRuntimeMsg,
         WriteMemRuntimeMsg,
+        TryAltMsg,
         InitMsg,
         EndMsg,
     } MessageType;
@@ -187,6 +188,15 @@ public:
     }
 };
 
+class TryAltMessage: public SymSinkMessage{
+public:
+    TryAltMessage(uint16_t symID): SymSinkMessage(TryAltMsg, symID){}
+    std::string Str(){
+        std::ostringstream s;
+        s<<"TryAlt:symid:"<<static_cast<unsigned>(symid);
+        return s.str();
+    }
+};
 class NotifyCallMessage: public ControlMessgaes{
 public:
     NotifyCallMessage(uint8_t id): ControlMessgaes(CallMsg), id(id){};
