@@ -90,6 +90,10 @@
  char S_SYM_NTFY_RET        []="SYM_NTFY_RET        ";
  char S_SYM_NTFY_BBLK       []="SYM_NTFY_BBLK       ";
  char S_SYM_NTFY_BBLK1      []="SYM_NTFY_BBLK1      ";
+
+ char S_SYM_TRY_ALT         []= "SYM_TRY_ALT        ";
+ char S_SYM_TRY_ALT_1       []= "SYM_TRY_ALT_1      ";
+
  char S_SYM_INIT            []="SYM_INIT            ";
  char S_SYM_INIT_DR         []="SYM_INIT_DR         ";
  char S_SYM_END             []="SYM_END            ";
@@ -139,6 +143,9 @@
 		 S_SYM_NTFY_RET         ,
 		 S_SYM_NTFY_BBLK        ,
 		 S_SYM_NTFY_BBLK1       ,
+
+		 S_SYM_TRY_ALT          ,
+		 S_SYM_TRY_ALT_1        ,
 		 S_SYM_INIT             ,
 		 S_SYM_INIT_DR          ,
 		 S_SYM_END
@@ -555,8 +562,38 @@ void _sym_notify_call(uint8_t call_inst_id)
 	//set the val
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = (uint8_t) call_inst_id;
 }
+/*
+void _sym_try_alternative(bool destSym, bool concSym, uint16_t symID)
+{
 
+	if(! destSym || !concSym){
+		return;
+	}
 
+	int msgSize=0;
+	uint8_t msgCode;
+	uint8_t *byteval;
+
+	bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+
+	if(isSmallSymID){
+		msgSize = SIZE_SYM_TRY_ALTERNATIVE;
+		msgCode = SYM_TRY_ALT;
+	}else{
+		msgSize = SIZE_SYM_TRY_ALTERNATIVE_1;
+		msgCode = SYM_TRY_ALT_1;
+	}
+
+	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = msgCode; //set the function in the buffer
+	//set the val
+	byteval = (uint8_t *)(&symID);
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval++;
+	if(! isSmallSymID){
+	    AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval;
+	}
+}
+*/
 void _sym_notify_func(uint8_t call_inst_id)
 {
 	int msgSize=0;

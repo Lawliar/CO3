@@ -254,7 +254,7 @@ public:
     /// Get the (already created) symbolic expression for a value.
     llvm::Value *getSymbolicExpression(llvm::Value *V) {
         auto exprIt = symbolicExpressions.find(V);
-        return (exprIt != symbolicExpressions.end()) ? exprIt->second : ConstantHelper(runtime.isSymT,0);
+        return (exprIt != symbolicExpressions.end()) ? exprIt->second : llvm::ConstantInt::getFalse(V->getContext());
     }
 
     unsigned getSymIDFromSym(llvm::Value *V) {

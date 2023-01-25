@@ -142,7 +142,9 @@ bool SymbolizePass::runOnFunction(Function &F) {
     if(functionName == "validateRequest"){
         errs()<<F<<'\n';
     }
-    assert(!verifyFunction(F, &errs()) &&
-         "SymbolizePass produced invalid bitcode");
+    if(verifyFunction(F, &errs())){
+        errs()<<F<<'\n';
+        llvm_unreachable("SymbolizePass produced invalid bitcode");
+    }
     return true;
 }

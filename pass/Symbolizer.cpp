@@ -324,7 +324,7 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
         // order to avoid accidentally using whatever is stored there from the
         // previous function call. (If the function is instrumented, it will just
         // override our null with the real expression.)
-        auto callToSetReturn = IRB.CreateCall(runtime.setReturnExpression, ConstantHelper(runtime.isSymT,0));
+        auto callToSetReturn = IRB.CreateCall(runtime.setReturnExpression, IRB.getFalse());
         assignSymID(callToSetReturn,getNextID());
         IRB.SetInsertPoint(returnPoint);
         auto getReturnCall = IRB.CreateCall(runtime.getReturnExpression);
@@ -462,7 +462,7 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
     auto readMemSymID = getNextID();
     auto intByteSize = dataLayout.getTypeStoreSize(dataType);
     if(intByteSize == 8 && I.getType()->isDoubleTy()){
-        symbolicExpressions[&I] = ConstantHelper(runtime.isSymT,0);
+        symbolicExpressions[&I] = IRB.getFalse();
         return;
     }
     if(!(intByteSize == 1 || intByteSize == 2 || intByteSize == 4)){
@@ -762,7 +762,7 @@ void Symbolizer::visitPHINode(PHINode &I) {
     for (unsigned incoming = 0; incoming < numIncomingValues; incoming++) {
         exprPHI->addIncoming(
                 // The null pointer will be replaced in finalizePHINodes.
-                ConstantHelper(runtime.isSymT,0),
+                IRB.getFalse(),
                 I.getIncomingBlock(incoming));
     }
 
@@ -814,7 +814,7 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
     BasicBlock* head = I.getParent();
     // Build a check whether we have a symbolic condition, to be used later.
     auto *haveSymbolicCondition = IRB.CreateICmpNE(
-            conditionExpr, ConstantHelper(runtime.isSymT, 0));
+            conditionExpr, IRB.getFalse());
     auto *constraintBlock = SplitBlockAndInsertIfThen(haveSymbolicCondition, &I,
             /* unreachable */ false);
     // then -> head
@@ -849,7 +849,7 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
         //symbolicComputation.lastInstruction->replaceAllUsesWith(finalExpression);
         replaceAllUseWith(caseConstraint, finalExpression);
 
-        finalExpression->addIncoming(ConstantHelper(runtime.isSymT,0),head);
+        finalExpression->addIncoming(IRB.getFalse(),head);
         finalExpression->addIncoming(caseConstraint, caseConstraint->getParent());
 
         if(first_constraint == nullptr){
@@ -1026,16 +1026,45 @@ Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
 
 void Symbolizer::tryAlternative(IRBuilder<> &IRB, Value *V) {
     auto *destSymExpr = getSymbolicExpression(V);
-    if (auto tmpExpr = dyn_cast<llvm::ConstantInt>(destSymExpr); !(tmpExpr != nullptr && tmpExpr->isZero()) ) {
-        // if this V is symbolized
-        // create a symbolic constant for this V
-        auto *deskConcExpr = createValueExpression(V, IRB);
-        unsigned tryAlternativeSymID = getNextID();
-        auto *destAssertion = IRB.CreateCall(runtime.tryAlternative,{destSymExpr,deskConcExpr ,ConstantHelper(runtime.symIntT, tryAlternativeSymID)});
-        assignSymID(destAssertion,tryAlternativeSymID);
-        unsigned tryAlternativeBBID = GetBBID(IRB.GetInsertBlock());
-        tryAlternatives.insert(new TryAlternativeUnit(tryAlternativeSymID, tryAlternativeBBID, destSymExpr, V));
+    if (auto tmpExpr = dyn_cast<llvm::ConstantInt>(destSymExpr)) {
+        assert(tmpExpr != nullptr );
+        if(tmpExpr->isZero() ){
+            return;
+        }
     }
+    // if this V is symbolized
+    // create a symbolic constant for this V
+
+    // runtime check for the value
+
+    //auto *nullExpr = IRB.getFalse();
+    //auto* symCheck = cast<Instruction>(IRB.CreateICmpNE(nullExpr, destSymExpr));// not null
+    auto *symExpr = IRB.getTrue();
+    auto* symCheck = cast<Instruction>(IRB.CreateICmpEQ(symExpr, destSymExpr));
+
+    auto * head = symCheck->getParent();
+
+    Instruction* splitBefore = symCheck->getNextNode();
+    auto *argExpressionBlock = SplitBlockAndInsertIfThen(
+            symCheck,splitBefore,false);
+
+    MapOriginalBlock(argExpressionBlock->getParent(), head );
+    MapOriginalBlock(splitBefore->getParent(), head );
+
+    //save the insert point
+    auto savedInsertPoint = IRB.GetInsertPoint();
+    IRB.SetInsertPoint(argExpressionBlock);
+
+    auto *deskConcExpr = createValueExpression(V, IRB);
+    unsigned tryAlternativeSymID = getNextID();
+    auto *destAssertion = IRB.CreateCall(runtime.tryAlternative,{destSymExpr,deskConcExpr ,ConstantHelper(runtime.symIntT, tryAlternativeSymID)});
+    assignSymID(destAssertion,tryAlternativeSymID);
+    unsigned tryAlternativeBBID = GetBBID(IRB.GetInsertBlock());
+    // push the info
+    tryAlternatives.insert(new TryAlternativeUnit(tryAlternativeSymID, tryAlternativeBBID, destSymExpr, V));
+
+    //restore the insert point
+    IRB.SetInsertPoint(&*savedInsertPoint);
 }
 
 uint64_t Symbolizer::aggregateMemberOffset(Type *aggregateType,
@@ -1085,7 +1114,7 @@ void Symbolizer::shortCircuitExpressionUses() {
         IRBuilder<> IRB(symbolicComputation.firstInstruction);
         // Build the check whether any input expression is non-null (i.e., there
         // is a symbolic input).
-        auto *nullExpression = ConstantHelper(runtime.isSymT,0);
+        auto *nullExpression = IRB.getFalse();
         std::vector<Value *> nullChecks;
         for (const auto &input : symbolicComputation.inputs) {
             nullChecks.push_back(IRB.CreateICmpEQ(nullExpression, input.getSymbolicOperand()));
@@ -1125,9 +1154,6 @@ void Symbolizer::shortCircuitExpressionUses() {
         std::set<unsigned> peerOriginalSymIDs;
         std::set<FalsePhiLeaf*> falsePhiPeers;
 
-        if(head->getParent()->getName().equals("modbusparsing") && getSymIDFromSym(symbolicComputation.lastInstruction) == 29){
-            errs()<<symbolicComputation<<'\n';
-        }
 
         for (unsigned argIndex = 0; argIndex < symbolicComputation.inputs.size();
              argIndex++) {
@@ -1225,7 +1251,7 @@ void Symbolizer::shortCircuitExpressionUses() {
             //symbolicComputation.lastInstruction->replaceAllUsesWith(finalExpression);
             replaceAllUseWith(symbolicComputation.lastInstruction, finalExpression);
 
-            finalExpression->addIncoming(ConstantHelper(runtime.isSymT,0),
+            finalExpression->addIncoming(IRB.getFalse(),
                                          head);
             finalExpression->addIncoming(
                     symbolicComputation.lastInstruction,
@@ -1572,11 +1598,12 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
         eachToBeRemoved->eraseFromParent();
     }
     for(auto eachToReplaceToFalse : toReplaceToFalse){
-        replaceAllUseWith(eachToReplaceToFalse, ConstantHelper(runtime.isSymT,0));
+
+        replaceAllUseWith(eachToReplaceToFalse, ConstantInt::getFalse(eachToReplaceToFalse->getContext()));
         eachToReplaceToFalse->eraseFromParent();
     }
     for(auto eachToReplaceToTrue : toReplaceToTrue){
-        replaceAllUseWith(eachToReplaceToTrue, ConstantHelper(runtime.isSymT,1));
+        replaceAllUseWith(eachToReplaceToTrue, ConstantInt::getTrue(eachToReplaceToTrue->getContext()));
         eachToReplaceToTrue->eraseFromParent();
     }
     for(auto eachToReplaceToInput : toReplaceToInput){
