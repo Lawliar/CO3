@@ -378,13 +378,15 @@ void SymVal_sym_try_alternative::Construct(ReadyType targetReady) {
     auto concExpr = extractSymExprFromSymVal(concNode, targetReady);
 
     SymIDType redirectedSymID = symIDR != 0 ? symIDR : symID;
+    if(symExpr != nullptr && concExpr !=  nullptr){
+        _sym_build_path_constraint(
+                _sym_build_equal(symExpr,
+                                 concExpr),
+                true, redirectedSymID);
+    }
 
-    _sym_build_path_constraint(
-            _sym_build_equal(symExpr,
-                             concExpr),
-            true, redirectedSymID);
-    //we are not really gonna do anything
     ready++;
+    return;
 }
 void SymVal_NULL::Construct(Val::ReadyType targetReady){
     // should not be called
@@ -548,11 +550,13 @@ void SymVal_sym_build_read_memory::Construct(Val::ReadyType targetReady) {
                           : _sym_concat_helper(symExpr, *(*DR_INPUT));
                 ++(*DR_INPUT);
             }
-        }
-        if(! hasConcrete){
-            symExpr = _sym_build_read_memory(reinterpret_cast<uint8_t*>(ptrOperand->Val), lengthOperand->Value, endianOperand->Value);
         }else{
-            symExpr = _sym_build_read_memory_concrete(reinterpret_cast<uint8_t*>(ptrOperand->Val), lengthOperand->Value, endianOperand->Value,concreteValue);
+            // if not reading from DR
+            if(! hasConcrete){
+                symExpr = _sym_build_read_memory(reinterpret_cast<uint8_t*>(ptrOperand->Val), lengthOperand->Value, endianOperand->Value);
+            }else{
+                symExpr = _sym_build_read_memory_concrete(reinterpret_cast<uint8_t*>(ptrOperand->Val), lengthOperand->Value, endianOperand->Value,concreteValue);
+            }
         }
         // the MCU think this is not concrete.
         assert(symExpr != nullptr);

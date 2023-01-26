@@ -118,8 +118,8 @@ enum {
 #define SIZE_SYM_NTFY_BBLK          2      // | FCODE(1) | bbid(1)          |
 #define SIZE_SYM_NTFY_BBLK1         3      // | FCODE(1) | bbid(2)          |
 
-#define SIZE_SYM_TRY_ALTERNATIVE    3      // | FCODE(1) | symID(2)         |
-#define SIZE_SYM_TRY_ALTERNATIVE_1  2      // | FCODE(1) | symID(1)         |
+#define SIZE_SYM_TRY_ALTERNATIVE    2      // | FCODE(1) | symID(1)         |
+#define SIZE_SYM_TRY_ALTERNATIVE_1  3      // | FCODE(1) | symID(2)         |
 
 #define SIZE_SYM_INIT               5      // | FCODE(1) | addr(4)          |
 #define SIZE_SYM_INIT_DR            5      // | FCODE(1) | addr(4)          |

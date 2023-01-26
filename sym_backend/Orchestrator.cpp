@@ -486,8 +486,6 @@ void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, uns
                     ForwardExecution(eachUser,  target, targetReady);
                 }
             }
-
-
         }
     }
 #ifdef DEBUG_OUTPUT
