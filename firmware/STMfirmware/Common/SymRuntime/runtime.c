@@ -562,10 +562,10 @@ void _sym_notify_call(uint8_t call_inst_id)
 	//set the val
 	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = (uint8_t) call_inst_id;
 }
-/*
+
 void _sym_try_alternative(bool destSym, bool concSym, uint16_t symID)
 {
-
+/*
 	if(! destSym || !concSym){
 		return;
 	}
@@ -592,8 +592,9 @@ void _sym_try_alternative(bool destSym, bool concSym, uint16_t symID)
 	if(! isSmallSymID){
 	    AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval;
 	}
-}
 */
+}
+
 void _sym_notify_func(uint8_t call_inst_id)
 {
 	int msgSize=0;
@@ -1045,11 +1046,12 @@ void _sym_symbolize_memory(char * addr, size_t length, bool DR)
 	uint8_t msgCode;
 
 	if(DR == true){
-		msgSize = SIZE_SYM_INIT;
-		msgCode = SYM_INIT;
-	}else{
 		msgSize = SIZE_SYM_INIT_DR;
 		msgCode = SYM_INIT_DR;
+	}else{
+		msgSize = SIZE_SYM_INIT;
+		msgCode = SYM_INIT;
+
 	}
 
 	txCommandtoMonitorF;
