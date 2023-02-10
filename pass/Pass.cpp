@@ -13,7 +13,7 @@
 // SymCC. If not, see <https://www.gnu.org/licenses/>.
 
 #include "Pass.h"
-#include "Runtime.h"
+
 #include "Symbolizer.h"
 #include "Lower.h"
 
@@ -38,56 +38,51 @@ using namespace llvm;
 #endif
 
 
-#include <llvm/Support/CommandLine.h>
+
 #include <boost/filesystem.hpp>
 #include <iostream>
 
-char SymbolizePass::ID = 0;
+char SymbolizeLegacyPass::ID = 0;
 
-Runtime * r = nullptr;
-cl::opt<std::string> outDir("out", cl::Required,cl::desc("output dir"));
-
-
-bool SymbolizePass::doInitialization(Module &M) {
-  DEBUG(errs() << "Symbolizer module init\n");
-
-  // Redirect calls to external functions to the corresponding wrappers and
-  // rename internal functions.
-  for (auto &function : M.functions()) {
-    auto name = function.getName();
-    if (isInterceptedFunction(function)){
-        auto newName = kInterceptedFunctionPrefix + name;
-        function.setName(newName);
-    }
-
-  }
-  r =  new Runtime(M);
-  // Insert a constructor that initializes the runtime and any globals.
-  Function *ctor;
-  std::tie(ctor, std::ignore) = createSanitizerCtorAndInitFunctions(
-      M, kSymCtorName, "_sym_initialize", {}, {});
-  appendToGlobalCtors(M, ctor, 0);
-
-  return true;
-}
-
-bool SymbolizePass::doFinalization(llvm::Module & m) {
-    (void)m;
-    delete r;
-    return false;
-}
-
+llvm::cl::opt<std::string> outDir("out", cl::Required,cl::desc("output dir"));
 std::string functionName;
-bool SymbolizePass::runOnFunction(Function &F) {
+
+namespace {
+
+
+    static constexpr char kSymCtorName[] = "__sym_ctor";
+
+    Runtime* instrumentModule(Module &M) {
+        DEBUG(errs() << "Symbolizer module init\n");
+
+        // Redirect calls to external functions to the corresponding wrappers and
+        // rename internal functions.
+        for (auto &function : M.functions()) {
+            auto name = function.getName();
+            if (isInterceptedFunction(function)){
+                auto newName = kInterceptedFunctionPrefix + name;
+                function.setName(newName);
+            }
+
+        }
+
+        // Insert a constructor that initializes the runtime and any globals.
+        Function *ctor;
+        std::tie(ctor, std::ignore) = createSanitizerCtorAndInitFunctions(
+                M, kSymCtorName, "_sym_initialize", {}, {});
+        appendToGlobalCtors(M, ctor, 0);
+
+        return new Runtime(M);
+    }
+}
+
+bool instrumentFunction(Function &F, Runtime* r, LoopInfo &LI, PostDominatorTree& pdTree,DominatorTree& dTree) {
     functionName = F.getName();
     if (functionName == kSymCtorName)
         return false;
     llvm::errs() << "Symbolizing function " << functionName << '\n';
 
-    LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
 
-    PostDominatorTree& pdTree = getAnalysis<PostDominatorTreeWrapperPass>().getPostDomTree();
-    DominatorTree& dTree = getAnalysis<DominatorTreeWrapperPass>().getDomTree();
     boost::filesystem::path dir (outDir.getValue());
     if(! boost::filesystem::exists(dir)){
         errs()<< outDir<<'\n';
@@ -148,3 +143,46 @@ bool SymbolizePass::runOnFunction(Function &F) {
     }
     return true;
 }
+
+bool SymbolizeLegacyPass::doInitialization(Module &M) {
+    r = instrumentModule(M);
+    return true;
+}
+
+
+bool SymbolizeLegacyPass::runOnFunction(Function &F) {
+    if(r == nullptr){
+        llvm_unreachable("Runtime is not initialized.");
+    }
+    LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
+
+    PostDominatorTree& pdTree = getAnalysis<PostDominatorTreeWrapperPass>().getPostDomTree();
+    DominatorTree& dTree = getAnalysis<DominatorTreeWrapperPass>().getDomTree();
+    return instrumentFunction(F,r,LI, pdTree, dTree);
+}
+
+void SymbolizeLegacyPass::releaseMemory() {
+    delete r;
+    r = nullptr;
+}
+#if LLVM_VERSION_MAJOR >= 13
+
+PreservedAnalyses SymbolizePass::run(Function &F, FunctionAnalysisManager & FAM) {
+    LoopInfo &LI = FAM.getResult<LoopAnalysis>(F);
+    PostDominatorTree& pdTree = FAM.getResult<PostDominatorTreeAnalysis>(F);
+    DominatorTree& dTree = FAM.getResult<DominatorTreeAnalysis>(F);
+    return instrumentFunction(F,r, LI, pdTree, dTree) ? PreservedAnalyses::none()
+                                 : PreservedAnalyses::all();
+}
+
+PreservedAnalyses SymbolizePass::run(Module &M, ModuleAnalysisManager &) {
+    r = instrumentModule(M);
+    return PreservedAnalyses::none();
+}
+
+void SymbolizePass::releaseMemory(){
+    delete r;
+    r = nullptr;
+}
+
+#endif

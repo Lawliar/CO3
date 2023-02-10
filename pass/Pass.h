@@ -15,6 +15,7 @@
 #ifndef PASS_H
 #define PASS_H
 
+#include "Runtime.h"
 #include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/ValueMap.h>
 #include <llvm/Pass.h>
@@ -24,12 +25,18 @@
 #include <llvm/Analysis/PostDominators.h>
 //#include <llvm/Transforms/Scalar/LoopUnrollAndJamPass.h>
 //#include <llvm/Transforms/Scalar/Reg2Mem.h>
+#include <llvm/Support/CommandLine.h>
 
-class SymbolizePass : public llvm::FunctionPass {
+#if LLVM_VERSION_MAJOR >= 13
+#include <llvm/IR/PassManager.h>
+#endif
+
+class SymbolizeLegacyPass : public llvm::FunctionPass {
 public:
   static char ID;
 
-  SymbolizePass() : FunctionPass(ID) {}
+    SymbolizeLegacyPass() : FunctionPass(ID) {}
+    Runtime * r = nullptr;
 
   bool doInitialization(llvm::Module &M) override;
   bool runOnFunction(llvm::Function &F) override;
@@ -45,12 +52,32 @@ public:
       AU.addRequired<llvm::LoopInfoWrapperPass>();
 
   }
+    void releaseMemory() override;
 private:
-  static constexpr char kSymCtorName[] = "__sym_ctor";
 
   /// Mapping from global variables to their corresponding symbolic expressions.
   llvm::ValueMap<llvm::GlobalVariable *, llvm::GlobalVariable *>
       globalExpressions;
 };
+
+#if LLVM_VERSION_MAJOR >= 13
+
+class SymbolizePass : public llvm::PassInfoMixin<SymbolizePass> {
+public:
+  llvm::PreservedAnalyses run(llvm::Function &F,
+                              llvm::FunctionAnalysisManager &);
+  llvm::PreservedAnalyses run(llvm::Module &M, llvm::ModuleAnalysisManager &);
+
+  Runtime * r = nullptr;
+  void releaseMemory();
+  ~SymbolizePass();
+  static bool isRequired() { return true; }
+};
+
+#endif
+
+
+
+
 
 #endif

@@ -80,9 +80,13 @@ void Symbolizer::initializeFunctions(Function &F) {
      // initialize the created space to zero
     IRB.CreateStore( ConstantAggregateZero::get(space4LoopTy), loopBBBaseAddr);
     IRB.CreateStore( ConstantAggregateZero::get(space4TruePhiTy), truePhiBaseAddr);
+#if LLVM_VERSION_MAJOR < 13
     loopBBBaseAddr = IRB.CreateGEP(loopBBBaseAddr, {ConstantHelper(runtime.int8T, 0), ConstantHelper(runtime.int8T, 0)});
-    truePhiBaseAddr = IRB.CreateGEP(truePhiBaseAddr,
-                                    {ConstantHelper(runtime.int8T, 0), ConstantHelper(runtime.int8T, 0)});
+    truePhiBaseAddr = IRB.CreateGEP(truePhiBaseAddr, {ConstantHelper(runtime.int8T, 0), ConstantHelper(runtime.int8T, 0)});
+# else
+    loopBBBaseAddr = IRB.CreateGEP(loopBBBaseAddr->getType(),loopBBBaseAddr, {ConstantHelper(runtime.int8T, 0), ConstantHelper(runtime.int8T, 0)});
+    truePhiBaseAddr = IRB.CreateGEP(loopBBBaseAddr->getType(), truePhiBaseAddr, {ConstantHelper(runtime.int8T, 0), ConstantHelper(runtime.int8T, 0)});
+#endif
 }
 
 void Symbolizer::recordBasicBlockMapping(llvm::BasicBlock &B) {
