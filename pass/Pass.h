@@ -36,11 +36,11 @@ public:
   static char ID;
 
     SymbolizeLegacyPass() : FunctionPass(ID) {}
-    Runtime * r = nullptr;
+    //Runtime * r = nullptr;
 
   bool doInitialization(llvm::Module &M) override;
   bool runOnFunction(llvm::Function &F) override;
-  bool doFinalization(llvm::Module &M) override;
+  //bool doFinalization(llvm::Module &M) override;
 
   void getAnalysisUsage(llvm::AnalysisUsage &AU) const override  {
 
@@ -52,7 +52,7 @@ public:
       AU.addRequired<llvm::LoopInfoWrapperPass>();
 
   }
-    void releaseMemory() override;
+    //void releaseMemory() override;
 private:
 
   /// Mapping from global variables to their corresponding symbolic expressions.
@@ -68,9 +68,8 @@ public:
                               llvm::FunctionAnalysisManager &);
   llvm::PreservedAnalyses run(llvm::Module &M, llvm::ModuleAnalysisManager &);
 
-  Runtime * r = nullptr;
-  void releaseMemory();
-  ~SymbolizePass();
+  //Runtime * r = nullptr;
+  //void releaseMemory();
   static bool isRequired() { return true; }
 };
 

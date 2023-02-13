@@ -34,15 +34,28 @@
 extern std::string functionName;
 class Symbolizer : public llvm::InstVisitor<Symbolizer> {
 public:
-  explicit Symbolizer(llvm::Module &M, Runtime*r, llvm::LoopInfo& LI)
-      : runtime(*r), loopinfo(LI), dataLayout(M.getDataLayout()),
+  explicit Symbolizer(llvm::Module &M, llvm::LoopInfo& LI)
+      : runtime(M), loopinfo(LI), dataLayout(M.getDataLayout()),
         ptrBits(M.getDataLayout().getPointerSizeInBits()),
         ptrBytes(M.getDataLayout().getPointerSize()),
-        maxNumSymVars((1 << r->symIntT->getBitWidth()) - 1),
-        intPtrType(M.getDataLayout().getIntPtrType(M.getContext())),
-        voidType(llvm::Type::getVoidTy(M.getContext())),
+        maxNumSymVars((1 << llvm::IntegerType::getInt16Ty(M.getContext())->getBitWidth()) - 1),
         g(true)
         {
+            intPtrType = M.getDataLayout().getIntPtrType(M.getContext());
+            voidType = llvm::Type::getVoidTy(M.getContext());
+            int8Type = llvm::Type::getInt8Ty(M.getContext());
+            isSymType = llvm::Type::getInt1Ty(M.getContext());
+            symIntType = llvm::Type::getInt16Ty(M.getContext());
+
+            if(M.getDataLayout().isLegalInteger(64)){
+                archIntType = llvm::Type::getInt64Ty(M.getContext());
+            }else if(M.getDataLayout().isLegalInteger(32)){
+                archIntType = llvm::Type::getInt32Ty(M.getContext());
+            }else if(M.getDataLayout().isLegalInteger(16)){
+                archIntType = llvm::Type::getInt16Ty(M.getContext());
+            }else{
+                llvm_unreachable("integer width less than 16 bit?");
+            }
       assert(ptrBytes <= 8 );
       for(auto eachIntFunction : kInterceptedFunctions){
           std::string newFuncName = kInterceptedFunctionPrefix.str() + eachIntFunction.str() ;
@@ -263,7 +276,7 @@ public:
             retSymID = getSymIDFromSymExpr(nonPhiSymExpr);
         }else if(auto phiSymExpr = llvm::dyn_cast<llvm::PHINode>(V)){
             retSymID = getSymIDFromSymPhi(phiSymExpr);
-        }else if(auto symConst = llvm::dyn_cast<llvm::ConstantInt>(V); V->getType() == runtime.isSymT && symConst != nullptr && symConst->isZero() ){
+        }else if(auto symConst = llvm::dyn_cast<llvm::ConstantInt>(V); V->getType() == isSymType && symConst != nullptr && symConst->isZero() ){
             return 0;
         }else{
             llvm_unreachable("sym expr can only be of phiNode or call inst or constant false");
@@ -645,7 +658,7 @@ public:
   uint64_t aggregateMemberOffset(llvm::Type *aggregateType,
                                  llvm::ArrayRef<unsigned> indices) const;
   void addTryAlternativeToTheGraph();
-  const Runtime& runtime;
+  const Runtime runtime;
   const llvm::LoopInfo& loopinfo;
   /// The data layout of the currently processed module.
   const llvm::DataLayout &dataLayout;
@@ -656,8 +669,12 @@ public:
   /// max number in-register symbolic variables
   const unsigned maxNumSymVars;
   /// An integer type at least as wide as a pointer.
-  llvm::IntegerType *intPtrType;
-  llvm::Type * voidType;
+  llvm::IntegerType *intPtrType = nullptr;
+  llvm::IntegerType * archIntType = nullptr;
+  llvm::Type * voidType = nullptr;
+  llvm::IntegerType * int8Type = nullptr;
+  llvm::IntegerType * isSymType = nullptr;
+  llvm::IntegerType * symIntType = nullptr;
   /// Mapping from SSA values to symbolic expressions.
   ///
   /// For pointer values, the stored value is an expression describing the value

@@ -40,8 +40,8 @@ SymFnT import(llvm::Module &M, llvm::StringRef name, llvm::Type *ret,
 Runtime::Runtime(Module &M) {
 
     IRBuilder<> IRB(M.getContext());
-    intPtrType = M.getDataLayout().getIntPtrType(M.getContext());
-    int_type = nullptr;
+    llvm::IntegerType * int_type = nullptr;
+    llvm::IntegerType* intPtrType = M.getDataLayout().getIntPtrType(M.getContext());
     if(M.getDataLayout().isLegalInteger(64)){
         int_type = IRB.getInt64Ty();
     }else if(M.getDataLayout().isLegalInteger(32)){
@@ -51,15 +51,12 @@ Runtime::Runtime(Module &M) {
     }else{
         llvm_unreachable("integer width less than 16 bit?");
     }
-    auto *ptrT = IRB.getInt8PtrTy();
-    auto *voidT = IRB.getVoidTy();
-    int8T = IRB.getInt8Ty();
-    int32T = IRB.getInt32Ty();
-    symIntT = IRB.getInt16Ty();
-    int16T = IRB.getInt16Ty();
-    isSymT = IRB.getInt1Ty();
-    symIDTyName = StringRef("SymIDTy");
-    symIDT = llvm::StructType::create(M.getContext(),{symIntT},symIDTyName);
+    Type *ptrT = IRB.getInt8PtrTy();
+    Type *voidT = IRB.getVoidTy();
+    Type *int8T = IRB.getInt8Ty();
+    Type *symIntT = IRB.getInt16Ty();
+    Type *int16T = IRB.getInt16Ty();
+    Type *isSymT = IRB.getInt1Ty();
 
     // should always return true(when this function is called, it means another variable has been symbolized, and thus this variable needs to be symbolized)
     buildInteger = import(M, "_sym_build_integer", isSymT, int_type, int8T, symIntT);

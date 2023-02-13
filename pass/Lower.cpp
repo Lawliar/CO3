@@ -581,7 +581,9 @@ static Instruction *convertGEP(ConstantExpr *CE, Instruction *InsertPt) {
   ArrayRef<Value *> arrayIdices(Indices);
 
   // Make the new GEP instruction.
-  return (GetElementPtrInst::Create(nullptr, CE->getOperand(0),
+    //errs()<<"left:"<<*CE->getOperand(0)->getType()->getScalarType()<< ",Pointee Type:"<<*CE->getOperand(0)->getType()<<'\n';
+    //errs()<<"CE:"<<*cast<PointerType>(CE->getOperand(0)->getType())->getPointerElementType()<<'\n';
+    return (GetElementPtrInst::Create(cast<PointerType>(CE->getOperand(0)->getType())->getPointerElementType(), CE->getOperand(0),
         arrayIdices, CE->getName(), InsertPt));
 }
 

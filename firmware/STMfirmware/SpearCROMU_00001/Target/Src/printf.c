@@ -102,7 +102,7 @@ void float_to_str( double val, char *buf )
         //int m1;
         int fraction_digit;
         int in_fraction;
-        int neg = 0;
+        //int neg = 0;
         char *c = buf;
 
         if ( val > 0.0 )
@@ -113,7 +113,7 @@ void float_to_str( double val, char *buf )
         // Negative numbers
         if ( val < 0.0 )
         {
-            neg = 1;
+            //neg = 1;
             *(c++) = '-';
             val = -val;
         }

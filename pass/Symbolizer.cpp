@@ -73,19 +73,19 @@ void Symbolizer::initializeFunctions(Function &F) {
     }
     unsigned numBytesForLoopBBs = numBits2NumBytes(numOfLoopBBs);
     unsigned numBytesForTruePhis = numBits2NumBytes(numOfTruePhis);
-    ArrayType* space4LoopTy = ArrayType::get(runtime.int8T, numBytesForLoopBBs);
-    ArrayType* space4TruePhiTy = ArrayType::get(runtime.int8T, numBytesForTruePhis);
+    ArrayType* space4LoopTy = ArrayType::get(IRB.getInt8Ty(), numBytesForLoopBBs);
+    ArrayType* space4TruePhiTy = ArrayType::get(IRB.getInt8Ty(), numBytesForTruePhis);
     loopBBBaseAddr = IRB.CreateAlloca(space4LoopTy);
     truePhiBaseAddr = IRB.CreateAlloca(space4TruePhiTy);
      // initialize the created space to zero
     IRB.CreateStore( ConstantAggregateZero::get(space4LoopTy), loopBBBaseAddr);
     IRB.CreateStore( ConstantAggregateZero::get(space4TruePhiTy), truePhiBaseAddr);
 #if LLVM_VERSION_MAJOR < 13
-    loopBBBaseAddr = IRB.CreateGEP(loopBBBaseAddr, {ConstantHelper(runtime.int8T, 0), ConstantHelper(runtime.int8T, 0)});
-    truePhiBaseAddr = IRB.CreateGEP(truePhiBaseAddr, {ConstantHelper(runtime.int8T, 0), ConstantHelper(runtime.int8T, 0)});
+    loopBBBaseAddr = IRB.CreateGEP(loopBBBaseAddr, {ConstantHelper(IRB.getInt8Ty(), 0), ConstantHelper(IRB.getInt8Ty(), 0)});
+    truePhiBaseAddr = IRB.CreateGEP(truePhiBaseAddr, {ConstantHelper(IRB.getInt8Ty(), 0), ConstantHelper(IRB.getInt8Ty(), 0)});
 # else
-    loopBBBaseAddr = IRB.CreateGEP(loopBBBaseAddr->getType(),loopBBBaseAddr, {ConstantHelper(runtime.int8T, 0), ConstantHelper(runtime.int8T, 0)});
-    truePhiBaseAddr = IRB.CreateGEP(loopBBBaseAddr->getType(), truePhiBaseAddr, {ConstantHelper(runtime.int8T, 0), ConstantHelper(runtime.int8T, 0)});
+    loopBBBaseAddr = IRB.CreateGEP(space4LoopTy,loopBBBaseAddr, {ConstantHelper(IRB.getInt8Ty(), 0), ConstantHelper(IRB.getInt8Ty(), 0)});
+    truePhiBaseAddr = IRB.CreateGEP(space4TruePhiTy, truePhiBaseAddr, {ConstantHelper(IRB.getInt8Ty(), 0), ConstantHelper(IRB.getInt8Ty(), 0)});
 #endif
 }
 
@@ -119,8 +119,8 @@ void Symbolizer::finalizePHINodes() {
 
     for (auto *symbolicPHI : nodesToErase) {
         // this code might fail because isa<KeySansPointerT>(...) assertation is not true
-        //symbolicPHI->replaceAllUsesWith(ConstantInt::get( runtime.isSymT, 0 ));
-        replaceAllUseWith(symbolicPHI, ConstantInt::get( runtime.isSymT, 0 ));
+        //symbolicPHI->replaceAllUsesWith(ConstantInt::get( isSymType, 0 ));
+        replaceAllUseWith(symbolicPHI, ConstantInt::get( isSymType, 0 ));
         symbolicPHI->eraseFromParent();
     }
 }
@@ -155,7 +155,7 @@ void Symbolizer::handleIntrinsicCall(CallBase &I) {
             unsigned memCpyId = getNextID();
             auto memCpyCall = IRB.CreateCall(runtime.memcpy,
                    {I.getOperand(0), I.getOperand(1),
-                    IRB.CreateZExtOrTrunc(I.getOperand(2), intPtrType), ConstantHelper(runtime.symIntT, memCpyId) });
+                    IRB.CreateZExtOrTrunc(I.getOperand(2), intPtrType), ConstantHelper(symIntType, memCpyId) });
             assignSymID(memCpyCall, memCpyId);
             break;
         }
@@ -169,7 +169,7 @@ void Symbolizer::handleIntrinsicCall(CallBase &I) {
             auto memSetCall = IRB.CreateCall(runtime.memset,
                    {I.getOperand(0),
                     getSymbolicExpression(I.getOperand(1)),
-                    IRB.CreateZExtOrTrunc(I.getOperand(2), intPtrType), ConstantHelper(runtime.symIntT, memSetId)});
+                    IRB.CreateZExtOrTrunc(I.getOperand(2), intPtrType), ConstantHelper(symIntType, memSetId)});
             assignSymID(memSetCall, memSetId);
             break;
         }
@@ -184,7 +184,7 @@ void Symbolizer::handleIntrinsicCall(CallBase &I) {
             unsigned memMoveId = getNextID();
             auto memMoveCall = IRB.CreateCall(runtime.memmove,
                    {I.getOperand(0), I.getOperand(1),
-                    IRB.CreateZExtOrTrunc(I.getOperand(2), intPtrType), ConstantHelper(runtime.symIntT, memMoveId)});
+                    IRB.CreateZExtOrTrunc(I.getOperand(2), intPtrType), ConstantHelper(symIntType, memMoveId)});
             assignSymID(memMoveCall, memMoveId);
             break;
         }
@@ -261,14 +261,14 @@ void Symbolizer::interpretedFuncSanityCheck(CallBase  & I){
         }
     }
     assert(target != nullptr);
-    assert(target->getFunctionType()->getParamType(target->getFunctionType()->getNumParams() - 1) ==  runtime.symIntT);
+    assert(target->getFunctionType()->getParamType(target->getFunctionType()->getNumParams() - 1) ==  symIntType);
 }
 void Symbolizer::addSymIDToCall(CallBase  & I){
     interpretedFuncSanityCheck(I);
     IRBuilder<> IRB(&I);
     auto symID = getNextID();
     std::vector<Value*> args(I.arg_begin(), I.arg_end());
-    args.push_back(ConstantHelper(runtime.symIntT, symID));
+    args.push_back(ConstantHelper(symIntType, symID));
     auto * symcall  = IRB.CreateCall(I.getCalledFunction(), args);
     assignSymID(symcall, symID);
     //I.replaceAllUsesWith(symcall);
@@ -283,7 +283,7 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
     }
     IRBuilder<> IRB(returnPoint);
     unsigned int callInstID = getNextCallID();
-    IRB.CreateCall(runtime.notifyRet, ConstantHelper(runtime.int8T, callInstID));
+    IRB.CreateCall(runtime.notifyRet, ConstantHelper(IRB.getInt8Ty(), callInstID));
     IRB.SetInsertPoint(&I);
 
 
@@ -311,7 +311,7 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
         assignSymID(call_to_set_para,getNextID());
         setParas.push_back(call_to_set_para);
     }
-    auto callIdConstant = ConstantHelper(runtime.int8T, callInstID);
+    auto callIdConstant = ConstantHelper(IRB.getInt8Ty(), callInstID);
     auto notifyCall = IRB.CreateCall(runtime.notifyCall, callIdConstant);
     setCallInstId(notifyCall, callIdConstant);
     assignSymID(notifyCall, getNextID());
@@ -484,7 +484,7 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
       {ptrOperand,
        ConstantInt::get(intPtrType, intByteSize),
        ConstantInt::get(IRB.getInt8Ty(), isLittleEndian(dataType) ? 1 : 0),
-       ConstantHelper(runtime.symIntT,readMemSymID)});
+       ConstantHelper(symIntType,readMemSymID)});
     assignSymID(data,readMemSymID);
     if (dataType->isFloatingPointTy()) {
         data = IRB.CreateCall(runtime.buildBitsToFloat,{data, IRB.getInt1(dataType->isDoubleTy())});
@@ -512,7 +512,7 @@ void Symbolizer::visitStoreInst(StoreInst &I) {
          ConstantInt::get(intPtrType, dataLayout.getTypeStoreSize(dataType)),
          dataSymExpr,
          ConstantInt::get(IRB.getInt8Ty(), dataLayout.isLittleEndian() ? 1 : 0),
-         ConstantHelper(runtime.symIntT, writeMemSymID)});
+         ConstantHelper(symIntType, writeMemSymID)});
     assignSymID(writeMemCall,writeMemSymID);
 }
 
@@ -759,7 +759,7 @@ void Symbolizer::visitPHINode(PHINode &I) {
 
     IRBuilder<> IRB(&I);
     unsigned numIncomingValues = I.getNumIncomingValues();
-    auto *exprPHI = IRB.CreatePHI(runtime.isSymT, numIncomingValues);
+    auto *exprPHI = IRB.CreatePHI(isSymType, numIncomingValues);
     auto truePhi = new TruePhi(getNextID());
     assignSymIDPhi(exprPHI, truePhi);
     truePhi2Offset[exprPHI] = truePhiOff++;
@@ -846,7 +846,7 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
             IRB.SetInsertPoint(first_concrete_comp);
         }
 
-        auto *finalExpression = IRB.CreatePHI(runtime.isSymT, 2);
+        auto *finalExpression = IRB.CreatePHI(isSymType, 2);
         auto falsePhiRoot = new FalsePhiRoot(getNextID(), {conditionExprSymId});
         assignSymIDPhi(finalExpression,falsePhiRoot);
 
@@ -870,7 +870,7 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
         IRB.SetInsertPoint(&I);
         auto pushConstraintId = getNextID();
         auto callToPushConstraint = IRB.CreateCall(runtime.pushPathConstraint,
-                       {finalExpression, caseTaken, ConstantHelper(runtime.symIntT, pushConstraintId)});
+                       {finalExpression, caseTaken, ConstantHelper(symIntType, pushConstraintId)});
         assignSymID(callToPushConstraint, pushConstraintId);
         groupedIds.push_back(pushConstraintId);
         if(first_constraint == nullptr){
@@ -909,16 +909,16 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
             // Special case: LLVM uses the type i1 to represent Boolean values, but
             // for Z3 we have to create expressions of a separate sort.
             auto symid = getNextID();
-            ret = IRB.CreateCall(runtime.buildBool, {V, ConstantHelper(runtime.symIntT, symid)});
+            ret = IRB.CreateCall(runtime.buildBool, {V, ConstantHelper(symIntType, symid)});
             assignSymID(ret,symid);
             return ret;
         } else if (bits <= 64) {
             auto symid = getNextID();
             auto bytes = dataLayout.getTypeAllocSize(valueType);
             ret = IRB.CreateCall(runtime.buildInteger,
-                                 {IRB.CreateZExtOrBitCast(V, runtime.int_type),
+                                 {IRB.CreateZExtOrBitCast(V, archIntType),
                                   IRB.getInt8(bytes),
-                                  ConstantHelper(runtime.symIntT,symid)});
+                                  ConstantHelper(symIntType,symid)});
             assignSymID(ret,symid);
             return ret;
         } else {
@@ -943,7 +943,7 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
         ret = IRB.CreateCall(runtime.buildFloat,
                              {IRB.CreateFPCast(V, IRB.getDoubleTy()),
                               IRB.getInt1(valueType->isDoubleTy()),
-                              ConstantHelper(runtime.symIntT,symid)});
+                              ConstantHelper(symIntType,symid)});
         assignSymID(ret, symid);
         return ret;
     }
@@ -952,7 +952,7 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
         auto symid = getNextID();
         ret = IRB.CreateCall(
                 runtime.buildInteger,
-                {IRB.CreatePtrToInt(V, intPtrType), IRB.getInt8(ptrBytes), ConstantHelper(runtime.symIntT, symid)});
+                {IRB.CreatePtrToInt(V, intPtrType), IRB.getInt8(ptrBytes), ConstantHelper(symIntType, symid)});
         assignSymID(ret,symid);
         return ret;
     }
@@ -982,7 +982,7 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
                              {IRB.CreatePtrToInt(memory, intPtrType),
                               ConstantInt::get(intPtrType,intByteSize),
                               IRB.getInt8(0),
-                              ConstantHelper(runtime.symIntT, symid)});
+                              ConstantHelper(symIntType, symid)});
         assignSymID(ret,symid);
         return ret;
     }
@@ -1013,7 +1013,7 @@ Symbolizer::forceBuildRuntimeCall(IRBuilder<> &IRB, SymFnT function,
     /// check if this function needs report
     auto numArgs = function.getFunctionType()->getNumParams();
     if(isSymIdType(numArgs - 1, function.getCallee()->getName())){
-        functionArgs.push_back(ConstantHelper(runtime.symIntT,symID));
+        functionArgs.push_back(ConstantHelper(symIntType,symID));
     }
     auto *call = IRB.CreateCall(function, functionArgs);
     assignSymID(call,symID);
@@ -1061,7 +1061,7 @@ void Symbolizer::tryAlternative(IRBuilder<> &IRB, Value *V) {
 
     auto *deskConcExpr = createValueExpression(V, IRB);
     unsigned tryAlternativeSymID = getNextID();
-    auto *destAssertion = IRB.CreateCall(runtime.tryAlternative,{destSymExpr,deskConcExpr ,ConstantHelper(runtime.symIntT, tryAlternativeSymID)});
+    auto *destAssertion = IRB.CreateCall(runtime.tryAlternative,{destSymExpr,deskConcExpr ,ConstantHelper(symIntType, tryAlternativeSymID)});
     assignSymID(destAssertion,tryAlternativeSymID);
     unsigned tryAlternativeBBID = GetBBID(IRB.GetInsertBlock());
     // push the info
@@ -1201,7 +1201,7 @@ void Symbolizer::shortCircuitExpressionUses() {
             Value *finalArgExpression;
             if (needRuntimeCheck) {
                 IRB.SetInsertPoint(symbolicComputation.firstInstruction);
-                auto *argPHI = IRB.CreatePHI(runtime.isSymT, 2);
+                auto *argPHI = IRB.CreatePHI(isSymType, 2);
                 unsigned cur_phi_symid =  getNextID();
 
                 falsePhiLeavesSymIDs.insert(cur_phi_symid);
@@ -1243,7 +1243,7 @@ void Symbolizer::shortCircuitExpressionUses() {
 
         if (dyn_cast<CallInst>(symbolicComputation.lastInstruction)->getCalledFunction()->getReturnType() != voidType ) {
             IRB.SetInsertPoint(&tail->front());
-            auto *finalExpression = IRB.CreatePHI(runtime.isSymT, 2);
+            auto *finalExpression = IRB.CreatePHI(isSymType, 2);
             if(falsePhiLeavesSymIDs.size() == 0){
                 //this simply means this is based on all constants, and this phiRootNode functionally equals false
                 assert(numUnknownConcreteness == 0);
@@ -1518,7 +1518,7 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                             g.AddEdge(runtimeVert,userNode,arg_idx);
                             //sanity check
                             if(find(runtime.replaceToNone.begin(), runtime.replaceToNone.end(), calleeName) == runtime.replaceToNone.end()){
-                                if(callInst->getOperand(callInst->getNumArgOperands() - 1)->getType() != runtime.symIntT){
+                                if(callInst->getOperand(callInst->getNumArgOperands() - 1)->getType() != symIntType){
                                     errs()<<"callInst"<< *callInst<<'\n';
                                     errs()<<arg_idx <<"th parameter\n";
                                     llvm_unreachable("last para is not symInt");
@@ -1562,10 +1562,10 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                 auto phi_status = phiSymbolicIDs.find(symPhi)->second;
                 if(isa<TruePhi>(phi_status)){
                     IRBuilder<> IRB(&*symPhi->getParent()->getFirstInsertionPt());
-                    reportingPhi = IRB.CreatePHI(runtime.int8T, numIncomingValue);
+                    reportingPhi = IRB.CreatePHI(IRB.getInt8Ty(), numIncomingValue);
                     auto truePhiOffset = truePhi2Offset.at(symPhi);
                     IRB.CreateCall(runtime.notifyPhi,
-                                   {reportingPhi, ConstantHelper(runtime.symIntT, userSymID),symPhi, truePhiBaseAddr,ConstantHelper(runtime.int8T, truePhiOffset) });
+                                   {reportingPhi, ConstantHelper(symIntType, userSymID),symPhi, truePhiBaseAddr,ConstantHelper(IRB.getInt8Ty(), truePhiOffset) });
                 }else if(auto falsePhiRoot = dyn_cast<FalsePhiRoot>(phi_status)){
                     for(auto eachFalseLeave: falsePhiRoot->leaves){
                         g.AddPhiEdge(eachFalseLeave, userSymID, 2 , 0, 1);
@@ -1586,7 +1586,7 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                     Value *incomingValue = symPhi->getIncomingValue(incoming);
                     if(isa<TruePhi>(phi_status)){
                         reportingPhi->addIncoming(
-                                ConstantHelper(runtime.int8T, incoming),
+                                ConstantHelper(int8Type, incoming),
                                 incomingBB);
                     }
 
@@ -1743,11 +1743,11 @@ void Symbolizer::insertNotifyBasicBlock(Function& F) {
                 allAllConcrete = irb.CreateAnd(allAllConcrete, checkings[index]);
             }
             Value * anySym = irb.CreateNot(allAllConcrete);
-            llvm::ConstantInt * bbid = ConstantInt::get(runtime.int16T, original_bbid);
+            llvm::ConstantInt * bbid = ConstantInt::get(irb.getInt16Ty(), original_bbid);
 
             auto offset = loopBB2Offset.at(original_bb);
 
-            irb.CreateCall(runtime.notifyBasicBlock,{bbid,anySym,loopBBBaseAddr,ConstantHelper(runtime.int8T, offset) } );
+            irb.CreateCall(runtime.notifyBasicBlock,{bbid,anySym,loopBBBaseAddr,ConstantHelper(irb.getInt8Ty(), offset) } );
         }
     }
 }
@@ -1786,7 +1786,7 @@ void Symbolizer::insertNotifyFunc(llvm::Function& F, std::string file_name){
     if(id > 255){
         llvm_unreachable("total number of functions exceeds 255");
     }
-    IRB.CreateCall(runtime.notifyFunc, ConstantHelper(runtime.int8T,id));
+    IRB.CreateCall(runtime.notifyFunc, ConstantHelper(IRB.getInt8Ty(),id));
 
     assert(funcIDFileW.is_open());
     funcIDFileW << func_name <<'\t' << id<<'\n';

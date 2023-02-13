@@ -29,15 +29,6 @@
 /// Runtime functions
 struct Runtime {
     Runtime(llvm::Module &M);
-    llvm::IntegerType* int8T;
-    llvm::IntegerType* int16T;
-    llvm::IntegerType* int32T;
-    llvm::StructType* symIDT;
-    llvm::IntegerType* symIntT;
-    llvm::IntegerType* isSymT;
-    llvm::IntegerType* int_type;
-    llvm::IntegerType*intPtrType;
-    llvm::StringRef symIDTyName;
     std::vector<SymFnT*> SymOperators;
     std::map<std::string, std::vector<unsigned> > isSymArgNo;
     std::map<std::string, std::vector<unsigned> > runtimeArgNo;

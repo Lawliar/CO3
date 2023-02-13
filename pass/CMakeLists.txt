@@ -42,7 +42,7 @@ message(STATUS "${Boost_INCLUDE_DIR}=${${Boost_INCLUDE_DIR}}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 \
 -Wredundant-decls -Wcast-align -Wmissing-include-dirs -Wswitch-default \
 -Wextra -Wall -Winvalid-pch -Wredundant-decls -Wformat=2 \
--Wmissing-format-attribute -Wformat-nonliteral -Werror")
+-Wmissing-format-attribute -Wformat-nonliteral -Werror -Wno-error=deprecated-declarations")
 
 # Mark nodelete to work around unload bug in upstream LLVM 5.0+
 set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,-z,nodelete")
@@ -50,12 +50,13 @@ set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,-z,nodelete")
 # This is the compiler pass that we later load into clang or opt. If LLVM is
 # built without RTTI we have to disable it for our library too, otherwise we'll
 # get linker errors.
+
 add_library(Symbolize MODULE
-            Symbolizer.cpp
-            Pass.cpp
-            Runtime.cpp
-            Main.cpp
-            Lower.cpp
+        Symbolizer.cpp
+        Pass.cpp
+        Runtime.cpp
+        Main.cpp
+        Lower.cpp
         dfg/DataFlowGraph.cpp)
 
 if (NOT LLVM_ENABLE_RTTI)
@@ -64,6 +65,7 @@ if (NOT LLVM_ENABLE_RTTI)
   set_source_files_properties(Pass.cpp PROPERTIES COMPILE_FLAGS "-fno-rtti")
   set_source_files_properties(Runtime.cpp PROPERTIES COMPILE_FLAGS "-fno-rtti")
   set_source_files_properties(Main.cpp PROPERTIES COMPILE_FLAGS "-fno-rtti")
+  set_source_files_properties(Lower PROPERTIES COMPILE_FLAGS "-fno-rtti")
 endif()
 
 target_include_directories(Symbolize PUBLIC ${Boost_INCLUDE_DIR} )

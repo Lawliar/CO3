@@ -48,11 +48,9 @@ llvm::cl::opt<std::string> outDir("out", cl::Required,cl::desc("output dir"));
 std::string functionName;
 
 namespace {
-
-
     static constexpr char kSymCtorName[] = "__sym_ctor";
 
-    Runtime* instrumentModule(Module &M) {
+    bool instrumentModule(Module &M) {
         DEBUG(errs() << "Symbolizer module init\n");
 
         // Redirect calls to external functions to the corresponding wrappers and
@@ -72,11 +70,11 @@ namespace {
                 M, kSymCtorName, "_sym_initialize", {}, {});
         appendToGlobalCtors(M, ctor, 0);
 
-        return new Runtime(M);
+        return true;
     }
 }
 
-bool instrumentFunction(Function &F, Runtime* r, LoopInfo &LI, PostDominatorTree& pdTree,DominatorTree& dTree) {
+bool instrumentFunction(Function &F, LoopInfo &LI, PostDominatorTree& pdTree,DominatorTree& dTree) {
     functionName = F.getName();
     if (functionName == kSymCtorName)
         return false;
@@ -106,7 +104,7 @@ bool instrumentFunction(Function &F, Runtime* r, LoopInfo &LI, PostDominatorTree
         allInstructions.push_back(&I);
     }
 
-    Symbolizer symbolizer(*F.getParent(),r, LI);
+    Symbolizer symbolizer(*F.getParent(), LI);
     symbolizer.initializeFunctions(F);
 
     for (auto &basicBlock : F){
@@ -145,44 +143,47 @@ bool instrumentFunction(Function &F, Runtime* r, LoopInfo &LI, PostDominatorTree
 }
 
 bool SymbolizeLegacyPass::doInitialization(Module &M) {
-    r = instrumentModule(M);
-    return true;
+    return instrumentModule(M);
 }
 
 
 bool SymbolizeLegacyPass::runOnFunction(Function &F) {
-    if(r == nullptr){
-        llvm_unreachable("Runtime is not initialized.");
-    }
+    //if(r == nullptr){
+    //    llvm_unreachable("Runtime is not initialized.");
+    //}
     LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
 
     PostDominatorTree& pdTree = getAnalysis<PostDominatorTreeWrapperPass>().getPostDomTree();
     DominatorTree& dTree = getAnalysis<DominatorTreeWrapperPass>().getDomTree();
-    return instrumentFunction(F,r,LI, pdTree, dTree);
+    return instrumentFunction(F,LI, pdTree, dTree);
 }
-
+/*
 void SymbolizeLegacyPass::releaseMemory() {
     delete r;
     r = nullptr;
-}
+}*/
 #if LLVM_VERSION_MAJOR >= 13
 
 PreservedAnalyses SymbolizePass::run(Function &F, FunctionAnalysisManager & FAM) {
+    //if(r == nullptr){
+    //    llvm_unreachable("Runtime is not initialized.");
+    //}
     LoopInfo &LI = FAM.getResult<LoopAnalysis>(F);
     PostDominatorTree& pdTree = FAM.getResult<PostDominatorTreeAnalysis>(F);
     DominatorTree& dTree = FAM.getResult<DominatorTreeAnalysis>(F);
-    return instrumentFunction(F,r, LI, pdTree, dTree) ? PreservedAnalyses::none()
+    return instrumentFunction(F, LI, pdTree, dTree) ? PreservedAnalyses::none()
                                  : PreservedAnalyses::all();
 }
 
 PreservedAnalyses SymbolizePass::run(Module &M, ModuleAnalysisManager &) {
-    r = instrumentModule(M);
-    return PreservedAnalyses::none();
+    return instrumentModule(M) ? PreservedAnalyses::none()
+                               : PreservedAnalyses::all();
 }
 
-void SymbolizePass::releaseMemory(){
+/*
+ * void SymbolizePass::releaseMemory(){
     delete r;
     r = nullptr;
-}
+}*/
 
 #endif
