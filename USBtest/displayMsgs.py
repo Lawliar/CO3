@@ -42,8 +42,13 @@ class MsgTypes(IntEnum):
     SYM_NTFY_RET      = 33
     SYM_NTFY_BBLK     = 34
     SYM_NTFY_BBLK1    = 35
-    SYM_INIT          = 36
-    SYM_END          = 37
+
+    SYM_TRY_ALT       = 36
+    SYM_TRY_ALT_1     = 37
+
+    SYM_INIT          = 38
+    SYM_INIT_DR       = 39
+    SYM_END          = 40
 
 
 indent = 0
@@ -243,10 +248,23 @@ def parsePackage(package):
             bbid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             cur += 3
             print("{}NotifyBB1: bb id:{}".format(indent * '\t',bbid))
+
+        elif(package[cur] == MsgTypes.SYM_TRY_ALT):
+            symid = symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
+            cur += 2
+            print("{}TryAlt: symid : {}".format(indent * '\t', symid))
+        elif(package[cur] == MsgTypes.SYM_TRY_ALT_1):
+            symid = symid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
+            cur += 3
+            print("{}TryAlt1: symid : {}".format(indent * '\t', symid))
         elif(package[cur] == MsgTypes.SYM_INIT):
             addr  = int.from_bytes(package[cur + 1: cur + 5],byteorder='little')
             cur += 5
             print("{}SymInit: addr:{}".format(indent * '\t',hex(addr)))
+        elif(package[cur] == MsgTypes.SYM_INIT_DR):
+            addr  = int.from_bytes(package[cur + 1: cur + 5],byteorder='little')
+            cur += 5
+            print("{}SymInit_DR: addr:{}".format(indent * '\t',hex(addr)))
         elif(package[cur] == MsgTypes.SYM_END):
             cur += 1
             print("SymEnd")

@@ -29,7 +29,7 @@ with open("input_data","wb") as wfile:
     wfile.write(data)
 
 with serial.Serial('/dev/ttyACM1') as ser:
-    ser.timeout = 2
+    ser.timeout = 5
     print('timeout: {}'.format(ser.timeout))
     print("msg len:{}".format(len(data)))
     ser.write(data)
