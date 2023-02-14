@@ -41,15 +41,12 @@ struct Runtime {
     std::vector<std::string> replaceToLogicOr;
 
     SymFnT buildInteger{};
-    SymFnT buildInteger1{};
     SymFnT buildInteger128{};
     SymFnT buildFloat{};
-    SymFnT buildFloat1{};
     SymFnT buildNullPointer{};
     SymFnT buildTrue{};
     SymFnT buildFalse{};
     SymFnT buildBool{};
-    SymFnT buildBool1{};
     SymFnT buildSExt{};
     SymFnT buildZExt{};
     SymFnT buildTrunc{};
@@ -65,6 +62,7 @@ struct Runtime {
     SymFnT buildBoolOr{};
     SymFnT buildBoolXor{};
     SymFnT buildBoolToBits{};
+    SymFnT buildBitsToBool{};
     SymFnT pushPathConstraint{};
     SymFnT getParameterExpression{};
     SymFnT setParameterExpression{};
@@ -75,6 +73,7 @@ struct Runtime {
     SymFnT memmove{};
     SymFnT readMemory{};
     SymFnT writeMemory{};
+    SymFnT buildZeroBytes{};
     SymFnT buildInsert{};
     SymFnT buildExtract{};
     SymFnT notifyCall{};

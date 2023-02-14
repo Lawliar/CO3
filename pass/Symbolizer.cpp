@@ -379,6 +379,15 @@ void Symbolizer::visitSelectInst(SelectInst &I) {
                                         {{I.getCondition(), true},
                                          {I.getCondition(), false}});
     registerSymbolicComputation(runtimeCall);
+    Value * trueSymExpr = getSymbolicExpression(I.getTrueValue());
+    Value * falseSymExpr = getSymbolicExpression(I.getFalseValue());
+    if ( trueSymExpr != ConstantInt::getFalse(I.getContext()) ||
+            falseSymExpr != ConstantInt::getFalse(I.getContext()) ) {
+        auto *data = IRB.CreateSelect(
+                I.getCondition(), trueSymExpr,
+                falseSymExpr);
+        symbolicExpressions[&I] = data;
+    }
 }
 
 void Symbolizer::visitCmpInst(CmpInst &I) {
@@ -969,22 +978,30 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
         // member. However, this would put an additional burden on the handling of
         // cast instructions, because expressions would have to be converted
         // between different representations according to the type.
-
-        auto *memory = IRB.CreateAlloca(V->getType());
-        IRB.CreateStore(V, memory);
-        auto symid = getNextID();
-        auto intByteSize = dataLayout.getTypeStoreSize(V->getType());
-        if(!(intByteSize == 1 || intByteSize == 2 || intByteSize == 4)){
-            errs()<<V<<'\n';
-            llvm_unreachable("loading values not 1, or 2, or 4 bytes");
+        if(isa<UndefValue>(V)){
+            auto symid = getNextID();
+            ret = IRB.CreateCall(runtime.buildZeroBytes,{ConstantInt::get(intPtrType,
+                                                                          dataLayout.getTypeStoreSize(valueType))});
+            assignSymID(ret,symid);
+            return ret;
+        }else{
+            auto *memory = IRB.CreateAlloca(V->getType());
+            IRB.CreateStore(V, memory);
+            auto symid = getNextID();
+            auto intByteSize = dataLayout.getTypeStoreSize(V->getType());
+            if(!(intByteSize == 1 || intByteSize == 2 || intByteSize == 4)){
+                errs()<<V<<'\n';
+                llvm_unreachable("loading values not 1, or 2, or 4 bytes");
+            }
+            ret = IRB.CreateCall(runtime.readMemory,
+                                 {IRB.CreatePtrToInt(memory, intPtrType),
+                                  ConstantInt::get(intPtrType,intByteSize),
+                                  IRB.getInt8(0),
+                                  ConstantHelper(symIntType, symid)});
+            assignSymID(ret,symid);
+            return ret;
         }
-        ret = IRB.CreateCall(runtime.readMemory,
-                             {IRB.CreatePtrToInt(memory, intPtrType),
-                              ConstantInt::get(intPtrType,intByteSize),
-                              IRB.getInt8(0),
-                              ConstantHelper(symIntType, symid)});
-        assignSymID(ret,symid);
-        return ret;
+
     }
     if(isa<UndefValue>(V)){
         ret = IRB.CreateCall(runtime.buildNullPointer, {});

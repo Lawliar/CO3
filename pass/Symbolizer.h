@@ -265,10 +265,15 @@ public:
     llvm::CallInst *createValueExpression(llvm::Value *V, llvm::IRBuilder<> &IRB);
 
     /// Get the (already created) symbolic expression for a value.
+
+    // What is different from SymCC is that,
+    //  "not having a symbolic value" is also gonna have a value and it will be a constant false
     llvm::Value *getSymbolicExpression(llvm::Value *V) {
         auto exprIt = symbolicExpressions.find(V);
         return (exprIt != symbolicExpressions.end()) ? exprIt->second : llvm::ConstantInt::getFalse(V->getContext());
     }
+
+
 
     unsigned getSymIDFromSym(llvm::Value *V) {
         unsigned retSymID = 0;

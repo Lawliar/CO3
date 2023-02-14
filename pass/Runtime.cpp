@@ -322,6 +322,11 @@ Runtime::Runtime(Module &M) {
     symIdArgNo["_sym_build_write_memory"] = {4};
 
 
+    buildZeroBytes = import(M, "_sym_build_zero_bytes", isSymT, intPtrType);
+    SymOperators.push_back(&buildZeroBytes);
+    constArgNo["_sym_build_zero_bytes"] = {0};
+    replaceToTrue.push_back("_sym_build_zero_bytes");
+
     buildInsert = import(M, "_sym_build_insert", isSymT, isSymT, isSymT, int_type, int8T);
     SymOperators.push_back(&buildInsert);
     isSymArgNo["_sym_build_insert"] = {0,1};
