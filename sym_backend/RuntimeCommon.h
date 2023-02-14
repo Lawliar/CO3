@@ -51,6 +51,7 @@ SymExpr _sym_build_null_pointer(void);
 SymExpr _sym_build_true(void);
 SymExpr _sym_build_false(void);
 SymExpr _sym_build_bool(bool value);
+SymExpr _sym_build_zero_bytes(size_t length);
 
 /*
  * Arithmetic and shifts

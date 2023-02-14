@@ -187,13 +187,22 @@ SymExpr SymVal::extractSymExprFromSymVal(SymVal * op, ReadyType targetReady) {
     return ret;
 }
 
-#define DEFINE_SYMVAL_CONSTRUCTION(OP) \
+#define DEFINE_SYMVAL_CONSTRUCTION_DUMMY(OP) \
 void SymVal##OP::Construct(Val::ReadyType targetReady){          \
     assert(targetReady == (ready + 1));                                       \
 }
 
+#define DEFINE_SYMVAL_CONSTRUCTION_OP1_CONST1(OP) \
+void SymVal##OP::Construct(Val::ReadyType targetReady){ \
+    auto intOp = dynamic_cast<ConstantIntVal*>(In_edges.at(0));    \
+    assert(intOp != nullptr);           \
+    symExpr =  OP(intOp->Value); \
+    ready++;                          \
+}
 
-#define DEFINE_SYMVAL_CONSTRUCTION1(OP) \
+
+
+#define DEFINE_SYMVAL_CONSTRUCTION_OP1_SYM1(OP) \
 void SymVal##OP::Construct(Val::ReadyType targetReady){ \
     auto symOp = dynamic_cast<SymVal*>(In_edges.at(0));    \
     assert(symOp != nullptr);           \
@@ -207,7 +216,7 @@ void SymVal##OP::Construct(Val::ReadyType targetReady){ \
 }
 
 
-#define DEFINE_SYMVAL_CONSTRUCTION2(OP) \
+#define DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(OP) \
 void SymVal##OP::Construct(Val::ReadyType targetReady){ \
     assert(targetReady == (ready + 1));                     \
     auto symOp1 = dynamic_cast<SymVal*>(In_edges.at(0));    \
@@ -225,7 +234,7 @@ void SymVal##OP::Construct(Val::ReadyType targetReady){ \
     ready++;                                             \
 }
 
-#define DEFINE_SYMVAL_SYM_1CONSTINT(OP) \
+#define DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM1_CONST1(OP) \
 void SymVal##OP::Construct(Val::ReadyType targetReady){ \
     assert(targetReady == (ready + 1));                     \
     auto symOp = dynamic_cast<SymVal*>(In_edges.at(0));    \
@@ -241,7 +250,7 @@ void SymVal##OP::Construct(Val::ReadyType targetReady){ \
     ready++;                                             \
 }
 
-#define DEFINE_SYMVAL_SYM_2CONSTINT(OP) \
+#define DEFINE_SYMVAL_CONSTRUCTION_OP3_SYM1_CONST2(OP) \
 void SymVal##OP::Construct(Val::ReadyType targetReady){ \
     assert(targetReady == (ready + 1));                     \
     auto symOp = dynamic_cast<SymVal*>(In_edges.at(0));    \
@@ -362,7 +371,7 @@ void SymVal_sym_build_bool::Construct(Val::ReadyType targetReady) {
 }
 
 //handled else where
-DEFINE_SYMVAL_CONSTRUCTION(_sym_notify_call)
+DEFINE_SYMVAL_CONSTRUCTION_DUMMY(_sym_notify_call)
 
 void SymVal_sym_try_alternative::Construct(ReadyType targetReady) {
     assert(targetReady == (ready + 1));
@@ -410,34 +419,34 @@ void SymVal_sym_set_return_expression::Construct(ReadyType targetReady) {
     ready++;
 }
 
-DEFINE_SYMVAL_CONSTRUCTION1(_sym_build_neg)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_add)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_sub)
+DEFINE_SYMVAL_CONSTRUCTION_OP1_SYM1(_sym_build_neg)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_add)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_sub)
 
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_mul)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_mul)
 
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_div)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_signed_div)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_rem)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_signed_rem)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_shift_left)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_logical_shift_right)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_arithmetic_shift_right)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_fp_add)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_fp_sub)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_fp_mul)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_fp_div)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_fp_rem)
-DEFINE_SYMVAL_CONSTRUCTION1(_sym_build_fp_abs)
-DEFINE_SYMVAL_CONSTRUCTION1(_sym_build_not)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_signed_less_than)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_signed_less_equal)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_signed_greater_than)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_signed_greater_equal)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_less_than)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_less_equal)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_greater_than)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_unsigned_greater_equal)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_unsigned_div)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_signed_div)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_unsigned_rem)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_signed_rem)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_shift_left)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_logical_shift_right)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_arithmetic_shift_right)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_fp_add)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_fp_sub)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_fp_mul)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_fp_div)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_fp_rem)
+DEFINE_SYMVAL_CONSTRUCTION_OP1_SYM1(_sym_build_fp_abs)
+DEFINE_SYMVAL_CONSTRUCTION_OP1_SYM1(_sym_build_not)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_signed_less_than)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_signed_less_equal)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_signed_greater_than)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_signed_greater_equal)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_unsigned_less_than)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_unsigned_less_equal)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_unsigned_greater_than)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_unsigned_greater_equal)
 void SymVal_sym_build_equal::Construct(ReadyType targetReady) {
     auto symOp1 = dynamic_cast<SymVal*>(In_edges.at(0));
     assert(symOp1 != nullptr);
@@ -453,41 +462,42 @@ void SymVal_sym_build_equal::Construct(ReadyType targetReady) {
     }
     ready++;
 }
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_not_equal)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_bool_and)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_not_equal)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_bool_and)
 
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_and)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_and)
 
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_bool_or)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_or)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_bool_xor)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_xor)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_bool_or)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_or)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_bool_xor)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_xor)
+DEFINE_SYMVAL_CONSTRUCTION_OP1_CONST1(_sym_build_zero_bytes)
 
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_ordered_greater_than)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_ordered_greater_equal)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_ordered_less_than)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_ordered_less_equal)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_ordered_equal)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_ordered_not_equal)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_ordered)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_unordered)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_unordered_greater_than)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_unordered_greater_equal)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_unordered_less_than)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_unordered_less_equal)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_unordered_equal)
-DEFINE_SYMVAL_CONSTRUCTION2(_sym_build_float_unordered_not_equal)
-DEFINE_SYMVAL_SYM_1CONSTINT(_sym_build_sext)
-DEFINE_SYMVAL_SYM_1CONSTINT(_sym_build_zext)
-DEFINE_SYMVAL_SYM_1CONSTINT(_sym_build_trunc)
-DEFINE_SYMVAL_CONSTRUCTION1(_sym_build_bswap)
-DEFINE_SYMVAL_SYM_2CONSTINT(_sym_build_int_to_float)
-DEFINE_SYMVAL_SYM_1CONSTINT(_sym_build_float_to_float)
-DEFINE_SYMVAL_SYM_1CONSTINT(_sym_build_bits_to_float)
-DEFINE_SYMVAL_CONSTRUCTION1(_sym_build_float_to_bits)
-DEFINE_SYMVAL_SYM_1CONSTINT(_sym_build_float_to_signed_integer)
-DEFINE_SYMVAL_SYM_1CONSTINT(_sym_build_float_to_unsigned_integer)
-DEFINE_SYMVAL_SYM_1CONSTINT(_sym_build_bool_to_bits)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_float_ordered_greater_than)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_float_ordered_greater_equal)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_float_ordered_less_than)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_float_ordered_less_equal)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_float_ordered_equal)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_float_ordered_not_equal)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_float_ordered)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_float_unordered)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_float_unordered_greater_than)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_float_unordered_greater_equal)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_float_unordered_less_than)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_float_unordered_less_equal)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_float_unordered_equal)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_float_unordered_not_equal)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM1_CONST1(_sym_build_sext)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM1_CONST1(_sym_build_zext)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM1_CONST1(_sym_build_trunc)
+DEFINE_SYMVAL_CONSTRUCTION_OP1_SYM1(_sym_build_bswap)
+DEFINE_SYMVAL_CONSTRUCTION_OP3_SYM1_CONST2(_sym_build_int_to_float)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM1_CONST1(_sym_build_float_to_float)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM1_CONST1(_sym_build_bits_to_float)
+DEFINE_SYMVAL_CONSTRUCTION_OP1_SYM1(_sym_build_float_to_bits)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM1_CONST1(_sym_build_float_to_signed_integer)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM1_CONST1(_sym_build_float_to_unsigned_integer)
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM1_CONST1(_sym_build_bool_to_bits)
 
 void SymVal_sym_get_parameter_expression::Construct(Val::ReadyType targetReady) {
     assert(targetReady == (ready + 1) );

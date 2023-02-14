@@ -280,6 +280,7 @@ DECLARE_SYMVAL_TYPE0(_sym_build_null_pointer)
 DECLARE_SYMVAL_TYPE0(_sym_build_true)
 DECLARE_SYMVAL_TYPE0(_sym_build_false)
 DECLARE_SYMVAL_TYPE1(_sym_build_bool)
+DECLARE_SYMVAL_TYPE1(_sym_build_zero_bytes)
 
 DECLARE_SYMVAL_TYPE1(_sym_build_neg)
 DECLARE_SYMVAL_TYPE2(_sym_build_add)
