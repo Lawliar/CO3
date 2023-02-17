@@ -284,6 +284,8 @@ public:
         }else if(auto symConst = llvm::dyn_cast<llvm::ConstantInt>(V); V->getType() == isSymType && symConst != nullptr && symConst->isZero() ){
             return 0;
         }else{
+            llvm::errs()<<*V<<'\n';
+            llvm::errs()<< * llvm::cast<llvm::Instruction>(V)->getFunction()<<'\n';
             llvm_unreachable("sym expr can only be of phiNode or call inst or constant false");
         }
         return retSymID;
@@ -331,6 +333,18 @@ public:
                 return false;
             }
         }else{
+            return false;
+        }
+    }
+    bool isSkippedArg(unsigned arg_idx, llvm::StringRef calleename){
+        if(runtime.skipArgNo.find(calleename.str()) != runtime.skipArgNo.end()){
+            auto skipArgs = runtime.skipArgNo.at(calleename.str());
+            if(std::find(skipArgs.begin(), skipArgs.end(), arg_idx) != skipArgs.end()){
+                return true;
+            }else{
+                return false;
+            }
+        } else{
             return false;
         }
     }
@@ -726,9 +740,12 @@ public:
     // map loopBB and phi to an bit
     llvm::Value* loopBBBaseAddr = nullptr;
     llvm::Value* truePhiBaseAddr = nullptr;
+    llvm::Value* selectBaseAddr = nullptr;
     std::map<llvm::BasicBlock*, unsigned> loopBB2Offset;
     unsigned truePhiOff = 0;
     std::map<llvm::PHINode*, unsigned> truePhi2Offset;
+    unsigned selectInstOff = 0;
+    //std::map<llvm::CallInst*, unsigned> selectInst2Off;
 
     //std::map<std::pair<unsigned, unsigned>, std::pair<llvm::Value*, llvm::Value *> > tryAlternativePairs;
     std::set<TryAlternativeUnit*> tryAlternatives;

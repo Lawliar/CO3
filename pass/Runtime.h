@@ -34,6 +34,7 @@ struct Runtime {
     std::map<std::string, std::vector<unsigned> > runtimeArgNo;
     std::map<std::string, std::vector<unsigned> > constArgNo;
     std::map<std::string, std::vector<unsigned> > symIdArgNo;
+    std::map<std::string, std::vector<unsigned> > skipArgNo;
     std::vector<std::string> replaceToNone;
     std::vector<std::string> replaceToFalse;
     std::vector<std::string> replaceToTrue;
@@ -74,6 +75,7 @@ struct Runtime {
     SymFnT readMemory{};
     SymFnT writeMemory{};
     SymFnT buildZeroBytes{};
+    SymFnT buildSelect{};
     SymFnT buildInsert{};
     SymFnT buildExtract{};
     SymFnT notifyCall{};

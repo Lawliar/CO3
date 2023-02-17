@@ -327,6 +327,14 @@ Runtime::Runtime(Module &M) {
     constArgNo["_sym_build_zero_bytes"] = {0};
     replaceToTrue.push_back("_sym_build_zero_bytes");
 
+    buildSelect = import(M, "_sym_build_select", isSymT, IRB.getInt1Ty(), isSymT, isSymT,ptrT,int8T,symIntT);
+    SymOperators.push_back(&buildSelect);
+    runtimeArgNo["_sym_build_select"] = {0};
+    isSymArgNo["_sym_build_select"] = {1,2};
+    skipArgNo["_sym_build_select"] = {3,4};
+    symIdArgNo["_sym_build_select"] = {5};
+
+
     buildInsert = import(M, "_sym_build_insert", isSymT, isSymT, isSymT, int_type, int8T);
     SymOperators.push_back(&buildInsert);
     isSymArgNo["_sym_build_insert"] = {0,1};

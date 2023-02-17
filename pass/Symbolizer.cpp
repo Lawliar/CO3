@@ -47,6 +47,7 @@ void Symbolizer::initializeFunctions(Function &F) {
     // allocate some space for the BBs and PhiNodes
     unsigned numOfLoopBBs = 0;
     unsigned numOfTruePhis = 0;
+    unsigned numOfSelectInsts = 0;
     for(auto & eachBB : F){
         if(loopinfo.getLoopFor(&eachBB) != nullptr){
             loopBB2Offset[&eachBB] = numOfLoopBBs;
@@ -55,6 +56,11 @@ void Symbolizer::initializeFunctions(Function &F) {
         for(auto & eachInst : eachBB){
             if(isa<PHINode>(&eachInst)){
                 numOfTruePhis += 1;
+            }
+            else if(isa<SelectInst>(&eachInst)){
+                // NOT all of the selectInst needs to instrumented, (because some of them can be determined as concrete at compile-time)
+                // But there are so few of them, it's ok .
+                numOfSelectInsts += 1;
             }
         }
     }
@@ -66,26 +72,40 @@ void Symbolizer::initializeFunctions(Function &F) {
     truePhiBaseAddr = IRB.CreateAlloca(space4TruePhiTy);
     */
     if(numOfLoopBBs > 255){
-        llvm_unreachable("Number of BBs in the loop exceeds 255, need to change the offset from uint8_t to uint16_t, I believe you can do it[wink].");
+        errs()<<"Error Func:"<< F.getName()<<'\n';
+        llvm_unreachable("Number of BBs in the loop of this function exceeds 255, might need to change the offset from uint8_t to uint16_t, I believe you can do it[wink].");
     }
     if(numOfTruePhis > 255){
-        llvm_unreachable("Number of TruePhis in the loop exceeds 255, need to change the offset from uint8_t to uint16_t, I believe you can do it[wink].");
+        errs()<<"Error Func:"<< F.getName()<<'\n';
+        llvm_unreachable("Number of TruePhis in this function exceeds 255, might need to change the offset from uint8_t to uint16_t, I believe you can do it[wink].");
+    }
+    if(numOfSelectInsts > 255){
+        errs()<<"Error Func:"<< F.getName()<<'\n';
+        llvm_unreachable("Number of SelectInst of this function exceeds 255, might need to change the offset from uint8_t to uint16_t, I believe you can do it[wink].");
     }
     unsigned numBytesForLoopBBs = numBits2NumBytes(numOfLoopBBs);
     unsigned numBytesForTruePhis = numBits2NumBytes(numOfTruePhis);
+    unsigned numBytesForSelectInst = numBits2NumBytes(numOfSelectInsts);
+
     ArrayType* space4LoopTy = ArrayType::get(IRB.getInt8Ty(), numBytesForLoopBBs);
     ArrayType* space4TruePhiTy = ArrayType::get(IRB.getInt8Ty(), numBytesForTruePhis);
+    ArrayType* space4SelectInst = ArrayType::get(IRB.getInt8Ty(), numBytesForSelectInst);
+
     loopBBBaseAddr = IRB.CreateAlloca(space4LoopTy);
     truePhiBaseAddr = IRB.CreateAlloca(space4TruePhiTy);
+    selectBaseAddr = IRB.CreateAlloca(space4SelectInst);
      // initialize the created space to zero
     IRB.CreateStore( ConstantAggregateZero::get(space4LoopTy), loopBBBaseAddr);
     IRB.CreateStore( ConstantAggregateZero::get(space4TruePhiTy), truePhiBaseAddr);
+    IRB.CreateStore( ConstantAggregateZero::get(space4SelectInst), selectBaseAddr);
 #if LLVM_VERSION_MAJOR < 13
     loopBBBaseAddr = IRB.CreateGEP(loopBBBaseAddr, {ConstantHelper(IRB.getInt8Ty(), 0), ConstantHelper(IRB.getInt8Ty(), 0)});
     truePhiBaseAddr = IRB.CreateGEP(truePhiBaseAddr, {ConstantHelper(IRB.getInt8Ty(), 0), ConstantHelper(IRB.getInt8Ty(), 0)});
+    selectBaseAddr = IRB.CreateGEP(selectBaseAddr, {ConstantHelper(IRB.getInt8Ty(), 0), ConstantHelper(IRB.getInt8Ty(), 0)});
 # else
     loopBBBaseAddr = IRB.CreateGEP(space4LoopTy,loopBBBaseAddr, {ConstantHelper(IRB.getInt8Ty(), 0), ConstantHelper(IRB.getInt8Ty(), 0)});
     truePhiBaseAddr = IRB.CreateGEP(space4TruePhiTy, truePhiBaseAddr, {ConstantHelper(IRB.getInt8Ty(), 0), ConstantHelper(IRB.getInt8Ty(), 0)});
+    selectBaseAddr = IRB.CreateGEP(space4SelectInst, selectBaseAddr, {ConstantHelper(IRB.getInt8Ty(), 0), ConstantHelper(IRB.getInt8Ty(), 0)});
 #endif
 }
 
@@ -383,10 +403,19 @@ void Symbolizer::visitSelectInst(SelectInst &I) {
     Value * falseSymExpr = getSymbolicExpression(I.getFalseValue());
     if ( trueSymExpr != ConstantInt::getFalse(I.getContext()) ||
             falseSymExpr != ConstantInt::getFalse(I.getContext()) ) {
-        auto *data = IRB.CreateSelect(
-                I.getCondition(), trueSymExpr,
-                falseSymExpr);
-        symbolicExpressions[&I] = data;
+        //auto *data = IRB.CreateSelect(
+        //        I.getCondition(), trueSymExpr,
+        //        falseSymExpr);
+        unsigned symID = getNextID();
+        CallInst* dataSymExpr = IRB.CreateCall(runtime.buildSelect, {I.getCondition(),
+                                                                     trueSymExpr,
+                                                                     falseSymExpr,
+                                                                     selectBaseAddr,
+                                                                     ConstantHelper(int8Type, selectInstOff),
+                                                                     ConstantHelper(symIntType,symID)});
+        selectInstOff++;
+        symbolicExpressions[&I] = dataSymExpr;
+        assignSymID(dataSymExpr, symID);
     }
 }
 
@@ -1545,7 +1574,10 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                     }
                     else if(isSymIdType(arg_idx, calleeName)){
                         // no nothing
-                    }else{
+                    }else if(isSkippedArg(arg_idx, calleeName)){
+                        // do nothing
+                    }
+                    else{
                         errs()<<"callinst:"<<*callInst<<'\n';
                         errs()<<"argid:"<<arg_idx<<'\n';
                         errs()<<"arg:"<<*arg<<'\n';
