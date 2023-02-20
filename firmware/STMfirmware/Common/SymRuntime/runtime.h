@@ -73,6 +73,9 @@ enum {
  SYM_NTFY_BBLK         ,
  SYM_NTFY_BBLK1        ,
 
+ SYM_NTFY_SELECT       ,
+ SYM_NTFY_SELECT_1     ,
+
  SYM_TRY_ALT           ,
  SYM_TRY_ALT_1         ,
 
@@ -137,6 +140,10 @@ enum {
 #define SIZE_SYM_NTFY_BBLK          2      // | FCODE(1) | bbid(1)          |
 #define SIZE_SYM_NTFY_BBLK1         3      // | FCODE(1) | bbid(2)          |
 
+#define SIZE_SYM_NTFY_SELECT        3      // | FCODE(1) | symID(1)         |bool val(1)  |
+#define SIZE_SYM_NTFY_SELECT_1      4      // | FCODE(1) | symID(2)         |bool val(1)  |
+
+
 #define SIZE_SYM_TRY_ALTERNATIVE    2      // | FCODE(1) | symID(1)         |
 #define SIZE_SYM_TRY_ALTERNATIVE_1  3      // | FCODE(1) | symID(2)         |
 
@@ -185,6 +192,8 @@ void _sym_notify_call(uint8_t call_inst_id);
 void _sym_notify_func(uint8_t func_id);
 void _sym_notify_ret(uint8_t call_inst_id);
 void _sym_notify_basic_block(uint16_t bbid, bool isSym, char * base_addr, uint8_t offset );
+
+void _sym_notify_select(bool cond, bool isSym1, bool isSym2, char * base_addr, uint8_t offset, uint16_t symID);
 
 void _sym_try_alternative(bool destSym, bool concSym, uint16_t symID);
 //symbolize buffer

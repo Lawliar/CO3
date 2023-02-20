@@ -407,7 +407,7 @@ void Symbolizer::visitSelectInst(SelectInst &I) {
         //        I.getCondition(), trueSymExpr,
         //        falseSymExpr);
         unsigned symID = getNextID();
-        CallInst* dataSymExpr = IRB.CreateCall(runtime.buildSelect, {I.getCondition(),
+        CallInst* dataSymExpr = IRB.CreateCall(runtime.notifySelect, {I.getCondition(),
                                                                      trueSymExpr,
                                                                      falseSymExpr,
                                                                      selectBaseAddr,

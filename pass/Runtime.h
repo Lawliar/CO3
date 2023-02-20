@@ -75,13 +75,14 @@ struct Runtime {
     SymFnT readMemory{};
     SymFnT writeMemory{};
     SymFnT buildZeroBytes{};
-    SymFnT buildSelect{};
+
     SymFnT buildInsert{};
     SymFnT buildExtract{};
     SymFnT notifyCall{};
     SymFnT notifyFunc{};
     SymFnT notifyRet{};
     SymFnT notifyPhi{};
+    SymFnT notifySelect{};
     SymFnT notifyBasicBlock{};
     SymFnT tryAlternative{};
 
