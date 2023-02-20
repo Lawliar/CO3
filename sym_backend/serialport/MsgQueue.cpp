@@ -299,6 +299,14 @@ bool MsgQueue::RenderAndPush(char * buf, char size){
             uint16_t  id = *(uint16_t*)(buf + cur + 1);
             Push(new NotifyBasicBlockMessage(id));
             cur += SIZE_SYM_NTFY_BBLK1;
+        }else if(buf[cur] == SYM_NTFY_SELECT){
+            uint8_t symid = *(uint8_t*)(buf + cur + 1);
+            bool cond = static_cast<bool>(*(uint8_t*)(buf + cur + 2));
+            cur += SIZE_SYM_NTFY_SELECT;
+        }else if(buf[cur] == SYM_NTFY_SELECT_1){
+            uint16_t symid = *(uint16_t*)(buf + cur + 1);
+            bool cond = static_cast<bool>(*(uint8_t*)(buf + cur + 3));
+            cur += SIZE_SYM_NTFY_SELECT_1;
         }else if(buf[cur] == SYM_TRY_ALT){
             uint8_t id = *(uint8_t*)(buf + cur + 1);
             Push(new TryAltMessage(static_cast<uint16_t>(id)));

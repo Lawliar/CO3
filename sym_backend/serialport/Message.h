@@ -13,6 +13,7 @@ public:
     typedef enum _MessageType{
         BasicBlockMsg,
         CallMsg,
+        SelectMsg,
         FuncMsg,
         RetMsg,
         PhiMsg,
@@ -26,6 +27,7 @@ public:
         MemsetRuntimeMsg,
         MemmoveRuntimeMsg,
         WriteMemRuntimeMsg,
+
         TryAltMsg,
         InitMsg,
         EndMsg,
@@ -241,6 +243,17 @@ public:
     }
 };
 
+class SelectMessage : public ControlMessgaes{
+public:
+    SelectMessage(bool cond, uint16_t id): ControlMessgaes(SelectMsg), cond(cond), symid(id){};
+    bool cond;
+    uint16_t symid;
+    std::string Str(){
+        std::ostringstream s;
+        s<<"SelectMsg: cond"<<cond<<",symid"<<static_cast<unsigned>(symid);
+        return s.str();
+    }
+};
 class InitMessage : public ControlMessgaes{
 public:
     char * addr = nullptr;

@@ -248,7 +248,8 @@ public:                                                    \
 class SymVal_sym_notify_call: public SymVal {
 public:
     void Construct(ReadyType) override;
-    SymVal_sym_notify_call(SymIDType symid,SymIDType symidr, BasicBlockIdType bid, std::map<unsigned , unsigned>& paras): SymVal(symid,symidr, "_sym_notify_call", bid) {
+    SymVal_sym_notify_call(SymIDType symid,SymIDType symidr, BasicBlockIdType bid,
+                           std::map<unsigned , unsigned>& paras): SymVal(symid,symidr, "_sym_notify_call", bid) {
         for(auto eachPara: paras) {
             tmpIn_edges.insert(std::make_pair(eachPara.first, eachPara.second));
         }
@@ -258,19 +259,8 @@ public:
 };
 
 
-class SymVal_sym_try_alternative: public SymVal{
-public:
-    static const unsigned numOps = 2;
-    void Construct(ReadyType) override;
-    SymVal_sym_try_alternative(SymIDType symid,SymIDType symidr, BasicBlockIdType bid,
-                               ValVertexType dep1, ValVertexType dep2 ):
-            SymVal(symid,symidr,"_sym_try_alternative",bid){
-        tmpIn_edges[0] = dep1;
-        tmpIn_edges[1] = dep2;}
-    SymVal_sym_try_alternative(SymVal_sym_try_alternative&other): SymVal(other){}
-    ~SymVal_sym_try_alternative(){In_edges.clear();tmpIn_edges.clear(); UsedBy.clear();}
-};
-
+DECLARE_SYMVAL_TYPE2(_sym_try_alternative)
+DECLARE_SYMVAL_TYPE3(_sym_notify_select)
 
 DECLARE_SYMVAL_TYPE0(_NULL) // NULL valued symval found from compile time
 

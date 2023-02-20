@@ -376,16 +376,13 @@ DEFINE_SYMVAL_CONSTRUCTION_DUMMY(_sym_notify_call)
 void SymVal_sym_try_alternative::Construct(ReadyType targetReady) {
     assert(targetReady == (ready + 1));
 
-
     auto symNode = dynamic_cast<SymVal*>(In_edges.at(0));
     assert(symNode != nullptr);
     auto symExpr = extractSymExprFromSymVal(symNode, targetReady);
 
-
     auto concNode = dynamic_cast<SymVal*>(In_edges.at(1));
     assert(concNode != nullptr);
     auto concExpr = extractSymExprFromSymVal(concNode, targetReady);
-
     SymIDType redirectedSymID = symIDR != 0 ? symIDR : symID;
     if(symExpr != nullptr && concExpr !=  nullptr){
         _sym_build_path_constraint(
@@ -393,14 +390,39 @@ void SymVal_sym_try_alternative::Construct(ReadyType targetReady) {
                                  concExpr),
                 true, redirectedSymID);
     }
-
     ready++;
     return;
 }
+
+void SymVal_sym_notify_select::Construct(Val::ReadyType targetReady){
+    assert(targetReady == (ready + 1));
+
+    auto condOperand = dynamic_cast<RuntimeIntVal*>(In_edges.at(0));
+    assert(condOperand != nullptr);
+    if(condOperand->Unassigned){
+        // we are constructing a select, without the message from the MCU
+        // this means this is concrete
+        symExpr = nullptr;
+        ready++;
+        return;
+    }
+    if(static_cast<bool>(condOperand->Val)){
+        auto trueSymOperand = dynamic_cast<SymVal*>(In_edges.at(1));
+        symExpr = extractSymExprFromSymVal( trueSymOperand ,targetReady);
+    }else{
+        auto falseSymOperand = dynamic_cast<SymVal*>(In_edges.at(2));
+        symExpr = extractSymExprFromSymVal( falseSymOperand ,targetReady);
+    }
+    ready++;
+}
+
+
 void SymVal_NULL::Construct(Val::ReadyType targetReady){
     // should not be called
     assert(false);
 }
+
+
 
 void SymVal_sym_set_parameter_expression::Construct(ReadyType targetReady) {
     auto paraIndex = dynamic_cast<ConstantIntVal*>(In_edges.at(0));

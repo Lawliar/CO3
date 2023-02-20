@@ -54,8 +54,11 @@ enum {
     SYM_NTFY_BBLK         ,
     SYM_NTFY_BBLK1        ,
 
-    SYM_TRY_ALT           ,
-    SYM_TRY_ALT_1         ,
+    SYM_NTFY_SELECT       ,
+    SYM_NTFY_SELECT_1     ,
+
+    SYM_TRY_ALT           , // I wanted to implement this as physical messages, but it really does not have to be
+    SYM_TRY_ALT_1         , // since all the materials are already on the workstation, messages from the MCU are just confirming things
 
     SYM_INIT              ,
     SYM_INIT_DR           ,
@@ -117,6 +120,9 @@ enum {
 #define SIZE_SYM_NTFY_RET           2      // | FCODE(1) | call_inst_id(1)  |
 #define SIZE_SYM_NTFY_BBLK          2      // | FCODE(1) | bbid(1)          |
 #define SIZE_SYM_NTFY_BBLK1         3      // | FCODE(1) | bbid(2)          |
+
+#define SIZE_SYM_NTFY_SELECT        3      // | FCODE(1) | symID(1)         |bool val(1)  |
+#define SIZE_SYM_NTFY_SELECT_1      4      // | FCODE(1) | symID(2)         |bool val(1)  |
 
 #define SIZE_SYM_TRY_ALTERNATIVE    2      // | FCODE(1) | symID(1)         |
 #define SIZE_SYM_TRY_ALTERNATIVE_1  3      // | FCODE(1) | symID(2)         |

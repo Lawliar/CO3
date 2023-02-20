@@ -115,6 +115,7 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
                 cur_node = new SymVal_sym_notify_call(symid,symidR, bbid, in_paras);
             }
             CHECK_SYM_OP2(_sym_try_alternative)
+            CHECK_SYM_OP3(_sym_notify_select)
             CHECK_SYM_OP2(_sym_build_integer)
             CHECK_SYM_OP2(_sym_build_float)
             CHECK_SYM_OP0(_sym_build_null_pointer)
@@ -410,6 +411,7 @@ SymGraph::SymGraph(const SymGraph& other):funcname(other.funcname),symID2offMap(
         COPY_CONSTRUCT_VAL(RuntimePtrVal)
         COPY_CONSTRUCT_SymVAL(_sym_notify_call)
         COPY_CONSTRUCT_SymVAL(_sym_try_alternative)
+        COPY_CONSTRUCT_SymVAL(_sym_notify_select)
         COPY_CONSTRUCT_SymVAL(_NULL)
         COPY_CONSTRUCT_SymVAL(_sym_build_integer)
         COPY_CONSTRUCT_SymVAL(_sym_build_float)

@@ -43,12 +43,15 @@ class MsgTypes(IntEnum):
     SYM_NTFY_BBLK     = 34
     SYM_NTFY_BBLK1    = 35
 
-    SYM_TRY_ALT       = 36
-    SYM_TRY_ALT_1     = 37
+    SYM_NTFY_SELECT   = 36
+    SYM_NTFY_SELECT_1 = 37
 
-    SYM_INIT          = 38
-    SYM_INIT_DR       = 39
-    SYM_END          = 40
+    SYM_TRY_ALT       = 38
+    SYM_TRY_ALT_1     = 39
+
+    SYM_INIT          = 40
+    SYM_INIT_DR       = 41
+    SYM_END           = 42
 
 
 indent = 0
@@ -248,7 +251,16 @@ def parsePackage(package):
             bbid = int.from_bytes(package[cur + 1: cur + 3],byteorder='little')
             cur += 3
             print("{}NotifyBB1: bb id:{}".format(indent * '\t',bbid))
-
+        elif(package[cur] == MsgTypes.SYM_NTFY_SELECT):
+            symid = int.from_bytes(package[cur + 1 : cur + 2], byteorder="little")
+            bool_val = int.from_bytes(package[cur + 2 : cur + 3], byteorder="little")
+            cur += 3
+            print("{}Notify Select: symid:{}, bool:{}".format(indent * '\t',symid, bool_val))
+        elif(package[cur] == MsgTypes.SYM_NTFY_SELECT_1):
+            symid = int.from_bytes(package[cur + 1 : cur + 3], byteorder="little")
+            bool_val = int.from_bytes(package[cur + 3 : cur + 4], byteorder="little")
+            cur += 4
+            print("{}Notify Select_1: symid:{}, bool:{}".format(indent * '\t',symid, bool_val))
         elif(package[cur] == MsgTypes.SYM_TRY_ALT):
             symid = symid = int.from_bytes(package[cur + 1: cur + 2],byteorder='little')
             cur += 2

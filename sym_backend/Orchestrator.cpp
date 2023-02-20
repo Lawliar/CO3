@@ -661,7 +661,6 @@ int Orchestrator::Run() {
         cout.flush();
 #endif
         if(auto cnt_msg = dynamic_cast<ControlMessgaes*>(msg); cnt_msg != nullptr){
-
             if(auto bb_msg = dynamic_cast<NotifyBasicBlockMessage*>(cnt_msg) ; bb_msg != nullptr){
                 // now a BB has been finished on the MCU side, we try to do the same here
 #ifdef DEBUG_CHECKING
@@ -679,7 +678,8 @@ int Orchestrator::Run() {
                 cout<<"finish "<<bb_msg->Str()<<"\n\n";
                 cout.flush();
 #endif
-            }else if(auto func_msg = dynamic_cast<NotifyFuncMessage*>(cnt_msg); func_msg != nullptr){
+            }
+            else if(auto func_msg = dynamic_cast<NotifyFuncMessage*>(cnt_msg); func_msg != nullptr){
                 auto nextFunc = symGraphs.at(func_msg->id);
 #ifdef DEBUG_OUTPUT
                 assert(indent == 0);
@@ -772,7 +772,28 @@ int Orchestrator::Run() {
                 cout<< "finish "<<phi_msg->Str()<<"\n\n";
                 cout.flush();
 #endif
-            }else if(auto end_msg = dynamic_cast<EndMessage*>(cnt_msg); end_msg != nullptr ){
+            }else if(auto select_msg = dynamic_cast<SelectMessage*>(cnt_msg); select_msg != nullptr){
+#ifdef DEBUG_OUTPUT
+                assert(indent == 0);
+                cout<<select_msg->Str()<<'\n';
+                cout.flush();
+#endif
+                auto cur_func = getCurFunc();
+                cur_func->changed = true;
+                auto* notifySelect = dynamic_cast<SymVal_sym_notify_select*>(cur_func->Nodes.at(cur_func->symID2offMap.at(select_msg->symid)));
+                assert(notifySelect != nullptr);
+
+                auto* cond_node = dynamic_cast<RuntimeIntVal*>(notifySelect->In_edges.at(0));
+                assert(cond_node != nullptr);
+                cond_node->Assign(select_msg->cond);
+
+                BackwardExecution(notifySelect, notifySelect->ready + 1);
+#ifdef DEBUG_OUTPUT
+                cout<<"finish "<<select_msg->Str()<<"\n\n";
+                cout.flush();
+#endif
+            }
+            else if(auto end_msg = dynamic_cast<EndMessage*>(cnt_msg); end_msg != nullptr ){
                 uint64_t end_message_receive_time = listen_job.get();
                 cout << "End message received time:"<< end_message_receive_time - start_time <<'\n';
                 cout << "End message processed:"<< getTimeStamp() - start_time <<'\n';
@@ -920,11 +941,11 @@ int Orchestrator::Run() {
 #endif
             }else if(auto tryAltMsg = dynamic_cast<TryAltMessage*>(sym_sink_msg); tryAltMsg != nullptr){
 #ifdef DEBUG_OUTPUT
+                assert(false);// for now, this message should never be sent
                 assert(indent == 0);
                 cout << tryAltMsg->Str()<<'\n';
                 cout.flush();
 #endif
-
                 auto tryAltVal = dynamic_cast<SymVal_sym_try_alternative*>(cur_val);
                 assert(tryAltVal != nullptr);
 
