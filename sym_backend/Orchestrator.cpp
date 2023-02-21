@@ -393,11 +393,6 @@ void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, uns
     std::cout.flush();
 #endif
     SymGraph* cur_func = getCurFunc();
-#ifdef DEBUG_CHECKING
-    if(cur_func->funcname == "receive_cgc_until" && tmpSymVal != nullptr && tmpSymVal->symID == 42 ){
-        __asm__("nop");
-    }
-#endif
 
 #ifdef DEBUG_CHECKING
     // shouldn't trying to construct a constant
@@ -407,12 +402,12 @@ void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, uns
 
 #ifdef  DEBUG_CHECKING
     if(target != nullptr){
-        assert(!target->root->isThisNodeReady(source, targetReady));
+        assert( ! target->root->isThisNodeReady(source, targetReady));
     }
 #endif
     bool shouldMoveForward = false;
     bool constructed = ExecuteNode(source, targetReady);
-    if(! constructed && target == nullptr) {
+    if( (! constructed) && target == nullptr) {
         //only when no target is provided, we try to execute as much as we can find(without forcing the runtime val)
         // otherwise, we can just take care of this node itself, even if it's not ready to be constructed,
         // backward execution should already have take of that.
@@ -422,7 +417,6 @@ void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, uns
 #endif
         auto rootTask = cur_func->GetRootTask(symVal);
         assert(rootTask != nullptr);
-        Val::ReadyType old_ready = rootTask->root->ready;
         // finish the dependent BBs
         for(auto eachBBDep : rootTask->depNonReadyNonLoopBB){
             ExecuteBasicBlock(eachBBDep->BBID);
@@ -432,17 +426,18 @@ void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, uns
             for(auto eachInEdge : rootTask->inBBNonReadyLeafDeps){
                 ForwardExecution(eachInEdge, rootTask,targetReady);
             }
-            assert( rootTask->root->ready ==(old_ready + 1));
+            assert(rootTask->finished);
             shouldMoveForward = true;
         }
         rootTask->occupied=false;
         // if this root task is successfully executed, remove the task
         cur_func->ReleaseOrRemoveRootTask(symVal);
 
-    }else if(constructed && target != nullptr && target->root == source){
+    }else if(constructed && target != nullptr && (target->root == source)){
+        target->finished = true;
         shouldMoveForward = false;
     }
-    else if(constructed){
+    else if(constructed && target != nullptr){
         shouldMoveForward = true;
     }
 
@@ -456,11 +451,29 @@ void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, uns
 #endif
             bool foundNext = false;
             for(auto eachUser : source->UsedBy){
+                if(target->finished){
+                    break;
+                }
+                /*
+                 * this is like a best-of-efforts moving upwards towards the root,
+                 * in a depth-first manner.
+                 * So there will be cases where, there are, say, 2 users,
+                 * we depth-first constructing on the 1st user, after finished (recursively),
+                 * the 2nd user has already been constructed in that process
+                 */
+                // make sure the forwarded node is on the path to the root
                 if(target->inBBNonReadyDeps.find(eachUser) != target->inBBNonReadyDeps.end()){
                     if(target->root == eachUser){
-                        ExecuteNode(target->root, targetReady);
+                        // we've reached the root itself
+                        // if it is the root itself, just execute it without forwarding
+                        if (ExecuteNode(target->root, targetReady)){
+                            target->finished = true;
+                        }
                     }else{
-                        ForwardExecution(eachUser,  target, targetReady);
+                        // execute and forward
+                        if( !target->root->isThisNodeReady(source, targetReady)){
+                            ForwardExecution(eachUser,  target, targetReady);
+                        }
                     }
                     foundNext = true;
                 }
@@ -528,6 +541,7 @@ void Orchestrator::BackwardExecution(SymVal* sink, Val::ReadyType targetReady) {
             ForwardExecution(eachInBBLeaf,rootTask,targetReady);
         }
         rootTask->occupied=false;
+        assert(rootTask->finished);
         cur_func->ReleaseOrRemoveRootTask(sink);
         // we hope the execution above ful-filled its job properly
         assert(sink->ready == targetReady);
@@ -542,7 +556,8 @@ void Orchestrator::BackwardExecution(SymVal* sink, Val::ReadyType targetReady) {
 
 void Orchestrator::PreparingCalling(NotifyCallMessage* callMsg){
     SymGraph* cur_graph = getCurFunc();
-    auto notifyCallVal = dynamic_cast<SymVal_sym_notify_call*>(cur_graph->callInsts.at(callMsg->id));
+    auto* notifyCallVal = dynamic_cast<SymVal_sym_notify_call*>(cur_graph->callInsts.at(callMsg->id));
+    assert(notifyCallVal != nullptr);
 
     for(unsigned index = 1; index < notifyCallVal->In_edges.size() ; index ++){
         auto setPara = dynamic_cast<SymVal_sym_set_parameter_expression*>(notifyCallVal->In_edges.at(index));

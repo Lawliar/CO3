@@ -746,9 +746,10 @@ Val* SymGraph::stripTruePhi(Val* nodeInQuestion, Val* root) {
 }
 */
 bool SymGraph::ReleaseOrRemoveRootTask(SymVal * root) {
-    if(funcname == "receive_cgc_until" && root->symID == 25){
-        __asm__("nop");
-    }
+
+    // I vaguely remember why this code looks like this,
+    // I can only remember that, there is some dangling rootTask,
+    // which is not occupied, but constructed, can be cleaned in this way
     if(rootTasks.find(root) != rootTasks.end()){
         auto * target_rootTask = rootTasks.at(root);
         if(target_rootTask->occupied){

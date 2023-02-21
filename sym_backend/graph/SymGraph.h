@@ -101,6 +101,7 @@ public:
         Val::BasicBlockIdType rootBBid = 0;
         BasicBlockTask* rootBBTask = nullptr;
         bool occupied = false;
+        bool finished = false;
         void InsertNonReadyDep(Val* v,std::map<Val::BasicBlockIdType, BasicBlockTask*>& bbTasks);
         bool hasRuntimeDep(){
             for(auto eachLeafDep : inBBNonReadyLeafDeps){
