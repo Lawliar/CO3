@@ -471,7 +471,7 @@ void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, uns
                         }
                     }else{
                         // execute and forward
-                        if( !target->root->isThisNodeReady(source, targetReady)){
+                        if( !target->root->isThisNodeReady(eachUser, targetReady)){
                             ForwardExecution(eachUser,  target, targetReady);
                         }
                     }
