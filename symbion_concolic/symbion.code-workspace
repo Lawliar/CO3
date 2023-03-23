@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "/home/lcm/github/spear/symbion"
+		},
+		{
+			"path": "/home/lcm/.virtualenvs/symbion/lib/python3.8/site-packages/angr_targets"
+		},
+		{
+			"path": "/home/lcm/.virtualenvs/symbion/lib/python3.8/site-packages/avatar2"
+		}
+	],
+	"settings": {}
+}
