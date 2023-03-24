@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "/home/lcm/.virtualenvs/symbion/lib/python3.8/site-packages/avatar2"
+		},
+		{
+			"path": "/home/lcm/github/spear/spear-code/symbion_concolic"
 		}
 	],
 	"settings": {}

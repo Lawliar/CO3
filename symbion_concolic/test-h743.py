@@ -8,6 +8,13 @@ import claripy
 from angr_targets import AvatarGDBConcreteTarget
 import time
 
+import threading
+
+import sys
+sys.path.append("../USBtest")
+
+from serialEcho import send
+
 from IPython import embed
 # First set everything up
 
@@ -51,22 +58,36 @@ print("creating simgr..")
 simgr = p.factory.simgr(entry_state)
 
 ## Now, let's the binary unpack itself
-symbion = angr.exploration_techniques.Symbion(find=[0x800060a])
+symbion = angr.exploration_techniques.Symbion(find=[0x8000602 ## before HAL_uart_receive
+                                                    ,0x800060a ##  right before test
+                                                    ])
 simgr.use_technique(symbion)
-print("running..")
 
-exploration = simgr.run()
+simgr.run(thumb=True) 
+assert(len(simgr.found) == 1) ## make sure hit HAL_UART_RECEIVE
+simgr.move('found','active')
 
-concrete_state = exploration.stashes['found'][0]
-concrete_state_copy = exploration.stashes['found'][0].copy()
+t1 = threading.Thread(target = simgr.run,kwargs={'thumb':True})
+t2 = threading.Thread(target = send, args=(b"2131231dasdasdasdsa231",115200,"/dev/ttyACM0"))
+t1.start()
+time.sleep(0.3)##  have to wait for it to hit the break point to take place, then we feed the inputs, otherwise the input will be missed
+t2.start()
+t1.join()
+t2.join()
+
+assert(len(simgr.found) == 1) ## make sure hit before test
+
+concrete_state = simgr.stashes['found'][0]
+concrete_state_copy = simgr.stashes['found'][0].copy()
+
 
 simgr.remove_technique(symbion)
 simgr.move('found','active')
 
 
-## get the trace history
-simgr.explore(find=0x800060f,n = 100, thumb=True)
+simgr.explore(find=0x800060f,n = 100, thumb=True)## this address is in thumb mode
 trace = []
+
 for each_bb in simgr.found[0].history.bbl_addrs:
     trace.append(each_bb)
 trace.append(simgr.found[0].addr)
