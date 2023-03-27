@@ -118,17 +118,9 @@ void _sym_initialize_config(string inputDirName) {
     if (g_initialized.test_and_set())
         return;
     boost::filesystem::path dir (inputDirName);
-    //loadConfig();
+    // the default value if not gonna be overwritten by env var later in loadConfig
     boost::filesystem::path outputDir = dir / "output";
     boost::filesystem::path inputFile = dir / inputFileBasicName;
-
-    if(!boost::filesystem::exists(outputDir)){
-        boost::filesystem::create_directory(outputDir);
-    }
-    if(!boost::filesystem::exists(inputFile)){
-        std::cerr << inputFile <<" does not exist!";
-        exit(1);
-    }
 
     g_config.outputDir = outputDir.string();
     g_config.inputFile = inputFile.string();
@@ -137,6 +129,15 @@ void _sym_initialize_config(string inputDirName) {
     g_config.aflCoverageMap = "";
     initLibcWrappers();
     loadConfig();// let the env variable over write
+
+    // then does some sanity check
+    if(!boost::filesystem::exists(outputDir)){
+        boost::filesystem::create_directory(outputDir);
+    }
+    if(!boost::filesystem::exists(inputFile)){
+        std::cerr << inputFile <<" does not exist!";
+        exit(1);
+    }
     if (g_config.fullyConcrete) {
         return;
     }
