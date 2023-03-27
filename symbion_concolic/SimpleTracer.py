@@ -60,23 +60,22 @@ class SimpleTracer(ExplorationTechnique):
         if None not in succs_dict and simgr.errored:
             raise simgr.errored[-1].error
         sat_succs = succs_dict[None]  # satisfiable states
-        succs = sat_succs + succs_dict["unsat"]  # both satisfiable and unsatisfiable states
+        #succs = sat_succs + succs_dict["unsat"]  # both satisfiable and unsatisfiable states
 
         found_next = False
-        for each_succ in succs:
+        for each_succ in sat_succs:
             if each_succ.addr == expected_addr:
                 ## this is the state that follows the trace
                 ## it has to be sat
                 each_succ.globals["trace_idx"] +=  1
-                assert(each_succ in sat_succs)
+                ##assert(each_succ in sat_succs)
                 found_next = True
             else:
-                if(each_succ in sat_succs):
-                    ## this state does not follow the trace, but it's sat
-                    if 'deviated' in succs_dict:
-                        succs_dict['deviated'].append(each_succ)
-                    else:
-                        succs_dict['deviated'] = [each_succ]
+                ## this state deviate from the trace but it's sat
+                if 'deviated' in succs_dict:
+                    succs_dict['deviated'].append(each_succ)
+                else:
+                    succs_dict['deviated'] = [each_succ]
         if 'deviated' in succs_dict:
             succs_dict[None] = [x for x in succs_dict[None] if x not in succs_dict['deviated'] ]
         if len(succs_dict[None]) != 1 or found_next == False:
