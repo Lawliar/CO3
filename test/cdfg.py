@@ -107,7 +107,7 @@ def main():
         t_node = t_cluster.nodes()[0]
 
         cdfg.add_edge(f_node, t_node, color="red", lhead ='cluster'+t.name , ltail = 'cluster'+f.name )
-    cdfg.write("{}.dot".format(args.i))
+    cdfg.write("{}.dot".format(os.path.basename(args.i)))
 
     ## some check:
     for (f,t) in cdfg.edges():

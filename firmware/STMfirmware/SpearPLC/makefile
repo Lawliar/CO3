@@ -254,7 +254,7 @@ COMPILER_SPECIFIC_LDFLAGS += \
 
 endif
 
-CFLAGS += -Os
+CFLAGS += -O0
 CFLAGS += -std=gnu11
 CFLAGS += -g
 CFLAGS += -ffunction-sections
