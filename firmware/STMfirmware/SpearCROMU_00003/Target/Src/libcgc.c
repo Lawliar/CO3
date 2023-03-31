@@ -109,7 +109,7 @@ int allocate_cgc(size_t_cgc length, int is_X, void **addr){
 
 	//void *c = mmap(NULL, length, PROT_READ | PROT_WRITE,  MAP_ANONYMOUS|MAP_PRIVATE, -1, NULL);
 	
-	void *c = malloc(length);
+	void *c = w_malloc(length);
 	if(c != NULL && c != (void *) -1){
 		*addr = c;
 		return 0;
@@ -127,13 +127,13 @@ int deallocate_cgc(void *addr, size_t_cgc length){
 	if(length % ps != 0)
 		length += (ps - (length % ps));
 
-	free(addr);
+	w_free(addr);
 	return 0;
 	//return munmap(addr, length);
 }
 
 void* malloc_cgc(size_t_cgc length){
-	void *c = malloc(length);
+	void *c = w_malloc(length);
 	if(c == NULL){
 		return NULL;
 	}
@@ -141,7 +141,7 @@ void* malloc_cgc(size_t_cgc length){
 }
 
 void free_cgc(void * ptr){
-	free(ptr);
+	w_free(ptr);
 }
 
 void memset_cgc(char * ptr, int number, size_t_cgc size ){

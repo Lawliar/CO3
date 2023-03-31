@@ -690,5 +690,6 @@ end:
  **/
 int test(void) {
 	handle_menu();
+	whole_free();
 	return 0;
 }

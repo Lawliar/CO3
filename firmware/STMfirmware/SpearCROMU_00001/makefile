@@ -112,8 +112,9 @@ SYMRUNTIME_DIR := $(ROOT_DIR)/Common/SymRuntime
 
 SYMRUNTIME_INCLUDE_DIR := -I$(SYMRUNTIME_DIR)
 
-SYMRUNTIME_SOURCES := $(SYMRUNTIME_DIR)/runtime.c
-
+SYMRUNTIME_SOURCES := \
+$(SYMRUNTIME_DIR)/runtime.c \
+$(SYMRUNTIME_DIR)/wrapped_malloc.c
 
 
 ## FREERTOS Dir, include, sources
@@ -437,7 +438,6 @@ else
 	$(Q) $(CLANG_COMPILER) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -S -emit-llvm -o $@_raw.ll $<
 	$(Q) $(OPT) -load ${INSTRUMENTATION_LIB} --symbolize -out $(OUTPUT_DIR) -o $@_ins.ll $@_raw.ll
 	$(Q) $(LLC) -filetype=obj -o $@ $@_ins.ll
-		
 endif
 
 #build the uninstrumented coremark

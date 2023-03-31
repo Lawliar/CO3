@@ -27,6 +27,7 @@ THE SOFTWARE.
 #include <stdlib_cgc.h>
 #include <stdint_cgc.h>
 
+
 int isspace( int c )
 {
     if ( c == ' ' ||

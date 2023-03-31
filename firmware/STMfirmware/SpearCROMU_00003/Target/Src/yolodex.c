@@ -661,5 +661,6 @@ int test(void)
 	if(inputLoop() != 0){
 		return 1;
 	}
+	whole_free();
 	return 0;
 }

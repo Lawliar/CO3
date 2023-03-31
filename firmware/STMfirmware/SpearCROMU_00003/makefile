@@ -112,8 +112,9 @@ SYMRUNTIME_DIR := $(ROOT_DIR)/Common/SymRuntime
 
 SYMRUNTIME_INCLUDE_DIR := -I$(SYMRUNTIME_DIR)
 
-SYMRUNTIME_SOURCES := $(SYMRUNTIME_DIR)/runtime.c
-
+SYMRUNTIME_SOURCES := \
+$(SYMRUNTIME_DIR)/runtime.c \
+$(SYMRUNTIME_DIR)/wrapped_malloc.c
 
 
 ## FREERTOS Dir, include, sources

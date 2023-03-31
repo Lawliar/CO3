@@ -1,6 +1,8 @@
 #ifndef _LIBCGC_H
 #define _LIBCGC_H
 
+#include "wrapped_malloc.h"
+
 #define STDIN 0
 #define STDOUT 1
 #define STDERR 2
