@@ -41,16 +41,19 @@ def runSymbion(benchmark):
         while True:
             if(cur_symbion_input_id >= symbion_output_cur_id):
                 break
+            if(time.time() - symbion_start_time >=  time_budget):
+                symbion_break = True
+                break
             symbion_input_file = os.path.join(symbion_output_dir, str(cur_symbion_input_id).zfill(zfill_len))
             p1 = subprocess.Popen(
                 ["python",symbion_script,"-i",symbion_input_file, "-o",symbion_tmp_output_dir],
-                #stdout=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
                 #stderr=subprocess.DEVNULL
                 )
             
             repeat = False
             try:
-                p1.wait(30)
+                p1.wait(45)
             except subprocess.TimeoutExpired:
                 print("timed out, something is wrong at the MCU moved on")
                 p1.kill()
@@ -70,8 +73,8 @@ def runSymbion(benchmark):
                 shutil.copyfile(src_file, os.path.join(symbion_output_dir, dest_file_name))
             shutil.rmtree(symbion_tmp_output_dir)
             os.mkdir(symbion_tmp_output_dir)
-            if(time.time() - symbion_start_time >=  time_budget):
-                symbion_break = True
+            
+            ## successfully execute one input, move on to the next one
             cur_symbion_input_id += 1 ## increament
         symbion_input_cur_id = symbion_output_cur_id
         symbion_output_cur_id = get_highest_id(symbion_output_dir) + 1

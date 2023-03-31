@@ -7,7 +7,7 @@ import subprocess
 import shutil
 import time
 
-_benchmark = "CROMU_00001"
+_benchmark = "CROMU_00003"
 serial_port = os.path.join("/","dev","ttyACM1")
 
 
@@ -34,8 +34,7 @@ def runSpear(benchmark):
     spear_output_dir          = "{}/output".format(spear_inter_dir)
     spear_tmp_output_dir      = "{}/tmp_out".format(spear_output_dir)
     spear_backend_executable = "/home/lcm/github/spear/spear-code/sym_backend/build_release/qsym_backend/orchestrator"
-    assert(os.path.exists(spear_output_dir))
-
+    
     if(os.path.exists(spear_output_dir)):
         shutil.rmtree(spear_output_dir)
     os.mkdir(spear_output_dir)
@@ -59,7 +58,8 @@ def runSpear(benchmark):
             if(not os.path.exists(spear_input_file)):
                 assert(os.path.exists(spear_input_file + '-optimistic'))
                 spear_input_file += '-optimistic'
-            p1 = subprocess.Popen([spear_backend_executable,"-i",spear_inter_dir,"-s",serial_port,"-b",str(10000000)], \
+            cmd = [spear_backend_executable,"-i",spear_inter_dir,"-s",serial_port,"-b",str(10000000)]
+            p1 = subprocess.Popen(cmd, \
                          stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL, \
                         env={**os.environ,'SYMCC_INPUT_FILE':spear_input_file, 'SYMCC_OUTPUT_DIR': spear_tmp_output_dir})
             p1.wait()
@@ -84,7 +84,7 @@ def runSpear(benchmark):
         if spear_break:
             break
     shutil.rmtree(spear_tmp_output_dir)
-    return spear_output_cur_id
+    return spear_output_cur_id,cur_spear_input_id
 def runSymcc(benchmark):
     spear_inter_dir          = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/Spear{}/intermediate_results".format(benchmark)
     symcc_dir                = "/home/lcm/github/spear/spear-code/symcc_benchmark/shared_volume/{}".format(benchmark)
@@ -148,13 +148,13 @@ def runSymcc(benchmark):
         if symcc_break:
             break
     shutil.rmtree(symcc_tmp_output_dir)
-    return symcc_output_cur_id
+    return symcc_output_cur_id,cur_symcc_input_id
 def main():
     benchmark = _benchmark
-    symcc_num = runSymcc(benchmark)
-    spear_num = runSpear(benchmark)
-    print("symcc generate:{}\n".format(symcc_num))
-    print("spear generate:{}\n".format(spear_num))
+    #symcc_output_num, symcc_input_num = runSymcc(benchmark)
+    spear_output_num, spear_input_num = runSpear(benchmark)
+    #print("symcc generate:{} with {} runs\n".format(symcc_output_num, symcc_input_num))
+    print("spear generate:{} with {} runs\n".format(spear_output_num, spear_input_num))
 
 if __name__ == '__main__':
     main()
