@@ -302,10 +302,12 @@ bool MsgQueue::RenderAndPush(char * buf, char size){
         }else if(buf[cur] == SYM_NTFY_SELECT){
             uint8_t symid = *(uint8_t*)(buf + cur + 1);
             bool cond = static_cast<bool>(*(uint8_t*)(buf + cur + 2));
+            Push(new SelectMessage(cond, static_cast<uint16_t>(symid)));
             cur += SIZE_SYM_NTFY_SELECT;
         }else if(buf[cur] == SYM_NTFY_SELECT_1){
             uint16_t symid = *(uint16_t*)(buf + cur + 1);
             bool cond = static_cast<bool>(*(uint8_t*)(buf + cur + 3));
+            Push(new SelectMessage(cond, symid));
             cur += SIZE_SYM_NTFY_SELECT_1;
         }else if(buf[cur] == SYM_TRY_ALT){
             uint8_t id = *(uint8_t*)(buf + cur + 1);
