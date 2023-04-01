@@ -6,14 +6,15 @@ from tqdm import tqdm
 import subprocess
 import shutil
 import time
+import re
 
-_benchmark = "CROMU_00003"
 serial_port = os.path.join("/","dev","ttyACM1")
 
 
 numIteration = 5
 time_budget = 3600 # in seconds
 zfill_len = 10
+numExecution = 1000
 
 def get_highest_id(input_dir):
     ## this aggegates all Qsym generated file, and get the highest id
@@ -27,6 +28,17 @@ def get_highest_id(input_dir):
         if highest < digits:
             highest = digits
     return highest
+
+def get_total_time_out_err(input):
+    splitted = input.split(b'\n')
+    cur = len(splitted) - 1
+    while True:
+        s = splitted[cur].decode("ascii")
+        if("total_time" in s):
+            total_time = re.search('''total_time": (\d+)''', s).group(1)
+            return int(total_time)
+        cur -= 1
+    
 def runSpear(benchmark):
 
     spear_inter_dir          = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/Spear{}/intermediate_results".format(benchmark)
@@ -50,6 +62,8 @@ def runSpear(benchmark):
 
     spear_start_time = time.time()
     spear_break = False
+
+    spear_total_time = 0
     for it in range(numIteration):
         ## run Spear
         batch_size = len(range(spear_input_cur_id, spear_output_cur_id))
@@ -60,10 +74,13 @@ def runSpear(benchmark):
                 spear_input_file += '-optimistic'
             cmd = [spear_backend_executable,"-i",spear_inter_dir,"-s",serial_port,"-b",str(10000000)]
             p1 = subprocess.Popen(cmd, \
-                         stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL, \
+                         stdout=subprocess.PIPE,stderr=subprocess.PIPE, \
                         env={**os.environ,'SYMCC_INPUT_FILE':spear_input_file, 'SYMCC_OUTPUT_DIR': spear_tmp_output_dir})
             p1.wait()
-            print("iter:{}, cur:{}/{},total:{},time:{} / {}".format(it, cur_spear_input_id - spear_input_cur_id , batch_size,cur_spear_input_id,int(time.time() - spear_start_time), time_budget))
+            _, e = p1.communicate()
+            spear_total_time += get_total_time_out_err(e) / 1000000
+
+            print("iter:{}, cur:{}/{},total:{},time:{} / {}".format(it, cur_spear_input_id - spear_input_cur_id , batch_size,cur_spear_input_id,spear_total_time, time_budget))
             tmp_output_id = get_highest_id(spear_output_dir) + 1
             print("copying spear generated {} inputs...".format(len(os.listdir(spear_tmp_output_dir))))
             for each_spear_output in os.listdir(spear_tmp_output_dir):
@@ -79,12 +96,14 @@ def runSpear(benchmark):
             if(time.time() - spear_start_time >= time_budget):
                 spear_break = True
                 break
+            if cur_spear_input_id >= numExecution:
+                spear_break = True
         spear_input_cur_id = spear_output_cur_id
         spear_output_cur_id = get_highest_id(spear_output_dir) + 1
         if spear_break:
             break
     shutil.rmtree(spear_tmp_output_dir)
-    return spear_output_cur_id,cur_spear_input_id
+    return spear_output_cur_id,cur_spear_input_id, spear_total_time
 def runSymcc(benchmark):
     spear_inter_dir          = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/Spear{}/intermediate_results".format(benchmark)
     symcc_dir                = "/home/lcm/github/spear/spear-code/symcc_benchmark/shared_volume/{}".format(benchmark)
@@ -112,7 +131,8 @@ def runSymcc(benchmark):
     
     symcc_start_time = time.time()
     symcc_break = False
-    
+
+    symcc_total_time = 0
     for it in range(numIteration):
         batch_size = len(range(symcc_input_cur_id, symcc_output_cur_id))
         for cur_symcc_input_id in range(symcc_input_cur_id, symcc_output_cur_id):
@@ -121,10 +141,14 @@ def runSymcc(benchmark):
                 assert(os.path.exists(symcc_input_file + '-optimistic'))
                 symcc_input_file += '-optimistic'
             
-            p1 = subprocess.Popen([symcc_executable],stdin=open(symcc_input_file),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
+            p1 = subprocess.Popen([symcc_executable],stdin=open(symcc_input_file),stdout=subprocess.PIPE,stderr=subprocess.PIPE,
                                 env={**os.environ, 'SYMCC_OUTPUT_DIR': symcc_tmp_output_dir})
             p1.wait()
-            print("iter:{},cur: {} / {},total:{},time:{} / {}".format(it, cur_symcc_input_id - symcc_input_cur_id ,batch_size ,cur_symcc_input_id, int(time.time() - symcc_start_time) , time_budget))
+            _, e = p1.communicate()
+            symcc_total_time += get_total_time_out_err(e) / 1000000
+
+
+            print("iter:{},cur: {} / {},total:{},time:{} / {}".format(it, cur_symcc_input_id - symcc_input_cur_id ,batch_size ,cur_symcc_input_id, symcc_total_time , time_budget))
             ## copy the newly generated file to other places
             tmp_output_id = get_highest_id(symcc_output_dir) + 1
             print("copying symcc generated {} inputs...".format(len(os.listdir(symcc_tmp_output_dir))))
@@ -142,19 +166,22 @@ def runSymcc(benchmark):
             if(time.time() - symcc_start_time >= time_budget):
                 symcc_break = True
                 break
+            if cur_symcc_input_id > numExecution:
+                symcc_break = True
+                break
         ## update input_cur_id and output_cur_id
         symcc_input_cur_id = symcc_output_cur_id
         symcc_output_cur_id = get_highest_id(symcc_output_dir) + 1
         if symcc_break:
             break
     shutil.rmtree(symcc_tmp_output_dir)
-    return symcc_output_cur_id,cur_symcc_input_id
+    return symcc_output_cur_id,cur_symcc_input_id,symcc_total_time
 def main():
-    benchmark = _benchmark
-    #symcc_output_num, symcc_input_num = runSymcc(benchmark)
-    spear_output_num, spear_input_num = runSpear(benchmark)
-    #print("symcc generate:{} with {} runs\n".format(symcc_output_num, symcc_input_num))
-    print("spear generate:{} with {} runs\n".format(spear_output_num, spear_input_num))
+    benchmark =  "CROMU_00001"
+    symcc_output_num, symcc_input_num,symcc_total_time = runSymcc(benchmark)
+    spear_output_num, spear_input_num,spear_total_time = runSpear(benchmark)
+    print("symcc generate:{} with {} runs using {}us\n".format(symcc_output_num, symcc_input_num,symcc_total_time))
+    print("spear generate:{} with {} runs using {}us\n".format(spear_output_num, spear_input_num,spear_total_time))
 
 if __name__ == '__main__':
     main()
