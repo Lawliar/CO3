@@ -93,11 +93,9 @@ def runSpear(benchmark):
             ## clean up tmp output
             shutil.rmtree(spear_tmp_output_dir)
             os.mkdir(spear_tmp_output_dir)
-            if(time.time() - spear_start_time >= time_budget):
-                spear_break = True
-                break
             if cur_spear_input_id >= numExecution:
                 spear_break = True
+                break
         spear_input_cur_id = spear_output_cur_id
         spear_output_cur_id = get_highest_id(spear_output_dir) + 1
         if spear_break:
@@ -163,10 +161,7 @@ def runSymcc(benchmark):
             ## clean the tmp output dir
             shutil.rmtree(symcc_tmp_output_dir)
             os.mkdir(symcc_tmp_output_dir)
-            if(time.time() - symcc_start_time >= time_budget):
-                symcc_break = True
-                break
-            if cur_symcc_input_id > numExecution:
+            if cur_symcc_input_id >= numExecution:
                 symcc_break = True
                 break
         ## update input_cur_id and output_cur_id
