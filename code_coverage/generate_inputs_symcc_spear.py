@@ -11,8 +11,8 @@ import re
 serial_port = os.path.join("/","dev","ttyACM1")
 
 
-numIteration = 5
-time_budget = 3600 # in seconds
+numIteration = 9999999
+time_budget = 60 * 10 # in seconds
 zfill_len = 10
 numExecution = 1000
 
@@ -93,7 +93,8 @@ def runSpear(benchmark):
             ## clean up tmp output
             shutil.rmtree(spear_tmp_output_dir)
             os.mkdir(spear_tmp_output_dir)
-            if cur_spear_input_id >= numExecution:
+            #if cur_spear_input_id >= numExecution:
+            if spear_total_time >= time_budget:
                 spear_break = True
                 break
         spear_input_cur_id = spear_output_cur_id
@@ -161,7 +162,8 @@ def runSymcc(benchmark):
             ## clean the tmp output dir
             shutil.rmtree(symcc_tmp_output_dir)
             os.mkdir(symcc_tmp_output_dir)
-            if cur_symcc_input_id >= numExecution:
+            #if cur_symcc_input_id >= numExecution:
+            if symcc_total_time >= time_budget:
                 symcc_break = True
                 break
         ## update input_cur_id and output_cur_id
@@ -172,7 +174,7 @@ def runSymcc(benchmark):
     shutil.rmtree(symcc_tmp_output_dir)
     return symcc_output_cur_id,cur_symcc_input_id,symcc_total_time
 def main():
-    benchmark =  "CROMU_00001"
+    benchmark =  "CROMU_00005"
     symcc_output_num, symcc_input_num,symcc_total_time = runSymcc(benchmark)
     spear_output_num, spear_input_num,spear_total_time = runSpear(benchmark)
     print("symcc generate:{} with {} runs using {}us\n".format(symcc_output_num, symcc_input_num,symcc_total_time))
