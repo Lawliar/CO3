@@ -138,13 +138,21 @@ def runSymbion(elf_file,before_hal_addr,before_target_addr,concrete_input,after_
     tracer = angr.exploration_techniques.SimpleTracer(trace)
 
     tracer_simgr.use_technique(tracer)
-    tracer_simgr.use_technique(angr.exploration_techniques.Timeout(timeout=10)) ## same timeout with QEMU
+    tracer_simgr.use_technique(angr.exploration_techniques.Timeout(timeout=5)) ## same timeout with QEMU
 
     traced = tracer_simgr.run(n=len(trace),thumb=True)
 
     alternating_inputs = []
     for each_deviate_state in traced.deviated:
-        alternating_inputs.append(each_deviate_state.solver.eval(sym_buffer))
+        alt_input = b''
+        for i in range(concrete_input_bvv.size(), 0 ,-8):
+            try:
+                ## because, in angr, if a byte is unconstrainted, it's zero, but we want it to be the same with the input
+                this_byte = each_deviate_state.solver.eval(sym_buffer[i-1:i-8], extra_constraints = [sym_buffer[i-1:i-8] == concrete_input_bvv[i-1 : i-8]])
+            except angr.errors.SimUnsatError:
+                this_byte = each_deviate_state.solver.eval(sym_buffer[i-1 : i-8])
+            alt_input += this_byte.to_bytes(1,byteorder='little')
+        alternating_inputs.append(alt_input)
     avatar_gdb.shutdown()
     time.sleep(1) ## waiting for it to really shutdown, otherwise, the subsequent connection will fail
     if output_dir == None:
@@ -152,7 +160,7 @@ def runSymbion(elf_file,before_hal_addr,before_target_addr,concrete_input,after_
     else:
         for id, each_input in enumerate(alternating_inputs):
             with open(os.path.join(output_dir, str(id)), 'wb') as wfile:
-                wfile.write(each_input.to_bytes(len(concrete_input),byteorder='little'))
+                wfile.write(each_input)
 if __name__ == '__main__':
     elf_file = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/SymbionPLC/Debug/SymbionPLC.elf"
     before_hal_addr = 0x80010b4
