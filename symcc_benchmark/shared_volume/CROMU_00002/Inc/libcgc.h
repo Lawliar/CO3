@@ -5,6 +5,8 @@
 #define STDOUT 1
 #define STDERR 2
 
+#include "wrapped_malloc.h"
+
 #define	NULL ((void *)0)
 
 typedef long unsigned int size_t_cgc;

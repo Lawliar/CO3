@@ -596,11 +596,11 @@ int parseUserInput(Move *movers)
 int main(void)
 {
 	// function pointer to print chess board
-	void (*displayer)(); // overwriting the below array will destroy this function pointer
+	//void (*displayer)(); // overwriting the below array will destroy this function pointer
 	// chess board
 	char array[WIDTH][HEIGHT];
 
-	displayer = displayboard;
+	//displayer = displayboard;
 	ptr_array = &array;
 
 	initboard();
@@ -634,10 +634,12 @@ int main(void)
 		else if (ret == END_GAME)
 		{
 			//printf("good game\n");
+			whole_free();
 			return(0);
 		}
 		else if (ret == INPUT_ERROR)
 		{
+			whole_free();
 			return(0);
 		}
 
@@ -658,7 +660,7 @@ int main(void)
 			//printf(NO);
 		}
 	}
-
+	whole_free();
 	return 0;
 }
 

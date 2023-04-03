@@ -648,8 +648,6 @@ void handle_menu ( )
 		if ( receive_cgc_until( (char*)&choice, '\n', 2 ) == 0 ) {
 			puts_cgc("[-] receive_cgc Failed\n");
 			goto end;
-		}else{
-			puts_cgc("[-] receive_cgc succeed\n");
 		}
 
 		choice -= 0x30;
@@ -657,8 +655,6 @@ void handle_menu ( )
 		if ( choice > 3 || choice < 1 ) {
 			puts_cgc("[-] Invalid choice\n");
 			continue;
-		}else{
-			puts_cgc("[-] Valid choice\n");
 		}
 
 		bzero_cgc( username, USERNAME_LENGTH );
@@ -694,5 +690,6 @@ end:
  **/
 int main(void) {
 	handle_menu();
+	whole_free();
 	return 0;
 }

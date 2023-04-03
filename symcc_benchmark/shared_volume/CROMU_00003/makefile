@@ -2,6 +2,7 @@ ROOT_DIR := $(abspath ..)
 PROJ_DIR := $(abspath .)
 PROJ_NAME := $(notdir $(PROJ_DIR))
 
+OUTPUT_DIR := $(PROJ_DIR)/intermediate_results
 Q ?= @
 
 
@@ -17,24 +18,23 @@ CLI_LDFLAG_OVERRIDES ?=
 # our path by default but allow things to be easily overridden, i.e:
 #
 # COMPILER=<PATH_TO_OTHER_GCC_VERSION>/arm-none-eabi-gcc make
+SYMCC_BUILD_DIR := /home/lcm/github/spear/symcc_latest/build
 
-
-OPT                 := /usr/lib/llvm-10/bin/opt
-LLC                 := /usr/lib/llvm-10/bin/llc
-INSTRUMENTATION_LIB := /symcc_build/libSymbolize.so 
-RUNTIME_DIR         := /symcc_build/SymRuntime-prefix/src/SymRuntime-build
-
-NATIVE_CLANG_COMPILER := /usr/lib/llvm-10/bin/clang
+INSTRUMENTATION_LIB := $(SYMCC_BUILD_DIR)/libSymbolize.so 
+RUNTIME_DIR         := $(SYMCC_BUILD_DIR)/SymRuntime-prefix/src/SymRuntime-build
+Z3_BUILD_DIR        := /home/lcm/github/tools/z3/build
+NATIVE_CLANG_COMPILER := /home/lcm/github/toolchains/x86_64/clang+llvm-13.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/clang
 
 ifdef INSTRUMENT
-CLANG_COMPILER      := /symcc_build/symcc
-LDFLAGS += -L"$(RUNTIME_DIR)" -lSymRuntime -Wl,-rpath,"$(RUNTIME_DIR)" -lm
+CLANG_COMPILER      := $(SYMCC_BUILD_DIR)/symcc
+LDFLAGS += -L"$(RUNTIME_DIR)" -L"$(Z3_BUILD_DIR)" -Wl,-rpath,"$(RUNTIME_DIR)" -Wl,-rpath,"$(Z3_BUILD_DIR)" -lSymRuntime -lz3  -lm
 BUILD_DIR := $(PROJ_DIR)/build
 else
-CLANG_COMPILER      := gcc
+CLANG_COMPILER      := $(NATIVE_CLANG_COMPILER)
 BUILD_DIR := $(PROJ_DIR)/build_native
 LDFLAGS += -lm
 endif 
+
 
 CC := $(CLANG_COMPILER)
 
@@ -54,7 +54,12 @@ $(COREMARK_HAL_DIR)/Src/printf.c \
 $(COREMARK_HAL_DIR)/Src/stdlib.c \
 $(COREMARK_HAL_DIR)/Src/yolodex.c
 
-SRC_FILES +=  $(COREMARK_HAL_SOURCES)
+UNINSTRUMENTED_DIR := $(PROJ_DIR)
+
+UNINSTRUMENTED_SRC := $(UNINSTRUMENTED_DIR)/UninstrumentedSrc/wrapped_malloc.c
+
+SRC_FILES +=  $(COREMARK_HAL_SOURCES) \
+$(UNINSTRUMENTED_SRC)
 
 
 OBJ_FILES := $(patsubst $(ROOT_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRC_FILES))
@@ -86,7 +91,11 @@ $(OBJ_FILES): $(SRC_FILES) makefile
 $(BUILD_DIR)/$(PROJ_NAME)/Src/%.o: $(PROJ_DIR)/Src/%.c | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
-#	$(Q) $(CLANG_COMPILER)  $(CFLAGS)  $(INCLUDE_PATHS) -c -g -o $@ $<
-	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS)  $(INCLUDE_PATHS) -S -emit-llvm -o $@_raw.ll $<
-	$(Q) $(OPT) -load ${INSTRUMENTATION_LIB} --symbolize -o $@_ins.ll $@_raw.ll
-	$(Q) $(LLC) -filetype=obj -o $@ $@_ins.ll
+	@mkdir -p $(OUTPUT_DIR)
+	$(Q) $(CLANG_COMPILER)  $(INCLUDE_PATHS) -c -g -o $@ $<
+
+# build uninstrumented code
+$(BUILD_DIR)/$(PROJ_NAME)/UninstrumentedSrc/%.o: $(PROJ_DIR)/UninstrumentedSrc/%.c | $(BUILD_DIR) $(DEP_DIR) 
+	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
+	@mkdir -p $(dir $@)
+	$(Q) $(NATIVE_CLANG_COMPILER)  $(INCLUDE_PATHS) -c -g -o $@ $<

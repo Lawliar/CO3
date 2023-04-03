@@ -245,5 +245,6 @@ int main(void)
 	//printf( "Goodbye\n" );
 
     // Exit
+    whole_free();
     return 0 ;
 }

@@ -537,12 +537,15 @@ int main(void) {
     int ret;
     ReadWav(pcm,&ret);
     if(ret != 0){
+	  whole_free();
       return -1;
     }
     // Read in each symbol
     ret = ParseWav(pcm);
     if(ret != 0){
-      return -1;
+      whole_free();
+	  return -1;
     }
+	whole_free();
     return(0);
 }
