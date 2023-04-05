@@ -81,11 +81,13 @@ def runSymbion(benchmark):
         if symbion_break:
             break
     shutil.rmtree(symbion_tmp_output_dir)
-    return symbion_output_cur_id
+    return symbion_output_cur_id, cur_symbion_input_id, time.time() - symbion_start_time
 def main():
-    benchmark = _benchmark
-    symbion_num = runSymbion(benchmark)
-    #spear_num = runSpear(benchmark)
+    benchmark = "PLC"
+    symbion_output_num, symbion_input_num,symbion_total_time = runSymbion(benchmark)
+    #spear_output_num, spear_input_num,spear_total_time = runSpear(benchmark)
+    print("symbion generate:{} with {} runs using {}us\n".format(symbion_output_num, symbion_input_num,symbion_total_time))
+    #print("spear generate:{} with {} runs using {}us\n".format(spear_output_num, spear_input_num,spear_total_time))
 
 if __name__ == '__main__':
     main()

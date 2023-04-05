@@ -1100,6 +1100,21 @@ void _sym_symbolize_memory(char * addr, size_t length, bool DR)
 }
 
 
+uintptr_t prev_site_id = 0;
+
+void _sym_notify_basic_block_cc(uintptr_t site_id) {
+    //FILE * f= fopen("coverage", "a");
+    //fprintf(f,"%lx\n",site_id ^ prev_site_id);
+    //fprintf(f,"%lx\n",site_id);
+
+	uintptr_t r = site_id ^ prev_site_id;
+	int msgSize = sizeof(uintptr_t) + 1;
+	txCommandtoMonitorF;
+	*(uintptr_t*)(AFLfuzzer.txbuffer + AFLfuzzer.txCurrentIndex) = r;
+	AFLfuzzer.txCurrentIndex += sizeof(uintptr_t);
+	AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = '\n';
+    prev_site_id = site_id >> 1;
+}
 
 /*
 void _spear_report1(uint32_t userID, char * arg1)
@@ -1232,4 +1247,7 @@ void _sym_notify_basic_block(uint8_t id)
 	set_id(id);
 }
 */
+
+
+
 

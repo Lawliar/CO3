@@ -86,7 +86,7 @@
 					</folderInfo>
 					<sourceEntries>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Common/FreeRTOS-Kernel"/>
-						<entry excluding="monitor-dma.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Common/Protocol"/>
+						<entry excluding="monitor-dma-midi.c|monitor-dma.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Common/Protocol"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Common/SymRuntime"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>

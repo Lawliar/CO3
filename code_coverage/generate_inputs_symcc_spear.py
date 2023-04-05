@@ -33,7 +33,11 @@ def get_total_time_out_err(input):
     splitted = input.split(b'\n')
     cur = len(splitted) - 1
     while True:
-        s = splitted[cur].decode("ascii")
+        try:
+            s = splitted[cur].decode("ascii")
+        except:
+            print("something is wrong")
+            embed()
         if("total_time" in s):
             total_time = re.search('''total_time": (\d+)''', s).group(1)
             return int(total_time)
@@ -76,7 +80,14 @@ def runSpear(benchmark):
             p1 = subprocess.Popen(cmd, \
                          stdout=subprocess.PIPE,stderr=subprocess.PIPE, \
                         env={**os.environ,'SYMCC_INPUT_FILE':spear_input_file, 'SYMCC_OUTPUT_DIR': spear_tmp_output_dir})
-            p1.wait()
+            timeout = 20
+            try:
+                p1.wait(timeout)
+            except subprocess.TimeoutExpired:
+                print("time out, something is wrong")
+                p1.kill()
+                spear_total_time += timeout
+                continue
             _, e = p1.communicate()
             spear_total_time += get_total_time_out_err(e) / 1000000
 

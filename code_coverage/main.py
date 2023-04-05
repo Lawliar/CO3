@@ -64,7 +64,7 @@ def runTest(benchmark):
     
 def main():
     #checkMake()
-    for each_bench in ["CROMU_00001","CROMU_00002","CROMU_00003"]:
+    for each_bench in ["CROMU_00004","CROMU_00005"]:
         runTest(each_bench)
 if __name__ == '__main__':
     main()

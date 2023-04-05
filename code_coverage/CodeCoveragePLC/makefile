@@ -151,7 +151,6 @@ PROJECT_CORE_DIR := $(PROJ_DIR)/Core
 
 PROJECT_CORE_INCLUDE_DIR := -I$(PROJECT_CORE_DIR)/Inc
 
-CODE_COVERAGE_SOURCE := $(ROOT_DIR)/runtime_fw/coverageRuntime.c
 
 
 
@@ -175,8 +174,7 @@ $(FREERTOS_SOURCES) \
 $(SYMRUNTIME_SOURCES) \
 $(PROTOCOL_SOURCES) \
 $(USB_DEVICE_SOURCES) \
-$(MIDDLEWARES_SOURCES) \
-$(CODE_COVERAGE_SOURCE)
+$(MIDDLEWARES_SOURCES) 
 
 
 
@@ -265,7 +263,7 @@ CFLAGS += -std=gnu11
 CFLAGS += -g
 CFLAGS += -ffunction-sections
 CFLAGS += -fdata-sections
-CFLAGS += -Wall
+##CFLAGS += -Wall
 #CFLAGS += -fstack-usage
 #CFLAGS += --specs=nano.specs 
 CFLAGS += -Werror 
@@ -410,11 +408,6 @@ $(BUILD_DIR)/Common/FreeRTOS-Kernel/%.o: $(ROOT_DIR)/Common/FreeRTOS-Kernel/%.c 
 	@mkdir -p $(dir $@)
 	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
-# build code_coverage_runtime
-$(BUILD_DIR)/runtime_fw/%.o: $(ROOT_DIR)/runtime_fw/%.c | $(BUILD_DIR) $(DEP_DIR) 
-	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
-	@mkdir -p $(dir $@)
-	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
 # build protocol code
 $(BUILD_DIR)/Common/Protocol/%.o: $(ROOT_DIR)/Common/Protocol/%.c | $(BUILD_DIR) $(DEP_DIR) 
