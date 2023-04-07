@@ -188,14 +188,6 @@ static void TargetTask( void * pvParameters )
 	int dummy;
 
 
-   	/* Initialize MIDI Message builder */
-   	MIDIMsgBuilder_init(&midiMsgBuilder);
-
-       /* Initialize the MIDI router */
-    MIDI_Router_Standard_init(&midiRouter);
-    MIDI_Router_addCB(&midiRouter.router, MIDIMSG_NOTE_ON, 1, MIDI_note_on_do, &dummy);
-    MIDI_Router_addCB(&midiRouter.router, MIDIMSG_NOTE_OFF, 1, MIDI_note_off_do, &dummy);
-
     /* Enable LEDs so we can toggle them */
 
     //LEDs_Init();
@@ -204,6 +196,9 @@ static void TargetTask( void * pvParameters )
     //MIDI_low_level_setup_nolib();  // initialize USART with DMA RX
 
 	xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,1,eSetValueWithOverwrite); //notify the monitor task the target is ready
+
+
+
 	while(1){
 		//ulTaskNotifyTakeIndexed(0, pdTRUE, portMAX_DELAY); // wait for the notification coming from the Monitor task
 		int numItems = ulTaskNotifyTakeIndexed(0, pdTRUE, portMAX_DELAY); //wait for data coming from USART
@@ -213,7 +208,17 @@ static void TargetTask( void * pvParameters )
 		//printf("\nStart\n");
 //#endif
 		start_time_val = DWT->CYCCNT;
+
 		_sym_symbolize_memory((char*)midiBuffer,MIDI_BUF_SIZE, false);
+
+			   	/* Initialize MIDI Message builder */
+		MIDIMsgBuilder_init(&midiMsgBuilder);
+
+			       /* Initialize the MIDI router */
+		MIDI_Router_Standard_init(&midiRouter);
+		MIDI_Router_addCB(&midiRouter.router, MIDIMSG_NOTE_ON, 1, MIDI_note_on_do, &dummy);
+		MIDI_Router_addCB(&midiRouter.router, MIDIMSG_NOTE_OFF, 1, MIDI_note_off_do, &dummy);
+
 
 		MIDI_entry(numItems);
 

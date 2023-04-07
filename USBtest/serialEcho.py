@@ -8,7 +8,7 @@ import time
 MAX_INPUT_LEN = 1024
 
 plaintext_input = b'hello serial!'
-port = '/dev/ttyACM0'
+port = '/dev/ttyACM1'
 
 
 

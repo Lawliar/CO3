@@ -16,7 +16,7 @@
 //#include "test.h"
 #include "runtime.h"
 #include "usb_device.h"
-//#include "modbus_rtu.h"
+#include "modbus_rtu.h"
 extern UART_HandleTypeDef huart2;
 static uint32_t start_time_val, stop_time_val;
 
@@ -196,8 +196,7 @@ static void TargetTask( void * pvParameters )
 #else
         _sym_symbolize_memory((char*)modbusRxTxBuffer, MODBUS_MAX_FRAME_SIZE, false);
         //modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
-         modbusSlaveHandler(); //*** ERROR this line of code must be called before to initialize the serial port
-         	 	 	 	 	   // I modified the source code of this function so the system call is executed before this line
+         modbusSlaveHandler();
 
 #endif
         _sym_end();

@@ -159,7 +159,6 @@ static void MonitorTask( void * pvParameters )
 	}
 }
 
-#define CGC_BENCHMARK
 
 #ifdef CGC_BENCHMARK
 extern unsigned int input_cur;
@@ -183,14 +182,14 @@ static void TargetTask( void * pvParameters )
 #endif
 		_sym_symbolize_memory((char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT),AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT, false);
 #ifdef CGC_BENCHMARK
-        test();
+		modbusparsing();
 #else
 
-        //modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
-        //test((char*)&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4);
-        gps_init((gps_t*)GPSHandleRegion);
-        gps_process((gps_t*)GPSHandleRegion,&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
-		memset(GPSHandleRegion,0, next_power_of_2(gps_handle_t_size));
+		//modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
+        test(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4);
+        //gps_init((gps_t*)GPSHandleRegion);
+        //gps_process((gps_t*)GPSHandleRegion,&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
+		//memset(GPSHandleRegion,0, next_power_of_2(gps_handle_t_size));
 #endif
         _sym_end();
 
@@ -200,7 +199,7 @@ static void TargetTask( void * pvParameters )
 //#if DEBUGPRINT ==1
 		//printf("\nFinish\n");
 //#endif
-		printf("clocks:%u\n\n", stop_time_val - start_time_val);
+		printf("Thisend\n");
 
 		//xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,10,eSetValueWithOverwrite);//notify that the test finished
         //vTaskDelay(10);
