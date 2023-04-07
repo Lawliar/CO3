@@ -1,0 +1,13 @@
+modbusSlaveStartTread	0
+modbusSlaveGetTaskHandke	1
+modbusSlaveGetGata	2
+modbusSlavePutData	3
+modbusSlaveHandler	4
+modbusSlaveCheckFrameSize	5
+modbusSlaveStartReceiving	6
+modbusSlaveCheckID	7
+modbusSlaveCheckCRC	8
+modbusSlaveParseFrame	9
+modbusSlaveStartTransmitting	10
+modbusSlaveGetCRC	11
+modbusSlaveErrorSet	12

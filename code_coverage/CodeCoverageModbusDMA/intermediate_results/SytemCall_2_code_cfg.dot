@@ -1,0 +1,10 @@
+digraph "CFG for'SytemCall_2_code' function" {
+	1 [shape=record, label="1",id=1,loop=0,entry=1,exit=0];
+	1-> 2;
+	2 [shape=record, label="2",id=2,loop=1,color=red,entry=0,exit=0];
+	2-> 3;
+	2-> 4;
+	3 [shape=record, label="3",id=3,loop=1,color=red,entry=0,exit=0];
+	3-> 2;
+	4 [shape=record, label="4",id=4,loop=0,entry=0,exit=1];
+}
