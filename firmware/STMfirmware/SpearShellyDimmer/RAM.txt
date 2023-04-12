@@ -1,0 +1,87 @@
+.data	.data	24000000	4	SystemCoreClock		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/Core/Src/system_stm32h7xx.o	SystemCoreClock
+.data	.data	24000004	4	SystemD2Clock		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/Core/Src/system_stm32h7xx.o	SystemD2Clock
+.data	.data	24000008	4	uwTickPrio		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.o	uwTickPrio
+.data	.data	2400000c	4	uwTickFreq		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.o	uwTickFreq
+.data	.data	24000010	4	uxCriticalNesting		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/portable/GCC/ARM_CM4F/port.o	uxCriticalNesting
+.data	.data	24000014	20	USBD_Interface_fops_FS		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/USB_DEVICE/App/usbd_cdc_if.o	USBD_Interface_fops_FS
+.data	.data	24000028	28	FS_Desc		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/USB_DEVICE/App/usbd_desc.o	FS_Desc
+.data	.data	24000044	18	USBD_FS_DeviceDesc		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/USB_DEVICE/App/usbd_desc.o	USBD_FS_DeviceDesc
+.data	.data	24000058	4	USBD_LangIDDesc		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/USB_DEVICE/App/usbd_desc.o	USBD_LangIDDesc
+.data	.data	2400005c	26	USBD_StringSerial		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/USB_DEVICE/App/usbd_desc.o	USBD_StringSerial
+.data	.data	24000078	56	USBD_CDC		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.o	USBD_CDC
+.data	.data	240000b0	10	USBD_CDC_DeviceQualifierDesc		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.o	USBD_CDC_DeviceQualifierDesc
+.data	.data	240000bc	67	USBD_CDC_CfgFSDesc		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.o	USBD_CDC_CfgFSDesc
+.data	.data	24000100	67	USBD_CDC_CfgHSDesc		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.o	USBD_CDC_CfgHSDesc
+.data	.data	24000144	67	USBD_CDC_OtherSpeedCfgDesc		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.o	USBD_CDC_OtherSpeedCfgDesc
+.data	.data	24000188	76	_impure_data	/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../arm-none-eabi/lib/thumb/v7e-m+dp/hard/libc_nano.a	libc_a-impure.o	_impure_data
+.data	.data	240001d4	4	_impure_ptr	/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../arm-none-eabi/lib/thumb/v7e-m+dp/hard/libc_nano.a	libc_a-impure.o	_impure_ptr
+.data	.data	240001d8	12	__sglue	/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../arm-none-eabi/lib/thumb/v7e-m+dp/hard/libc_nano.a	libc_a-findfp.o	__sglue
+.data	.data	240001e4	364	__global_locale	/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../arm-none-eabi/lib/thumb/v7e-m+dp/hard/libc_nano.a	libc_a-locale.o	__global_locale
+.tm_clone_table	.tm_clone_table	24000350	0			/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../lib/gcc/arm-none-eabi/11.3.1/thumb/v7e-m+dp/hard/crtbegin.o	
+.tm_clone_table	.tm_clone_table	24000350	0			/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../lib/gcc/arm-none-eabi/11.3.1/thumb/v7e-m+dp/hard/crtend.o	
+.igot.plt	.igot.plt	24000350	0	. = ALIGN (0x4)		/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../lib/gcc/arm-none-eabi/11.3.1/thumb/v7e-m+dp/hard/crtbegin.o	. = ALIGN (0x4)
+.bss	.completed	24000400	1	1		/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../lib/gcc/arm-none-eabi/11.3.1/thumb/v7e-m+dp/hard/crtbegin.o	1
+.bss	.object	24000404	24	0		/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../lib/gcc/arm-none-eabi/11.3.1/thumb/v7e-m+dp/hard/crtbegin.o	0
+.bss	.bss	2400041c	144	huart3		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/Core/Src/main.o	huart3
+.bss	.bss	240004ac	144	huart4		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/Core/Src/main.o	huart4
+.bss	.bss	2400053c	144	huart2		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/Core/Src/main.o	huart2
+.bss	.bss	240005cc	124	hdma_uart4_rx		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/Core/Src/main.o	hdma_uart4_rx
+.bss	.bss	24000648	112	htim17		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/Core/Src/stm32h7xx_hal_timebase_tim.o	htim17
+.bss	.bss	240006b8	4	__sbrk_heap_end		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/Core/Src/sysmem.o	__sbrk_heap_end
+.bss	.bss	240006bc	4	uwTick		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.o	uwTick
+.bss	.bss	240006c0	20	modbusVars		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/Target/Src/modbus_rtu.o	modbusVars
+.bss	.bss	24000700	256	modbusMemory		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/Target/Src/modbus_rtu.o	modbusMemory
+.bss	.bss	24000800	256	modbusRxTxBuffer		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/Target/Src/modbus_rtu.o	modbusRxTxBuffer
+.bss	.bss	24000900	4	pxCurrentTCB		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/tasks.o	pxCurrentTCB
+.bss	.bss	24000904	400	pxReadyTasksLists		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/tasks.o	pxReadyTasksLists
+.bss	.bss	24000a94	4	uxTopReadyPriority		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/tasks.o	uxTopReadyPriority
+.bss	.bss	24000a98	4	uxTaskNumber		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/tasks.o	uxTaskNumber
+.bss	.bss	24000a9c	20	xTasksWaitingTermination		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/tasks.o	xTasksWaitingTermination
+.bss	.bss	24000ab0	4	uxDeletedTasksWaitingCleanUp		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/tasks.o	uxDeletedTasksWaitingCleanUp
+.bss	.bss	24000ab4	4	uxCurrentNumberOfTasks		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/tasks.o	uxCurrentNumberOfTasks
+.bss	.bss	24000ab8	4	xSchedulerRunning		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/tasks.o	xSchedulerRunning
+.bss	.bss	24000abc	4	uxSchedulerSuspended		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/tasks.o	uxSchedulerSuspended
+.bss	.bss	24000ac0	4	xTickCount		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/tasks.o	xTickCount
+.bss	.bss	24000ac4	4	pxDelayedTaskList		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/tasks.o	pxDelayedTaskList
+.bss	.bss	24000ac8	4	pxOverflowDelayedTaskList		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/tasks.o	pxOverflowDelayedTaskList
+.bss	.bss	24000acc	20	xSuspendedTaskList		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/tasks.o	xSuspendedTaskList
+.bss	.bss	24000ae0	4	xYieldPending		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/tasks.o	xYieldPending
+.bss	.bss	24000ae4	20	xPendingReadyList		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/tasks.o	xPendingReadyList
+.bss	.bss	24000af8	4	xIdleTaskHandle		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/tasks.o	xIdleTaskHandle
+.bss	.bss	24000afc	4	xNextTaskUnblockTime		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/tasks.o	xNextTaskUnblockTime
+.bss	.bss	24000b00	4	xPendedTicks		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/tasks.o	xPendedTicks
+.bss	.bss	24000b04	4	xNumOfOverflows		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/tasks.o	xNumOfOverflows
+.bss	.bss	24000b08	20	xDelayedTaskList1		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/tasks.o	xDelayedTaskList1
+.bss	.bss	24000b1c	20	xDelayedTaskList2		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/tasks.o	xDelayedTaskList2
+.bss	.bss	24000b30	1	ucMaxSysCallPriority		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/portable/GCC/ARM_CM4F/port.o	ucMaxSysCallPriority
+.bss	.bss	24000b34	4	ulMaxPRIGROUPValue		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/portable/GCC/ARM_CM4F/port.o	ulMaxPRIGROUPValue
+.bss	.bss	24000b38	4	pxEnd		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/portable/MemMang/heap_4.o	pxEnd
+.bss	.bss	24000b3c	4	xFreeBytesRemaining		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/portable/MemMang/heap_4.o	xFreeBytesRemaining
+.bss	.bss	24000b40	8	xStart		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/portable/MemMang/heap_4.o	xStart
+.bss	.bss	24000b48	4	xMinimumEverFreeBytesRemaining		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/portable/MemMang/heap_4.o	xMinimumEverFreeBytesRemaining
+.bss	.bss	24000b4c	4	xNumberOfSuccessfulAllocations		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/portable/MemMang/heap_4.o	xNumberOfSuccessfulAllocations
+.bss	.bss	24000b50	4	xNumberOfSuccessfulFrees		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/portable/MemMang/heap_4.o	xNumberOfSuccessfulFrees
+.bss	.bss	24000b54	40960	ucHeap		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/FreeRTOS-Kernel/portable/MemMang/heap_4.o	ucHeap
+.bss	.bss	2400ab54	1	total_sym_peripherals		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/SymRuntime/runtime.o	total_sym_peripherals
+.bss	.bss	2400ab58	40	sym_peripherals		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/SymRuntime/runtime.o	sym_peripherals
+.bss	.bss	2400ab80	1160	AFLfuzzer		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/SymRuntime/runtime.o	AFLfuzzer
+.bss	.bss	2400b008	4	shadowram		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/SymRuntime/runtime.o	shadowram
+.bss	.bss	2400b00c	64	parameter_exp		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/SymRuntime/runtime.o	parameter_exp
+.bss	.bss	2400b04c	1	return_exp		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/SymRuntime/runtime.o	return_exp
+.bss	.bss	2400b050	4	start_time_val		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/Protocol/monitor-dma.o	start_time_val
+.bss	.bss	2400b054	4	stop_time_val		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/Protocol/monitor-dma.o	stop_time_val
+.bss	.bss	2400b058	1	notiTarget		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/Common/Protocol/protocol.o	notiTarget
+.bss	.bss	2400b05c	720	hUsbDeviceFS		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/USB_DEVICE/App/usb_device.o	hUsbDeviceFS
+.bss	.bss	2400b32c	2048	UserRxBufferFS		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/USB_DEVICE/App/usbd_cdc_if.o	UserRxBufferFS
+.bss	.bss	2400bb2c	2048	UserTxBufferFS		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/USB_DEVICE/App/usbd_cdc_if.o	UserTxBufferFS
+.bss	.bss	2400c32c	512	USBD_StrDesc		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/USB_DEVICE/App/usbd_desc.o	USBD_StrDesc
+.bss	.bss	2400c52c	1036	hpcd_USB_OTG_FS		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/USB_DEVICE/Target/usbd_conf.o	hpcd_USB_OTG_FS
+.bss	.USBD_static_malloc	2400c938	544	mem		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/USB_DEVICE/Target/usbd_conf.o	mem
+.bss	.USBD_SetConfig	2400cb58	1	cfgidx		/home/lcm/github/spear/spear-code/firmware/STMfirmware/SpearShellyDimmer/build/SpearShellyDimmer/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.o	cfgidx
+.bss	.bss	2400cb5c	312	__sf	/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../arm-none-eabi/lib/thumb/v7e-m+dp/hard/libc_nano.a	libc_a-findfp.o	__sf
+.bss	.bss	2400cc94	4	__stdio_exit_handler	/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../arm-none-eabi/lib/thumb/v7e-m+dp/hard/libc_nano.a	libc_a-findfp.o	__stdio_exit_handler
+.bss	.bss	2400cc98	1	__lock___malloc_recursive_mutex	/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../arm-none-eabi/lib/thumb/v7e-m+dp/hard/libc_nano.a	libc_a-lock.o	__lock___malloc_recursive_mutex
+.bss	.bss	2400cc99	1	__lock___sfp_recursive_mutex	/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../arm-none-eabi/lib/thumb/v7e-m+dp/hard/libc_nano.a	libc_a-lock.o	__lock___sfp_recursive_mutex
+.bss	.bss	2400cc9c	4	errno	/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../arm-none-eabi/lib/thumb/v7e-m+dp/hard/libc_nano.a	libc_a-reent.o	errno
+.bss	.bss	2400cca0	4	__malloc_free_list	/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../arm-none-eabi/lib/thumb/v7e-m+dp/hard/libc_nano.a	libc_a-mallocr.o	__malloc_free_list
+.bss	.bss	2400cca4	4	__malloc_sbrk_start	/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../arm-none-eabi/lib/thumb/v7e-m+dp/hard/libc_nano.a	libc_a-mallocr.o	__malloc_sbrk_start
