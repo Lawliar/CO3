@@ -656,14 +656,14 @@ public:
       for(auto it = splited2OriginalBB.begin(); it != splited2OriginalBB.end();it++){
           output<< "BB:"<<it->first->getName() <<"->BB"<<it->second->getName()<<'\n';
       }
-
+    /*
       for(auto eachTryAlternative : tryAlternatives){
           auto tryAltSymId = eachTryAlternative->symID;
           auto tryAltBBid = eachTryAlternative->BBID;
           auto operandSym = eachTryAlternative->symExpr;
           auto operand = eachTryAlternative->concreteExpr;
           output<<"tryAlt:symid:"<<tryAltSymId<<",bbid:"<<tryAltBBid<<",symop:"<<*operandSym<<",op:"<<*operand<<'\n';
-      }
+      }*/
   }
   unsigned numBits2NumBytes(unsigned numBits){
       unsigned ret = numBits / 8;
