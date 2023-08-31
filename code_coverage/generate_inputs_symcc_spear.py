@@ -80,13 +80,15 @@ def runSpear(benchmark):
             p1 = subprocess.Popen(cmd, \
                          stdout=subprocess.PIPE,stderr=subprocess.PIPE, \
                         env={**os.environ,'SYMCC_INPUT_FILE':spear_input_file, 'SYMCC_OUTPUT_DIR': spear_tmp_output_dir})
-            timeout = 20
+            timeout = 10
+            sleep_time = 10
             try:
                 p1.wait(timeout)
             except subprocess.TimeoutExpired:
-                print("time out, something is wrong")
+                print("time out, something is wrong, sleep for sometime")
                 p1.kill()
-                spear_total_time += timeout
+                time.sleep(sleep_time)
+                spear_total_time += timeout + sleep_time
                 continue
             _, e = p1.communicate()
             spear_total_time += get_total_time_out_err(e) / 1000000

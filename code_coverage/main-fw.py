@@ -30,6 +30,7 @@ def runOne(input_dir):
     #global bbs
     global dbg_print
     ret = set()
+    counter = 0
     for eachfile in tqdm(os.listdir(input_dir)):
         input_file = os.path.join(input_dir, eachfile)
         concrete_input = None
@@ -56,9 +57,16 @@ def runOne(input_dir):
                 if r[-1] == displayCodeCoverage.MsgTypes.SYM_END and r[-2] == 10:
                     broken = True
                     break
-        parsed_bbs = displayCodeCoverage.main(r)
+        try:
+            parsed_bbs = displayCodeCoverage.main(r)
+        except:
+            print("weird data collected")
+            embed()
         for bb in parsed_bbs:
             ret.add(bb)
+        counter += 1
+        if counter == 10000:
+            break
         ## reset the bbs
         
         
@@ -84,6 +92,6 @@ def runTest(benchmark):
     print("spear covered edges:{}\n".format(len(spear_bb)))
     
 def main():
-    runTest("PLC")
+    runTest("Steering_Control")
 if __name__ == '__main__':
     main()

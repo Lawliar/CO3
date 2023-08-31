@@ -8,7 +8,7 @@ _benchmark = "PLC"
 
 def runSymbion(benchmark):
     ## getting the input
-    spear_inter_dir          = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/Spear{}/intermediate_results".format(benchmark)
+    spear_inter_dir          = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/Symbion{}/intermediate_results".format(benchmark)
     concrete_input           = "{}/concreteInputs.bin".format(spear_inter_dir)
 
 
@@ -83,7 +83,8 @@ def runSymbion(benchmark):
     shutil.rmtree(symbion_tmp_output_dir)
     return symbion_output_cur_id, cur_symbion_input_id, time.time() - symbion_start_time
 def main():
-    benchmark = "PLC"
+    benchmark = "Steering_Control"
+
     symbion_output_num, symbion_input_num,symbion_total_time = runSymbion(benchmark)
     #spear_output_num, spear_input_num,spear_total_time = runSpear(benchmark)
     print("symbion generate:{} with {} runs using {}us\n".format(symbion_output_num, symbion_input_num,symbion_total_time))

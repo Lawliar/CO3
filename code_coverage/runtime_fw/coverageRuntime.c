@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include <stdio.h>
+#include "runtime.h"
 uintptr_t prev_site_id = 0;
+
 void _sym_notify_basic_block_cc(uintptr_t site_id) {
     //FILE * f= fopen("coverage", "a");
     //fprintf(f,"%lx\n",site_id ^ prev_site_id);
