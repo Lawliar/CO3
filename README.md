@@ -1,3 +1,19 @@
+## Directory:
+```
+- USBtest: helper script to send and receive messages through the serial port for debugging purpose
+- benchmark: benchmark that we considered, not used.
+- code_coverage: script that we used to compare code coverage and speed.
+- deps: projects that CO3 is dependent upon
+- firmware: source code for the firmware images used in the paper.
+- fuzzer: fuzzing and CO3 coordinator script borrowed from SymCC.
+- pass: the LLVM instrumentation pass
+- sym_backend: the symbolizer running on the workstation.
+- symbion_concolic: scripts that we use to run symbion in a concolic execution way.
+- symcc_benchmark: benchmark we use to evaluate SymCC.
+- test: visualization code to generate control- data flow graph. 
+```
+
+
 ## how to instrument the firmware
 1. required utility
     - `sudo apt install pkg-config`
@@ -28,3 +44,6 @@
 - ./configure
 - make
 - sudo make install
+
+## fair warning:
+Due to historical reasons, the whole codebase is filled with name referecens to `SPEAR`, which is the old name for `CO3`. If you see `SPEAR`, that means the same thing as `CO3`. 

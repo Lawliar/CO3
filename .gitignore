@@ -39,3 +39,4 @@ Debug/
 .vscode/
 
 test/
+benchmark/
