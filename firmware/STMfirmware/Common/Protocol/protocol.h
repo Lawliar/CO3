@@ -74,6 +74,7 @@ void FuzzingInputHandler(uint8_t* Buf, uint32_t *Len);
 void PackFunction(uint8_t *Buf, uint32_t Len);
 void TransmitPack(void);
 void notifyTXfinish();
+void SerialReceiveInput();
 
 // SHIFT stuff
 

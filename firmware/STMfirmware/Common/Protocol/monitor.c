@@ -13,8 +13,9 @@
 #include  "ring.h"
 #include "stdio.h"
 #include "string.h"
-#include "test.h"
 #include "runtime.h"
+#include "test.h"
+
 
 
 static uint32_t start_time_val, stop_time_val;
@@ -98,8 +99,12 @@ static void MonitorTask( void * pvParameters )
     while(1)
 	{
 		// we will wait for a notification on index 1 when fuzzing data has arrived
-		ulTaskNotifyTakeIndexed(1,pdTRUE, portMAX_DELAY);
-		//cleaning the packet buffer
+#ifdef USE_SERIAL_OVER_USB
+    	SerialReceiveInput();
+#else
+    	ulTaskNotifyTakeIndexed(1,pdTRUE, portMAX_DELAY);
+#endif
+    	//cleaning the packet buffer
 		//AFLfuzzer.txTotalFunctions=0;
 		/*
     	for(uint8_t i=1; i<8; i++)
@@ -115,8 +120,9 @@ static void MonitorTask( void * pvParameters )
 		//notify the target that data has arrived, and it should start execution
 		xTaskNotify(AFLfuzzer.xTaskTarget,0,eSetValueWithOverwrite);
 
-		// wait for the target command to transmit
-		// this command is generated when we have around 64 bytes ready to transmit in the buffer
+
+		// when we have around 64 bytes ready to transmit in the buffer
+		// the target task will send a notification to this
 		notificationvalue = ulTaskNotifyTakeIndexed(3,pdTRUE, TARGET_TIMEOUT);
 		while(notificationvalue)
 		{
@@ -126,8 +132,9 @@ static void MonitorTask( void * pvParameters )
 		}
 		notiTarget = NOTI_MONITOR;
 		TransmitPack(); //transmit any remaining package in the buffer if any
-
-		ulTaskNotifyTakeIndexed(2,pdTRUE, TARGET_TIMEOUT); // wait for TX finish
+#ifndef USE_SERIAL_OVER_USB
+		ulTaskNotifyTakeIndexed(2,pdTRUE, TARGET_TIMEOUT); // wait for the USB to finish transmission
+#endif
 
 		//delete the target
 		vTaskDelete(AFLfuzzer.xTaskTarget);
@@ -159,7 +166,6 @@ static void MonitorTask( void * pvParameters )
 	}
 }
 
-
 #ifdef CGC_BENCHMARK
 extern unsigned int input_cur;
 #endif
@@ -182,12 +188,13 @@ static void TargetTask( void * pvParameters )
 #endif
 		_sym_symbolize_memory((char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT),AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT, false);
 #ifdef CGC_BENCHMARK
-		modbusparsing();
+		test();
 #else
 
 		//modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
         test(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4);
-        //gps_init((gps_t*)GPSHandleRegion);
+		//HAL_UART_Transmit_test(&huart2,  (unsigned char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT), AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT,  HAL_MAX_DELAY);
+		//gps_init((gps_t*)GPSHandleRegion);
         //gps_process((gps_t*)GPSHandleRegion,&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
 		//memset(GPSHandleRegion,0, next_power_of_2(gps_handle_t_size));
 #endif
@@ -199,7 +206,7 @@ static void TargetTask( void * pvParameters )
 //#if DEBUGPRINT ==1
 		//printf("\nFinish\n");
 //#endif
-		printf("Thisend\n");
+		printf("time:%d\n",stop_time_val - start_time_val);
 
 		//xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,10,eSetValueWithOverwrite);//notify that the test finished
         //vTaskDelay(10);

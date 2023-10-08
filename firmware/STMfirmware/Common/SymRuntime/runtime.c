@@ -229,8 +229,6 @@ void txCommandtoMonitor(uint8_t size)
 	    ulTaskNotifyTakeIndexed(1,pdTRUE, portMAX_DELAY); //get notification when transmission finishes to continue execution
 	    //Note: the TxComplete callback will clean buffer after transmission so we will have space for the next function.
 	    //It also notifies the target to continue execution
-
-
 	}
 #if DEBUGPRINT ==1
 	printf("F.: %s, C.I.: %d\n",fstrings[func], (int)AFLfuzzer.txCurrentIndex );
