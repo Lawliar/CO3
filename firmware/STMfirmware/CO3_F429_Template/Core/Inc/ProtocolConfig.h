@@ -18,6 +18,18 @@
 #define MAX_USB_FRAME 64
 #define MAX_USB_FUNCTIONS 8
 
+#define SYM_RAM_ADDR_START           0x20000000
+#define SYM_RAM_SIZE                 1024*192
+#define SYM_SHADOW_RAM_START         0x1000a000
+#define SYM_SHADOW_RAM_LENGTH        1024*24
+#define SYM_SHADOW_RAM_OFFSET        0xc00a000
+
+#define SYM_FLASH_ADDR_START         0x08000000
+#define SYM_FLASH_SIZE               1024*2048
+
+#define SYM_PERIPHERAL_ADDR_START    0x40000000
+#define SYM_PERIPHERAL_SIZE          0x1FFFFFFF
+
 #define USE_SERIAL_OVER_USB
 
 
