@@ -112,17 +112,17 @@ void TransmitPack(void)
 
 }
 
-
+#ifdef USE_SERIAL_OVER_USB
 void SerialReceiveInput(uint8_t* Buf, uint32_t *Len)
 {
 
 	  //union ubytes_t auxbytes;
 	  uint32_t u32Tocopy;
-	  uint8_t error;
+	  uint8_t error = 0;
 	  if(AFLfuzzer.inputLength == 0)
 	  {
 	      HAL_UART_Receive(co3_huart, (uint8_t * )&AFLfuzzer.inputLength, sizeof(uint32_t), HAL_MAX_DELAY );
-	      AFLfuzzer.inputLengthpadded  = (AFLfuzzer.inputLength + 3) & ~0x03;
+	      AFLfuzzer.inputLengthpadded  = AFLfuzzer.inputLength;
 	      if((AFLfuzzer.inputLengthpadded)> MAX_BUFFER_INPUT)
 	      {
         	  error = 1;
@@ -131,7 +131,8 @@ void SerialReceiveInput(uint8_t* Buf, uint32_t *Len)
 
       if( AFLfuzzer.inputLengthpadded && (error == 0) )
       {
-	    	 u32Tocopy = (AFLfuzzer.inputLengthpadded) - AFLfuzzer.inputAFL.u32available;
+	    	 //u32Tocopy = (AFLfuzzer.inputLengthpadded) - AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT;
+    	     u32Tocopy = (AFLfuzzer.inputLengthpadded) - AFLfuzzer.inputAFL.u32available - sizeof(uint32_t);
 	    	 HAL_UART_Receive(co3_huart,co3_usart_input_buffer,u32Tocopy,HAL_MAX_DELAY);
 	    	 RingCopy(&AFLfuzzer.inputAFL, (uint8_t * )&AFLfuzzer.inputLength, AFL_BUFFER_STARTING_POINT);
 	    	 RingCopy(&AFLfuzzer.inputAFL, Buf, u32Tocopy);
@@ -144,6 +145,7 @@ void SerialReceiveInput(uint8_t* Buf, uint32_t *Len)
 	  	     }
       }
 }
+#endif
 
 void FuzzingInputHandler(uint8_t* Buf, uint32_t *Len)
 {

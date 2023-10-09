@@ -186,6 +186,10 @@ static void TargetTask( void * pvParameters )
 #ifdef CGC_BENCHMARK
         input_cur = 0;
 #endif
+        //if(AFLfuzzer.inputAFL.u32available <= AFL_BUFFER_STARTING_POINT){
+        	// THE DATA IS NOT READY, but the monitor said it is, what is going on?
+        //	while(1){}
+        //}
 		_sym_symbolize_memory((char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT),AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT, false);
 #ifdef CGC_BENCHMARK
 		test();
