@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:noNamespaceSchemaLocation="http://www.chibios.org/xml/schema/ccode/modules.xsd"
+  name="hal_cb_driver" descr="Callback Driver" editcode="false">
+  <brief>Common ancestor of callback-based drivers</brief>
+  <imports>
+    <import>hal_base_driver.xml</import>
+  </imports>
+  <public>
+    <definitions_early>
+      <group description="Callback-related driver states">
+        <define name="HAL_DRV_STATE_COMPLETE" value="6U" />
+        <define name="HAL_DRV_STATE_ERROR" value="7U" />
+      </group>
+    </definitions_early>
+    <macros>
+      <group description="Support macros">
+        <macro name="__cbdrv_invoke_cb">
+          <brief>Callback invocation.</brief>
+          <param name="self" dir="both">Pointer to driver instance.</param>
+          <notapi />
+          <implementation><![CDATA[
+do {
+  if ((self)->cb != NULL) {
+    (self)->cb(self);
+  }
+} while (false)]]></implementation>
+        </macro>
+        <macro name="__cbdrv_invoke_cb_with_transition">
+          <brief>Callback invocation with state transitions management.</brief>
+          <param name="self" dir="both">Pointer to driver instance.</param>
+          <param name="cbstate" dir="in">Driver state during callback execution.</param>
+          <param name="endstate" dir="in">Driver state after callback return.</param>
+          <notapi />
+          <implementation><![CDATA[
+do {
+  if ((self)->cb != NULL) {
+    (self)->state = (cbstate);
+    (self)->cb(self);
+    if ((self)->state == (cbstate)) {
+      (self)->state = (endstate);
+    }
+  }
+  else {
+    self->state = (endstate);
+  }
+} while (false)]]></implementation>
+        </macro>
+      </group>
+    </macros>
+    <types>
+      <typedef name="drv_status_t">
+        <brief>Type of driver status.</brief>
+        <basetype ctype="eventflags_t" />
+      </typedef>
+      <typedef name="drv_cb_t">
+        <brief>Driver callback type.</brief>
+        <basetype ctype="void (*$N)(void *ip)" />
+      </typedef>
+      <class type="abstract" name="hal_cb_driver" namespace="cbdrv"
+        ancestorname="hal_base_driver" descr="callback driver">
+        <brief>Class of a callback-based driver.</brief>
+        <fields>
+          <field name="cb" ctype="drv_cb_t">
+            <brief>Driver callback.</brief>
+            <note>Can be @p NULL.</note>
+          </field>
+        </fields>
+        <methods>
+          <objinit callsuper="true">
+            <implementation><![CDATA[
+self->cb = NULL;]]></implementation>
+          </objinit>
+          <dispose>
+            <implementation><![CDATA[ ]]></implementation>
+          </dispose>
+          <virtual>
+            <method name="drvSetCallbackX" ctype="void" shortname="setcb">
+              <brief>Associates a callback to the driver instance.</brief>
+              <param name="cb" ctype="drv_cb_t">
+                Callback function to be associated. Passing @p NULL
+                disables the existing callback, if any.
+              </param>
+              <xclass />
+              <implementation><![CDATA[
+
+self->cb = cb;]]></implementation>
+            </method>
+            <method name="drvGetStatusX" ctype="drv_status_t" shortname="gsts">
+              <brief>Returns all driver status flags without clearing.</brief>
+              <iclass />
+              <implementation><![CDATA[
+
+(void)self;
+
+return (drv_status_t)0;]]></implementation>
+            </method>
+            <method name="drvGetAndClearStatusI" ctype="drv_status_t" shortname="gcsts">
+              <brief>Returns the specified driver status flags and clears them.</brief>
+              <param name="mask" ctype="drv_status_t" dir="in">Flags to
+                be returned and cleared.
+              </param>
+              <xclass />
+              <implementation><![CDATA[
+
+(void)self;
+(void)mask;
+
+return (drv_status_t)0;]]></implementation>
+            </method>
+          </virtual>
+          <inline>
+            <method name="drvGetCallbackX" ctype="drv_cb_t">
+              <brief>Returns the callback associated to the driver instance.</brief>
+              <xclass />
+              <implementation><![CDATA[
+
+return self->cb;]]></implementation>
+            </method>
+            <method name="drvStateIsCompleteI" ctype="bool">
+              <brief>Checks for @p HAL_DRV_STATE_COMPLETE state.</brief>
+              <details><![CDATA[The @p HAL_DRV_STATE_COMPLETE state is used by
+                those drivers triggering multiple callbacks for a single
+                asynchronous operation, it marks the last callback in the
+                sequence.]]></details>
+              <note><![CDATA[This function is meant to be called exclusively from
+                the driver callback.]]></note>
+              <return>The check result.</return>
+              <retval value="false">If the current state is not @p HAL_DRV_STATE_COMPLETE.</retval>
+              <retval value="true">If the current state is @p HAL_DRV_STATE_COMPLETE.</retval>
+              <api />
+              <implementation><![CDATA[
+
+return (bool)(self->state == HAL_DRV_STATE_COMPLETE);]]></implementation>
+            </method>
+            <method name="drvStateIsErrorI" ctype="bool">
+              <brief>Checks for @p HAL_DRV_STATE_ERROR state.</brief>
+              <details><![CDATA[The @p HAL_DRV_STATE_ERROR state during a callback
+                marks an error in an asynchronous operation, the operation is
+                implicitly stopped and the driver is switched back to its
+                @p HAL_DRV_STATE_READY state.]]></details>
+              <note><![CDATA[This function is meant to be called exclusively from
+                the driver callback.]]></note>
+              <return>The check result.</return>
+              <retval value="false">If the current state is not @p HAL_DRV_STATE_ERROR.</retval>
+              <retval value="true">If the current state is @p HAL_DRV_STATE_ERROR.</retval>
+              <api />
+              <implementation><![CDATA[
+
+return (bool)(self->state == HAL_DRV_STATE_ERROR);]]></implementation>
+            </method>
+          </inline>
+        </methods>
+      </class>
+    </types>
+  </public>
+  <private>
+    <includes_always>
+      <include style="regular">hal.h</include>
+    </includes_always>
+  </private>
+</module>
