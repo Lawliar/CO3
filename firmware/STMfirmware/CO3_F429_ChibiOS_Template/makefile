@@ -26,6 +26,7 @@ INSTRUMENTATION_LIB := /home/lcm/github/spear/spear-code/pass/symbolizer/cmake-b
 #COMPILER ?= arm-none-eabi-gcc
 CC := $(CLANG_COMPILER)
 
+
 $(info $(CC))
 
 
@@ -94,7 +95,7 @@ PROTOCOL_DIR := $(ROOT_DIR)/Common/Protocol
 PROTOCOL_INCLUDE_DIR :=  -I$(PROTOCOL_DIR)
 
 PROTOCOL_SOURCES := \
-$(PROTOCOL_DIR)/monitor-ChibiOS.c \
+$(PROTOCOL_DIR)/monitor.c \
 $(PROTOCOL_DIR)/protocol.c \
 $(PROTOCOL_DIR)/ring.c
 
@@ -138,26 +139,30 @@ CHIBIOS := $(CHIBIOS_DIR)
 CONFDIR := $(CHIBIOS_DIR)/demos/STM32/RT-STM32F429ZI-NUCLEO144/cfg
 BUILDDIR := $(BUILD_DIR)
 DEPDIR := $(DEP_DIR)
-
+MCU  = cortex-m4
 # Licensing files.
-include $(CHIBIOS_DIR)/os/license/license.mk
+include $(CHIBIOS)/os/license/license.mk
 # Startup files.
-include $(CHIBIOS_DIR)/os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32h7xx.mk
+include $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
 # HAL-OSAL files (optional).
-include $(CHIBIOS_DIR)/os/hal/hal.mk
-include $(CHIBIOS_DIR)/os/hal/ports/STM32/STM32H7xx/platform.mk
-include $(CHIBIOS_DIR)/os/hal/boards/ST_NUCLEO144_H743ZI/board.mk
-include $(CHIBIOS_DIR)/os/hal/osal/rt-nil/osal.mk
+include $(CHIBIOS)/os/hal/hal.mk
+include $(CHIBIOS)/os/hal/ports/STM32/STM32F4xx/platform.mk
+include $(CHIBIOS)/os/hal/boards/ST_NUCLEO144_F429ZI/board.mk
+include $(CHIBIOS)/os/hal/osal/rt-nil/osal.mk
 # RTOS files (optional).
-include $(CHIBIOS_DIR)/os/rt/rt.mk
-include $(CHIBIOS_DIR)/os/common/ports/ARMv7-M/compilers/GCC/mk/port.mk
+include $(CHIBIOS)/os/rt/rt.mk
+include $(CHIBIOS)/os/common/ports/ARMv7-M/compilers/GCC/mk/port.mk
 # Auto-build files in ./source recursively.
-include $(CHIBIOS_DIR)/tools/mk/autobuild.mk
+include $(CHIBIOS)/tools/mk/autobuild.mk
 # Other files (optional).
-include $(CHIBIOS_DIR)/os/test/test.mk
-include $(CHIBIOS_DIR)/test/rt/rt_test.mk
-include $(CHIBIOS_DIR)/test/oslib/oslib_test.mk
+include $(CHIBIOS)/os/test/test.mk
+include $(CHIBIOS)/test/rt/rt_test.mk
+include $(CHIBIOS)/test/oslib/oslib_test.mk
 
+
+CONFDIR := $(addprefix -I,$(CONFDIR))
+ALLINC := $(addprefix -I,$(ALLINC))
+TESTINC := $(addprefix -I,$(TESTINC))
 
 ## Coremark Dir, include, sources
 COREMARK_HAL_DIR := $(PROJ_DIR)/Target
@@ -174,23 +179,21 @@ PROJECT_CORE_DIR := $(PROJ_DIR)/Core
 
 PROJECT_CORE_INCLUDE_DIR := -I$(PROJECT_CORE_DIR)/Inc
 
-PROJECT_CORE_SOURCES := \
-$(PROJECT_CORE_DIR)/Src/main.c \
-$(PROJECT_CORE_DIR)/Src/stm32f4xx_hal_msp.c \
-$(PROJECT_CORE_DIR)/Src/stm32f4xx_it.c \
-$(PROJECT_CORE_DIR)/Src/syscalls.c \
-$(PROJECT_CORE_DIR)/Src/sysmem.c \
-$(PROJECT_CORE_DIR)/Src/system_stm32f4xx.c
+PROJECT_CORE_SOURCES := $(PROJECT_CORE_DIR)/Src/main.c
+#PROJECT_CORE_SOURCES += $(PROJECT_CORE_DIR)/Src/stm32f4xx_hal_msp.c 
+#PROJECT_CORE_SOURCES += $(PROJECT_CORE_DIR)/Src/stm32f4xx_it.c 
+PROJECT_CORE_SOURCES += $(PROJECT_CORE_DIR)/Src/syscalls.c 
+PROJECT_CORE_SOURCES += $(PROJECT_CORE_DIR)/Src/sysmem.c 
+#PROJECT_CORE_SOURCES += $(PROJECT_CORE_DIR)/Src/system_stm32f4xx.c
 
 
-SRC_FILES +=  \
-$(PROJECT_CORE_SOURCES) \
-$(DRIVERS_SOURCES) \
-$(COREMARK_HAL_SOURCES) \
-$(SYMRUNTIME_SOURCES) \
-$(PROTOCOL_SOURCES) \
-$(ALLCSRC) \
-$(TESTSRC) 
+SRC_FILES += $(PROJECT_CORE_SOURCES)
+#SRC_FILES += $(DRIVERS_SOURCES) 
+SRC_FILES += $(COREMARK_HAL_SOURCES) 
+SRC_FILES += $(SYMRUNTIME_SOURCES) 
+SRC_FILES += $(PROTOCOL_SOURCES) 
+SRC_FILES += $(ALLCSRC) 
+SRC_FILES += $(TESTSRC) 
 
 
 
@@ -210,19 +213,15 @@ OBJ_FILES := $(OBJ_FILES) \
 $(patsubst $(ROOT_DIR)/%.s,$(BUILD_DIR)/%.o,$(STARTUP_SOURCES))
 
 
-CONFDIR := $(addprefix -I,$(CONFDIR))
-ALLINC := $(addprefix -I,$(ALLINC))
-TESTINC := $(addprefix -I,$(TESTINC))
-INCLUDE_PATHS += \
-  $(DRIVERS_INCLUDE_DIR) \
-  $(PROJECT_CORE_INCLUDE_DIR) \
-  $(COREMARK_HAL_INCLUDE_DIR) \
-  $(SYMRUNTIME_INCLUDE_DIR) \
-  $(PROTOCOL_INCLUDE_DIR) \
-  $(MIDDLEWARE_INCLUDE_DIR) \
-  $(CONFDIR) \
-  $(ALLINC) \
-  $(TESTINC)
+#INCLUDE_PATHS += $(DRIVERS_INCLUDE_DIR) 
+INCLUDE_PATHS += $(PROJECT_CORE_INCLUDE_DIR) 
+INCLUDE_PATHS += $(COREMARK_HAL_INCLUDE_DIR) 
+INCLUDE_PATHS += $(SYMRUNTIME_INCLUDE_DIR) 
+INCLUDE_PATHS += $(PROTOCOL_INCLUDE_DIR) 
+#INCLUDE_PATHS += $(MIDDLEWARE_INCLUDE_DIR) 
+INCLUDE_PATHS += $(CONFDIR) 
+INCLUDE_PATHS += $(ALLINC) 
+INCLUDE_PATHS += $(TESTINC)
 
 
 # Note: These arguments will be used by clang to select
@@ -291,13 +290,16 @@ CFLAGS += -Wall
 CFLAGS += -Werror 
 CFLAGS += -nostdlib 
 #CFLAGS += -DDEBUG 
-CFLAGS += -DUSE_HAL_DRIVER 
-CFLAGS += -DSTM32F429xx 
+#CFLAGS += -DUSE_HAL_DRIVER 
 #CFLAGS += -Wno-parentheses-equality 
 CFLAGS +=  $(COMPILER_SPECIFIC_CFLAGS) 
 CFLAGS +=  $(ARCH_CFLAGS) 
 CFLAGS +=  $(CLI_CFLAG_OVERRIDES)
 
+CFLAGS_CHIBIOS := $(CFLAGS)
+
+CFLAGS_NON_CHIBIOS := $(CFLAGS)
+CFLAGS_NON_CHIBIOS += -DSTM32F429xx
 
 
 #ASFLAGS += -g3
@@ -343,23 +345,6 @@ clean:
 
 
 
-
-
-#flash: $(TARGET_ELF)
-
-H743AM := $(shell STM32_Programmer_CLI --Connect port=SWD sn=002800243156501420323443 > /dev/null 2>&1 ; echo $$?)
-H743CH := $(shell STM32_Programmer_CLI --Connect port=SWD sn=0046003D3137511239383538 > /dev/null 2>&1 ; echo $$?)
-
-flash: $(TARGET_ELF)
-ifeq ($(H743AM),0)
-	STM32_Programmer_CLI -c port=SWD -w $(BUILD_DIR)/stm32h743.elf -v -ob displ -hardRst  sn=002800243156501420323443
-else
-ifeq ($(H743CH),0)
-	STM32_Programmer_CLI -c port=SWD -w $(BUILD_DIR)/stm32h743.elf -v -ob displ -hardRst  sn=0046003D3137511239383538
-else
-	@echo "ERROR: No Board H743 found"
-endif	
-endif	
     
 
 # CheckBoard ="$(shell $(CC) -v 2>&1 | head -2)"
@@ -394,39 +379,39 @@ $(OBJ_FILES): $(SRC_FILES) makefile
 $(BUILD_DIR)/$(PROJ_NAME)/Core/Src/%.o:  $(PROJ_DIR)/Core/Src/%.c | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
-	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
+	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS_CHIBIOS) $(INCLUDE_PATHS) -c -o $@ $<
 
 
 # build drivers
 $(BUILD_DIR)/$(PROJ_NAME)/Drivers/%.o: $(PROJ_DIR)/Drivers/%.c  | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
-	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
+	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS_NON_CHIBIOS) $(INCLUDE_PATHS) -c -o $@ $<
 
 
 # build Assembly startup code
 $(BUILD_DIR)/$(PROJ_NAME)/Core/Startup/%.o: $(PROJ_DIR)/Core/Startup/%.s | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
-	$(Q) $(CC) $(DEP_CFLAGS) $(ASFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
+	$(Q) $(CC) $(DEP_CFLAGS) $(ASFLAGS) $(CFLAGS_NON_CHIBIOS) $(INCLUDE_PATHS) -c -o $@ $<
 
-# build freertos
+# build RTOS
 $(BUILD_DIR)/Common/ChibiOS/%.o: $(ROOT_DIR)/Common/ChibiOS/%.c | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
-	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
+	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS_CHIBIOS) $(INCLUDE_PATHS) -c -o $@ $<
 
 # build protocol code
 $(BUILD_DIR)/Common/Protocol/%.o: $(ROOT_DIR)/Common/Protocol/%.c | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
-	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
+	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS_NON_CHIBIOS) $(INCLUDE_PATHS) -c -o $@ $<
 
 # build Runtime Code
 $(BUILD_DIR)/Common/SymRuntime/%.o: $(ROOT_DIR)/Common/SymRuntime/%.c  | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
-	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
+	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS_NON_CHIBIOS) $(INCLUDE_PATHS) -c -o $@ $<
 
 #$(BUILD_DIR)/$(PROJ_NAME)/Target/%.o: $(PROJ_DIR)/Target/%.c| $(BUILD_DIR) $(DEP_DIR) 
 #	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
@@ -435,23 +420,23 @@ $(BUILD_DIR)/Common/SymRuntime/%.o: $(ROOT_DIR)/Common/SymRuntime/%.c  | $(BUILD
 
 
 #build instrumented coremark
-$(BUILD_DIR)/$(PROJ_NAME)/Target/Src/%.o: $(PROJ_DIR)/Target/Src/%.c | $(BUILD_DIR) $(DEP_DIR) 
-	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
-	@mkdir -p $(dir $@)
-	@mkdir -p $(OUTPUT_DIR)
-ifeq "13" "$(word 1, $(sort 13 $(LLVM_MAJOR_VER)))"
-	$(Q) $(CLANG_COMPILER) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -Xclang -load -Xclang ${INSTRUMENTATION_LIB} -Xclang -fpass-plugin=${INSTRUMENTATION_LIB} -mllvm "-out=$(OUTPUT_DIR)" -c -o $@ $< -Qunused-arguments
-else
-	$(Q) $(CLANG_COMPILER) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -S -emit-llvm -o $@_raw.ll $<
-	$(Q) $(OPT) -load ${INSTRUMENTATION_LIB} --symbolize -out $(OUTPUT_DIR) -o $@_ins.ll $@_raw.ll
-	$(Q) $(LLC) -filetype=obj -o $@ $@_ins.ll
-endif
-
-#build the uninstrumented coremark
-#$(BUILD_DIR)/$(PROJ_NAME)/Target/UninstrumentedSrc/%.o: $(PROJ_DIR)/Target/UninstrumentedSrc/%.c | $(BUILD_DIR) $(DEP_DIR) 
+#$(BUILD_DIR)/$(PROJ_NAME)/Target/Src/%.o: $(PROJ_DIR)/Target/Src/%.c | $(BUILD_DIR) $(DEP_DIR) 
 #	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 #	@mkdir -p $(dir $@)
-#	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
+#	@mkdir -p $(OUTPUT_DIR)
+#ifeq "13" "$(word 1, $(sort 13 $(LLVM_MAJOR_VER)))"
+#	$(Q) $(CLANG_COMPILER) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -Xclang -load -Xclang ${INSTRUMENTATION_LIB} -Xclang -fpass-plugin=${INSTRUMENTATION_LIB} -mllvm "-out=$(OUTPUT_DIR)" -c -o $@ $< -Qunused-arguments
+#else
+#	$(Q) $(CLANG_COMPILER) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -S -emit-llvm -o $@_raw.ll $<
+#	$(Q) $(OPT) -load ${INSTRUMENTATION_LIB} --symbolize -out $(OUTPUT_DIR) -o $@_ins.ll $@_raw.ll
+#	$(Q) $(LLC) -filetype=obj -o $@ $@_ins.ll
+#endif
+
+#build the uninstrumented coremark
+$(BUILD_DIR)/$(PROJ_NAME)/Target/UninstrumentedSrc/%.o: $(PROJ_DIR)/Target/UninstrumentedSrc/%.c | $(BUILD_DIR) $(DEP_DIR) 
+	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
+	@mkdir -p $(dir $@)
+	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS_NON_CHIBIOS) $(INCLUDE_PATHS) -c -o $@ $<
 
 #$(CC) -mcpu=cortex-m3 -g3 -DDEBUG -c -x assembler-with-cpp -MMD -MP -MF"$(DEP_DIR)/startup_stm32l152retx.d" -MT"$(BUILD_DIR)/Core/Startup/startup_stm32l152retx.o" --specs=nano.specs -mfloat-abi=soft -mthumb  -o $@ $< 
    

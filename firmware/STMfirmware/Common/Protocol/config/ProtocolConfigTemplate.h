@@ -33,4 +33,12 @@
 // see if you wanna use serial port over usb
 //#define USE_SERIAL_OVER_USB
 
+// which RTOS you use
+
+#define USE_CHIBIOS
+
+#define USE_FREERTOS
+
+
+
 #endif /* PROTOCOLCONFIG_H_ */

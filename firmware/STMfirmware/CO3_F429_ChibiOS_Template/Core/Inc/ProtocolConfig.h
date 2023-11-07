@@ -32,5 +32,6 @@
 
 #define USE_SERIAL_OVER_USB
 
+#define USE_CHIBIOS
 
 #endif /* PROTOCOLCONFIG_H_ */

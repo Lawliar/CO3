@@ -5,7 +5,8 @@
  *      Author: alejandro
  */
 
-#include "FreeRTOS.h"
+
+
 #include "task.h"
 #include "protocol.h"
 #include "main.h"
@@ -16,12 +17,23 @@
 #include "runtime.h"
 #include "test.h"
 
-
+#if defined(USE_FREERTOS)
+#include "FreeRTOS.h"
+#elif defined(USE_CHIBIOS)
+#include "ch.h"
+#include "hal.h"
+#endif
 
 static uint32_t start_time_val, stop_time_val;
 
-// for getting time
-//#include "stm32h7xx_hal.h"
+
+#ifdef USE_CHIBIOS
+//static StackType_t targetTaskStack[ configMINIMAL_STACK_SIZE ] __attribute__( ( aligned( configMINIMAL_STACK_SIZE * sizeof( StackType_t ) ) ) );
+static THD_WORKING_AREA(targetTaskStack, configMINIMAL_STACK_SIZE*8);
+//static StackType_t FuzzerTaskStack[ configMINIMAL_STACK_SIZE ] __attribute__( ( aligned( configMINIMAL_STACK_SIZE * sizeof( StackType_t ) ) ) );
+static THD_WORKING_AREA(MonitorTaskStack, configMINIMAL_STACK_SIZE);
+
+#endif
 
 void vStartMonitor( void );
 void spawnNewTarget( void );
@@ -46,14 +58,18 @@ void app_main( void )
 //creates the monitor task
 void vStartMonitor( void )
 {
-
+#ifdef USE_FREERTOS
 	xTaskCreate(MonitorTask,
 			    "Monitor",
 				configMINIMAL_STACK_SIZE,
 				NULL,
 				10,
 				&AFLfuzzer.xTaskMonitor);
+#elif defined USE_CHIBIOS
 
+CO3_TARGET_TIMEOUT  = chTimeMS2I(2000);
+chThdCreateStatic(MonitorTask, sizeof(MonitorTaskStack), NORMALPRIO+1, fuzzerTask, NULL);
+#endif
 
 }
 
