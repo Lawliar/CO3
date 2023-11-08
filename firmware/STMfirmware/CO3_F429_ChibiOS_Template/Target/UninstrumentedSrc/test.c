@@ -5,6 +5,7 @@
  *      Author: alejandro
  */
 #include "test.h"
+#include "main.h"
 //#include "stdio.h"
 //#include "afl.h"
 //#include "stdlib.h"

@@ -299,7 +299,7 @@ CFLAGS +=  $(CLI_CFLAG_OVERRIDES)
 CFLAGS_CHIBIOS := $(CFLAGS)
 
 CFLAGS_NON_CHIBIOS := $(CFLAGS)
-CFLAGS_NON_CHIBIOS += -DSTM32F429xx
+CFLAGS_NON_CHIBIOS += -Wno-macro-redefined -DSTM32F429xx # -Wno-macro-redefined might cause some problem, but we will see
 
 
 #ASFLAGS += -g3
@@ -319,12 +319,15 @@ LDFLAGS +=  $(ARCH_CFLAGS)
 LDFLAGS += -T$(LDSCRIPT)
 LDFLAGS += --specs=nosys.specs
 LDFLAGS += -fno-short-enums
+LDFLAGS += -Wl,--defsym=__main_stack_size__=0x400,--defsym=__process_stack_size__=0x800
 LDFLAGS += -Wl,-Map="$(BUILD_DIR)/$(TARGET).map"
 LDFLAGS += -Wl,--gc-sections -static 
 LDFLAGS += --specs=nano.specs
 LDFLAGS += -Wl,--start-group -lc -lm -Wl,--end-group
 LDFLAGS += -u _printf_float
 LDFLAGS += $(CLI_LDFLAG_OVERRIDES)
+
+
 
 
 LINKER_OVERRIDE ?=
@@ -420,10 +423,11 @@ $(BUILD_DIR)/Common/SymRuntime/%.o: $(ROOT_DIR)/Common/SymRuntime/%.c  | $(BUILD
 
 
 #build instrumented coremark
-#$(BUILD_DIR)/$(PROJ_NAME)/Target/Src/%.o: $(PROJ_DIR)/Target/Src/%.c | $(BUILD_DIR) $(DEP_DIR) 
-#	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
-#	@mkdir -p $(dir $@)
-#	@mkdir -p $(OUTPUT_DIR)
+$(BUILD_DIR)/$(PROJ_NAME)/Target/Src/%.o: $(PROJ_DIR)/Target/Src/%.c | $(BUILD_DIR) $(DEP_DIR) 
+	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
+	@mkdir -p $(dir $@)
+	@mkdir -p $(OUTPUT_DIR)
+	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS_NON_CHIBIOS) $(INCLUDE_PATHS) -c -o $@ $<
 #ifeq "13" "$(word 1, $(sort 13 $(LLVM_MAJOR_VER)))"
 #	$(Q) $(CLANG_COMPILER) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -Xclang -load -Xclang ${INSTRUMENTATION_LIB} -Xclang -fpass-plugin=${INSTRUMENTATION_LIB} -mllvm "-out=$(OUTPUT_DIR)" -c -o $@ $< -Qunused-arguments
 #else
