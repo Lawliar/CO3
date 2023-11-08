@@ -225,10 +225,19 @@ void txCommandtoMonitor(uint8_t size)
     #if DEBUGPRINT ==1
 	    printf("TX Nbytes: %d\n",(int)AFLfuzzer.txCurrentIndex );
     #endif
-		xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,3,1,eSetValueWithOverwrite); //notify the Monitor to transmit
+#if defined USE_FREERTOS
+	    xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,3,1,eSetValueWithOverwrite); //notify the Monitor to transmit
 	    ulTaskNotifyTakeIndexed(1,pdTRUE, portMAX_DELAY); //get notification when transmission finishes to continue execution
+#elif defined USE_CHIBIOS
+	    chEvtSignal(AFLfuzzer.xTaskMonitor, MORE_DATA_TO_COME);
+	    eventmask_t evt = chEvtWaitAny(ALL_EVENTS);
+	    if(evt != TRANSMIT_FINISHED){
+	    	while(1) {}
+	    }
+#endif
 	    //Note: the TxComplete callback will clean buffer after transmission so we will have space for the next function.
 	    //It also notifies the target to continue execution
+
 	}
 #if DEBUGPRINT ==1
 	printf("F.: %s, C.I.: %d\n",fstrings[func], (int)AFLfuzzer.txCurrentIndex );

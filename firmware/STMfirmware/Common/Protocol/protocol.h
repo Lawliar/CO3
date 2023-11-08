@@ -83,6 +83,20 @@ typedef struct
 extern Symex_t AFLfuzzer;
 extern uint8_t notiTarget;
 
+#if defined USE_CHIBIOS
+// control related communication
+#define FUZZER_TARGET_READY EVENT_MASK(31)
+#define TARGET_GO_AHEAD EVENT_MASK(30)
+#define TARGET_SHOULD_KILL_SELF EVENT_MASK(29)
+#define TRANSMIT_FINISHED EVENT_MASK(28)
+// status related communication
+#define ASAN_FAULT_CH EVENT_MASK(1)
+#define FAULT_CRASH_CH EVENT_MASK(2)
+#define NO_CHIBIOS_CH EVENT_MASK(3)
+#define MORE_DATA_TO_COME EVENT_MASK(4)
+#define NO_MORE_DATA_TO_COME EVENT_MASK(5)
+#define configMINIMAL_STACK_SIZE                ( ( uint16_t ) 512 )
+#endif
 
 void FuzzingInputHandler(uint8_t* Buf, uint32_t *Len);
 void PackFunction(uint8_t *Buf, uint32_t Len);
