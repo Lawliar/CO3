@@ -9,6 +9,9 @@
 #include "protocol.h"
 #include "stdint.h"
 
+#if defined USE_FREERTOS
+#include "main.h"
+#endif
 
 #ifdef USE_SERIAL_OVER_USB
 

@@ -17,9 +17,11 @@
 #include "runtime.h"
 #include "test.h"
 
+
 #if defined(USE_FREERTOS)
 #include "FreeRTOS.h"
 #include "task.h"
+#include "main.h"
 #elif defined(USE_CHIBIOS)
 #include "ch.h"
 #include "hal.h"
@@ -75,12 +77,14 @@ void vStartMonitor( void )
 
 }
 
+#if defined USE_CHIBIOS
 void killTarget(){
     eventmask_t events = 0;
     events |= TARGET_SHOULD_KILL_SELF;
     chEvtSignal(AFLfuzzer.xTaskTarget, events);
     return;
 }
+#endif
 
 //creates a target task
 void spawnNewTarget( void )
