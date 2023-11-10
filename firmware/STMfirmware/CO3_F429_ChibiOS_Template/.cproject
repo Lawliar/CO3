@@ -48,6 +48,42 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Target/Inc}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/FreeRTOS-Kernel/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/FreeRTOS-Kernel/portable/GCC/ARM_CM4F}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/license}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/common/portability/GCC }&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/common/startup/ARMCMx/compilers/GCC }&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/demos/STM32/RT-STM32F429ZI-NUCLEO144/cfg}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/common/startup/ARMCMx/devices/STM32F4xx}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/common/ext/ST/STM32F4xx}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/ports/common/ARMCMx}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/ports/STM32/STM32F4xx}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/ports/STM32/LLD/ADCv2}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/ports/STM32/LLD/CANv1}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/ports/STM32/LLD/CRYPv1}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/ports/STM32/LLD/DACv1}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/ports/STM32/LLD/DMAv2}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/ports/STM32/LLD/EXTIv1}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/ports/STM32/LLD/GPIOv2}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/ports/STM32/LLD/I2Cv1}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/ports/STM32/LLD/MACv1}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/ports/STM32/LLD/OTGv1}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/ports/STM32/LLD/QUADSPIv1}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/ports/STM32/LLD/RTCv2}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/ports/STM32/LLD/SPIv1}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/ports/STM32/LLD/SDIOv1}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/ports/STM32/LLD/SYSTICKv1}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/ports/STM32/LLD/TIMv1}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/ports/STM32/LLD/USART}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/ports/STM32/LLD/USARTv1}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/ports/STM32/LLD/xWDGv1}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/boards/ST_NUCLEO144_F429ZI}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/hal/osal/rt-nil}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/rt/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/oslib/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/common/portability/GCC}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/common/ports/ARM-common}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/common/ports/ARMv7-M}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/ChibiOS/os/common/ext/ARM/CMSIS/Core/Include}&quot;"/>
 									<listOptionValue builtIn="false" value="../Drivers/STM32F4xx_HAL_Driver/Inc"/>
 									<listOptionValue builtIn="false" value="../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy"/>
 									<listOptionValue builtIn="false" value="../Drivers/CMSIS/Device/ST/STM32F4xx/Include"/>
@@ -78,12 +114,13 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
+						<entry excluding="os/xhal/src/hal_cb_driver.c|os/xhal/src/hal_buffered_serial.c|os/xhal/src/hal_base_driver.c|testrt|testhal|testex|test|tools/style/test.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="ChibiOS"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="FreeRTOS-Kernel"/>
 						<entry excluding="monitor-shelly.c|monitor-dma-midi.c|monitor-dma.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Protocol"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="SymRuntime"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Target"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -157,12 +194,13 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
+						<entry excluding="os/xhal/src/hal_cb_driver.c|os/xhal/src/hal_buffered_serial.c|os/xhal/src/hal_base_driver.c|testrt|testhal|testex|test|tools/style/test.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="ChibiOS"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="FreeRTOS-Kernel"/>
 						<entry excluding="monitor-shelly.c|monitor-dma-midi.c|monitor-dma.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Protocol"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="SymRuntime"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Target"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

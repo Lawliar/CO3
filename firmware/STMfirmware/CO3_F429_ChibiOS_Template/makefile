@@ -165,7 +165,7 @@ CONFDIR := $(addprefix -I,$(CONFDIR))
 ALLINC := $(addprefix -I,$(ALLINC))
 TESTINC := $(addprefix -I,$(TESTINC))
 
-
+$(info "CONFDIR:$(CONFDIR)")
 ## Coremark Dir, include, sources
 COREMARK_HAL_DIR := $(PROJ_DIR)/Target
 
@@ -297,7 +297,7 @@ endif
 
 CFLAGS += -O0
 CFLAGS += -std=gnu11
-#CFLAGS += -g
+CFLAGS += -g
 CFLAGS += -ffunction-sections
 CFLAGS += -fdata-sections
 CFLAGS += -Wall

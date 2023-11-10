@@ -58,6 +58,31 @@ MEMORY
     ram7   (wx) : org = 0x00000000, len = 0
 }
 
+__ram0_base__           = ORIGIN(ram0);
+__ram0_size__           = LENGTH(ram0);
+__ram0_end__            = __ram0_base__ + __ram0_size__;
+__ram1_base__           = ORIGIN(ram1);
+__ram1_size__           = LENGTH(ram1);
+__ram1_end__            = __ram1_base__ + __ram1_size__;
+__ram2_base__           = ORIGIN(ram2);
+__ram2_size__           = LENGTH(ram2);
+__ram2_end__            = __ram2_base__ + __ram2_size__;
+__ram3_base__           = ORIGIN(ram3);
+__ram3_size__           = LENGTH(ram3);
+__ram3_end__            = __ram3_base__ + __ram3_size__;
+__ram4_base__           = ORIGIN(ram4);
+__ram4_size__           = LENGTH(ram4);
+__ram4_end__            = __ram4_base__ + __ram4_size__;
+__ram5_base__           = ORIGIN(ram5);
+__ram5_size__           = LENGTH(ram5);
+__ram5_end__            = __ram5_base__ + __ram5_size__;
+__ram6_base__           = ORIGIN(ram6);
+__ram6_size__           = LENGTH(ram6);
+__ram6_end__            = __ram6_base__ + __ram6_size__;
+__ram7_base__           = ORIGIN(ram7);
+__ram7_size__           = LENGTH(ram7);
+__ram7_end__            = __ram7_base__ + __ram7_size__;
+
 /* Sections */
 SECTIONS
 {
