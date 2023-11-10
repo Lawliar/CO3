@@ -48,7 +48,15 @@ MEMORY
   CCMRAM    (xrw)    : ORIGIN = 0x10000000,   LENGTH = 64K
   RAM    (xrw)    : ORIGIN = 0x20000000,   LENGTH = 192K
   FLASH    (rx)    : ORIGIN = 0x8000000,   LENGTH = 2048K
-  ram0   (wx) : org = 0x20000000, len = 192k    /* SRAM1 + SRAM2 + SRAM3 */
+  flash0 (rx) : org = 0x08000000, len = 1M
+    flash1 (rx) : org = 0x00000000, len = 0
+    flash2 (rx) : org = 0x00000000, len = 0
+    flash3 (rx) : org = 0x00000000, len = 0
+    flash4 (rx) : org = 0x00000000, len = 0
+    flash5 (rx) : org = 0x00000000, len = 0
+    flash6 (rx) : org = 0x00000000, len = 0
+    flash7 (rx) : org = 0x00000000, len = 0
+    ram0   (wx) : org = 0x20000000, len = 192k    /* SRAM1 + SRAM2 + SRAM3 */
     ram1   (wx) : org = 0x20000000, len = 112k    /* SRAM1 */
     ram2   (wx) : org = 0x2001C000, len = 16k     /* SRAM2 */
     ram3   (wx) : org = 0x20020000, len = 64k     /* SRAM3 */
@@ -57,6 +65,47 @@ MEMORY
     ram6   (wx) : org = 0x00000000, len = 0
     ram7   (wx) : org = 0x00000000, len = 0
 }
+
+/* Flash region to be used for exception vectors.*/
+REGION_ALIAS("VECTORS_FLASH", flash0);
+REGION_ALIAS("VECTORS_FLASH_LMA", flash0);
+
+/* Flash region to be used for constructors and destructors.*/
+REGION_ALIAS("XTORS_FLASH", flash0);
+REGION_ALIAS("XTORS_FLASH_LMA", flash0);
+
+/* Flash region to be used for code text.*/
+REGION_ALIAS("TEXT_FLASH", flash0);
+REGION_ALIAS("TEXT_FLASH_LMA", flash0);
+
+/* Flash region to be used for read only data.*/
+REGION_ALIAS("RODATA_FLASH", flash0);
+REGION_ALIAS("RODATA_FLASH_LMA", flash0);
+
+/* Flash region to be used for various.*/
+REGION_ALIAS("VARIOUS_FLASH", flash0);
+REGION_ALIAS("VARIOUS_FLASH_LMA", flash0);
+
+/* Flash region to be used for RAM(n) initialization data.*/
+REGION_ALIAS("RAM_INIT_FLASH_LMA", flash0);
+
+/* RAM region to be used for Main stack. This stack accommodates the processing
+   of all exceptions and interrupts.*/
+REGION_ALIAS("MAIN_STACK_RAM", ram0);
+
+/* RAM region to be used for the process stack. This is the stack used by
+   the main() function.*/
+REGION_ALIAS("PROCESS_STACK_RAM", ram0);
+
+/* RAM region to be used for data segment.*/
+REGION_ALIAS("DATA_RAM", ram0);
+REGION_ALIAS("DATA_RAM_LMA", flash0);
+
+/* RAM region to be used for BSS segment.*/
+REGION_ALIAS("BSS_RAM", ram0);
+
+/* RAM region to be used for the default heap.*/
+REGION_ALIAS("HEAP_RAM", ram0);
 
 __ram0_base__           = ORIGIN(ram0);
 __ram0_size__           = LENGTH(ram0);

@@ -245,7 +245,7 @@ INCLUDE_PATHS += $(TESTINC)
 # generic --target=arm-none-eabi
 ARCH_CFLAGS += \
   -mthumb -mcpu=cortex-m4 \
-  -mfloat-abi=hard -mfpu=fpv4-sp-d16
+  -mfloat-abi=soft -mfpu=fpv4-sp-d16
 
 #  -mfloat-abi=soft
 #-mfloat-abi=hard -mfpu=fpv4-sp-d16
@@ -305,6 +305,7 @@ CFLAGS += -Wall
 #CFLAGS += --specs=nano.specs 
 CFLAGS += -Werror 
 CFLAGS += -nostdlib 
+CFLAGS += -DCORTEX_USE_FPU=FALSE 
 #CFLAGS += -DDEBUG 
 #CFLAGS += -DUSE_HAL_DRIVER 
 #CFLAGS += -Wno-parentheses-equality 

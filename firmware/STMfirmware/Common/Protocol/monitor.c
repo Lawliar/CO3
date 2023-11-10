@@ -104,7 +104,9 @@ void spawnNewTarget( void )
 
 static void MonitorTask( void * pvParameters )
 {
-
+#if defined USE_CHIBIOS
+	AFLfuzzer.xTaskMonitor = chThdGetSelfX();
+#endif
 
     spawnNewTarget();  //spawn a new target
 
@@ -238,9 +240,11 @@ extern unsigned int input_cur;
 extern uint8_t GPSHandleRegion[];
 static void TargetTask( void * pvParameters )
 {
+
 #if defined USE_FREERTOS
 	xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,1,eSetValueWithOverwrite); //notify the monitor task the target is ready
 #elif defined USE_CHIBIOS
+	AFLfuzzer.xTaskTarget = chThdGetSelfX();
 	eventmask_t events = 0;
 	events |= FUZZER_TARGET_READY;
 	chEvtSignal(AFLfuzzer.xTaskMonitor, events);

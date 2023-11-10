@@ -34,6 +34,9 @@ int main(void)
   palSetPadMode(GPIOD, 5, PAL_MODE_ALTERNATE(7));
 
   sdStart(&SD2, &sc_shift);
+  int a = 0;
+  sdReadTimeout(&SD2, (uint8_t * )&a, sizeof(uint32_t) , TIME_INFINITE);
+  __asm__("nop");
   /* USER CODE BEGIN 2 */
   app_main();
   /* USER CODE END 2 */
