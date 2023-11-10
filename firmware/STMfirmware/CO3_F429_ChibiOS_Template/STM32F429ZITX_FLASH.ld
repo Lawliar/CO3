@@ -48,6 +48,14 @@ MEMORY
   CCMRAM    (xrw)    : ORIGIN = 0x10000000,   LENGTH = 64K
   RAM    (xrw)    : ORIGIN = 0x20000000,   LENGTH = 192K
   FLASH    (rx)    : ORIGIN = 0x8000000,   LENGTH = 2048K
+  ram0   (wx) : org = 0x20000000, len = 192k    /* SRAM1 + SRAM2 + SRAM3 */
+    ram1   (wx) : org = 0x20000000, len = 112k    /* SRAM1 */
+    ram2   (wx) : org = 0x2001C000, len = 16k     /* SRAM2 */
+    ram3   (wx) : org = 0x20020000, len = 64k     /* SRAM3 */
+    ram4   (wx) : org = 0x10000000, len = 64k     /* CCM SRAM */
+    ram5   (wx) : org = 0x40024000, len = 4k      /* BCKP SRAM */
+    ram6   (wx) : org = 0x00000000, len = 0
+    ram7   (wx) : org = 0x00000000, len = 0
 }
 
 /* Sections */
@@ -61,6 +69,17 @@ SECTIONS
     . = ALIGN(4);
   } >FLASH
 
+  .xtors : ALIGN(4)
+  {
+    __init_array_base__ = .;
+    KEEP(*(SORT(.init_array.*)))
+    KEEP(*(.init_array))
+    __init_array_end__ = .;
+    __fini_array_base__ = .;
+    KEEP(*(.fini_array))
+    KEEP(*(SORT(.fini_array.*)))
+    __fini_array_end__ = .;
+  } > FLASH AT > FLASH
   /* The program code and other data into "FLASH" Rom type memory */
   .text :
   {
@@ -159,12 +178,15 @@ SECTIONS
   {
     . = ALIGN(4);
     _sdata = .;        /* create a global symbol at data start */
+    __textdata_base__ = LOADADDR(.data);
+    __data_base__ = .;
     *(.data)           /* .data sections */
     *(.data*)          /* .data* sections */
     *(.RamFunc)        /* .RamFunc sections */
     *(.RamFunc*)       /* .RamFunc* sections */
 
     . = ALIGN(4);
+    __data_end__ = .;
     _edata = .;        /* define a global symbol at data end */
 
   } >RAM AT> FLASH
@@ -195,6 +217,7 @@ SECTIONS
     /* This is used by the startup in order to initialize the .bss section */
     _sbss = .;         /* define a global symbol at bss start */
     __bss_start__ = _sbss;
+    __bss_base__ = .;
     *(.bss)
     *(.bss*)
     *(COMMON)
@@ -222,6 +245,183 @@ SECTIONS
         . = ORIGIN(HEAP_RAM) + LENGTH(HEAP_RAM);
         __heap_end__ = .;
     } > HEAP_RAM
+    
+    .ram0_init : ALIGN(4)
+    {
+        __ram0_init_text__ = LOADADDR(.ram0_init);
+        __ram0_init__ = .;
+        KEEP(*(.ram0_init))
+        KEEP(*(.ram0_init.*))
+        . = ALIGN(4);
+    } > ram0 AT > RAM_INIT_FLASH_LMA
+
+    .ram0 (NOLOAD) : ALIGN(4)
+    {
+        __ram0_clear__ = .;
+        *(.ram0_clear)
+        *(.ram0_clear.*)
+        . = ALIGN(4);
+        __ram0_noinit__ = .;
+        *(.ram0)
+        *(.ram0.*)
+        . = ALIGN(4);
+        __ram0_free__ = .;
+    } > ram0
+
+    .ram1_init : ALIGN(4)
+    {
+        __ram1_init_text__ = LOADADDR(.ram1_init);
+        __ram1_init__ = .;
+        KEEP(*(.ram1_init))
+        KEEP(*(.ram1_init.*))
+        . = ALIGN(4);
+    } > ram1 AT > RAM_INIT_FLASH_LMA
+
+    .ram1 (NOLOAD) : ALIGN(4)
+    {
+        __ram1_clear__ = .;
+        *(.ram1_clear)
+        *(.ram1_clear.*)
+        . = ALIGN(4);
+        __ram1_noinit__ = .;
+        *(.ram1)
+        *(.ram1.*)
+        . = ALIGN(4);
+        __ram1_free__ = .;
+    } > ram1
+
+    .ram2_init : ALIGN(4)
+    {
+        __ram2_init_text__ = LOADADDR(.ram2_init);
+        __ram2_init__ = .;
+        KEEP(*(.ram2_init))
+        KEEP(*(.ram2_init.*))
+        . = ALIGN(4);
+    } > ram2 AT > RAM_INIT_FLASH_LMA
+
+    .ram2 (NOLOAD) : ALIGN(4)
+    {
+        __ram2_clear__ = .;
+        *(.ram2_clear)
+        *(.ram2_clear.*)
+        . = ALIGN(4);
+        __ram2_noinit__ = .;
+        *(.ram2)
+        *(.ram2.*)
+        . = ALIGN(4);
+        __ram2_free__ = .;
+    } > ram2
+
+    .ram3_init : ALIGN(4)
+    {
+        __ram3_init_text__ = LOADADDR(.ram3_init);
+        __ram3_init__ = .;
+        KEEP(*(.ram3_init))
+        KEEP(*(.ram3_init.*))
+        . = ALIGN(4);
+    } > ram3 AT > RAM_INIT_FLASH_LMA
+
+    .ram3 (NOLOAD) : ALIGN(4)
+    {
+        __ram3_clear__ = .;
+        *(.ram3_clear)
+        *(.ram3_clear.*)
+        . = ALIGN(4);
+        __ram3_noinit__ = .;
+        *(.ram3)
+        *(.ram3.*)
+        . = ALIGN(4);
+        __ram3_free__ = .;
+    } > ram3
+
+    .ram4_init : ALIGN(4)
+    {
+        __ram4_init_text__ = LOADADDR(.ram4_init);
+        __ram4_init__ = .;
+        KEEP(*(.ram4_init))
+        KEEP(*(.ram4_init.*))
+        . = ALIGN(4);
+    } > ram4 AT > RAM_INIT_FLASH_LMA
+
+    .ram4 (NOLOAD) : ALIGN(4)
+    {
+        __ram4_clear__ = .;
+        *(.ram4_clear)
+        *(.ram4_clear.*)
+        . = ALIGN(4);
+        __ram4_noinit__ = .;
+        *(.ram4)
+        *(.ram4.*)
+        . = ALIGN(4);
+        __ram4_free__ = .;
+    } > ram4
+
+    .ram5_init : ALIGN(4)
+    {
+        __ram5_init_text__ = LOADADDR(.ram5_init);
+        __ram5_init__ = .;
+        KEEP(*(.ram5_init))
+        KEEP(*(.ram5_init.*))
+        . = ALIGN(4);
+    } > ram5 AT > RAM_INIT_FLASH_LMA
+
+    .ram5 (NOLOAD) : ALIGN(4)
+    {
+        __ram5_clear__ = .;
+        *(.ram5_clear)
+        *(.ram5_clear.*)
+        . = ALIGN(4);
+        __ram5_noinit__ = .;
+        *(.ram5)
+        *(.ram5.*)
+        . = ALIGN(4);
+        __ram5_free__ = .;
+    } > ram5
+
+    .ram6_init : ALIGN(4)
+    {
+        __ram6_init_text__ = LOADADDR(.ram6_init);
+        __ram6_init__ = .;
+        KEEP(*(.ram6_init))
+        KEEP(*(.ram6_init.*))
+        . = ALIGN(4);
+    } > ram6 AT > RAM_INIT_FLASH_LMA
+
+    .ram6 (NOLOAD) : ALIGN(4)
+    {
+        __ram6_clear__ = .;
+        *(.ram6_clear)
+        *(.ram6_clear.*)
+        . = ALIGN(4);
+        __ram6_noinit__ = .;
+        *(.ram6)
+        *(.ram6.*)
+        . = ALIGN(4);
+        __ram6_free__ = .;
+    } > ram6
+
+    .ram7_init : ALIGN(4)
+    {
+        __ram7_init_text__ = LOADADDR(.ram7_init);
+        __ram7_init__ = .;
+        KEEP(*(.ram7_init))
+        KEEP(*(.ram7_init.*))
+        . = ALIGN(4);
+    } > ram7 AT > RAM_INIT_FLASH_LMA
+
+    .ram7 (NOLOAD) : ALIGN(4)
+    {
+        __ram7_clear__ = .;
+        *(.ram7_clear)
+        *(.ram7_clear.*)
+        . = ALIGN(4);
+        __ram7_noinit__ = .;
+        *(.ram7)
+        *(.ram7.*)
+        . = ALIGN(4);
+        __ram7_free__ = .;
+    } > ram7
+    
   /* Remove information from the compiler libraries */
   /DISCARD/ :
   {

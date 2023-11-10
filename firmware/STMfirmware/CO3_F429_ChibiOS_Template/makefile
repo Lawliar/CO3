@@ -139,6 +139,7 @@ CHIBIOS := $(CHIBIOS_DIR)
 CONFDIR := $(CHIBIOS_DIR)/demos/STM32/RT-STM32F429ZI-NUCLEO144/cfg
 BUILDDIR := $(BUILD_DIR)
 DEPDIR := $(DEP_DIR)
+OBJDIR := $(BUILD_DIR)/Common/ChibiOS/obj
 MCU  = cortex-m4
 # Licensing files.
 include $(CHIBIOS)/os/license/license.mk
@@ -164,6 +165,7 @@ CONFDIR := $(addprefix -I,$(CONFDIR))
 ALLINC := $(addprefix -I,$(ALLINC))
 TESTINC := $(addprefix -I,$(TESTINC))
 
+
 ## Coremark Dir, include, sources
 COREMARK_HAL_DIR := $(PROJ_DIR)/Target
 
@@ -187,30 +189,44 @@ PROJECT_CORE_SOURCES += $(PROJECT_CORE_DIR)/Src/sysmem.c
 #PROJECT_CORE_SOURCES += $(PROJECT_CORE_DIR)/Src/system_stm32f4xx.c
 
 
+
+## existing source and objs
 SRC_FILES += $(PROJECT_CORE_SOURCES)
 #SRC_FILES += $(DRIVERS_SOURCES) 
 SRC_FILES += $(COREMARK_HAL_SOURCES) 
 SRC_FILES += $(SYMRUNTIME_SOURCES) 
 SRC_FILES += $(PROTOCOL_SOURCES) 
-SRC_FILES += $(ALLCSRC) 
-SRC_FILES += $(TESTSRC) 
-
-
-
-
-
-
 OBJ_FILES := $(patsubst $(ROOT_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRC_FILES))
 
+## chibios source and objs
 
+CSRC = $(ALLCSRC) $(TESTSRC) 
+
+CPPSRC = $(ALLCPPSRC)
+
+ASMSRC = $(ALLASMSRC)
+
+ASMXSRC = $(ALLXASMSRC)
+
+TCSRC     += $(CSRC)
+TCPPSRC   += $(CPPSRC)
+TSRC      := $(TCSRC) $(TCPPSRC)
+
+SRC_FILES += $(CSRC) 
+SRC_FILES += $(ASMSRC)
+SRC_FILES += $(ASMXSRC)
+
+OBJ_FILES += $(patsubst $(ROOT_DIR)/%.c,$(BUILD_DIR)/%.o,$(CSRC)) ## ChibiOS .c obj
+OBJ_FILES += $(patsubst $(ROOT_DIR)/%.S,$(BUILD_DIR)/%.o,$(ASMXSRC)) ## ChibiOS .S obj
+
+
+
+
+## startup source and objs
 PROJECT_STARTUP_DIR = $(PROJ_DIR)/Core/Startup
+STARTUP_SOURCES := $(PROJECT_STARTUP_DIR)/startup_stm32f429zitx.s
+OBJ_FILES += $(patsubst $(ROOT_DIR)/%.s,$(BUILD_DIR)/%.o,$(STARTUP_SOURCES))
 
-STARTUP_SOURCES += \
-$(PROJECT_STARTUP_DIR)/startup_stm32f429zitx.s
-
-
-OBJ_FILES := $(OBJ_FILES) \
-$(patsubst $(ROOT_DIR)/%.s,$(BUILD_DIR)/%.o,$(STARTUP_SOURCES))
 
 
 #INCLUDE_PATHS += $(DRIVERS_INCLUDE_DIR) 
@@ -315,7 +331,7 @@ TARGET_ELF = $(BUILD_DIR)/$(TARGET).elf
 
 
 LDFLAGS += $(COMPILER_SPECIFIC_LDFLAGS)
-LDFLAGS +=  $(ARCH_CFLAGS) 
+LDFLAGS += $(ARCH_CFLAGS) 
 LDFLAGS += -T$(LDSCRIPT)
 LDFLAGS += --specs=nosys.specs
 LDFLAGS += -fno-short-enums
@@ -397,15 +413,19 @@ $(BUILD_DIR)/$(PROJ_NAME)/Core/Startup/%.o: $(PROJ_DIR)/Core/Startup/%.s | $(BUI
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
 	$(Q) $(CC) $(DEP_CFLAGS) $(ASFLAGS) $(CFLAGS_NON_CHIBIOS) $(INCLUDE_PATHS) -c -o $@ $<
-
-# build RTOS
-$(BUILD_DIR)/Common/ChibiOS/%.o: $(ROOT_DIR)/Common/ChibiOS/%.c | $(BUILD_DIR) $(DEP_DIR) 
-	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
-	@mkdir -p $(dir $@)
-	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS_CHIBIOS) $(INCLUDE_PATHS) -c -o $@ $<
-
+	
 # build protocol code
 $(BUILD_DIR)/Common/Protocol/%.o: $(ROOT_DIR)/Common/Protocol/%.c | $(BUILD_DIR) $(DEP_DIR) 
+	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
+	@mkdir -p $(dir $@)
+	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS_NON_CHIBIOS) $(INCLUDE_PATHS) -c -o $@ $<
+
+$(BUILD_DIR)/Common/ChibiOS/%.o: $(ROOT_DIR)/Common/ChibiOS/%.S  | $(BUILD_DIR) $(DEP_DIR) 
+	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
+	@mkdir -p $(dir $@)
+	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS_NON_CHIBIOS) $(INCLUDE_PATHS) -c -o $@ $<
+
+$(BUILD_DIR)/Common/ChibiOS/%.o: $(ROOT_DIR)/Common/ChibiOS/%.c  | $(BUILD_DIR) $(DEP_DIR) 
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
 	$(Q) $(CC) $(DEP_CFLAGS) $(CFLAGS_NON_CHIBIOS) $(INCLUDE_PATHS) -c -o $@ $<
