@@ -10,11 +10,11 @@
 
 #include "ProtocolConfig.h"
 
-#ifdef USE_FREERTOS
+#ifdef CO3_USE_FREERTOS
 #include "FreeRTOS.h"
 #include "task.h"
 #include "timers.h"
-#elif defined USE_CHIBIOS
+#elif defined CO3_USE_CHIBIOS
 #include "ch.h"
 #include "hal.h"
 #endif
@@ -65,10 +65,10 @@ typedef struct
     volatile bool bRXcomplete;  // variable must be declared as volatile otherwise the compiler may optimize out it
     volatile bool bTXcomplete;
     volatile bool breceiving;
-#ifdef USE_FREERTOS
+#ifdef CO3_USE_FREERTOS
     TaskHandle_t xTaskMonitor;
     TaskHandle_t xTaskTarget;
-#elif defined USE_CHIBIOS
+#elif defined CO3_USE_CHIBIOS
     thread_t *xTaskMonitor;
     thread_t *xTaskTarget;
 #endif
@@ -83,7 +83,7 @@ typedef struct
 extern Symex_t AFLfuzzer;
 extern uint8_t notiTarget;
 
-#if defined USE_CHIBIOS
+#if defined CO3_USE_CHIBIOS
 // control related communication
 #define FUZZER_TARGET_READY EVENT_MASK(31)
 #define TARGET_GO_AHEAD EVENT_MASK(30)

@@ -225,10 +225,10 @@ void txCommandtoMonitor(uint8_t size)
     #if DEBUGPRINT ==1
 	    printf("TX Nbytes: %d\n",(int)AFLfuzzer.txCurrentIndex );
     #endif
-#if defined USE_FREERTOS
+#if defined CO3_USE_FREERTOS
 	    xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,3,1,eSetValueWithOverwrite); //notify the Monitor to transmit
 	    ulTaskNotifyTakeIndexed(1,pdTRUE, portMAX_DELAY); //get notification when transmission finishes to continue execution
-#elif defined USE_CHIBIOS
+#elif defined CO3_USE_CHIBIOS
 	    chEvtSignal(AFLfuzzer.xTaskMonitor, MORE_DATA_TO_COME);
 	    eventmask_t evt = chEvtWaitAny(ALL_EVENTS);
 	    if(evt != TRANSMIT_FINISHED){

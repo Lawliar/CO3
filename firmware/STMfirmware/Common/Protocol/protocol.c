@@ -9,24 +9,24 @@
 #include "protocol.h"
 #include "stdint.h"
 
-#if defined USE_FREERTOS
+#if defined CO3_USE_FREERTOS
 #include "main.h"
 #endif
 
-#ifdef USE_SERIAL_OVER_USB
+#if defined CO3_USE_SERIAL
 
 
-#if defined USE_FREERTOS
+#if defined CO3_USE_FREERTOS
 extern UART_HandleTypeDef huart2; //PUT the usart that you wanna use here
 UART_HandleTypeDef* co3_huart = &huart2;
-#elif defined USE_CHIBIOS
+#elif defined CO3_USE_CHIBIOS
 extern SerialDriver SD2;
 SerialDriver* co3_huart = &SD2;
 #endif
 uint8_t co3_usart_input_buffer[MAX_BUFFER_INPUT];
 
 
-#else
+#elif defined CO3_USE_USB
 #include "usbd_cdc_if.h"
 #endif
 
@@ -38,7 +38,7 @@ uint8_t notiTarget;
 // Callback executed on USB TX complete ISR
 void notifyTXfinish()
 {
-#if defined USE_FREERTOS
+#if defined CO3_USE_FREERTOS
 	BaseType_t xHigherPriorityTaskWoken;
 	xHigherPriorityTaskWoken = pdFALSE;
 #endif
@@ -64,29 +64,29 @@ void notifyTXfinish()
 	//notify the target to continue execution
 	if (notiTarget == NOTI_TARGET)
 	{
-#if defined USE_FREERTOS
+#if defined CO3_USE_FREERTOS
 		xTaskNotifyIndexedFromISR(AFLfuzzer.xTaskTarget,
   	  	    				1, //index
   							1, //value = 1 data TX complete
   							eSetBits,
   							&xHigherPriorityTaskWoken);
-#elif defined USE_CHIBIOS
+#elif defined CO3_USE_CHIBIOS
 		chEvtSignalI(AFLfuzzer.xTaskTarget, TRANSMIT_FINISHED);
 #endif
 	}
 	else
 	{
-#if defined USE_FREERTOS
+#if defined CO3_USE_FREERTOS
 		xTaskNotifyIndexedFromISR(AFLfuzzer.xTaskMonitor,
 		  	  	    				2, //index
 		  							1, //value = 1 data TX complete
 		  							eSetBits,
 		  							&xHigherPriorityTaskWoken);
-#elif defined USE_CHIBIOS
+#elif defined CO3_USE_CHIBIOS
 		chEvtSignalI(AFLfuzzer.xTaskMonitor, TRANSMIT_FINISHED);
 #endif
 	}
-#if defined USE_FREERTOS
+#if defined CO3_USE_FREERTOS
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 #endif
 }
@@ -102,11 +102,11 @@ void TransmitPack(void)
 		printf("TX buffer f. num: %d\n", AFLfuzzer.txTotalFunctions);
 #endif
 		AFLfuzzer.txbuffer[0]= AFLfuzzer.txCurrentIndex; //set the total length of the payload without considering size itself
-#ifdef USE_SERIAL_OVER_USB
+#if defined CO3_USE_SERIAL
 
-#if defined USE_FREERTOS
+#if defined CO3_USE_FREERTOS
 		HAL_UART_Transmit(co3_huart,AFLfuzzer.txbuffer,AFLfuzzer.txCurrentIndex,HAL_MAX_DELAY);
-#elif defiend USE_CHIBIOS
+#elif defiend CO3_USE_CHIBIOS
 		sdWrite(co3_huart, (uint8_t *)AFLfuzzer.txbuffer, AFLfuzzer.txCurrentIndex);
 #endif
 		AFLfuzzer.txCurrentIndex=REPORTING_BUFFER_STARTING_POINT;  //we reserve the first byte for size
@@ -116,7 +116,7 @@ void TransmitPack(void)
 			AFLfuzzer.txbuffer[j]=0;
 		}
 		AFLfuzzer.txTotalFunctions=0;
-#if defined USE_FREERTOS
+#if defined CO3_USE_FREERTOS
 		// wake up the target who is waiting on the transmission
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 		xTaskNotifyIndexedFromISR(AFLfuzzer.xTaskTarget,
@@ -128,20 +128,20 @@ void TransmitPack(void)
 		if(xTaskGetCurrentTaskHandle() != AFLfuzzer.xTaskMonitor){
 			while(1){}
 		}
-#elif defined USE_CHIBIOS
+#elif defined CO3_USE_CHIBIOS
 		eventmask_t events = 0;
 		events |= TRANSMIT_FINISHED;
 		chEvtSignal(AFLfuzzer.xTaskTarget, events);
 #endif
 
-#else
+#elif defined CO3_USE_USB
 		CDC_Transmit_FS(AFLfuzzer.txbuffer, AFLfuzzer.txCurrentIndex); //transmit data
 #endif
 	}
 
 }
 
-#ifdef USE_SERIAL_OVER_USB
+#if defined CO3_USE_SERIAL
 void SerialReceiveInput(uint8_t* Buf, uint32_t *Len)
 {
 
@@ -150,9 +150,9 @@ void SerialReceiveInput(uint8_t* Buf, uint32_t *Len)
 	  uint8_t error = 0;
 	  if(AFLfuzzer.inputLength == 0)
 	  {
-#if defined USE_FREERTOS
+#if defined CO3_USE_FREERTOS
 	      HAL_UART_Receive(co3_huart, (uint8_t * )&AFLfuzzer.inputLength, sizeof(uint32_t), HAL_MAX_DELAY );
-#elif defined USE_CHIBIOS
+#elif defined CO3_USE_CHIBIOS
 	      sdReadTimeout(co3_huart, (uint8_t * )&AFLfuzzer.inputLength, sizeof(uint32_t) , TIME_INFINITE);
 #endif
 	      AFLfuzzer.inputLengthpadded  = AFLfuzzer.inputLength;
@@ -166,9 +166,9 @@ void SerialReceiveInput(uint8_t* Buf, uint32_t *Len)
       {
 	    	 //u32Tocopy = (AFLfuzzer.inputLengthpadded) - AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT;
     	     u32Tocopy = (AFLfuzzer.inputLengthpadded) - AFLfuzzer.inputAFL.u32available - sizeof(uint32_t);
-#if defined USE_FREERTOS
+#if defined CO3_USE_FREERTOS
 	    	 HAL_UART_Receive(co3_huart,co3_usart_input_buffer,u32Tocopy,HAL_MAX_DELAY);
-#elif defined USE_CHIBIOS
+#elif defined CO3_USE_CHIBIOS
 	    	 sdReadTimeout(co3_huart, (unsigned char *) co3_usart_input_buffer, u32Tocopy, TIME_INFINITE);
 #endif
 	    	 RingCopy(&AFLfuzzer.inputAFL, (uint8_t * )&AFLfuzzer.inputLength, AFL_BUFFER_STARTING_POINT);
@@ -182,7 +182,7 @@ void SerialReceiveInput(uint8_t* Buf, uint32_t *Len)
 	  	     }
       }
 }
-#else
+#elif defined CO3_USE_USB
 
 void FuzzingInputHandler(uint8_t* Buf, uint32_t *Len)
 {

@@ -18,11 +18,11 @@
 #include "test.h"
 
 
-#if defined(USE_FREERTOS)
+#if defined CO3_USE_FREERTOS
 #include "FreeRTOS.h"
 #include "task.h"
 #include "main.h"
-#elif defined(USE_CHIBIOS)
+#elif defined CO3_USE_CHIBIOS
 #include "ch.h"
 #include "hal.h"
 #endif
@@ -30,7 +30,7 @@
 static uint32_t start_time_val, stop_time_val;
 
 
-#ifdef USE_CHIBIOS
+#ifdef CO3_USE_CHIBIOS
 //static StackType_t targetTaskStack[ configMINIMAL_STACK_SIZE ] __attribute__( ( aligned( configMINIMAL_STACK_SIZE * sizeof( StackType_t ) ) ) );
 static THD_WORKING_AREA(targetTaskStack, configMINIMAL_STACK_SIZE*8);
 //static StackType_t FuzzerTaskStack[ configMINIMAL_STACK_SIZE ] __attribute__( ( aligned( configMINIMAL_STACK_SIZE * sizeof( StackType_t ) ) ) );
@@ -49,7 +49,7 @@ void app_main( void )
 	/* Start the MPU demo. */
 	vStartMonitor();
 
-#if defined USE_FREERTOS
+#if defined CO3_USE_FREERTOS
 	/* Start the scheduler. */
 	vTaskStartScheduler();
 #endif
@@ -62,14 +62,14 @@ void app_main( void )
 //creates the monitor task
 void vStartMonitor( void )
 {
-#if defined USE_FREERTOS
+#if defined CO3_USE_FREERTOS
 	xTaskCreate(MonitorTask,
 			    "Monitor",
 				configMINIMAL_STACK_SIZE,
 				NULL,
 				10,
 				&AFLfuzzer.xTaskMonitor);
-#elif defined USE_CHIBIOS
+#elif defined CO3_USE_CHIBIOS
 
 	CO3_TARGET_TIMEOUT  = chTimeMS2I(2000);
 	AFLfuzzer.xTaskMonitor = chThdCreateStatic(MonitorTaskStack, sizeof(MonitorTaskStack), NORMALPRIO+1, MonitorTask, NULL);
@@ -77,7 +77,7 @@ void vStartMonitor( void )
 
 }
 
-#if defined USE_CHIBIOS
+#if defined CO3_USE_CHIBIOS
 void killTarget(){
     eventmask_t events = 0;
     events |= TARGET_SHOULD_KILL_SELF;
@@ -89,14 +89,14 @@ void killTarget(){
 //creates a target task
 void spawnNewTarget( void )
 {
-#if defined USE_FREERTOS
+#if defined CO3_USE_FREERTOS
 	xTaskCreate(TargetTask,
 				    "Target",
 					configMINIMAL_STACK_SIZE*8,
 					NULL,
 					10,
 					&AFLfuzzer.xTaskTarget);
-#elif defined USE_CHIBIOS
+#elif defined CO3_USE_CHIBIOS
 	AFLfuzzer.xTaskTarget = chThdCreateStatic(targetTaskStack, sizeof(targetTaskStack), NORMALPRIO+1, TargetTask, NULL);
 #endif
 }
@@ -104,16 +104,16 @@ void spawnNewTarget( void )
 
 static void MonitorTask( void * pvParameters )
 {
-#if defined USE_CHIBIOS
+#if defined CO3_USE_CHIBIOS
 	AFLfuzzer.xTaskMonitor = chThdGetSelfX();
 #endif
 
     spawnNewTarget();  //spawn a new target
 
-#if defined USE_FREERTOS
+#if defined CO3_USE_FREERTOS
     uint32_t notificationvalue;
     ulTaskNotifyTakeIndexed(0,pdTRUE, TARGET_TIMEOUT/2);
-#elif defined USE_CHIBIOS
+#elif defined CO3_USE_CHIBIOS
     eventmask_t evt = chEvtWaitAny(ALL_EVENTS);
     while(!(evt & FUZZER_TARGET_READY)){
         killTarget();
@@ -141,9 +141,9 @@ static void MonitorTask( void * pvParameters )
 
     while(1)
 	{
-#ifdef USE_SERIAL_OVER_USB
+#if defined CO3_USE_SERIAL
     	SerialReceiveInput();
-#else
+#elif defined CO3_USE_USB
     	ulTaskNotifyTakeIndexed(1,pdTRUE, portMAX_DELAY);
 #endif
     	//cleaning the packet buffer
@@ -158,10 +158,10 @@ static void MonitorTask( void * pvParameters )
     	AFLfuzzer.txCurrentIndex=REPORTING_BUFFER_STARTING_POINT; //Index Zero is reserved for the total length of the message, which  includes the first byte
 
 
-#if defined USE_FREERTOS
+#if defined CO3_USE_FREERTOS
 		//notify the target that data has arrived, and it should start execution
 		xTaskNotify(AFLfuzzer.xTaskTarget,0,eSetValueWithOverwrite);
-#elif defined USE_CHIBIOS
+#elif defined CO3_USE_CHIBIOS
 		eventmask_t events = 0;
 		events |= TARGET_GO_AHEAD;
 		chEvtSignal(AFLfuzzer.xTaskTarget, events);
@@ -169,7 +169,7 @@ static void MonitorTask( void * pvParameters )
 
 		// when we have around 64 bytes ready to transmit in the buffer
 		// the target task will send a notification to this
-#if defined USE_FREERTOS
+#if defined CO3_USE_FREERTOS
 		notificationvalue = ulTaskNotifyTakeIndexed(3,pdTRUE, TARGET_TIMEOUT);
 		while(notificationvalue)
 		{
@@ -177,7 +177,7 @@ static void MonitorTask( void * pvParameters )
 			TransmitPack();
 			notificationvalue = ulTaskNotifyTakeIndexed(3,pdTRUE, TARGET_TIMEOUT);
 		}
-#elif defined USE_CHIBIOS
+#elif defined CO3_USE_CHIBIOS
 		eventmask_t evt = chEvtWaitAnyTimeout(ALL_EVENTS, CO3_TARGET_TIMEOUT );
 		while (evt == MORE_DATA_TO_COME){
 			notiTarget = NOTI_TARGET;
@@ -187,24 +187,24 @@ static void MonitorTask( void * pvParameters )
 #endif
 		notiTarget = NOTI_MONITOR;
 		TransmitPack(); //transmit any remaining package in the buffer if any
-#ifndef USE_SERIAL_OVER_USB
+#if defined CO3_USE_USB
 		ulTaskNotifyTakeIndexed(2,pdTRUE, TARGET_TIMEOUT); // wait for the USB to finish transmission
 #endif
 
-#if defined USE_FREERTOS
+#if defined CO3_USE_FREERTOS
 		//delete the target
 		vTaskDelete(AFLfuzzer.xTaskTarget);
 		// lets the kernel clean artifacts
 		taskYIELD();
-#elif defined USE_CHIBIOS
+#elif defined CO3_USE_CHIBIOS
 		killTarget();
 		chThdWait(AFLfuzzer.xTaskTarget);
 		chThdYield();
 #endif
 		spawnNewTarget();
-#if defined USE_FREERTOS
+#if defined CO3_USE_FREERTOS
 		ulTaskNotifyTakeIndexed(0,pdTRUE, TARGET_TIMEOUT/2);
-#elif defined USE_CHIBIOS
+#elif defined CO3_USE_CHIBIOS
 		evt = chEvtWaitAny(ALL_EVENTS);
 	    while(!(evt & FUZZER_TARGET_READY)){
 		    killTarget();
@@ -233,6 +233,8 @@ static void MonitorTask( void * pvParameters )
 	}
 }
 
+#define CGC_BENCHMARK
+
 #ifdef CGC_BENCHMARK
 extern unsigned int input_cur;
 #endif
@@ -241,9 +243,9 @@ extern uint8_t GPSHandleRegion[];
 static void TargetTask( void * pvParameters )
 {
 
-#if defined USE_FREERTOS
+#if defined CO3_USE_FREERTOS
 	xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,1,eSetValueWithOverwrite); //notify the monitor task the target is ready
-#elif defined USE_CHIBIOS
+#elif defined CO3_USE_CHIBIOS
 	AFLfuzzer.xTaskTarget = chThdGetSelfX();
 	eventmask_t events = 0;
 	events |= FUZZER_TARGET_READY;
@@ -251,9 +253,9 @@ static void TargetTask( void * pvParameters )
 	events = 0; // clears out the bits
 #endif
 	while(1){
-#if defined USE_FREERTOS
+#if defined CO3_USE_FREERTOS
 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // wait for the notification coming from the Monitor task
-#elif defined USE_CHIBIOS
+#elif defined CO3_USE_CHIBIOS
 		if(chThdShouldTerminateX()){
 		   break;
 		}
