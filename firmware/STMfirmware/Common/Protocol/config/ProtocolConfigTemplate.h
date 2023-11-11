@@ -18,11 +18,11 @@
 #define MAX_USB_FRAME 64
 #define MAX_USB_FUNCTIONS 8
 
-#define SYM_RAM_ADDR_START           0x24000000
-#define SYM_RAM_SIZE                 1024*512
-#define SYM_SHADOW_RAM_START         0x30000000
-#define SYM_SHADOW_RAM_LENGTH        1024*64
-#define SYM_SHADOW_RAM_OFFSET        0x2B800000
+#define SYM_RAM_ADDR_START           0x24000000 // the start of the RAM that you want to shadow-mapping to (i.e., this is not the shadow memory itself, but the RAM desginated to the eApp that you want to maintain the symbolic states for)
+#define SYM_RAM_SIZE                 1024*512 // the size of the desginated RAM used by the eApp
+#define SYM_SHADOW_RAM_START         0x30000000 // the start address of the shadow memory itself
+#define SYM_SHADOW_RAM_LENGTH        1024*64  // the size of the shadow memory
+#define SYM_SHADOW_RAM_OFFSET        0x2B800000 // the offset used by the formula mapping the address of the RAM its shadow memory ( ADDR >> 3 + OFFSET = Shadow_Addr)
 
 #define SYM_FLASH_ADDR_START         0x08000000
 #define SYM_FLASH_SIZE               1024*2048

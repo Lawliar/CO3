@@ -2,3 +2,5 @@
 **/build/
 .settings/
 .vscode/
+build_symcc/
+build_native/

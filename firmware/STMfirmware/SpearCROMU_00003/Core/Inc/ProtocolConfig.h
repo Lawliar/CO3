@@ -15,4 +15,19 @@
 #define MAX_USB_FRAME 64
 #define MAX_USB_FUNCTIONS 8
 
+
+#define SYM_RAM_ADDR_START           0x24000000
+#define SYM_RAM_SIZE                 1024*512
+#define SYM_SHADOW_RAM_START         0x30000000
+#define SYM_SHADOW_RAM_LENGTH        1024*64
+#define SYM_SHADOW_RAM_OFFSET        0x2B800000
+
+#define SYM_FLASH_ADDR_START         0x08000000
+#define SYM_FLASH_SIZE               1024*2048
+
+#define SYM_PERIPHERAL_ADDR_START    0x40000000
+#define SYM_PERIPHERAL_SIZE          0x1FFFFFFF
+
+#define USE_FREERTOS
+
 #endif /* PROTOCOLCONFIG_H_ */
