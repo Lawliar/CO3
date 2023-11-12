@@ -18,7 +18,13 @@
 #define MAX_USB_FRAME 64
 #define MAX_USB_FUNCTIONS 8
 
+// 1. if you want to use the MCU-side shadow memory or not
 
+#define CO3_NO_MCU_SIDE_SHADOW
+
+
+#if defined CO3_NO_MCU_SIDE_SHADOW
+#else
 #define SYM_RAM_ADDR_START           0x24000000 // the start of the RAM that you want to shadow-mapping to (i.e., this is not the shadow memory itself, but the RAM desginated to the eApp that you want to maintain the symbolic states for)
 #define SYM_RAM_SIZE                 1024*512 // the size of the desginated RAM used by the eApp
 #define SYM_SHADOW_RAM_START         0x30000000 // the start address of the shadow memory itself
@@ -30,16 +36,14 @@
 
 #define SYM_PERIPHERAL_ADDR_START    0x40000000
 #define SYM_PERIPHERAL_SIZE          0x1FFFFFFF
+#endif
 
-// see if you wanna use serial port over usb
+// 2. which communication channel you would like to use
 #define CO3_USE_USB
-
 //#define CO3_USE_SERIAL
 
-// which RTOS you use
-
+// 3. which RTOS you use
 #define CO3_USE_FREERTOS
-
 //#define CO3_USE_CHIBIOS
 
 

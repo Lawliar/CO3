@@ -168,12 +168,14 @@ bool return_exp;
 
 void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t length, uint16_t symID);
 
+#ifndef CO3_NO_MCU_SIDE_SHADOW
 //return address
 uint32_t AddressToShadow(char *addr);
+#endif
 
 //return true if byte is symbolic
 bool checkSymbolic(char *addr);
-
+bool checkSymbolicSetConcrete(char *);
 
 bool _sym_peripheral_symb(uint32_t *addr)
 {
@@ -247,11 +249,13 @@ void txCommandtoMonitor(uint8_t size)
 
 void _sym_initialize()
 {
-    int i;
+	int i;
 	total_sym_peripherals = 0;
-	shadowram = (uint32_t *)SYM_SHADOW_RAM_START;
 
+#ifndef CO3_NO_MCU_SIDE_SHADOW
+	shadowram = (uint32_t *)SYM_SHADOW_RAM_START;
 	memset((void*)shadowram,0x00,SYM_SHADOW_RAM_LENGTH);
+#endif
 
 	for(i=0; i<NUMBER_PARAMETER_EXP; i++)
 	{
@@ -714,7 +718,7 @@ void _sym_notify_basic_block(uint16_t bbid, bool isSym, char * base_addr, uint8_
 uint32_t AddressToShadow(char *addr)
 {
 	uint32_t adr32 = (uint32_t)addr;
-	return  ((adr32>>3) + SYM_SHADOW_RAM_OFFSET);
+	return ((adr32>>3) + SYM_SHADOW_RAM_OFFSET);
 }
 
 //return true if byte is symbolic
@@ -727,11 +731,14 @@ bool checkSymbolic(char *addr)
 	}else if(flash != -1){
 		return false;
 	}
-
+#ifndef CO3_NO_MCU_SIDE_SHADOW
 	char *addrShadow = (char *)AddressToShadow(addr);
 	char val = *addrShadow;
 	uint32_t bitnum = ((uint32_t)addr) & 0x07;
 	return bitRead(val,bitnum);
+#else
+	return true;
+#endif
 }
 
 
@@ -745,13 +752,17 @@ bool checkSymbolicSetConcrete(char *addr)
 	}else if(flash != -1){
 		return false;
 	}
-	
+	// then we are at RAM
+#ifndef CO3_NO_MCU_SIDE_SHADOW
 	char *addrShadow = (char *)AddressToShadow(addr);
 	char val = *addrShadow;
 	uint32_t bitnum = ((uint32_t)addr) & 0x07;
 	bool symbolic  = bitRead(val,bitnum);
 	if(symbolic) bitClear(*addrShadow,  bitnum);
 	return symbolic;
+#else
+	return true;
+#endif
 }
 
 /*
@@ -769,6 +780,7 @@ bool checkSymbolicSetSymbolic(char *addr)
 
 void SetSymbolic(char *addr)
 {
+#ifndef CO3_NO_MCU_SIDE_SHADOW
 	int peri = checkSymPeripheral((uint32_t *)addr);
 	int flash = checkSymFlash((uint32_t *)addr);
 	if(peri != -1){
@@ -776,11 +788,13 @@ void SetSymbolic(char *addr)
 	}else if(flash != -1){
 		return;
 	}
-
 	char *addrShadow =  (char *)AddressToShadow (addr);
 	uint32_t bitnum = ((uint32_t)addr) & 0x07;
 	bitSet(*addrShadow,  bitnum);
-	
+#else 
+	(void) addr;
+	return;
+#endif
 }
 
 /*
