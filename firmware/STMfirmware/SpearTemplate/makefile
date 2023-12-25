@@ -15,13 +15,13 @@ CLI_LDFLAG_OVERRIDES ?=
 # our path by default but allow things to be easily overridden, i.e:
 #
 # COMPILER=<PATH_TO_OTHER_GCC_VERSION>/arm-none-eabi-gcc make
-LLVM_TOOLCHAIN := /home/alejandro/Documents/spear-project/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04
+LLVM_TOOLCHAIN := /home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04
 
 GCC_COMPILER        := arm-none-eabi-gcc
 CLANG_COMPILER      := $(LLVM_TOOLCHAIN)/bin/clang
 OPT                 := $(LLVM_TOOLCHAIN)/bin/opt
 LLC                 := $(LLVM_TOOLCHAIN)/bin/llc
-INSTRUMENTATION_LIB := /home/alejandro/Documents/spear-project/spear-code/pass/build/libSymbolize.so 
+INSTRUMENTATION_LIB := /home/lcm/github/spear/spear-code/pass/cmake-build-debug/libSymbolize.so 
 #COMPILER ?= arm-none-eabi-gcc
 CC := $(CLANG_COMPILER)
 
@@ -234,7 +234,7 @@ ARM_CORTEXM_BUILTINS ?= \
 COMPILER_SPECIFIC_CFLAGS += \
   --target=arm-none-eabi \
   --sysroot=$(ARM_CORTEXM_SYSROOT) \
-  -O0
+  -Oz
 
 
 #-Wthread-safety \

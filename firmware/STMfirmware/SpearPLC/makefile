@@ -15,21 +15,20 @@ CLI_LDFLAG_OVERRIDES ?=
 # our path by default but allow things to be easily overridden, i.e:
 #
 # COMPILER=<PATH_TO_OTHER_GCC_VERSION>/arm-none-eabi-gcc make
-LLVM_TOOLCHAIN := /home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04
+LLVM_TOOLCHAIN := /home/lcm/github/toolchains/x86_64/clang+llvm-13.0.0-x86_64-linux-gnu-ubuntu-20.04
 
 GCC_COMPILER        := arm-none-eabi-gcc
 CLANG_COMPILER      := $(LLVM_TOOLCHAIN)/bin/clang
 OPT                 := $(LLVM_TOOLCHAIN)/bin/opt
 LLC                 := $(LLVM_TOOLCHAIN)/bin/llc
-INSTRUMENTATION_LIB := /home/lcm/github/spear/spear-code/pass/cmake-build-debug/libSymbolize.so 
+LLVM_CONFIG         := $(LLVM_TOOLCHAIN)/bin/llvm-config
+INSTRUMENTATION_LIB := /home/lcm/github/spear/spear-code/pass/symbolizer/cmake-build-debug/libSymbolize.so 
 #COMPILER ?= arm-none-eabi-gcc
 CC := $(CLANG_COMPILER)
 
 $(info $(CC))
 
-
-
-
+LLVM_MAJOR_VER := $(shell $(LLVM_CONFIG) --version | sed -n 's/\([0-9]*\).*/\1/p')
 
 
 ## Middleware Dir, include and sources
@@ -113,8 +112,9 @@ SYMRUNTIME_DIR := $(ROOT_DIR)/Common/SymRuntime
 
 SYMRUNTIME_INCLUDE_DIR := -I$(SYMRUNTIME_DIR)
 
-SYMRUNTIME_SOURCES := $(SYMRUNTIME_DIR)/runtime.c
-
+SYMRUNTIME_SOURCES := \
+$(SYMRUNTIME_DIR)/runtime.c \
+$(SYMRUNTIME_DIR)/wrapped_malloc.c
 
 
 ## FREERTOS Dir, include, sources
@@ -249,17 +249,14 @@ ifneq '' '$(findstring gcc,$(CC_VERSION_INFO))'
 $(info ===GCC Compiler Detected===)
 
 
-COMPILER_SPECIFIC_LDFLAGS += \
-  -Wl,-lgcc 
-
 endif
 
-CFLAGS += -O0
+CFLAGS += -O2
 CFLAGS += -std=gnu11
 CFLAGS += -g
 CFLAGS += -ffunction-sections
 CFLAGS += -fdata-sections
-CFLAGS += -Wall
+#CFLAGS += -Wall
 #CFLAGS += -fstack-usage
 #CFLAGS += --specs=nano.specs 
 CFLAGS += -Werror 
@@ -284,16 +281,16 @@ TARGET ?= stm32h743
 LDSCRIPT = $(PROJ_DIR)/STM32H743ZITX_FLASH.ld
 TARGET_ELF = $(BUILD_DIR)/$(TARGET).elf
 
-
+#LDFLAGS += -Wl,-lgcc 
 LDFLAGS += $(COMPILER_SPECIFIC_LDFLAGS)
 LDFLAGS +=  $(ARCH_CFLAGS) 
 LDFLAGS += -T$(LDSCRIPT)
-LDFLAGS += --specs=nosys.specs
 LDFLAGS += -fno-short-enums
 LDFLAGS += -Wl,-Map="$(BUILD_DIR)/$(TARGET).map"
+LDFLAGS += -Wl,--no-warn-mismatch 
 LDFLAGS += -Wl,--gc-sections -static 
 LDFLAGS += --specs=nano.specs
-LDFLAGS += -Wl,--start-group -lc -lm -Wl,--end-group
+#LDFLAGS += -Wl,--start-group -lc -lm -Wl,--end-group
 LDFLAGS += -u _printf_float
 LDFLAGS += $(CLI_LDFLAG_OVERRIDES)
 
@@ -312,8 +309,7 @@ all: $(TARGET_ELF)
 clean:
 	rm -rf $(BUILD_DIR)
 	rm -rf $(OUTPUT_DIR)/output
-	rm $(OUTPUT_DIR)/*.ll $(OUTPUT_DIR)/*.dot $(OUTPUT_DIR)/*.svg $(OUTPUT_DIR)/*.txt
-	
+	rm $(OUTPUT_DIR)/*.ll $(OUTPUT_DIR)/*.dot $(OUTPUT_DIR)/*.svg $(OUTPUT_DIR)/*.png $(OUTPUT_DIR)/*.txt
 
 
 
@@ -427,9 +423,13 @@ $(BUILD_DIR)/$(PROJ_NAME)/Target/Src/%.o: $(PROJ_DIR)/Target/Src/%.c | $(BUILD_D
 	@echo "Compiling $(patsubst $(ROOT_DIR)/%,%,$<)"
 	@mkdir -p $(dir $@)
 	@mkdir -p $(OUTPUT_DIR)
-	$(Q) $(CLANG_COMPILER) $(DEP_CFLAGS) $(CFLAGS) -mllvm -debug-pass=Structure $(INCLUDE_PATHS) -S -emit-llvm -o $@_raw.ll $<
-	$(Q) $(OPT) -load ${INSTRUMENTATION_LIB} --symbolize -debug-pass=Structure -out $(OUTPUT_DIR) -o $@_ins.ll $@_raw.ll
-	$(Q) $(LLC) -filetype=obj -o $@ $@_ins.ll
+ifeq "13" "$(word 1, $(sort 13 $(LLVM_MAJOR_VER)))"
+	$(Q) $(CLANG_COMPILER) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -Xclang -load -Xclang ${INSTRUMENTATION_LIB} -Xclang -fpass-plugin=${INSTRUMENTATION_LIB} -mllvm "-out=$(OUTPUT_DIR)" -c -o $@ $< -Qunused-arguments
+else
+	$(Q) $(CLANG_COMPILER) $(DEP_CFLAGS) $(CFLAGS) $(INCLUDE_PATHS) -S -emit-llvm -o $@_raw.ll $<
+	$(Q) $(OPT) -load ${INSTRUMENTATION_LIB} --symbolize -out $(OUTPUT_DIR) -o $@_ins.ll $@_raw.ll
+	$(Q) $(LLC) -filetype=obj -o $@ $@_ins.ll		
+endif
 
 #build the uninstrumented coremark
 $(BUILD_DIR)/$(PROJ_NAME)/Target/UninstrumentedSrc/%.o: $(PROJ_DIR)/Target/UninstrumentedSrc/%.c | $(BUILD_DIR) $(DEP_DIR) 

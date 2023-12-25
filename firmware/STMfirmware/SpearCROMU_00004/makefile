@@ -22,7 +22,7 @@ CLANG_COMPILER      := $(LLVM_TOOLCHAIN)/bin/clang
 OPT                 := $(LLVM_TOOLCHAIN)/bin/opt
 LLC                 := $(LLVM_TOOLCHAIN)/bin/llc
 LLVM_CONFIG         := $(LLVM_TOOLCHAIN)/bin/llvm-config
-INSTRUMENTATION_LIB := /home/lcm/github/spear/spear-code/pass/cmake-build-debug/libSymbolize.so 
+INSTRUMENTATION_LIB := /home/lcm/github/spear/spear-code/pass/symbolizer/cmake-build-debug/libSymbolize.so 
 #COMPILER ?= arm-none-eabi-gcc
 CC := $(CLANG_COMPILER)
 
@@ -112,8 +112,9 @@ SYMRUNTIME_DIR := $(ROOT_DIR)/Common/SymRuntime
 
 SYMRUNTIME_INCLUDE_DIR := -I$(SYMRUNTIME_DIR)
 
-SYMRUNTIME_SOURCES := $(SYMRUNTIME_DIR)/runtime.c
-
+SYMRUNTIME_SOURCES := \
+$(SYMRUNTIME_DIR)/runtime.c \
+$(SYMRUNTIME_DIR)/wrapped_malloc.c
 
 
 ## FREERTOS Dir, include, sources
@@ -253,9 +254,6 @@ ifneq '' '$(findstring gcc,$(CC_VERSION_INFO))'
 $(info ===GCC Compiler Detected===)
 
 
-COMPILER_SPECIFIC_LDFLAGS += \
-  -Wl,-lgcc 
-
 endif
 
 CFLAGS += -Os
@@ -267,6 +265,7 @@ CFLAGS += -Wall
 #CFLAGS += -fstack-usage
 #CFLAGS += --specs=nano.specs 
 CFLAGS += -Werror 
+#CFLAGS += -Wno-error=unused-but-set-variable
 CFLAGS += -nostdlib 
 #CFLAGS += -DDEBUG 
 CFLAGS += -DUSE_HAL_DRIVER 
@@ -289,16 +288,16 @@ TARGET ?= stm32h743
 LDSCRIPT = $(PROJ_DIR)/STM32H743ZITX_FLASH.ld
 TARGET_ELF = $(BUILD_DIR)/$(TARGET).elf
 
-
+#LDFLAGS += -Wl,-lgcc 
 LDFLAGS += $(COMPILER_SPECIFIC_LDFLAGS)
 LDFLAGS +=  $(ARCH_CFLAGS) 
 LDFLAGS += -T$(LDSCRIPT)
-LDFLAGS += --specs=nosys.specs
 LDFLAGS += -fno-short-enums
 LDFLAGS += -Wl,-Map="$(BUILD_DIR)/$(TARGET).map"
+LDFLAGS += -Wl,--no-warn-mismatch 
 LDFLAGS += -Wl,--gc-sections -static 
 LDFLAGS += --specs=nano.specs
-LDFLAGS += -Wl,--start-group -lc -lm -Wl,--end-group
+#LDFLAGS += -Wl,--start-group -lc -lm -Wl,--end-group
 LDFLAGS += -u _printf_float
 LDFLAGS += $(CLI_LDFLAG_OVERRIDES)
 
