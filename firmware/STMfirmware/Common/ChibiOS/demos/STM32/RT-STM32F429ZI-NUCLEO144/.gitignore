@@ -1,0 +1,6 @@
+build.txt
+clang_build
+clang_build.txt
+orig_gcc_build
+right_trace.txt
+wrong_trace.txt

@@ -233,7 +233,7 @@ static void MonitorTask( void * pvParameters )
 	}
 }
 
-#define CGC_BENCHMARK
+//#define CGC_BENCHMARK
 
 #ifdef CGC_BENCHMARK
 extern unsigned int input_cur;

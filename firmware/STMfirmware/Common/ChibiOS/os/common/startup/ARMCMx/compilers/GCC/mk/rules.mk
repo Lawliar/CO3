@@ -9,6 +9,7 @@ OPT    := $(USE_OPT)
 COPT   := $(USE_COPT)
 CPPOPT := $(USE_CPPOPT)
 
+
 # Garbage collection
 ifeq ($(USE_LINK_GC),yes)
   OPT   += -ffunction-sections -fdata-sections -fno-common
@@ -121,13 +122,15 @@ ADEFS     := $(DADEFS) $(UADEFS)
 LIBS      := $(DLIBS) $(ULIBS)
 
 # Various settings
-MCFLAGS   := -mcpu=$(MCU) -mthumb
+MCFLAGS   := -mthumb -mcpu=$(MCU) 
 ODFLAGS   = -x --syms
-ASFLAGS   = $(MCFLAGS) $(OPT) -Wa,-amhls=$(LSTDIR)/$(notdir $(<:.s=.lst)) $(ADEFS)
-ASXFLAGS  = $(MCFLAGS) $(OPT) -Wa,-amhls=$(LSTDIR)/$(notdir $(<:.S=.lst)) $(ADEFS)
-CFLAGS    = $(MCFLAGS) $(OPT) $(COPT) $(CWARN) -Wa,-alms=$(LSTDIR)/$(notdir $(<:.c=.lst)) $(DEFS)
-CPPFLAGS  = $(MCFLAGS) $(OPT) $(CPPOPT) $(CPPWARN) -Wa,-alms=$(LSTDIR)/$(notdir $(<:.cpp=.lst)) $(DEFS)
-LDFLAGS   = $(MCFLAGS) $(OPT) -nostartfiles $(LLIBDIR) -Wl,-Map=$(BUILDDIR)/$(PROJECT).map,--cref,--no-warn-mismatch,--library-path=$(STARTUPLD),--script=$(LDSCRIPT)$(LDOPT)
+ASFLAGS   = $(MCFLAGS) $(OPT)  $(ADEFS)
+ASXFLAGS  = $(MCFLAGS) $(OPT)  $(ADEFS)
+CFLAGS    = $(MCFLAGS) $(OPT) $(COPT) $(CWARN) $(DEFS)
+CPPFLAGS  = $(MCFLAGS) $(OPT) $(CPPOPT) $(CPPWARN) $(DEFS)
+LDFLAGS   = $(MCFLAGS) $(LLIBDIR) -Wl,-Map=$(BUILDDIR)/$(PROJECT).map,--cref,--no-warn-mismatch,--library-path=$(STARTUPLD),--script=$(LDSCRIPT)$(LDOPT)
+#LDFLAGS += -Wl,--verbose 
+LDFLAGS += -Wl,--noinhibit-exec 
 
 # Generate dependency information
 ASFLAGS  += -MD -MP -MF $(DEPDIR)/$(@F).d
@@ -135,8 +138,27 @@ ASXFLAGS += -MD -MP -MF $(DEPDIR)/$(@F).d
 CFLAGS   += -MD -MP -MF $(DEPDIR)/$(@F).d
 CPPFLAGS += -MD -MP -MF $(DEPDIR)/$(@F).d
 
+CFLAGS += -nostdlib 
 # Paths where to search for sources
 VPATH     = $(SRCPATHS)
+
+ifdef LLVM_TOOLCHAIN
+  ARM_GNU_CC ?= arm-none-eabi-gcc
+  ARM_CORTEXM_SYSROOT = $(shell $(ARM_GNU_CC) $(MCFLAGS) -print-sysroot 2>&1)
+  # The directory where Newlib's libc.a & libm.a reside
+  # for the specific target architecture
+  ARM_CORTEXM_MULTI_DIR = $(shell $(ARM_GNU_CC) $(MCFLAGS) -print-multi-directory 2>&1)
+  # Pick up builtins needed for compilation
+  ARM_CORTEXM_BUILTINS ?= $(shell $(ARM_GNU_CC) $(MCFLAGS) -print-libgcc-file-name 2>&1)
+  COMPILER_SPECIFIC_CFLAGS += --target=arm-none-eabi  --sysroot=$(ARM_CORTEXM_SYSROOT)
+  COMPILER_SPECIFIC_LDFLAGS += -L$(ARM_CORTEXM_SYSROOT)/lib/$(ARM_CORTEXM_MULTI_DIR) $(ARM_CORTEXM_BUILTINS)
+  COMPILER_SPECIFIC_LDFLAGS += -Wl,-lgcc 
+
+  #LDFLAGS += $(COMPILER_SPECIFIC_LDFLAGS)
+  CFLAGS += $(COMPILER_SPECIFIC_CFLAGS)
+  ASFLAGS += $(COMPILER_SPECIFIC_CFLAGS)
+  ASXFLAGS += $(COMPILER_SPECIFIC_CFLAGS)
+endif
 
 #
 # Makefile rules

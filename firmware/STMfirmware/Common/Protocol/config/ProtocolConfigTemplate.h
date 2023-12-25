@@ -38,11 +38,16 @@
 #define SYM_PERIPHERAL_SIZE          0x1FFFFFFF
 #endif
 
-// 2. which communication channel you would like to use
+//2. which vendor is this board
+
+#define CO3_USE_STM32
+//#define CO3_USE_NXP
+
+// 3. which communication channel you would like to use
 #define CO3_USE_USB
 //#define CO3_USE_SERIAL
 
-// 3. which RTOS you use
+// 4. which RTOS you use
 #define CO3_USE_FREERTOS
 //#define CO3_USE_CHIBIOS
 

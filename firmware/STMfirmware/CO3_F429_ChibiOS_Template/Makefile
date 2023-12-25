@@ -91,10 +91,13 @@ PROJECT = ch
 MCU  = cortex-m4
 
 # Imported source files and paths.
-CHIBIOS  := ../../..
+COMMONDIR:= ../Common
+CHIBIOS  := $(COMMONDIR)/ChibiOS
 CONFDIR  := ./cfg
 BUILDDIR := ./build
 DEPDIR   := ./.dep
+PRJDIR   := .
+
 
 
 
@@ -116,6 +119,10 @@ include $(CHIBIOS)/tools/mk/autobuild.mk
 include $(CHIBIOS)/os/test/test.mk
 include $(CHIBIOS)/test/rt/rt_test.mk
 include $(CHIBIOS)/test/oslib/oslib_test.mk
+# CO3
+include $(PRJDIR)/CO3/CO3.mk
+include $(PRJDIR)/Target/target.mk
+
 
 # Define linker script file here
 LDSCRIPT= $(STARTUPLD)/STM32F429xI.ld

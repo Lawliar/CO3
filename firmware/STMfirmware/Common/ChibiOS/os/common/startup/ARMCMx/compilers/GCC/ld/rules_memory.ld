@@ -311,6 +311,7 @@ SECTIONS
     {
         . = ALIGN(8);
         __heap_base__ = .;
+        PROVIDE ( _end = . );
         . = ORIGIN(HEAP_RAM) + LENGTH(HEAP_RAM);
         __heap_end__ = .;
     } > HEAP_RAM
