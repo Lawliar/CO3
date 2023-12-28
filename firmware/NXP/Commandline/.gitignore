@@ -1,1 +1,5 @@
 /Debug/
+CommonSHIFT/
+FuzzerSHIFT/
+/build/
+cmake-build-debug/

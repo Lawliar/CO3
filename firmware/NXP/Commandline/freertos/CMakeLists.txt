@@ -3,9 +3,9 @@
 #file(GLOB FILES *.c *.h)
 
 file(GLOB FILES
-  ${FREERTOS_DIR}/*.c
-  ${FREERTOS_DIR}/portable/GCC/ARM_CM4F/*.c
-  ${FREERTOS_DIR}/portable/MemMang/*.c
+  freertos_kernel/*.c
+  freertos_kernel/portable/GCC/ARM_CM4F/*.c
+  freertos_kernel/portable/MemMang/*.c
 
  )
 
@@ -33,6 +33,6 @@ target_include_directories(
   ../device
   ../drivers
   ../FuzzerSHIFT/inc
-  ${FREERTOS_DIR}/include
-  ${FREERTOS_DIR}/portable/GCC/ARM_CM4F
+  ./freertos_kernel/include
+  ./freertos_kernel/portable/GCC/ARM_CM4F
 )

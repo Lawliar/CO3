@@ -51,5 +51,6 @@
 #define CO3_USE_FREERTOS
 //#define CO3_USE_CHIBIOS
 
-
+#define CO3_TEST_COMMANDLINE
+//#define CO3_TEST_CGC
 #endif /* PROTOCOLCONFIG_H_ */

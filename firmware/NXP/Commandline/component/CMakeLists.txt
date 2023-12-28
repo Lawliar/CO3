@@ -26,8 +26,8 @@ target_include_directories(
   component 
   PUBLIC
   ./
-  ${FREERTOS_DIR}/include
-  ${FREERTOS_DIR}/portable/GCC/ARM_CM4F
+  ../freertos/freertos_kernel/include
+  ../freertos/freertos_kernel/portable/GCC/ARM_CM4F
   ../CMSIS
   ../source
   ../board

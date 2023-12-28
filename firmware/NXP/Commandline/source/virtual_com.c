@@ -45,6 +45,7 @@ extern uint8_t USB_EnterLowpowerMode(void);
 
 //#include "fuzzing.h"
 #include "protocol.h"
+#include "monitor.h"
 /*******************************************************************************
  * Prototypes
  ******************************************************************************/
@@ -774,9 +775,9 @@ void main(void)
 //     vTaskStartScheduler();
 
 
-    activateCortexMtrapsUNA();
+    //activateCortexMtrapsUNA();
     //activateCortexMtraps();
-    __asan_init(); //initialize ASAN shadow
+    //__asan_init(); //initialize ASAN shadow
     app_main();
 
 

@@ -30,8 +30,13 @@ target_include_directories(
   ../component/osa
   ../component/lists
   ../usb/device/include
+  ../source
+  ../drivers
+  ../device
+  ../CMSIS
+  ../Target/inc
   ${CommonDIR}/Protocol
   ${CommonDIR}/SymRuntime
-  ${FREERTOS_DIR}/include
-  ${FREERTOS_DIR}/portable/GCC/ARM_CM4F
+  ../freertos/freertos_kernel/include
+  ../freertos/freertos_kernel/portable/GCC/ARM_CM4F
 )

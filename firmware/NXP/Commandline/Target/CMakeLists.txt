@@ -2,14 +2,19 @@
 # You can use a GLOB function as shown here, or explicitly mention the specific files
 #file(GLOB FILES *.c *.h)
 
-file(GLOB FILES
-  ./src/*.c
+file(GLOB FILESNORMAL
+  ./src/test.c
+)
+
+file(GLOB FILESTARGET
+  ./src/sys_command_line.c
+  ./src/sys_queue.c
  )
 
 # add_library: With this declaration, you express the intent to build a library. 
 # The first argument, here its pico-shift-register, is the name of the library, 
 # the second argument are the files that will be compiled to create your library.
-add_library(TargetEApp OBJECT ${FILES})
+add_library(TargetEApp OBJECT ${FILESNORMAL} ${FILESTARGET} )
 
 # target_link_libraries: If you link with other libraries, list them here
 target_link_libraries(  
@@ -20,7 +25,7 @@ target_link_libraries(
 # so that you can import them in source code. This statement expresses where to find the files 
 # - typically in an include directory of your projects.
 target_include_directories(
-  CommonCO3
+  TargetEApp
   PUBLIC
   ./
   ../CMSIS
@@ -31,7 +36,10 @@ target_include_directories(
   ./inc
   ${CommonDIR}/Protocol
   ${CommonDIR}/SymRuntime
-  ${FREERTOS_DIR}/include
-  ${FREERTOS_DIR}/portable/GCC/ARM_CM4F
-
+  ../freertos/freertos_kernel/include
+  ../freertos/freertos_kernel/portable/GCC/ARM_CM4F
+  ../usb/device/include
+  ../usb/include
+  ../component/osa
+  ../component/lists
 )

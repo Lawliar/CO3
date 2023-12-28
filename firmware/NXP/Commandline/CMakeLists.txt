@@ -8,6 +8,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # Path to toolchain file. This one has to be before 'project()' below
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/arm-none-eabi-gcc.cmake)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Setup project, output and linker file
 set(BUILD_FOLDER ./build)
@@ -152,7 +153,6 @@ target_link_options(${EXECUTABLE} PRIVATE
 )
 set(PRJDIR )
 set(CommonDIR /home/lcm/github/spear/spear-code/firmware/NXP/Common)
-set(FREERTOS_DIR ${CommonDIR}/FreeRTOS-Kernel)
 
 add_subdirectory(./CommonCO3   build/CommonCO3)
 add_subdirectory(./Target      build/Target)
