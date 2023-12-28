@@ -30,13 +30,14 @@
 #define SYM_SHADOW_RAM_START         0x30000000 // the start address of the shadow memory itself
 #define SYM_SHADOW_RAM_LENGTH        1024*64  // the size of the shadow memory
 #define SYM_SHADOW_RAM_OFFSET        0x2B800000 // the offset used by the formula mapping the address of the RAM its shadow memory ( ADDR >> 3 + OFFSET = Shadow_Addr)
+#endif
 
 #define SYM_FLASH_ADDR_START         0x08000000
 #define SYM_FLASH_SIZE               1024*2048
 
 #define SYM_PERIPHERAL_ADDR_START    0x40000000
 #define SYM_PERIPHERAL_SIZE          0x1FFFFFFF
-#endif
+
 
 //2. which vendor is this board
 
@@ -48,8 +49,15 @@
 //#define CO3_USE_SERIAL
 
 // 4. which RTOS you use
-#define CO3_USE_FREERTOS
+#define CO3_USE_FREERTOS  // one thing to notice is that FreeRTOS does not provide any HAL
 //#define CO3_USE_CHIBIOS
+
+
+// 5. APP-specific MACRO
+#define CO3_TEST_COMMANDLINE
+//#define CO3_TEST_CGC
+
+
 
 
 #endif /* PROTOCOLCONFIG_H_ */

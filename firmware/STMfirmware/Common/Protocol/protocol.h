@@ -10,7 +10,7 @@
 
 #include "ProtocolConfig.h"
 
-#ifdef CO3_USE_FREERTOS
+#if defined CO3_USE_FREERTOS
 #include "FreeRTOS.h"
 #include "task.h"
 #include "timers.h"

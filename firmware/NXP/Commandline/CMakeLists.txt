@@ -41,6 +41,7 @@ set(SRC_FILES
 include_directories(
 ./usb/device/class
 ./usb/device/class/cdc
+./CommonCO3
 )
 
 
@@ -173,6 +174,7 @@ target_link_libraries(
   freertos
   usb
   CommonCO3
+  TargetEApp
 )
 
 # Optional: Print executable size as part of the post build process

@@ -15,16 +15,42 @@
 #include "stdio.h"
 #include "string.h"
 #include "runtime.h"
-#include "test.h"
+
+
+#ifdef CO3_USE_STM32
+#include "main.h" // STM32 HAL header
+#elif defined CO3_USE_NXP
+#include "usb_device_config.h"
+#include "usb.h"
+#include "usb_device.h"
+#include "virtual_com.h"
+#include "usb_device_descriptor.h"
+#endif
+
 
 
 #if defined CO3_USE_FREERTOS
 #include "FreeRTOS.h"
 #include "task.h"
-#include "main.h"
+void vApplicationStackOverflowHook( TaskHandle_t pxTask, char *pcTaskName )
+{
+	/* If configCHECK_FOR_STACK_OVERFLOW is set to either 1 or 2 then this
+	function will automatically get called if a task overflows its stack. */
+	( void ) pxTask;
+	( void ) pcTaskName;
+	for( ;; );
+}
+
 #elif defined CO3_USE_CHIBIOS
 #include "ch.h"
 #include "hal.h"
+#endif
+
+
+#if defined CO3_TEST_COMMANDLINE
+#include "sys_command_line.h"
+#else
+#include "test.h"
 #endif
 
 static uint32_t start_time_val, stop_time_val;
@@ -135,9 +161,11 @@ static void MonitorTask( void * pvParameters )
 
     _sym_initialize();
 
+#if defined CO3_USE_STM32
     //enable the cycle counter
     DWT->CYCCNT = 0;
     DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+#endif
 
     while(1)
 	{
@@ -233,9 +261,8 @@ static void MonitorTask( void * pvParameters )
 	}
 }
 
-//#define CGC_BENCHMARK
 
-#ifdef CGC_BENCHMARK
+#ifdef CO3_TEST_CGC
 extern unsigned int input_cur;
 #endif
 
@@ -272,29 +299,53 @@ static void TargetTask( void * pvParameters )
 		    while(1){}
 		}
 #endif
-		start_time_val = DWT->CYCCNT;
-#ifdef CGC_BENCHMARK
+
+#if defined STM32
+        start_time_val = DWT->CYCCNT;
+#endif
+
+#if defined CO3_TEST_CGC
         input_cur = 0;
+#elif defined CO3_TEST_COMMANDLINE
+        cli_init(9600);
+
+    	//test(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
+    	QUEUE_INIT(cli_rx_buff);
 #endif
         //if(AFLfuzzer.inputAFL.u32available <= AFL_BUFFER_STARTING_POINT){
         	// THE DATA IS NOT READY, but the monitor said it is, what is going on?
         //	while(1){}
         //}
-		_sym_symbolize_memory((char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT),AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT, false);
-#ifdef CGC_BENCHMARK
-		test();
+        _sym_symbolize_memory((char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT),AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT, false);
+#if defined CO3_TEST_CGC
+        test();
+#elif defined CO3_TEST_COMMANDLINE
+        if(AFLfuzzer.inputAFL.u32availablenopad >0 && AFLfuzzer.inputAFL.u32availablenopad <1024)
+        {
+            for(int i=0; i<= AFLfuzzer.inputAFL.u32availablenopad-4; i++)
+            {
+                QUEUE_IN(cli_rx_buff, AFLfuzzer.inputAFL.uxBuffer[4+i]);
+            }
+                CLI_RUN();
+            }
+            else
+            {
+                if(AFLfuzzer.inputAFL.u32availablenopad == 0)DbgConsole_Printf("Zero target\n");
+            }
 #else
-
-		//modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
+        //modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
         test(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4);
-		//HAL_UART_Transmit_test(&huart2,  (unsigned char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT), AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT,  HAL_MAX_DELAY);
-		//gps_init((gps_t*)GPSHandleRegion);
+        //HAL_UART_Transmit_test(&huart2,  (unsigned char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT), AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT,  HAL_MAX_DELAY);
+        //gps_init((gps_t*)GPSHandleRegion);
         //gps_process((gps_t*)GPSHandleRegion,&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
-		//memset(GPSHandleRegion,0, next_power_of_2(gps_handle_t_size));
+        //memset(GPSHandleRegion,0, next_power_of_2(gps_handle_t_size));
 #endif
+
         _sym_end();
 
+#if defined CO3_USE_STM32
         stop_time_val = DWT->CYCCNT;
+#endif
 		printf("time:%d\n",stop_time_val - start_time_val);
 	}
 }

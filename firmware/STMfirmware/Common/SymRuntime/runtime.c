@@ -714,12 +714,14 @@ void _sym_notify_basic_block(uint16_t bbid, bool isSym, char * base_addr, uint8_
 }
 
 
-//return shadow address
+
+#ifndef CO3_NO_MCU_SIDE_SHADOW
 uint32_t AddressToShadow(char *addr)
 {
 	uint32_t adr32 = (uint32_t)addr;
 	return ((adr32>>3) + SYM_SHADOW_RAM_OFFSET);
 }
+#endif
 
 //return true if byte is symbolic
 bool checkSymbolic(char *addr)

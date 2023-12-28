@@ -15,7 +15,8 @@
 
 #include "main.h"
 #include "sys_command_line.h"
-#include "fuzzing.h"
+#include "protocol.h"
+//#include "fuzzing.h"
 //#include "./../bsp/bsp_usart.h"
 //#include "./../app/app_led.h"
 //extern UART_HandleTypeDef huart3;

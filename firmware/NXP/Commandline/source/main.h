@@ -26,7 +26,6 @@
 
 
 #include "stdbool.h"
-#include "ConfigFuzzing.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "board.h"
@@ -37,7 +36,6 @@
 #define DTCMRAMORIGIN  0x20000000
 #define AFLINPUTREGION_SIZE (1024*16)
 
-extern uint8_t AFLfuzzerRegion[AFLINPUTREGION_SIZE ];
 
 #else
 
