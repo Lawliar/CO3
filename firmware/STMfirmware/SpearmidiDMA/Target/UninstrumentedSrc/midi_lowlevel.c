@@ -64,24 +64,15 @@ void SytemCall_2_code()
 
 void MIDI_process_buffer(void)
 {
-
-
-
     int MIDIlastIndex = 0;
     int numItems = ulTaskNotifyTake(pdTRUE, portMAX_DELAY); //wait for data coming from USART
-
-
-
     while (numItems--) {
         MIDI_process_byte(midiBuffer[MIDIlastIndex]);
         /* increase last index so the function starts at the correct point next interrupt */
         MIDIlastIndex = (MIDIlastIndex + 1) % MIDI_BUF_SIZE; 
     }
 
-    SytemCall_2_code();  // configure port to receive more data
-
-
-
+    //SytemCall_2_code();  // configure port to receive more data
 }
 
 

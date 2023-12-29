@@ -46,15 +46,9 @@
     extern UART_HandleTypeDef huart2;
 #elif defined CO3_TEST_MIDIDMA
     #include "midi_lowlevel.h"
-    #include "mm_midimsgbuilder.h"
-    #include "mm_midirouter_standard.h"
+    #include "midi_main.h"
     extern UART_HandleTypeDef huart2;
     extern char midiBuffer[MIDI_BUF_SIZE] __attribute__( ( aligned( next_power_of_2(MIDI_BUF_SIZE)  ) ) );    /* for debugging */ //buffer
-    extern MIDIMsgBuilder midiMsgBuilder;                   //buffers
-    extern MIDI_Router_Standard midiRouter;                 //buffers
-    void MIDI_note_on_do(void *data, MIDIMsg *msg);
-    void MIDI_note_off_do(void *data, MIDIMsg *msg);
-    void MIDI_entry(int);
 #else
     #include "test.h"
 #endif
@@ -204,16 +198,11 @@ static void MonitorTask( void * pvParameters )
 #endif
 
 #if defined CO3_USE_FREERTOS
-        //notify the target that data has arrived, and it should start execution
-    #if defined CO3_TEST_MIDIDMA
-        xTaskNotify(AFLfuzzer.xTaskTarget,AFLfuzzer.inputAFL.u32availablenopad-4,eSetValueWithOverwrite);
-    #else
         xTaskNotify(AFLfuzzer.xTaskTarget,0,eSetValueWithOverwrite);
-    #endif
 #elif defined CO3_USE_CHIBIOS
-		eventmask_t events = 0;
-		events |= TARGET_GO_AHEAD;
-		chEvtSignal(AFLfuzzer.xTaskTarget, events);
+        eventmask_t events = 0;
+        events |= TARGET_GO_AHEAD;
+        chEvtSignal(AFLfuzzer.xTaskTarget, events);
 #endif
 
 		// when we have around 64 bytes ready to transmit in the buffer
@@ -295,10 +284,6 @@ static void TargetTask( void * pvParameters )
     SytemCall_1_code(); //ERROR we need this line to receive data from serial port and it has to be called before it notifies to the monitor
 #endif
 
-#if defined CO3_TEST_MIDIDMA
-    int dummy;
-#endif
-
 #if defined CO3_USE_FREERTOS
 	xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,1,eSetValueWithOverwrite); //notify the monitor task the target is ready
 #elif defined CO3_USE_CHIBIOS
@@ -310,11 +295,7 @@ static void TargetTask( void * pvParameters )
 #endif
 	while(1){
 #if defined CO3_USE_FREERTOS
-    #if defined CO3_TEST_MIDIDMA
-        int numItems = ulTaskNotifyTakeIndexed(0, pdTRUE, portMAX_DELAY);
-    #else
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // wait for the notification coming from the Monitor task
-    #endif
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // wait for the notification coming from the Monitor task
 #elif defined CO3_USE_CHIBIOS
 		if(chThdShouldTerminateX()){
 		   break;
@@ -344,12 +325,19 @@ static void TargetTask( void * pvParameters )
     	QUEUE_INIT(cli_rx_buff);
 #endif
 
+        uint32_t input_len = AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT;
 #if defined CO3_TEST_MODBUSDMA
-         _sym_symbolize_memory((char*)modbusRxTxBuffer, MODBUS_MAX_FRAME_SIZE, false);
+        if (input_len >= MODBUS_MAX_FRAME_SIZE){
+            input_len = MODBUS_MAX_FRAME_SIZE;
+        }
+         _sym_symbolize_memory((char*)modbusRxTxBuffer, input_len, false);
 #elif defined CO3_TEST_MIDIDMA
-        _sym_symbolize_memory((char*)midiBuffer,MIDI_BUF_SIZE, false);
+        if (input_len >= MIDI_BUF_SIZE){
+            input_len = MIDI_BUF_SIZE;
+        }
+        _sym_symbolize_memory((char*)midiBuffer,input_len, false);
 #else
-        _sym_symbolize_memory((char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT),AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT, false);
+        _sym_symbolize_memory((char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT),input_len, false);
 #endif
 
 #if defined CO3_TEST_CGC
@@ -370,24 +358,7 @@ static void TargetTask( void * pvParameters )
 #elif defined CO3_TEST_MODBUSDMA
         modbusSlaveHandler();
 #elif defined CO3_TEST_MIDIDMA
-        MIDIMsgBuilder_init(&midiMsgBuilder);
-
-        /* Initialize the MIDI router */
-        MIDI_Router_Standard_init(&midiRouter);
-        MIDI_Router_addCB(&midiRouter.router, MIDIMSG_NOTE_ON, 1, MIDI_note_on_do, &dummy);
-        MIDI_Router_addCB(&midiRouter.router, MIDIMSG_NOTE_OFF, 1, MIDI_note_off_do, &dummy);
-
-
-        MIDI_entry(numItems);
-
-        SytemCall_2_code();  // configure port to receive more data
-
-        /* Initialize MIDI Message builder */
-        MIDIMsgBuilder_init(&midiMsgBuilder);
-        /* Initialize the MIDI router */
-        MIDI_Router_Standard_init(&midiRouter);
-        MIDI_Router_addCB(&midiRouter.router, MIDIMSG_NOTE_ON, 1, MIDI_note_on_do, &dummy);
-        MIDI_Router_addCB(&midiRouter.router, MIDIMSG_NOTE_OFF, 1, MIDI_note_off_do, &dummy);
+        main_midi(input_len);
 #else
         //modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
         test(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4);

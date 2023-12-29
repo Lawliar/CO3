@@ -51,41 +51,6 @@ void MIDI_note_off_do(void *data, MIDIMsg *msg)
     //free(msg);
 }
 
-int main_midi(void)
-{
-	//Fuzzer_t *pAFLfuzzer = (Fuzzer_t *)AFLfuzzerRegion;
-
-
-    int dummy;
-
-
-	/* Initialize MIDI Message builder */
-	MIDIMsgBuilder_init(&midiMsgBuilder);
-    
-    /* Initialize the MIDI router */
-    MIDI_Router_Standard_init(&midiRouter);
-    MIDI_Router_addCB(&midiRouter.router, MIDIMSG_NOTE_ON, 1, MIDI_note_on_do, &dummy); 
-    MIDI_Router_addCB(&midiRouter.router, MIDIMSG_NOTE_OFF, 1, MIDI_note_off_do, &dummy); 
-
-    /* Enable LEDs so we can toggle them */
-
-    //LEDs_Init();
-    
-    /* Set up midi */
-    MIDI_low_level_setup_nolib();  // initialize USART with DMA RX
-    xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,4,1,eSetValueWithOverwrite); //notify the fuzzer task the target is ready
-
-//    while (1) {
-
-        MIDI_process_buffer();
-        //xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,FAULT_NONE_RTOS,eSetValueWithOverwrite);//notify that the test finished
-//    }
-        return 0;
-}
-
-
-
-
 void MIDI_entry(int numItems){
 	int MIDIlastIndex = 0;
 	while (numItems--) {
@@ -93,6 +58,23 @@ void MIDI_entry(int numItems){
 		MIDIlastIndex = (MIDIlastIndex + 1) % MIDI_BUF_SIZE;
 	}
 }
+
+int main_midi(int numItems)
+{
+    int dummy;
+    MIDIMsgBuilder_init(&midiMsgBuilder);
+    /* Initialize the MIDI router */
+    MIDI_Router_Standard_init(&midiRouter);
+    MIDI_Router_addCB(&midiRouter.router, MIDIMSG_NOTE_ON, 1, MIDI_note_on_do, &dummy); 
+    MIDI_Router_addCB(&midiRouter.router, MIDIMSG_NOTE_OFF, 1, MIDI_note_off_do, &dummy); 
+    MIDI_entry(numItems);
+    return 0;
+}
+
+
+
+
+
 
 void do_stuff_with_msg(MIDIMsg *msg)
 {
