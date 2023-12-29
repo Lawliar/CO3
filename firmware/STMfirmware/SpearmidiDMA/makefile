@@ -149,8 +149,9 @@ $(COREMARK_HAL_DIR)/Src/mm_midieventbuilder.c \
 $(COREMARK_HAL_DIR)/Src/mm_midimsg.c \
 $(COREMARK_HAL_DIR)/Src/mm_midimsgbuilder.c \
 $(COREMARK_HAL_DIR)/Src/mm_midirouter.c \
-$(COREMARK_HAL_DIR)/UninstrumentedSrc/midi_lowlevel.c \
-$(COREMARK_HAL_DIR)/UninstrumentedSrc/mm_midirouter_standard.c
+$(COREMARK_HAL_DIR)/Src/mm_midirouter_standard.c \
+$(COREMARK_HAL_DIR)/UninstrumentedSrc/midi_lowlevel.c
+
 ## Project core Dir, Include, sources
 
 PROJECT_CORE_DIR := $(PROJ_DIR)/Core
