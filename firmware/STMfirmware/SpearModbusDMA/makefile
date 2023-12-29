@@ -100,7 +100,7 @@ PROTOCOL_DIR := $(ROOT_DIR)/Common/Protocol
 PROTOCOL_INCLUDE_DIR :=  -I$(PROTOCOL_DIR)
 
 PROTOCOL_SOURCES := \
-$(PROTOCOL_DIR)/monitor-dma.c \
+$(PROTOCOL_DIR)/monitor.c \
 $(PROTOCOL_DIR)/protocol.c \
 $(PROTOCOL_DIR)/ring.c
 

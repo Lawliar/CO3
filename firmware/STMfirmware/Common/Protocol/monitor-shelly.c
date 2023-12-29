@@ -53,8 +53,6 @@ void vStartMonitor( void )
 				NULL,
 				10,
 				&AFLfuzzer.xTaskMonitor);
-
-
 }
 
 //creates a target task

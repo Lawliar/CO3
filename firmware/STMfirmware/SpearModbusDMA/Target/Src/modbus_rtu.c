@@ -101,17 +101,6 @@ void modbusSlaveHandler()
    //cleanInitShadow();
    //xTaskNotifyIndexed(AFLfuzzer.xTaskFuzzer,2,1,eSetValueWithOverwrite); //notify the fuzzer task the target is ready
 */
-
- //  while(1)
-  // {
-
-
-
-
-
-       //ulTaskNotifyTake(pdTRUE, portMAX_DELAY); //wait for data coming from USART
-
-
        if(!modbusSlaveCheckFrameSize())
        {
            modbusSlaveStartReceiving();

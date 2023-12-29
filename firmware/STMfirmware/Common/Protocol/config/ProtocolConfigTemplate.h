@@ -56,6 +56,7 @@
 // 5. APP-specific MACRO
 #define CO3_TEST_COMMANDLINE
 //#define CO3_TEST_CGC
+//#define CO3_TEST_MODBUSDMA
 
 
 

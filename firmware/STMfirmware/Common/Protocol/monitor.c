@@ -32,14 +32,6 @@
 #if defined CO3_USE_FREERTOS
 #include "FreeRTOS.h"
 #include "task.h"
-void vApplicationStackOverflowHook( TaskHandle_t pxTask, char *pcTaskName )
-{
-	/* If configCHECK_FOR_STACK_OVERFLOW is set to either 1 or 2 then this
-	function will automatically get called if a task overflows its stack. */
-	( void ) pxTask;
-	( void ) pcTaskName;
-	for( ;; );
-}
 
 #elif defined CO3_USE_CHIBIOS
 #include "ch.h"
@@ -49,9 +41,15 @@ void vApplicationStackOverflowHook( TaskHandle_t pxTask, char *pcTaskName )
 
 #if defined CO3_TEST_COMMANDLINE
 #include "sys_command_line.h"
+#elif defined CO3_TEST_MODBUSDMA
+#include "modbus_rtu.h"
+extern UART_HandleTypeDef huart2;
 #else
 #include "test.h"
 #endif
+
+
+
 
 static uint32_t start_time_val, stop_time_val;
 
@@ -170,21 +168,29 @@ static void MonitorTask( void * pvParameters )
     while(1)
 	{
 #if defined CO3_USE_SERIAL
-    	SerialReceiveInput();
+        SerialReceiveInput();
 #elif defined CO3_USE_USB
-    	ulTaskNotifyTakeIndexed(1,pdTRUE, portMAX_DELAY);
+        ulTaskNotifyTakeIndexed(1,pdTRUE, portMAX_DELAY);
 #endif
-    	//cleaning the packet buffer
-		//AFLfuzzer.txTotalFunctions=0;
-		/*
-    	for(uint8_t i=1; i<8; i++)
-		{
-			AFLfuzzer.txbuffer[i]=0;
-		}
-		*/
+        AFLfuzzer.txCurrentIndex=REPORTING_BUFFER_STARTING_POINT; //Index Zero is reserved for the total length of the message, which  includes the first byte
 
-    	AFLfuzzer.txCurrentIndex=REPORTING_BUFFER_STARTING_POINT; //Index Zero is reserved for the total length of the message, which  includes the first byte
-
+#if defined CO3_TEST_MODBUSDMA
+        // transmit data to huart
+        HAL_UART_Transmit(&huart2,&AFLfuzzer.inputAFL.uxBuffer[4] , AFLfuzzer.inputAFL.u32availablenopad-4, 100);
+        while(ulTaskNotifyTakeIndexed(4,pdTRUE, TARGET_TIMEOUT) != 1) //check if data was received by the target through USART on index 2
+        {
+            //if we do not receive  a confirmation we delete and recreate the target
+            // the target will reconfigure USART4 in RX DMA mode
+            vTaskDelete(AFLfuzzer.xTaskTarget);
+            taskYIELD(); //lets the kernel clean the TCB
+            //numberofcycles = 0;
+            spawnNewTarget();
+            // make sure the target is up
+            ulTaskNotifyTakeIndexed(0,pdTRUE, TARGET_TIMEOUT/2);
+            //send the payload through USART TX  pin PD5
+            HAL_UART_Transmit(&huart2,&AFLfuzzer.inputAFL.uxBuffer[4] , AFLfuzzer.inputAFL.u32availablenopad-4, 100);
+        }
+#endif
 
 #if defined CO3_USE_FREERTOS
 		//notify the target that data has arrived, and it should start execution
@@ -270,6 +276,10 @@ extern uint8_t GPSHandleRegion[];
 static void TargetTask( void * pvParameters )
 {
 
+#if defined CO3_TEST_MODBUSDMA
+    SytemCall_1_code(); //ERROR we need this line to receive data from serial port and it has to be called before it notifies to the monitor
+#endif
+
 #if defined CO3_USE_FREERTOS
 	xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,1,eSetValueWithOverwrite); //notify the monitor task the target is ready
 #elif defined CO3_USE_CHIBIOS
@@ -312,11 +322,13 @@ static void TargetTask( void * pvParameters )
     	//test(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
     	QUEUE_INIT(cli_rx_buff);
 #endif
-        //if(AFLfuzzer.inputAFL.u32available <= AFL_BUFFER_STARTING_POINT){
-        	// THE DATA IS NOT READY, but the monitor said it is, what is going on?
-        //	while(1){}
-        //}
+
+#if defined CO3_TEST_MODBUSDMA
+         _sym_symbolize_memory((char*)modbusRxTxBuffer, MODBUS_MAX_FRAME_SIZE, false);
+#else
         _sym_symbolize_memory((char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT),AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT, false);
+#endif
+
 #if defined CO3_TEST_CGC
         test();
 #elif defined CO3_TEST_COMMANDLINE
@@ -332,6 +344,8 @@ static void TargetTask( void * pvParameters )
             {
                 if(AFLfuzzer.inputAFL.u32availablenopad == 0)DbgConsole_Printf("Zero target\n");
             }
+#elif defined CO3_TEST_MODBUSDMA
+        modbusSlaveHandler();
 #else
         //modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
         test(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4);
