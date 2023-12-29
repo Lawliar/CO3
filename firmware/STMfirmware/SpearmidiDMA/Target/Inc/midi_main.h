@@ -10,4 +10,5 @@
 
 int main_midi(void);
 
+void MIDI_entry(int numItems);
 #endif /* TARGET_MMMIDI_INC_MIDI_MAIN_H_ */

@@ -20,7 +20,7 @@
 
 // 1. if you want to use the MCU-side shadow memory or not
 
-#define CO3_NO_MCU_SIDE_SHADOW
+//#define CO3_NO_MCU_SIDE_SHADOW
 
 
 #if defined CO3_NO_MCU_SIDE_SHADOW
@@ -54,10 +54,10 @@
 
 
 // 5. APP-specific MACRO
-#define CO3_TEST_COMMANDLINE
+//#define CO3_TEST_COMMANDLINE
 //#define CO3_TEST_CGC
 //#define CO3_TEST_MODBUSDMA
-//#define CO3_TEST_MIDIDMA
+#define CO3_TEST_MIDIDMA
 
 
 
