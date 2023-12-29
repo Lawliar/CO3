@@ -657,6 +657,7 @@ int Orchestrator::Run() {
             unsigned inputSize = boost::filesystem::file_size(g_config.inputFile);
             DR_INPUT = new WriteShadowIteratorDR(reinterpret_cast<uintptr_t>(init_msg->addr), inputSize);
         }
+        //now we know the MCU is properly initialized
         start_time = getTimeStamp();
 #ifdef DEBUG_OUTPUT
         cout<<"finish "<<init_msg->Str()<<"\n\n";
@@ -706,6 +707,8 @@ int Orchestrator::Run() {
                 if(callStack.size() == 0){
                     callStack.push(nextFunc);
                 }else{
+                    // assume a Func Notification is always immdediately preceded by a CallInst
+                    // except the first instrumented function (i.e., the entry point)
                     assert(callStack.top() == nullptr);
                     callStack.top() = nextFunc;
                 }
@@ -721,7 +724,7 @@ int Orchestrator::Run() {
 #endif
                 PreparingCalling(call_msg);
                 // not sure if the called function is instrumented or not
-                // so we just set this to false and let the NotifyCall decide.
+                // so we just set this to false and let the NotifyFunc decide.
                 callStack.push(nullptr);
 #ifdef DEBUG_OUTPUT
                 cout <<"finish "<<call_msg->Str()<<"\n\n";
@@ -810,7 +813,12 @@ int Orchestrator::Run() {
             }
             else if(auto end_msg = dynamic_cast<EndMessage*>(cnt_msg); end_msg != nullptr ){
                 uint64_t end_message_receive_time = listen_job.get();
-                cout << "End message received time:"<< end_message_receive_time - start_time <<'\n';
+                if(end_message_receive_time <= start_time){
+                    cout << "End message received before the symbolic backend starts building formulae\n";
+                }else{
+                    cout << "End message received time:"<< end_message_receive_time - start_time <<'\n';
+                }
+
                 cout << "End message processed:"<< getTimeStamp() - start_time <<'\n';
                 cout.flush();
 #ifdef DEBUG_OUTPUT
