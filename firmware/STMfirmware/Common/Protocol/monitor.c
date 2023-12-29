@@ -49,6 +49,8 @@
     #include "midi_main.h"
     extern UART_HandleTypeDef huart2;
     extern char midiBuffer[MIDI_BUF_SIZE] __attribute__( ( aligned( next_power_of_2(MIDI_BUF_SIZE)  ) ) );    /* for debugging */ //buffer
+#elif defined CO3_TEST_SHELLYDIMMER
+    #include "shelly.h"
 #else
     #include "test.h"
 #endif
@@ -274,7 +276,10 @@ static void MonitorTask( void * pvParameters )
 
 #ifdef CO3_TEST_CGC
 extern unsigned int input_cur;
+#elif defined CO3_TEST_SHELLYDIMMER
+volatile int size_aux;
 #endif
+
 
 extern uint8_t GPSHandleRegion[];
 static void TargetTask( void * pvParameters )
@@ -350,15 +355,18 @@ static void TargetTask( void * pvParameters )
                 QUEUE_IN(cli_rx_buff, AFLfuzzer.inputAFL.uxBuffer[4+i]);
             }
                 CLI_RUN();
-            }
-            else
-            {
-                if(AFLfuzzer.inputAFL.u32availablenopad == 0)DbgConsole_Printf("Zero target\n");
-            }
+        }
+        else
+        {
+            if(AFLfuzzer.inputAFL.u32availablenopad == 0)DbgConsole_Printf("Zero target\n");
+        }
 #elif defined CO3_TEST_MODBUSDMA
         modbusSlaveHandler();
 #elif defined CO3_TEST_MIDIDMA
         main_midi(input_len);
+#elif defined CO3_TEST_SHELLYDIMMER
+        size_aux = AFLfuzzer.inputAFL.u32availablenopad-4;
+        main_shelly_test((char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT));
 #else
         //modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
         test(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4);
