@@ -1,10 +1,3 @@
-/*
- * ProtocolConfig.h
- *
- *  Created on: May 2, 2022
- *      Author: alejandro
- */
-
 //a copy of this file must be renamed to ProtocolConfig.h  and added to the includes of this project,
 // do not use this file in the includes this is  just a template
 

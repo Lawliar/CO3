@@ -17,7 +17,7 @@
 #include "runtime.h"
 
 
-#ifdef CO3_USE_STM32
+#if (defined CO3_USE_STM32 && !defined CO3_USE_CHIBIOS) // ChibiOS has its own HAL
 #include "main.h" // STM32 HAL header
 #elif defined CO3_USE_NXP
 #include "usb_device_config.h"

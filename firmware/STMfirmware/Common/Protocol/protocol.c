@@ -25,6 +25,7 @@
             extern UART_HandleTypeDef huart2; //PUT the usart that you wanna use here
             UART_HandleTypeDef* co3_huart = &huart2;
         #elif defined CO3_USE_CHIBIOS
+            uint8_t co3_usart_input_buffer[MAX_BUFFER_INPUT];
             extern SerialDriver SD2;
             SerialDriver* co3_huart = &SD2;
         #endif
@@ -127,7 +128,7 @@ void TransmitPack(void)
 
 	#if defined CO3_USE_FREERTOS
 		HAL_UART_Transmit(co3_huart,AFLfuzzer.txbuffer,AFLfuzzer.txCurrentIndex,HAL_MAX_DELAY);
-	#elif defiend CO3_USE_CHIBIOS
+	#elif defined CO3_USE_CHIBIOS
 		sdWrite(co3_huart, (uint8_t *)AFLfuzzer.txbuffer, AFLfuzzer.txCurrentIndex);
 	#endif
 		AFLfuzzer.txCurrentIndex=REPORTING_BUFFER_STARTING_POINT;  //we reserve the first byte for size
@@ -194,22 +195,22 @@ void SerialReceiveInput(uint8_t* Buf, uint32_t *Len)
 
       if( AFLfuzzer.inputLengthpadded && (error == 0) )
       {
-	    	 //u32Tocopy = (AFLfuzzer.inputLengthpadded) - AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT;
-    	     u32Tocopy = (AFLfuzzer.inputLengthpadded) - AFLfuzzer.inputAFL.u32available - sizeof(uint32_t);
+            //u32Tocopy = (AFLfuzzer.inputLengthpadded) - AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT;
+             u32Tocopy = (AFLfuzzer.inputLengthpadded) - AFLfuzzer.inputAFL.u32available - sizeof(uint32_t);
 #if defined CO3_USE_FREERTOS
-	    	 HAL_UART_Receive(co3_huart,co3_usart_input_buffer,u32Tocopy,HAL_MAX_DELAY);
+            HAL_UART_Receive(co3_huart,co3_usart_input_buffer,u32Tocopy,HAL_MAX_DELAY);
 #elif defined CO3_USE_CHIBIOS
-	    	 sdReadTimeout(co3_huart, (unsigned char *) co3_usart_input_buffer, u32Tocopy, TIME_INFINITE);
+            sdReadTimeout(co3_huart, (unsigned char *) co3_usart_input_buffer, u32Tocopy, TIME_INFINITE);
 #endif
-	    	 RingCopy(&AFLfuzzer.inputAFL, (uint8_t * )&AFLfuzzer.inputLength, AFL_BUFFER_STARTING_POINT);
-	    	 RingCopy(&AFLfuzzer.inputAFL, Buf, u32Tocopy);
+            RingCopy(&AFLfuzzer.inputAFL, (uint8_t * )&AFLfuzzer.inputLength, AFL_BUFFER_STARTING_POINT);
+            RingCopy(&AFLfuzzer.inputAFL, Buf, u32Tocopy);
 
 
-	  	     if( AFLfuzzer.inputLengthpadded == AFLfuzzer.inputAFL.u32available)
-	  	     {
-                 AFLfuzzer.inputAFL.u32availablenopad = AFLfuzzer.inputLength;
-	  	    	 AFLfuzzer.bRXcomplete = 1;
-	  	     }
+            if( AFLfuzzer.inputLengthpadded == AFLfuzzer.inputAFL.u32available)
+            {
+                AFLfuzzer.inputAFL.u32availablenopad = AFLfuzzer.inputLength;
+                AFLfuzzer.bRXcomplete = 1;
+            }
       }
 }
 #elif defined CO3_USE_USB
