@@ -141,7 +141,7 @@ target_link_options(${EXECUTABLE} PRIVATE
   #-ffreestanding 
   -fno-builtin 
   -nostdlib 
-  -Xlinker -Map=${EXECUTABLE_OUTPUT_PATH}/${PROJECT_NAME}.map,--cref
+  -Xlinker -Map=${EXECUTABLE_OUTPUT_PATH}/${PROJECT_NAME}.map 
   -mcpu=cortex-m4 
   -mfpu=fpv4-sp-d16 
   -mfloat-abi=hard 

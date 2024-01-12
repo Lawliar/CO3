@@ -6,7 +6,9 @@ file(GLOB FILES
   ${CommonDIR}/Protocol/monitor.c
   ${CommonDIR}/Protocol/protocol.c
   ${CommonDIR}/Protocol/ring.c
-  ${CommonDIR}/SymRuntime/*.c
+  ${CommonDIR}/SymRuntime/runtime.c
+  ${CommonDIR}/SymRuntime/wrapped_malloc.c
+  ${CommonDIR}/SymRuntime/FreeRTOS_callbacks.c
  )
 
 # add_library: With this declaration, you express the intent to build a library. 
