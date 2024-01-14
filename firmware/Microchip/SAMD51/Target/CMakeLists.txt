@@ -11,7 +11,7 @@ file(GLOB FILESTARGET
 # add_library: With this declaration, you express the intent to build a library. 
 # The first argument, here its pico-shift-register, is the name of the library, 
 # the second argument are the files that will be compiled to create your library.
-add_library(Target ${FILESTARGET})
+add_library(Target OBJECT ${FILESTARGET})
 
 # target_link_libraries: If you link with other libraries, list them here
 target_link_libraries(  

@@ -81,11 +81,32 @@ include_directories(
 # Build the executable based on the source files
 add_executable(${EXECUTABLE} ${SRC_FILES})
 
-# List of compiler defines, prefix with -D compiler option. Copy from the project settings
+add_compile_options(
+#  --target=arm-none-eabi
+#  --sysroot=/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../arm-none-eabi
+  -mcpu=cortex-m4
+  -D__SAMD51J19A__ 
+  -x c 
+  -c
+  -DXPRJ_Default=Default
+  -mthumb
+  
+  -O1
+  -g 
+  -ffunction-sections 
+  -mlong-calls 
+  -Wall
+
+  -mfpu=fpv4-sp-d16 
+  -mfloat-abi=hard 
+  -mthumb
+  -g3
+)
+
 target_compile_options(
   ${EXECUTABLE} PRIVATE
-  --target=arm-none-eabi
-  --sysroot=/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../arm-none-eabi
+#  --target=arm-none-eabi
+#  --sysroot=/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../arm-none-eabi
   -mcpu=cortex-m4
   -D__SAMD51J19A__ 
   -x c 
@@ -108,27 +129,21 @@ target_compile_options(
 
 # Linker options
 target_link_options(${EXECUTABLE} PRIVATE
+#  --target=arm-none-eabi 
+#  --sysroot=/home/lcm/github/toolchains/arm/gcc-arm-none-eabi-10.3-2021.12/bin/../arm-none-eabi  
   -mcpu=cortex-m4  
-  -D__SAMD51J19A__    
+  -D__SAMD51J19A__
   -mthumb 
-  --specs=nosys.specs -Wl,-Map="dist/Default/production/SAMD51.production.map"
-  
-  -DXPRJ_Default=Default  
+  --specs=nosys.specs
+  -Wl,-Map="SAMD51.map"
+  -DXPRJ_Default=Default
   -mfpu=fpv4-sp-d16 
   -mfloat-abi=hard 
-  -mthumb    
+  -mthumb 
   -Wl,--defsym=__MPLAB_BUILD=1
-
-  -Xlinker -Map=${EXECUTABLE_OUTPUT_PATH}/${PROJECT_NAME}.map 
-  -mcpu=cortex-m4 
-  -mfpu=fpv4-sp-d16 
-  -mfloat-abi=hard 
-  -mthumb 
-   
-  -specs=nosys.specs
-  -L "samd51a/gcc/gcc"
+  -L "${PROJECT_SOURCE_DIR}/samd51a/gcc/gcc"
   -Wl,--gc-sections 
-  -T "samd51a/gcc/gcc/samd51j19a_flashMPU.ld"
+  -T "${PROJECT_SOURCE_DIR}/samd51a/gcc/gcc/samd51j19a_flashMPU.ld"
   
 )
 set(CommonDIR /home/lcm/github/spear/spear-code/firmware/Microchip/Common)
@@ -146,14 +161,15 @@ add_subdirectory(./samd51a     build/samd51a)
 
 target_link_libraries(
   ${EXECUTABLE}
-  utilities
-  board
-  component
-  drivers
-  freertos
-  usb
   CommonCO3
-  TargetEApp
+  Target
+  examples
+  hal
+  hpl
+  printf
+  usb
+  stdio_redirect
+  samd51a
 )
 
 # Optional: Print executable size as part of the post build process
