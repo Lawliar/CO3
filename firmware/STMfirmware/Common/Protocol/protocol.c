@@ -127,7 +127,7 @@ void TransmitPack(void)
 #if defined CO3_USE_SERIAL
 
 	#if defined CO3_USE_FREERTOS
-		HAL_UART_Transmit(co3_huart,AFLfuzzer.txbuffer,AFLfuzzer.txCurrentIndex,HAL_MAX_DELAY);
+		HAL_UART_Transmit(co3_huart,AFLfuzzer.txbuffer,AFLfuzzer.txCurrentIndex,portMAX_DELAY);
 	#elif defined CO3_USE_CHIBIOS
 		sdWrite(co3_huart, (uint8_t *)AFLfuzzer.txbuffer, AFLfuzzer.txCurrentIndex);
 	#endif
@@ -182,7 +182,7 @@ void SerialReceiveInput(uint8_t* Buf, uint32_t *Len)
 	  if(AFLfuzzer.inputLength == 0)
 	  {
 #if defined CO3_USE_FREERTOS
-	      HAL_UART_Receive(co3_huart, (uint8_t * )&AFLfuzzer.inputLength, sizeof(uint32_t), HAL_MAX_DELAY );
+	      HAL_UART_Receive(co3_huart, (uint8_t * )&AFLfuzzer.inputLength, sizeof(uint32_t), portMAX_DELAY );
 #elif defined CO3_USE_CHIBIOS
 	      sdReadTimeout(co3_huart, (uint8_t * )&AFLfuzzer.inputLength, sizeof(uint32_t) , TIME_INFINITE);
 #endif
@@ -198,7 +198,7 @@ void SerialReceiveInput(uint8_t* Buf, uint32_t *Len)
             //u32Tocopy = (AFLfuzzer.inputLengthpadded) - AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT;
              u32Tocopy = (AFLfuzzer.inputLengthpadded) - AFLfuzzer.inputAFL.u32available - sizeof(uint32_t);
 #if defined CO3_USE_FREERTOS
-            HAL_UART_Receive(co3_huart,co3_usart_input_buffer,u32Tocopy,HAL_MAX_DELAY);
+            HAL_UART_Receive(co3_huart,co3_usart_input_buffer,u32Tocopy,portMAX_DELAY);
 #elif defined CO3_USE_CHIBIOS
             sdReadTimeout(co3_huart, (unsigned char *) co3_usart_input_buffer, u32Tocopy, TIME_INFINITE);
 #endif

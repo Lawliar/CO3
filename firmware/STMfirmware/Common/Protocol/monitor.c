@@ -18,24 +18,26 @@
 
 
 #if (defined CO3_USE_STM32 && !defined CO3_USE_CHIBIOS) // ChibiOS has its own HAL
-#include "main.h" // STM32 HAL header
+	#include "main.h" // STM32 HAL header
 #elif defined CO3_USE_NXP
-#include "usb_device_config.h"
-#include "usb.h"
-#include "usb_device.h"
-#include "virtual_com.h"
-#include "usb_device_descriptor.h"
+	#include "usb_device_config.h"
+	#include "usb.h"
+	#include "usb_device.h"
+	#include "virtual_com.h"
+	#include "usb_device_descriptor.h"
+#elif defined CO3_USE_MICROCHIP
+	#include "usb_start.h"
 #endif
 
 
 
 #if defined CO3_USE_FREERTOS
-#include "FreeRTOS.h"
-#include "task.h"
+	#include "FreeRTOS.h"
+	#include "task.h"
 
 #elif defined CO3_USE_CHIBIOS
-#include "ch.h"
-#include "hal.h"
+	#include "ch.h"
+	#include "hal.h"
 #endif
 
 
@@ -51,6 +53,8 @@
     extern char midiBuffer[MIDI_BUF_SIZE] __attribute__( ( aligned( next_power_of_2(MIDI_BUF_SIZE)  ) ) );    /* for debugging */ //buffer
 #elif defined CO3_TEST_SHELLYDIMMER
     #include "shelly.h"
+#elif defined CO3_TEST_ATPARSER
+    #include "ATParser.h"
 #else
     #include "test.h"
 #endif
@@ -367,6 +371,8 @@ static void TargetTask( void * pvParameters )
 #elif defined CO3_TEST_SHELLYDIMMER
         size_aux = AFLfuzzer.inputAFL.u32availablenopad-4;
         main_shelly_test((char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT));
+#elif defined CO3_TEST_ATPARSER
+        mainparser(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4);
 #else
         //modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
         test(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4);
