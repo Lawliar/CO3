@@ -11,11 +11,11 @@ set(CMAKE_TOOLCHAIN_FILE clang.cmake)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Setup project, output and linker file
-set(BUILD_FOLDER ./build)
-project(CO3CROMU_00001_CMake)
+project(CO3CROMU_00001_CMake C ASM)
 set(EXECUTABLE ${PROJECT_NAME}.elf)
 set(EXECUTABLE_OUTPUT_PATH ./build)
-set(LINKER_FILE "STM32H743ZITX_FLASH.ld")
+set(LINKER_FILE "${PROJECT_SOURCE_DIR}/STM32H743ZITX_FLASH.ld")
+set(ARM_GNU_CC "arm-none-eabi-gcc")
 
 enable_language(C ASM)
 set(CMAKE_C_STANDARD 99)
@@ -26,6 +26,11 @@ set(CMAKE_BUILD_TYPE Debug)
 
 # Optional: issue a message to be sure it uses the correct toolchain file.
 message(STATUS "CMAKE_TOOLCHAIN_FILE is: ${CMAKE_TOOLCHAIN_FILE}")
+
+set(ARCH_CFLAGS
+  -mthumb -mcpu=cortex-m7 -mfloat-abi=hard -mfpu=fpv5-d16
+) 
+
 
 set(CommonDIR /home/lcm/github/spear/spear-code/firmware/STMfirmware/Common)
 
@@ -42,11 +47,10 @@ set(SRC_C_FILES
 set(SRC_ASM_FILES
   Core/Startup/startup_stm32h743zitx.s
 )
-
-
-
+set_property(SOURCE ${SRC_ASM_FILES} APPEND PROPERTY COMPILE_OPTIONS "-x" "assembler-with-cpp")
 
 set(ALL_NINE_YARDS_INCLUDE_DIRS
+  ${PROJECT_SOURCE_DIR}/CommonCO3
   ${PROJECT_SOURCE_DIR}/Core/Inc
   ${PROJECT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Core/Inc
   ${PROJECT_SOURCE_DIR}/Middlewares//ST/STM32_USB_Device_Library/Class/CDC/Inc
@@ -63,104 +67,103 @@ set(ALL_NINE_YARDS_INCLUDE_DIRS
   ${PROJECT_SOURCE_DIR}/Target/Inc
 )
 
-
 include_directories(
   ${ALL_NINE_YARDS_INCLUDE_DIRS}
 )
 
-
 # Build the executable based on the source files
-add_executable(${EXECUTABLE} ${SRC_FILES})
+add_executable(${EXECUTABLE} ${SRC_C_FILES} ${SRC_ASM_FILES})
+
+
+execute_process (
+    COMMAND ${ARM_GNU_CC} ${ARCH_CFLAGS} -print-sysroot 2>&1
+    OUTPUT_VARIABLE ARM_CORTEXM_SYSROOT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_STRIP_TRAILING_WHITESPACE
+)
+
+execute_process(
+  COMMAND ${ARM_GNU_CC} ${ARCH_CFLAGS} -print-multi-directory 2>&1
+  OUTPUT_VARIABLE ARM_CORTEXM_MULTI_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  ERROR_STRIP_TRAILING_WHITESPACE
+)
+
+execute_process(
+  COMMAND $(ARM_GNU_CC) $(ARCH_CFLAGS) -print-libgcc-file-name 2>&1
+  OUTPUT_VARIABLE ARM_CORTEXM_BUILTINS
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  ERROR_STRIP_TRAILING_WHITESPACE
+)
+
+set(COMPILER_SPECIFIC_CFLAGS
+  --target=arm-none-eabi --sysroot=${ARM_CORTEXM_SYSROOT}
+)
+
+set(COMPILER_SPECIFIC_LDFLAGS
+  -L${ARM_CORTEXM_SYSROOT}/lib/${ARM_CORTEXM_MULTI_DIR} ${ARM_CORTEXM_BUILTINS}
+)
+
+set(CFLAGS
+  -Os
+  -std=gnu11
+  -g
+  -ffunction-sections
+  -fdata-sections
+  -Wall
+  -Werror 
+  -nostdlib 
+  -DUSE_HAL_DRIVER 
+  -DSTM32H743xx 
+  ${COMPILER_SPECIFIC_CFLAGS} 
+  ${ARCH_CFLAGS}
+)
+
+
+set(LDFLAGS
+  ${COMPILER_SPECIFIC_CFLAGS}
+  ${COMPILER_SPECIFIC_LDFLAGS}
+  ${ARCH_CFLAGS} 
+  -T${LINKER_FILE}
+  -nodefaultlibs 
+  -fno-short-enums 
+  -Wl,-Map=${PROJECT_NAME}.map 
+  -Wl,--no-warn-mismatch 
+  -Wl,--gc-sections -static 
+  -nostdlib -lc_nano 
+#  -u _printf_float 
+)
 
 add_compile_options(
-#  --target=arm-none-eabi
-#  --sysroot=/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../arm-none-eabi
-  -mcpu=cortex-m4
-  -D__SAMD51J19A__ 
-  -x c 
-  -c
-  -DXPRJ_Default=Default
-  -mthumb
-  
-  -O1
-  -g 
-  -ffunction-sections 
-  -mlong-calls 
-  -Wall
-
-  -mfpu=fpv4-sp-d16 
-  -mfloat-abi=hard 
-  -mthumb
-  -g3
+  ${CFLAGS}
 )
 
 target_compile_options(
   ${EXECUTABLE} PRIVATE
-#  --target=arm-none-eabi
-#  --sysroot=/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../arm-none-eabi
-  -mcpu=cortex-m4
-  -D__SAMD51J19A__ 
-  -x c 
-  -c
-  -DXPRJ_Default=Default
-  -mthumb
-  
-  -O1
-  -g 
-  -ffunction-sections 
-  -mlong-calls 
-  -Wall
-
-  -mfpu=fpv4-sp-d16 
-  -mfloat-abi=hard 
-  -mthumb
-  -g3
+  ${CFLAGS}
 )
 
 
 # Linker options
 target_link_options(${EXECUTABLE} PRIVATE
-#  --target=arm-none-eabi 
-#  --sysroot=/home/lcm/github/toolchains/arm/gcc-arm-none-eabi-10.3-2021.12/bin/../arm-none-eabi  
-  -mcpu=cortex-m4  
-  -D__SAMD51J19A__
-  -mthumb 
-  --specs=nosys.specs
-  -Wl,-Map="SAMD51.map"
-  -DXPRJ_Default=Default
-  -mfpu=fpv4-sp-d16 
-  -mfloat-abi=hard 
-  -mthumb 
-  -Wl,--defsym=__MPLAB_BUILD=1
-  -L "${PROJECT_SOURCE_DIR}/samd51a/gcc/gcc"
-  -Wl,--gc-sections 
-  -T "${PROJECT_SOURCE_DIR}/samd51a/gcc/gcc/samd51j19a_flashMPU.ld"
-  
+  ${LDFLAGS}
 )
-set(CommonDIR /home/lcm/github/spear/spear-code/firmware/Microchip/Common)
+set(CommonDIR /home/lcm/github/spear/spear-code/firmware/STMfirmware/Common)
 
-add_subdirectory(./CommonCO3   build/CommonCO3)
-add_subdirectory(./Target      build/Target)
-add_subdirectory(./examples    build/examples)
-add_subdirectory(./hal         build/hal)
-add_subdirectory(./hpl         build/hpl)
-add_subdirectory(./printf      build/printf)
-add_subdirectory(./stdio_redirect   build/stdio_redirect)
-add_subdirectory(./usb         build/usb)
-add_subdirectory(./samd51a     build/samd51a)
+add_subdirectory(./CommonCO3        ${EXECUTABLE_OUTPUT_PATH}/CommonCO3)
+add_subdirectory(./Target           ${EXECUTABLE_OUTPUT_PATH}/Target)
+add_subdirectory(./Drivers          ${EXECUTABLE_OUTPUT_PATH}/Drivers)
+add_subdirectory(./Middlewares      ${EXECUTABLE_OUTPUT_PATH}/Middlewares)
+add_subdirectory(./USB_DEVICE       ${EXECUTABLE_OUTPUT_PATH}/USB_DEVICE)
 
 
 target_link_libraries(
   ${EXECUTABLE}
   CommonCO3
   Target
-  examples
-  hal
-  hpl
-  printf
-  usb
-  stdio_redirect
-  samd51a
+  Drivers
+  Middlewares
+  USB_DEVICE
 )
 
 # Optional: Print executable size as part of the post build process
@@ -172,7 +175,6 @@ add_custom_command(TARGET ${EXECUTABLE}
 # Optional: Create hex, bin and S-Record files after the build
 add_custom_command(TARGET ${EXECUTABLE}
   POST_BUILD
-  COMMAND ${CMAKE_OBJCOPY} -O srec --srec-len=64 "${EXECUTABLE_OUTPUT_PATH}/${EXECUTABLE}" "${EXECUTABLE_OUTPUT_PATH}/${PROJECT_NAME}.s19"
   COMMAND ${CMAKE_OBJCOPY} -O ihex "${EXECUTABLE_OUTPUT_PATH}/${EXECUTABLE}" "${EXECUTABLE_OUTPUT_PATH}/${PROJECT_NAME}.hex"
   COMMAND ${CMAKE_OBJCOPY} -O binary "${EXECUTABLE_OUTPUT_PATH}/${EXECUTABLE}" "${EXECUTABLE_OUTPUT_PATH}/${PROJECT_NAME}.bin" 
 )

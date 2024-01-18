@@ -200,7 +200,8 @@ INCLUDE_PATHS += \
   $(SYMRUNTIME_INCLUDE_DIR) \
   $(PROTOCOL_INCLUDE_DIR) \
   $(USB_DEVICE_INCLUDE_DIR) \
-  $(MIDDLEWARE_INCLUDE_DIR)
+  $(MIDDLEWARE_INCLUDE_DIR) \
+  -I$(PROJ_DIR)/CommonCO3 
 
 
 # Note: These arguments will be used by clang to select
