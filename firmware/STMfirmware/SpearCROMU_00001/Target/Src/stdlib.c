@@ -49,12 +49,12 @@ int isdigit( int c )
         return 0;
 }
 
-int isnan( double val )
+int cgc_isnan( double val )
 {
     return __builtin_isnan( val );
 }
 
-int isinf( double val )
+int cgc_isinf( double val )
 {
     return __builtin_isinf( val );
 }
@@ -128,7 +128,7 @@ double atof(const char* str)
 }
 
 
-int atoi(const char* str)
+int cgc_atoi(const char* str)
 {
     if ( str == NULL )
         return 0;
@@ -226,7 +226,7 @@ end:
     return;
 }
 
-int strcmp( const char *s1, const char *s2 ) 
+int cgc_strcmp( const char *s1, const char *s2 ) 
 {
     while ( *s1 && (*s1 == *s2) ) 
     {
@@ -312,7 +312,7 @@ end:
     return length;
 }
 
-size_t_cgc itoa( char *out, size_t_cgc val, size_t_cgc max )
+size_t_cgc cgc_itoa( char *out, size_t_cgc val, size_t_cgc max )
 {
     size_t_cgc length = 0;
     size_t_cgc end = 0;

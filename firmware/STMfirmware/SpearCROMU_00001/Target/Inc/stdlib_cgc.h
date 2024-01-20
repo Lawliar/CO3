@@ -28,20 +28,20 @@ THE SOFTWARE.
 
 int isspace( int c );
 int isdigit( int c );
-int isnan( double val );
-int isinf( double val );
+int cgc_isnan( double val );
+int cgc_isinf( double val );
 double atof(const char *str);
-int atoi(const char *str);
+int cgc_atoi(const char *str);
 
 char *strcpy_cgc( char *dest, char *src );
 //int printf( const char *fmt, ... );
 void bzero_cgc( void *, size_t_cgc );
-int strcmp( const char *, const char * );
+int cgc_strcmp( const char *, const char * );
 char *strncat_cgc( char *dest, const char *src, size_t_cgc n );
 size_t_cgc receive_cgc_until( char *, char, size_t_cgc );
 size_t_cgc strcat_cgc( char *, char* );
 size_t_cgc strlen_cgc( char * );
-size_t_cgc itoa( char *, size_t_cgc, size_t_cgc );
+size_t_cgc cgc_itoa( char *, size_t_cgc, size_t_cgc );
 void puts_cgc( char *t );
 
 #endif // __STDLIB_H__

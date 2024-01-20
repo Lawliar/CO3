@@ -151,7 +151,7 @@ size_t_cgc create_user( puser_manager pum, char *username )
 	walker = pum->root;
 
 	while ( walker ) {
-		if ( strcmp( walker->name, username ) == 0) {
+		if ( cgc_strcmp( walker->name, username ) == 0) {
 			puts_cgc("[-] Error user exists\n");
 			goto end;
 		}
@@ -365,7 +365,7 @@ void read_message( pmessage_manager pmm, size_t_cgc message_id )
 	while ( walker ) {
 		if ( walker->message_id == message_id ) {
 			retval = strlen_cgc(buffer);
-			itoa( buffer + retval, message_id, 0x100-retval );
+			cgc_itoa( buffer + retval, message_id, 0x100-retval );
 			strncat_cgc(buffer, ":  ", 0x100 );
 			strncat_cgc(buffer, walker->message, 0x100 );
 			strncat_cgc( buffer, "\n***********************************\n", 0x100 );
@@ -443,7 +443,7 @@ void list_unread_messages( pmessage_manager pmm )
 			// Mark the message as read
 			walker->read = 1;
 			strcat_cgc( data, "***********************************\n");
-			itoa( data + strlen_cgc(data), walker->message_id, 4 );
+			cgc_itoa( data + strlen_cgc(data), walker->message_id, 4 );
 			strcat_cgc( data, ":  " );
 			strcat_cgc( data, walker->message );
 			strcat_cgc( data, "\n");
@@ -496,7 +496,7 @@ puser get_user( puser_manager pum, char *username )
 	pu = pum->root;
 
 	while ( pu ) {
-		if ( strcmp( pu->name, username ) == 0 ) {
+		if ( cgc_strcmp( pu->name, username ) == 0 ) {
 			goto end;
 		}
 		pu = pu->next;
@@ -594,7 +594,7 @@ void handle_loggedin( puser_manager pum, puser pu )
 			puts_cgc("ID: ");
 			bzero_cgc( message, MESSAGE_LENGTH);
 			receive_cgc_until( message, '\n', 4 );
-			choice = atoi( message );
+			choice = cgc_atoi( message );
 			delete_message( pu->pmm, choice );
 		} else if ( choice == 3 ) {
 			list_messages( pu->pmm );
@@ -602,7 +602,7 @@ void handle_loggedin( puser_manager pum, puser pu )
 			puts_cgc("ID: ");
 			bzero_cgc( message, MESSAGE_LENGTH );
 			receive_cgc_until( message, '\n', 4 );
-			choice = atoi( message );
+			choice = cgc_atoi( message );
 			read_message( pu->pmm, choice );
 		} else if ( choice == 1 ) {
 			bzero_cgc( message, MESSAGE_LENGTH );
