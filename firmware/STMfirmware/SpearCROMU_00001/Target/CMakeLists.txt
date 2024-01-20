@@ -11,6 +11,13 @@ file(GLOB FILESTARGET
   ./Src/stdlib.c 
 )
 
+
+set_property(SOURCE ${FILESTARGET} APPEND PROPERTY COMPILE_OPTIONS 
+"-Xclang" "-load" 
+"-Xclang" "${CO3_INSTRUMENTATION_LIB}" 
+"-Xclang" "-fpass-plugin=${CO3_INSTRUMENTATION_LIB}" "-mllvm" "-out=${CO3_OUTPUT_DIR}"
+)
+
 # add_library: With this declaration, you express the intent to build a library. 
 # The first argument, here its pico-shift-register, is the name of the library, 
 # the second argument are the files that will be compiled to create your library.
