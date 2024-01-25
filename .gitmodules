@@ -10,3 +10,6 @@
 [submodule "benchmark/cb-multios"]
 	path = benchmark/cb-multios
 	url = https://github.com/trailofbits/cb-multios.git
+[submodule "deps/z3"]
+	path = deps/z3
+	url = git@github.com:Z3Prover/z3.git
