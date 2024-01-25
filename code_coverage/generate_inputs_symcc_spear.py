@@ -35,9 +35,8 @@ def get_total_time_out_err(input):
     while True:
         try:
             s = splitted[cur].decode("ascii")
-        except:
-            print("something is wrong")
-            embed()
+        except IndexError as e :
+            raise e
         if("total_time" in s):
             total_time = re.search('''total_time": (\d+)''', s).group(1)
             return int(total_time)
@@ -91,8 +90,12 @@ def runSpear(benchmark):
                 spear_total_time += timeout + sleep_time
                 continue
             _, e = p1.communicate()
-            spear_total_time += get_total_time_out_err(e) / 1000000
-
+            try:
+                spear_total_time += get_total_time_out_err(e) / 1000000
+            except IndexError as err:
+                print("program did not end well")
+                embed()
+            
             print("iter:{}, cur:{}/{},total:{},time:{} / {}".format(it, cur_spear_input_id - spear_input_cur_id , batch_size,cur_spear_input_id,spear_total_time, time_budget))
             tmp_output_id = get_highest_id(spear_output_dir) + 1
             print("copying spear generated {} inputs...".format(len(os.listdir(spear_tmp_output_dir))))
@@ -187,7 +190,7 @@ def runSymcc(benchmark):
     shutil.rmtree(symcc_tmp_output_dir)
     return symcc_output_cur_id,cur_symcc_input_id,symcc_total_time
 def main():
-    benchmark =  "CROMU_00005"
+    benchmark =  "CROMU_00001"
     symcc_output_num, symcc_input_num,symcc_total_time = runSymcc(benchmark)
     spear_output_num, spear_input_num,spear_total_time = runSpear(benchmark)
     print("symcc generate:{} with {} runs using {}us\n".format(symcc_output_num, symcc_input_num,symcc_total_time))
