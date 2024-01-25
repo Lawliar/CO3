@@ -215,24 +215,51 @@ void SymVal##OP::Construct(Val::ReadyType targetReady){ \
     ready++;                          \
 }
 
-
+#if defined CO3_NO_MCU_SHADOW
 #define DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(OP) \
-void SymVal##OP::Construct(Val::ReadyType targetReady){ \
-    assert(targetReady == (ready + 1));                     \
-    auto symOp1 = dynamic_cast<SymVal*>(In_edges.at(0));    \
-    assert(symOp1 != nullptr);                              \
-    auto symOp2 = dynamic_cast<SymVal*>(In_edges.at(1));    \
-    assert(symOp2 != nullptr);          \
+void SymVal##OP::Construct(Val::ReadyType targetReady){           \
+    assert(targetReady == (ready + 1));                           \
+    auto symOp1 = dynamic_cast<SymVal*>(In_edges.at(0));           \
+    assert(symOp1 != nullptr);                                    \
+    auto symOp2 = dynamic_cast<SymVal*>(In_edges.at(1));            \
+    assert(symOp2 != nullptr);                                       \
     auto symInput1 = extractSymExprFromSymVal(symOp1, targetReady);  \
     auto symInput2 = extractSymExprFromSymVal(symOp2, targetReady);  \
-    if(symInput1 == nullptr || symInput2 == nullptr){     \
-        assert(symInput1 == nullptr && symInput2 ==nullptr);                  \
-        symExpr = nullptr;                                  \
-    }else{                                \
-        symExpr =  OP(symInput1,symInput2);  \
-    }                                                     \
-    ready++;                                             \
+    if(symInput1 == nullptr || symInput2 == nullptr){                \
+        if(symInput1 == nullptr && symInput2 == nullptr){           \
+            symExpr = nullptr;                                      \
+        }else{                                                      \
+            if(symInput1 == nullptr){                               \
+                symInput1 = _sym_build_integer(0,symInput2->bits()); \
+            }else if(symInput2 == nullptr){                           \
+                symInput2 = _sym_build_integer(0,symInput1->bits());   \
+            }                                                          \
+            symExpr =  OP(symInput1,symInput2);                         \
+        }                                                              \
+    }else{                                                             \
+        symExpr =  OP(symInput1,symInput2);                            \
+    }                                                                 \
+    ready++;                                                         \
 }
+#else
+#define DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(OP) \
+void SymVal##OP::Construct(Val::ReadyType targetReady){           \
+    assert(targetReady == (ready + 1));                           \
+    auto symOp1 = dynamic_cast<SymVal*>(In_edges.at(0));           \
+    assert(symOp1 != nullptr);                                    \
+    auto symOp2 = dynamic_cast<SymVal*>(In_edges.at(1));            \
+    assert(symOp2 != nullptr);                                       \
+    auto symInput1 = extractSymExprFromSymVal(symOp1, targetReady);  \
+    auto symInput2 = extractSymExprFromSymVal(symOp2, targetReady);  \
+    if(symInput1 == nullptr || symInput2 == nullptr){                \
+        assert(symInput1 == nullptr && symInput2 ==nullptr);              \
+        symExpr = nullptr;                                              \
+    }else{                                                             \
+        symExpr =  OP(symInput1,symInput2);                            \
+    }                                                                 \
+    ready++;                                                         \
+}
+#endif
 
 #define DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM1_CONST1(OP) \
 void SymVal##OP::Construct(Val::ReadyType targetReady){ \
@@ -469,21 +496,7 @@ DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_unsigned_less_than)
 DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_unsigned_less_equal)
 DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_unsigned_greater_than)
 DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_unsigned_greater_equal)
-void SymVal_sym_build_equal::Construct(ReadyType targetReady) {
-    auto symOp1 = dynamic_cast<SymVal*>(In_edges.at(0));
-    assert(symOp1 != nullptr);
-    auto symOp2 = dynamic_cast<SymVal*>(In_edges.at(1));
-    assert(symOp2 != nullptr);
-    auto symInput1 = extractSymExprFromSymVal(symOp1, targetReady);
-    auto symInput2 = extractSymExprFromSymVal(symOp2, targetReady);
-    if(symInput1 == nullptr || symInput2 == nullptr){
-        assert(symInput1 == nullptr && symInput2 ==nullptr);
-        symExpr = nullptr;
-    }else{
-        symExpr =  _sym_build_equal(symInput1,symInput2);
-    }
-    ready++;
-}
+DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_equal)
 DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_not_equal)
 DEFINE_SYMVAL_CONSTRUCTION_OP2_SYM2(_sym_build_bool_and)
 
@@ -546,7 +559,9 @@ void SymVal_sym_build_path_constraint::Construct(Val::ReadyType targetReady) {
     auto symInput = extractSymExprFromSymVal(symVal, targetReady);
     if(symInput == nullptr){
         // the symExpr called to the solver is concrete.
+#if not defined CO3_NO_MCU_SHADOW
         assert(boolean_operand->Unassigned);
+#endif
     }else{
         // We simply use the symid as the siteID
         assert(!boolean_operand->Unassigned);
@@ -591,7 +606,9 @@ void SymVal_sym_build_read_memory::Construct(Val::ReadyType targetReady) {
             }
         }
         // the MCU think this is not concrete.
+#if not defined CO3_NO_MCU_SHADOW
         assert(symExpr != nullptr);
+#endif
     }
     ready++;
 }

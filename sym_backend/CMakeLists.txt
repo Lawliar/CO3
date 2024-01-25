@@ -20,14 +20,19 @@ option(Z3_TRUST_SYSTEM_VERSION "Use the system-provided Z3 without a version che
 option(RELEASE_BUILD "BUILD for performance" OFF)
 option(DEBUG_BUILD "BUILD for adding debug macros" ON)
 option(PROFILING_BUILD "BUILD for profiling" OFF)
+option(CO3_NO_MCU_SHADOW "MCU does not have SHADOW, so disable some sanity checks that helps debugging" ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 if(NOT Z3_DIR)
-  set(Z3_DIR "/home/lcm/github/tools/z3/install/lib/cmake")
+  set(Z3_DIR "${PROJECT_SOURCE_DIR}/../deps/z3/install/lib/cmake")
 endif()
 
 if(NOT LLVM_DIR)
-  set(LLVM_DIR "/home/lcm/github/toolchains/x86_64/clang+llvm-11.0.0-x86_64-linux-gnu-ubuntu-20.04")
+  set(LLVM_DIR "/home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04")
+endif()
+
+if(${CO3_NO_MCU_SHADOW})
+  add_compile_definitions(CO3_NO_MCU_SHADOW)
 endif()
 
 if (${PROFILING_BUILD})

@@ -956,7 +956,10 @@ int Orchestrator::Run() {
 #ifdef DEBUG_CHECKING
                 SymVal * cond_var = dynamic_cast<SymVal*>(buildConstraintVal->In_edges.at(0));
                 assert(cond_var != nullptr);
-                assert(SymVal::extractSymExprFromSymVal(cond_var, cond_var->ready) != nullptr);
+                SymExpr cond_symExpr = SymVal::extractSymExprFromSymVal(cond_var, cond_var->ready);
+#if not defined CO3_NO_MCU_SHADOW
+                assert(cond_symExpr != nullptr);
+#endif
 #endif
 #ifdef DEBUG_OUTPUT
                 cout << "finish "<< sym_constraint_msg->Str()<<"\n\n";

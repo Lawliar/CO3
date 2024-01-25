@@ -31,7 +31,7 @@ void LOG_FATAL(const std::string &msg) {
 
   // since abort() sometimes not working
   // trigger crash to terminate pin
-  // CRASH();
+  CRASH();
   exit(-1);
 }
 
