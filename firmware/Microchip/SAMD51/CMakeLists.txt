@@ -24,8 +24,10 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 set(CMAKE_BUILD_TYPE Debug)
 
-# Optional: issue a message to be sure it uses the correct toolchain file.
-message(STATUS "CMAKE_TOOLCHAIN_FILE is: ${CMAKE_TOOLCHAIN_FILE}")
+
+set(ARCH_CFLAGS
+-mthumb -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 
+)
 
 # List of source files
 set(SRC_FILES
@@ -36,6 +38,7 @@ set(SRC_FILES
   stdio_start.c
 )
 
+set(HPL_LIB ${CMAKE_SOURCE_DIR}/hpl/build/libhpl.a)
 set(CommonDIR /home/lcm/github/spear/spear-code/firmware/Microchip/Common)
 
 set(ALL_NINE_YARDS_INCLUDE_DIRS
@@ -77,74 +80,87 @@ include_directories(
   ${ALL_NINE_YARDS_INCLUDE_DIRS}
 )
 
+execute_process (
+    COMMAND ${ARM_GNU_CC} ${ARCH_CFLAGS} -print-sysroot 2>&1
+    OUTPUT_VARIABLE ARM_CORTEXM_SYSROOT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_STRIP_TRAILING_WHITESPACE
+)
+
+execute_process(
+  COMMAND ${ARM_GNU_CC} ${ARCH_CFLAGS} -print-multi-directory 2>&1
+  OUTPUT_VARIABLE ARM_CORTEXM_MULTI_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  ERROR_STRIP_TRAILING_WHITESPACE
+)
+
+execute_process(
+  COMMAND ${ARM_GNU_CC} ${ARCH_CFLAGS} -print-libgcc-file-name 2>&1
+  OUTPUT_VARIABLE ARM_CORTEXM_BUILTINS_LIBGCC
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  ERROR_STRIP_TRAILING_WHITESPACE
+)
+
+
+set(COMPILER_SPECIFIC_CFLAGS
+  --target=arm-none-eabi --sysroot=${ARM_CORTEXM_SYSROOT}
+)
+
+set(COMPILER_SPECIFIC_LDFLAGS
+  -L${ARM_CORTEXM_SYSROOT}/lib/${ARM_CORTEXM_MULTI_DIR} ${ARM_CORTEXM_BUILTINS_LIBGCC}
+)
+
+
 
 # Build the executable based on the source files
 add_executable(${EXECUTABLE} ${SRC_FILES})
 
 add_compile_options(
-#  --target=arm-none-eabi
-#  --sysroot=/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../arm-none-eabi
-  -mcpu=cortex-m4
   -D__SAMD51J19A__ 
   -x c 
   -c
   -DXPRJ_Default=Default
-  -mthumb
-  
   -O1
   -g 
   -ffunction-sections 
   -mlong-calls 
   -Wall
-
-  -mfpu=fpv4-sp-d16 
-  -mfloat-abi=hard 
-  -mthumb
   -g3
+  ${ARCH_CFLAGS} 
+  ${COMPILER_SPECIFIC_CFLAGS} 
 )
 
 target_compile_options(
   ${EXECUTABLE} PRIVATE
-#  --target=arm-none-eabi
-#  --sysroot=/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/../arm-none-eabi
-  -mcpu=cortex-m4
   -D__SAMD51J19A__ 
   -x c 
   -c
   -DXPRJ_Default=Default
-  -mthumb
-  
   -O1
   -g 
   -ffunction-sections 
   -mlong-calls 
   -Wall
-
-  -mfpu=fpv4-sp-d16 
-  -mfloat-abi=hard 
-  -mthumb
   -g3
+  ${ARCH_CFLAGS} 
+  ${COMPILER_SPECIFIC_CFLAGS} 
 )
 
+set(CMAKE_C_LINK_EXECUTABLE 
+  "${ARM_GNU_CC} <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> ${HPL_LIB} -o <TARGET> <LINK_LIBRARIES>"
+)
 
 # Linker options
 target_link_options(${EXECUTABLE} PRIVATE
-#  --target=arm-none-eabi 
-#  --sysroot=/home/lcm/github/toolchains/arm/gcc-arm-none-eabi-10.3-2021.12/bin/../arm-none-eabi  
-  -mcpu=cortex-m4  
   -D__SAMD51J19A__
-  -mthumb 
   --specs=nosys.specs
-  -Wl,-Map="SAMD51.map"
+  -Wl,--no-warn-mismatch
+  -Wl,-Map=SAMD51.map
   -DXPRJ_Default=Default
-  -mfpu=fpv4-sp-d16 
-  -mfloat-abi=hard 
-  -mthumb 
   -Wl,--defsym=__MPLAB_BUILD=1
   -L "${PROJECT_SOURCE_DIR}/samd51a/gcc/gcc"
   -Wl,--gc-sections 
   -T "${PROJECT_SOURCE_DIR}/samd51a/gcc/gcc/samd51j19a_flashMPU.ld"
-  
 )
 set(CommonDIR /home/lcm/github/spear/spear-code/firmware/Microchip/Common)
 
@@ -152,7 +168,6 @@ add_subdirectory(./CommonCO3   build/CommonCO3)
 add_subdirectory(./Target      build/Target)
 add_subdirectory(./examples    build/examples)
 add_subdirectory(./hal         build/hal)
-add_subdirectory(./hpl         build/hpl)
 add_subdirectory(./printf      build/printf)
 add_subdirectory(./stdio_redirect   build/stdio_redirect)
 add_subdirectory(./usb         build/usb)
@@ -165,7 +180,7 @@ target_link_libraries(
   Target
   examples
   hal
-  hpl
+  #hpl
   printf
   usb
   stdio_redirect
