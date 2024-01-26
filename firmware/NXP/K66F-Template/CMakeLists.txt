@@ -3,11 +3,8 @@ cmake_minimum_required(VERSION 3.15.3)
 # Optional: print out extra messages to see what is going on. Comment it to have less verbose messages
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
-# enable export of compiler commands to compile_commands.json
-#set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 # Path to toolchain file. This one has to be before 'project()' below
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/arm-none-eabi-gcc.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/clang.cmake)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Setup project, output and linker file
@@ -29,8 +26,9 @@ set(ARCH_CFLAGS
   -mthumb -mcpu=cortex-m4 -mfloat-abi=hard  -mfpu=fpv4-sp-d16 
 ) 
 
-
-# Optional: issue a message to be sure it uses the correct toolchain file.
+set(START_UP_LIB
+  ${CMAKE_SOURCE_DIR}/startup/build/libstartup.a
+)
 message(STATUS "CMAKE_TOOLCHAIN_FILE is: ${CMAKE_TOOLCHAIN_FILE}")
 
 # List of source files
@@ -39,7 +37,7 @@ set(SRC_FILES
   source/virtual_com.c
   source/usb_device_descriptor.c
   source/virtual_com.c
-  startup/startup_mk66f18.c  
+#  startup/startup_mk66f18.c  
   device/system_MK66F18.c
   
 )
@@ -171,16 +169,19 @@ target_link_options(${EXECUTABLE} PRIVATE
   ${ARCH_CFLAGS} 
   -g
   -Wall
+  -Wl,--no-warn-mismatch
   -fno-common 
   -ffunction-sections 
   -fdata-sections 
   #-ffreestanding 
   -fno-builtin 
   -nostdlib 
+  ${START_UP_LIB}
   -Xlinker -Map=${EXECUTABLE_OUTPUT_PATH}/${PROJECT_NAME}.map 
   -specs=nosys.specs
   -L "${CMAKE_SOURCE_DIR}/ld"
   -T "${LINKER_FILE}"
+
   
 )
 set(PRJDIR )
