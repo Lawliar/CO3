@@ -3,3 +3,4 @@ CommonSHIFT/
 FuzzerSHIFT/
 /build/
 cmake-build-debug/
+cmake_build/

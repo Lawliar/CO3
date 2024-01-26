@@ -24,6 +24,12 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 set(CMAKE_BUILD_TYPE Debug)
 
+
+set(ARCH_CFLAGS
+  -mthumb -mcpu=cortex-m4 -mfloat-abi=hard  -mfpu=fpv4-sp-d16 
+) 
+
+
 # Optional: issue a message to be sure it uses the correct toolchain file.
 message(STATUS "CMAKE_TOOLCHAIN_FILE is: ${CMAKE_TOOLCHAIN_FILE}")
 
@@ -43,6 +49,43 @@ include_directories(
 ./usb/device/class/cdc
 ./CommonCO3
 )
+
+
+execute_process (
+    COMMAND ${ARM_GNU_CC} ${ARCH_CFLAGS} -print-sysroot 2>&1
+    OUTPUT_VARIABLE ARM_CORTEXM_SYSROOT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_STRIP_TRAILING_WHITESPACE
+)
+
+execute_process(
+  COMMAND ${ARM_GNU_CC} ${ARCH_CFLAGS} -print-multi-directory 2>&1
+  OUTPUT_VARIABLE ARM_CORTEXM_MULTI_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  ERROR_STRIP_TRAILING_WHITESPACE
+)
+
+execute_process(
+  COMMAND ${ARM_GNU_CC} ${ARCH_CFLAGS} -print-libgcc-file-name 2>&1
+  OUTPUT_VARIABLE ARM_CORTEXM_BUILTINS_LIBGCC
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  ERROR_STRIP_TRAILING_WHITESPACE
+)
+
+
+set(COMPILER_SPECIFIC_CFLAGS
+  --target=arm-none-eabi --sysroot=${ARM_CORTEXM_SYSROOT}
+)
+
+set(COMPILER_SPECIFIC_LDFLAGS
+  -L${ARM_CORTEXM_SYSROOT}/lib/${ARM_CORTEXM_MULTI_DIR} ${ARM_CORTEXM_BUILTINS_LIBGCC}
+)
+
+
+message(STATUS "ARM_CORTEXM_SYSROOT:${ARM_CORTEXM_SYSROOT}")
+message(STATUS "COMPILER_SPECIFIC_LDFLAGS:${COMPILER_SPECIFIC_LDFLAGS}")
+message(STATUS "ARM_CORTEXM_BUILTINS_LIBGCC:${ARM_CORTEXM_BUILTINS_LIBGCC}")
+message(STATUS "CMAKE_C_LINK_EXECUTABLE:${CMAKE_C_LINK_EXECUTABLE}")
 
 
 # Build the executable based on the source files
@@ -66,7 +109,6 @@ add_compile_options(
 -D__USE_CMSIS 
 -DDEBUG
 -D__NEWLIB__
- 
 -std=gnu99 
 -O1
 -g 
@@ -75,18 +117,14 @@ add_compile_options(
 -fdata-sections 
 -fno-builtin 
 -Wall -fstack-usage  
--mthumb 
--mcpu=cortex-m4 
--mfpu=fpv4-sp-d16 
--mfloat-abi=hard 
--mthumb 
 -fno-common 
--specs=nano.specs
--specs=nosys.specs
+${ARCH_CFLAGS} 
+${COMPILER_SPECIFIC_CFLAGS} 
 
 )
 
 target_compile_definitions(${EXECUTABLE} PRIVATE
+
 -DCPU_MK66FN2M0VMD18 
 -DCPU_MK66FN2M0VMD18_cm4 
 -DSDK_OS_FREE_RTOS 
@@ -102,8 +140,7 @@ target_compile_definitions(${EXECUTABLE} PRIVATE
 -D__MCUXPRESSO 
 -D__USE_CMSIS 
 -DDEBUG
--D__NEWLIB__
- 
+-D__NEWLIB__ 
 
 )
 
@@ -118,21 +155,20 @@ target_compile_options(${EXECUTABLE} PRIVATE
 -ffunction-sections 
 -fdata-sections 
 -fno-builtin 
--mthumb 
 -Wall -fstack-usage  
--mcpu=cortex-m4 
--mfpu=fpv4-sp-d16 
--mfloat-abi=hard 
--mthumb 
 -fno-common 
--specs=nano.specs
--specs=nosys.specs
+#-specs=nano.specs
+#-specs=nosys.specs
+${ARCH_CFLAGS}
+${COMPILER_SPECIFIC_CFLAGS} 
 
 )
-
+set(CMAKE_C_LINK_EXECUTABLE 
+  "${ARM_GNU_CC} <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>"
+)
 # Linker options
 target_link_options(${EXECUTABLE} PRIVATE
-
+  ${ARCH_CFLAGS} 
   -g
   -Wall
   -fno-common 
@@ -142,11 +178,6 @@ target_link_options(${EXECUTABLE} PRIVATE
   -fno-builtin 
   -nostdlib 
   -Xlinker -Map=${EXECUTABLE_OUTPUT_PATH}/${PROJECT_NAME}.map 
-  -mcpu=cortex-m4 
-  -mfpu=fpv4-sp-d16 
-  -mfloat-abi=hard 
-  -mthumb 
-   
   -specs=nosys.specs
   -L "${CMAKE_SOURCE_DIR}/ld"
   -T "${LINKER_FILE}"
