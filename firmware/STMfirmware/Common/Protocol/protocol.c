@@ -51,6 +51,11 @@
             // TODO: might need some help here
         #endif
     #endif
+#elif defined CO3_USE_MICROCHIP
+    #if defined CO3_USE_SERIAL
+    #elif defined CO3_USE_USB
+        #include "usb_start.h"
+    #endif
 #endif
 
 extern Symex_t AFLfuzzer;
@@ -125,7 +130,6 @@ void TransmitPack(void)
 #endif
 		AFLfuzzer.txbuffer[0]= AFLfuzzer.txCurrentIndex; //set the total length of the payload without considering size itself
 #if defined CO3_USE_SERIAL
-
 	#if defined CO3_USE_FREERTOS
 		HAL_UART_Transmit(co3_huart,AFLfuzzer.txbuffer,AFLfuzzer.txCurrentIndex,portMAX_DELAY);
 	#elif defined CO3_USE_CHIBIOS
@@ -142,14 +146,14 @@ void TransmitPack(void)
 		// wake up the target who is waiting on the transmission
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 		xTaskNotifyIndexedFromISR(AFLfuzzer.xTaskTarget,
-		  	  	    				1, //index
-		  							1, //value = 1 data TX complete
-		  							eSetBits,
-		  							&xHigherPriorityTaskWoken);
-		//sanity check, since only the monitor uses usart to transmit this.
-		if(xTaskGetCurrentTaskHandle() != AFLfuzzer.xTaskMonitor){
-			while(1){}
-		}
+                                    1, //index
+                                    1, //value = 1 data TX complete
+                                    eSetBits,
+                                    &xHigherPriorityTaskWoken);
+        //sanity check, since only the monitor uses usart to transmit this.
+        if(xTaskGetCurrentTaskHandle() != AFLfuzzer.xTaskMonitor){
+            while(1){}
+        }
 	#elif defined CO3_USE_CHIBIOS
 		eventmask_t events = 0;
 		events |= TRANSMIT_FINISHED;
@@ -157,16 +161,17 @@ void TransmitPack(void)
 	#endif
 
 #elif defined CO3_USE_USB
-		#if defined CO3_USE_STM32
-		CDC_Transmit_FS(AFLfuzzer.txbuffer, AFLfuzzer.txCurrentIndex);
-		#elif defined CO3_USE_NXP
-		usb_status_t error = USB_DeviceSendRequest(s_cdcVcom.deviceHandle, USB_CDC_VCOM_BULK_IN_ENDPOINT, (uint8_t *)AFLfuzzer.txbuffer,AFLfuzzer.txCurrentIndex);
-
-		if (error != kStatus_USB_Success)
-		{
-        /* Failure to send Data Handling code here */
-        }
-		#endif
+        #if defined CO3_USE_STM32
+            CDC_Transmit_FS(AFLfuzzer.txbuffer, AFLfuzzer.txCurrentIndex);
+        #elif defined CO3_USE_NXP
+            usb_status_t error = USB_DeviceSendRequest(s_cdcVcom.deviceHandle, USB_CDC_VCOM_BULK_IN_ENDPOINT, (uint8_t *)AFLfuzzer.txbuffer,AFLfuzzer.txCurrentIndex);
+            if (error != kStatus_USB_Success)
+            {
+                /* Failure to send Data Handling code here */
+            }
+        #elif defined CO3_USE_MICROCHIP
+            cdcdf_acm_write(AFLfuzzer.txbuffer, AFLfuzzer.txCurrentIndex);
+        #endif
 #endif
 	}
 

@@ -5,17 +5,17 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # enable export of compiler commands to compile_commands.json
 #set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
+option(LLVM_BUILD "USE LLVM instead of ARM to build" OFF)
 # Path to toolchain file. This one has to be before 'project()' below
-set(CMAKE_TOOLCHAIN_FILE clang.cmake)
+set(CMAKE_TOOLCHAIN_FILE arm.cmake)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Setup project, output and linker file
 set(BUILD_FOLDER ./build)
 project(samd51j19a_CMake)
 set(EXECUTABLE ${PROJECT_NAME}.elf)
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/build)
-set(LINKER_FILE "samd51a/gcc/gcc/samd51j19a_flashMPU.ld")
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR})
+set(LINKER_FILE "${CMAKE_SOURCE_DIR}/samd51a/gcc/gcc/samd51j19a_flashMPU.ld")
 
 enable_language(C ASM)
 set(CMAKE_C_STANDARD 99)
@@ -39,6 +39,7 @@ set(SRC_FILES
 )
 
 set(HPL_LIB ${CMAKE_SOURCE_DIR}/hpl/build/libhpl.a)
+set(samd51a_LIB ${CMAKE_SOURCE_DIR}/samd51a/build/libsamd51a.a)
 set(CommonDIR /home/lcm/github/spear/spear-code/firmware/Microchip/Common)
 
 set(ALL_NINE_YARDS_INCLUDE_DIRS
@@ -111,47 +112,57 @@ set(COMPILER_SPECIFIC_LDFLAGS
 )
 
 
-
+set(CO3_OPTIMIZATION_FLAGS -O0 -g -g3)
 # Build the executable based on the source files
 add_executable(${EXECUTABLE} ${SRC_FILES})
 
-add_compile_options(
+set(CO3_COMPILE_OPTIONS
   -D__SAMD51J19A__ 
   -x c 
   -c
   -DXPRJ_Default=Default
-  -O1
-  -g 
   -ffunction-sections 
   -mlong-calls 
   -Wall
-  -g3
+  ${CO3_OPTIMIZATION_FLAGS}
   ${ARCH_CFLAGS} 
-  ${COMPILER_SPECIFIC_CFLAGS} 
 )
 
-target_compile_options(
-  ${EXECUTABLE} PRIVATE
+if(${LLVM_BUILD})
+  set(CO3_COMPILE_OPTIONS ${CO3_COMPILE_OPTIONS} ${COMPILER_SPECIFIC_CFLAGS}) 
+endif()
+
+add_compile_options(
+  ${CO3_COMPILE_OPTIONS}
+)
+
+set(CO3_TARGET_COMPILE_OPTIONS
   -D__SAMD51J19A__ 
   -x c 
   -c
   -DXPRJ_Default=Default
-  -O1
-  -g 
   -ffunction-sections 
   -mlong-calls 
   -Wall
-  -g3
+  ${CO3_OPTIMIZATION_FLAGS}
   ${ARCH_CFLAGS} 
-  ${COMPILER_SPECIFIC_CFLAGS} 
+)
+
+if(${LLVM_BUILD})
+  set(CO3_TARGET_COMPILE_OPTIONS ${CO3_TARGET_COMPILE_OPTIONS} ${COMPILER_SPECIFIC_CFLAGS})
+endif()
+target_compile_options(
+  ${EXECUTABLE} PRIVATE
+  ${CO3_TARGET_COMPILE_OPTIONS}
 )
 
 set(CMAKE_C_LINK_EXECUTABLE 
-  "${ARM_GNU_CC} <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> ${HPL_LIB} -o <TARGET> <LINK_LIBRARIES>"
+  "${ARM_GNU_CC} <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>"
 )
 
 # Linker options
 target_link_options(${EXECUTABLE} PRIVATE
+  ${ARCH_CFLAGS}
   -D__SAMD51J19A__
   --specs=nosys.specs
   -Wl,--no-warn-mismatch
@@ -160,7 +171,7 @@ target_link_options(${EXECUTABLE} PRIVATE
   -Wl,--defsym=__MPLAB_BUILD=1
   -L "${PROJECT_SOURCE_DIR}/samd51a/gcc/gcc"
   -Wl,--gc-sections 
-  -T "${PROJECT_SOURCE_DIR}/samd51a/gcc/gcc/samd51j19a_flashMPU.ld"
+  -T "${LINKER_FILE}"
 )
 set(CommonDIR /home/lcm/github/spear/spear-code/firmware/Microchip/Common)
 
@@ -172,6 +183,7 @@ add_subdirectory(./printf      build/printf)
 add_subdirectory(./stdio_redirect   build/stdio_redirect)
 add_subdirectory(./usb         build/usb)
 add_subdirectory(./samd51a     build/samd51a)
+add_subdirectory(./hpl         build/hpl)
 
 
 target_link_libraries(
@@ -185,6 +197,7 @@ target_link_libraries(
   usb
   stdio_redirect
   samd51a
+  hpl
 )
 
 # Optional: Print executable size as part of the post build process

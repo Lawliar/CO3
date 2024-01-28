@@ -13,7 +13,7 @@
 
 // 1. if you want to use the MCU-side shadow memory or not
 
-//#define CO3_NO_MCU_SIDE_SHADOW
+#define CO3_NO_MCU_SIDE_SHADOW
 
 
 #if defined CO3_NO_MCU_SIDE_SHADOW
@@ -38,16 +38,19 @@
 //#define CO3_USE_NXP
 #define CO3_USE_MICROCHIP
 
-// 3. which communication channel you would like to use
+//3. board specification
+#define CO3_USE_MICROCHIP_SAMD51
+
+// 4. which communication channel you would like to use
 #define CO3_USE_USB
 //#define CO3_USE_SERIAL
 
-// 4. which RTOS you use
+// 5. which RTOS you use
 #define CO3_USE_FREERTOS  // one thing to notice is that FreeRTOS does not provide any HAL
 //#define CO3_USE_CHIBIOS
 
 
-// 5. APP-specific MACRO
+// 6. APP-specific MACRO
 //#define CO3_TEST_COMMANDLINE
 //#define CO3_TEST_CGC
 //#define CO3_TEST_MODBUSDMA

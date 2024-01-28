@@ -127,7 +127,11 @@ void spawnNewTarget( void )
 #if defined CO3_USE_FREERTOS
 	xTaskCreate(TargetTask,
 				    "Target",
-					configMINIMAL_STACK_SIZE*8,
+#if defined CO3_USE_STM32_H743
+					configMINIMAL_STACK_SIZE * 8,
+#elif defined CO3_USE_MICROCHIP_SAMD51
+					configMINIMAL_STACK_SIZE,
+#endif
 					NULL,
 					10,
 					&AFLfuzzer.xTaskTarget);
