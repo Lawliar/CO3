@@ -32,7 +32,7 @@ target_include_directories(
   ../component/lists
   ../component/uart
   ../component/osa
-  ../freertos/freertos_kernel/include
+   ../freertos/freertos_kernel/include
   ../freertos/freertos_kernel/portable/GCC/ARM_CM4F
   
 )

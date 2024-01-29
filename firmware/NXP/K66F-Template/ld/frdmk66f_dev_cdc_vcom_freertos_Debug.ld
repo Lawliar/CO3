@@ -252,7 +252,7 @@ SECTIONS
         _pvHeapLimit = .;
     } > SRAM_UPPER
 
-     _StackSize = 0x800;
+     _StackSize = 0x2000;
      /* Reserve space in memory for Stack */
     .heap2stackfill (NOLOAD) :
     {

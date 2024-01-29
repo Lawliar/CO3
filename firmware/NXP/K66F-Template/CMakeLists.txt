@@ -2,16 +2,21 @@ cmake_minimum_required(VERSION 3.15.3)
 
 # Optional: print out extra messages to see what is going on. Comment it to have less verbose messages
 set(CMAKE_VERBOSE_MAKEFILE ON)
+option(LLVM_BUILD "USE LLVM instead of ARM to build" OFF)
 
 # Path to toolchain file. This one has to be before 'project()' below
+if(${LLVM_BUILD})
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/clang.cmake)
+else()
+set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/arm.cmake)
+endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Setup project, output and linker file
-set(BUILD_FOLDER ./build)
+set(BUILD_FOLDER ${CMAKE_BINARY_DIR})
 project(EVKMIMXRT1176_CMake)
 set(EXECUTABLE ${PROJECT_NAME}.elf)
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/build)
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR})
 set(LINKER_FILE "frdmk66f_dev_cdc_vcom_freertos_Debug.ld")
 
 enable_language(C ASM)
@@ -26,9 +31,9 @@ set(ARCH_CFLAGS
   -mthumb -mcpu=cortex-m4 -mfloat-abi=hard  -mfpu=fpv4-sp-d16 
 ) 
 
-set(START_UP_LIB
-  ${CMAKE_SOURCE_DIR}/startup/build/libstartup.a
-)
+#set(START_UP_LIB
+#  ${CMAKE_SOURCE_DIR}/startup/build/libstartup.a
+#)
 message(STATUS "CMAKE_TOOLCHAIN_FILE is: ${CMAKE_TOOLCHAIN_FILE}")
 
 # List of source files
@@ -37,7 +42,7 @@ set(SRC_FILES
   source/virtual_com.c
   source/usb_device_descriptor.c
   source/virtual_com.c
-#  startup/startup_mk66f18.c  
+  startup/startup_mk66f18.c  
   device/system_MK66F18.c
   
 )
@@ -90,7 +95,8 @@ message(STATUS "CMAKE_C_LINK_EXECUTABLE:${CMAKE_C_LINK_EXECUTABLE}")
 add_executable(${EXECUTABLE} ${SRC_FILES})
 
 # List of compiler defines, prefix with -D compiler option. Copy from the project settings
-add_compile_options(
+
+set(CO3_COMPILE_OPTIONS
 -DCPU_MK66FN2M0VMD18 
 -DCPU_MK66FN2M0VMD18_cm4 
 -DSDK_OS_FREE_RTOS 
@@ -116,9 +122,16 @@ add_compile_options(
 -fno-builtin 
 -Wall -fstack-usage  
 -fno-common 
+-specs=nano.specs
+-specs=nosys.specs
 ${ARCH_CFLAGS} 
-${COMPILER_SPECIFIC_CFLAGS} 
+)
+if(${LLVM_BUILD})
+  set(CO3_COMPILE_OPTIONS ${CO3_COMPILE_OPTIONS} ${COMPILER_SPECIFIC_CFLAGS})
+endif()
 
+add_compile_options(
+  ${CO3_COMPILE_OPTIONS}
 )
 
 target_compile_definitions(${EXECUTABLE} PRIVATE
@@ -142,9 +155,7 @@ target_compile_definitions(${EXECUTABLE} PRIVATE
 
 )
 
-# Compiler options
-target_compile_options(${EXECUTABLE} PRIVATE
-
+set(CO3_TARGET_COMPILE_OPTIONS
 -std=gnu99
 -O1 
 -g 
@@ -158,15 +169,21 @@ target_compile_options(${EXECUTABLE} PRIVATE
 #-specs=nano.specs
 #-specs=nosys.specs
 ${ARCH_CFLAGS}
-${COMPILER_SPECIFIC_CFLAGS} 
+)
+if(${LLVM_BUILD})
+  set(CO3_TARGET_COMPILE_OPTIONS ${CO3_TARGET_COMPILE_OPTIONS} ${COMPILER_SPECIFIC_CFLAGS})
+endif()
 
+# Compiler options
+target_compile_options(${EXECUTABLE} PRIVATE
+${CO3_TARGET_COMPILE_OPTIONS} 
 )
 set(CMAKE_C_LINK_EXECUTABLE 
   "${ARM_GNU_CC} <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>"
 )
 # Linker options
 target_link_options(${EXECUTABLE} PRIVATE
-  ${ARCH_CFLAGS} 
+   
   -g
   -Wall
   -Wl,--no-warn-mismatch
@@ -176,8 +193,9 @@ target_link_options(${EXECUTABLE} PRIVATE
   #-ffreestanding 
   -fno-builtin 
   -nostdlib 
-  ${START_UP_LIB}
+  #${START_UP_LIB}
   -Xlinker -Map=${EXECUTABLE_OUTPUT_PATH}/${PROJECT_NAME}.map 
+  ${ARCH_CFLAGS}
   -specs=nosys.specs
   -L "${CMAKE_SOURCE_DIR}/ld"
   -T "${LINKER_FILE}"

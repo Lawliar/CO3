@@ -62,7 +62,7 @@
 #define configENABLE_BACKWARD_COMPATIBILITY 0
 #define configNUM_THREAD_LOCAL_STORAGE_POINTERS 5
 #define configUSE_APPLICATION_TASK_TAG 0
-#define configTASK_NOTIFICATION_ARRAY_ENTRIES   3
+#define configTASK_NOTIFICATION_ARRAY_ENTRIES   4
 
 /* Used memory allocation (heap_x.c) */
 #define configFRTOS_MEMORY_SCHEME 4

@@ -43,6 +43,11 @@
 //#define CO3_USE_STM32
 #define CO3_USE_NXP
 
+//#define CO3_USE_STM32_H743
+#define CO3_USE_NXP_K66F
+//#define CO3_USE_MICROCHIP_SAMD51
+
+
 // 3. which communication channel you would like to use
 #define CO3_USE_USB
 //#define CO3_USE_SERIAL

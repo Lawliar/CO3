@@ -24,8 +24,8 @@ MEMORY
   __top_Flash = 0x0 + 0x200000 ; /* 2M bytes */  
   __base_SRAM_UPPER = 0x20000000  ; /* SRAM_UPPER */  
   __base_RAM = 0x20000000 ; /* RAM */  
-  __top_SRAM_UPPER = 0x20000000 + 0x20000 ; /* 192K bytes */  
-  __top_RAM = 0x20000000 + 0x20000 ; /* 192K bytes */  
+  __top_SRAM_UPPER = 0x20000000 + 0x30000 ; /* 192K bytes */  
+  __top_RAM = 0x20000000 + 0x30000 ; /* 192K bytes */  
   __base_SRAM_LOWER = 0x1fff0000  ; /* SRAM_LOWER */  
   __base_RAM2 = 0x1fff0000 ; /* RAM2 */  
   __top_SRAM_LOWER = 0x1fff0000 + 0x10000 ; /* 64K bytes */  
