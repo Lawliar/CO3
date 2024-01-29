@@ -40,6 +40,7 @@
 
 // 3. board specifications
 #define CO3_USE_STM32_H743
+//#define CO3_USE_NXP_K66F
 //#define CO3_USE_MICROCHIP_SAMD51
 
 // 4. which communication channel you would like to use

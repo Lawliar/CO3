@@ -131,6 +131,8 @@ void spawnNewTarget( void )
 					configMINIMAL_STACK_SIZE * 8,
 #elif defined CO3_USE_MICROCHIP_SAMD51
 					configMINIMAL_STACK_SIZE,
+#elif defined CO3_USE_NXP_K66F
+					configMINIMAL_STACK_SIZE,
 #endif
 					NULL,
 					10,
@@ -145,6 +147,10 @@ static void MonitorTask( void * pvParameters )
 {
 #if defined CO3_USE_CHIBIOS
 	AFLfuzzer.xTaskMonitor = chThdGetSelfX();
+#endif
+
+#if defined CO3_USE_NXP
+    USB_DeviceApplicationInit();
 #endif
 
     spawnNewTarget();  //spawn a new target
@@ -171,7 +177,6 @@ static void MonitorTask( void * pvParameters )
     {
     	AFLfuzzer.txbuffer[j]=0;
     }
-
     _sym_initialize();
 
 #if defined CO3_USE_STM32

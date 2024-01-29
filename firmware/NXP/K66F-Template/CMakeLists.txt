@@ -44,7 +44,6 @@ set(SRC_FILES
   source/virtual_com.c
   startup/startup_mk66f18.c  
   device/system_MK66F18.c
-  
 )
 
 include_directories(
@@ -88,12 +87,12 @@ set(COMPILER_SPECIFIC_LDFLAGS
 message(STATUS "ARM_CORTEXM_SYSROOT:${ARM_CORTEXM_SYSROOT}")
 message(STATUS "COMPILER_SPECIFIC_LDFLAGS:${COMPILER_SPECIFIC_LDFLAGS}")
 message(STATUS "ARM_CORTEXM_BUILTINS_LIBGCC:${ARM_CORTEXM_BUILTINS_LIBGCC}")
-message(STATUS "CMAKE_C_LINK_EXECUTABLE:${CMAKE_C_LINK_EXECUTABLE}")
+#message(STATUS "CMAKE_C_LINK_EXECUTABLE:${CMAKE_C_LINK_EXECUTABLE}")
 
 
 # Build the executable based on the source files
 add_executable(${EXECUTABLE} ${SRC_FILES})
-
+set(CO3_OPTIMIZATION_FLAG -O0)
 # List of compiler defines, prefix with -D compiler option. Copy from the project settings
 
 set(CO3_COMPILE_OPTIONS
@@ -114,17 +113,18 @@ set(CO3_COMPILE_OPTIONS
 -DDEBUG
 -D__NEWLIB__
 -std=gnu99 
--O1
+${CO3_OPTIMIZATION_FLAG}
 -g 
 -c 
 -ffunction-sections 
 -fdata-sections 
 -fno-builtin 
 -Wall -fstack-usage  
--fno-common 
--specs=nano.specs
--specs=nosys.specs
+-mthumb
 ${ARCH_CFLAGS} 
+-fno-common 
+#-specs=nano.specs
+#-specs=nosys.specs
 )
 if(${LLVM_BUILD})
   set(CO3_COMPILE_OPTIONS ${CO3_COMPILE_OPTIONS} ${COMPILER_SPECIFIC_CFLAGS})
@@ -157,18 +157,19 @@ target_compile_definitions(${EXECUTABLE} PRIVATE
 
 set(CO3_TARGET_COMPILE_OPTIONS
 -std=gnu99
--O1 
+${CO3_OPTIMIZATION_FLAG}
 -g 
 -gdwarf-4 
 -c 
 -ffunction-sections 
 -fdata-sections 
 -fno-builtin 
+-mthumb
 -Wall -fstack-usage  
+${ARCH_CFLAGS}
 -fno-common 
 #-specs=nano.specs
 #-specs=nosys.specs
-${ARCH_CFLAGS}
 )
 if(${LLVM_BUILD})
   set(CO3_TARGET_COMPILE_OPTIONS ${CO3_TARGET_COMPILE_OPTIONS} ${COMPILER_SPECIFIC_CFLAGS})
@@ -178,9 +179,12 @@ endif()
 target_compile_options(${EXECUTABLE} PRIVATE
 ${CO3_TARGET_COMPILE_OPTIONS} 
 )
-set(CMAKE_C_LINK_EXECUTABLE 
-  "${ARM_GNU_CC} <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>"
-)
+
+if(${LLVM_BUILD})
+  set(CMAKE_C_LINK_EXECUTABLE 
+    "${ARM_GNU_CC} <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>"
+  )
+endif()
 # Linker options
 target_link_options(${EXECUTABLE} PRIVATE
    
@@ -194,7 +198,7 @@ target_link_options(${EXECUTABLE} PRIVATE
   -fno-builtin 
   -nostdlib 
   #${START_UP_LIB}
-  -Xlinker -Map=${EXECUTABLE_OUTPUT_PATH}/${PROJECT_NAME}.map 
+  -Xlinker -Map=${EXECUTABLE_OUTPUT_PATH}/${PROJECT_NAME}.map
   ${ARCH_CFLAGS}
   -specs=nosys.specs
   -L "${CMAKE_SOURCE_DIR}/ld"

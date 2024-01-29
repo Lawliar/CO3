@@ -167,7 +167,7 @@ void TransmitPack(void)
             usb_status_t error = USB_DeviceSendRequest(s_cdcVcom.deviceHandle, USB_CDC_VCOM_BULK_IN_ENDPOINT, (uint8_t *)AFLfuzzer.txbuffer,AFLfuzzer.txCurrentIndex);
             if (error != kStatus_USB_Success)
             {
-                /* Failure to send Data Handling code here */
+                while(1){}
             }
         #elif defined CO3_USE_MICROCHIP
             cdcdf_acm_write(AFLfuzzer.txbuffer, AFLfuzzer.txCurrentIndex);
