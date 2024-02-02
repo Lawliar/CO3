@@ -87,7 +87,7 @@
 
 
 #define configUSE_TASK_NOTIFICATIONS            1
-#define configTASK_NOTIFICATION_ARRAY_ENTRIES   4
+#define configTASK_NOTIFICATION_ARRAY_ENTRIES   5
 
 
 /* Software timer definitions. */

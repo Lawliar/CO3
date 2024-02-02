@@ -5,9 +5,6 @@
  *      Author: alejandro
  */
 
-//a copy of this file must be renamed to ProtocolConfig.h  and added to the includes of this project,
-// do not use this file in the includes this is  just a template
-
 #ifndef PROTOCOLCONFIG_H_
 #define PROTOCOLCONFIG_H_
 
@@ -18,9 +15,7 @@
 #define MAX_USB_FRAME 64
 #define MAX_USB_FUNCTIONS 8
 
-// 1. if you want to use the MCU-side shadow memory or not
-
-#define CO3_NO_MCU_SIDE_SHADOW
+//#define CO3_NO_MCU_SIDE_SHADOW
 
 
 #if defined CO3_NO_MCU_SIDE_SHADOW
@@ -43,18 +38,20 @@
 #define CO3_USE_STM32
 //#define CO3_USE_NXP
 
+// 3. board specifications
+
 #define CO3_USE_STM32_H743
 
-// 3. which communication channel you would like to use
+// 4. which communication channel you would like to use
 #define CO3_USE_USB
 //#define CO3_USE_SERIAL
 
-// 4. which RTOS you use
+// 5. which RTOS you use
 #define CO3_USE_FREERTOS
 //#define CO3_USE_CHIBIOS
 
+
 //#define CO3_TEST_COMMANDLINE
 #define CO3_TEST_CGC
-
 
 #endif /* PROTOCOLCONFIG_H_ */
