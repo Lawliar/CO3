@@ -403,9 +403,6 @@ void Symbolizer::visitSelectInst(SelectInst &I) {
     Value * falseSymExpr = getSymbolicExpression(I.getFalseValue());
     if ( trueSymExpr != ConstantInt::getFalse(I.getContext()) ||
             falseSymExpr != ConstantInt::getFalse(I.getContext()) ) {
-        //auto *data = IRB.CreateSelect(
-        //        I.getCondition(), trueSymExpr,
-        //        falseSymExpr);
         unsigned symID = getNextID();
         CallInst* dataSymExpr = IRB.CreateCall(runtime.notifySelect, {I.getCondition(),
                                                                      trueSymExpr,
@@ -1564,7 +1561,7 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                             g.AddEdge(runtimeVert,userNode,arg_idx);
                             //sanity check
                             if(find(runtime.replaceToNone.begin(), runtime.replaceToNone.end(), calleeName) == runtime.replaceToNone.end()){
-                                if(callInst->getOperand(callInst->getNumArgOperands() - 1)->getType() != symIntType){
+                                if(callInst->getOperand(callInst->arg_size() - 1)->getType() != symIntType){
                                     errs()<<"callInst"<< *callInst<<'\n';
                                     errs()<<arg_idx <<"th parameter\n";
                                     llvm_unreachable("last para is not symInt");

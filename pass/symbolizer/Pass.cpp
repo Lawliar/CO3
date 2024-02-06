@@ -45,7 +45,7 @@ using namespace llvm;
 char SymbolizeLegacyPass::ID = 0;
 
 llvm::cl::opt<std::string> outDir("out", cl::Required,cl::desc("output dir"));
-llvm::cl::opt<std::string> channel("channel", cl::Required,cl::desc("which input channel to use"));
+//llvm::cl::opt<std::string> channel("channel", cl::Required,cl::desc("which input channel to use"));
 std::string functionName;
 
 namespace {
@@ -133,9 +133,6 @@ bool instrumentFunction(Function &F, LoopInfo &LI, PostDominatorTree& pdTree,Dom
 
     symbolizer.insertNotifyFunc(F, funcIDFile.string());
     symbolizer.insertNotifyBasicBlock(F);
-    if(functionName == "validateRequest"){
-        errs()<<F<<'\n';
-    }
     if(verifyFunction(F, &errs())){
         errs()<<F<<'\n';
         llvm_unreachable("SymbolizePass produced invalid bitcode");

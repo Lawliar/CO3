@@ -18,6 +18,7 @@
 #include <llvm/IR/InstrTypes.h>
 #include <llvm/IR/Module.h>
 #include <set>
+#include <map>
 
 
 #if LLVM_VERSION_MAJOR >= 9 && LLVM_VERSION_MAJOR < 11
