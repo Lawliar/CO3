@@ -4,40 +4,55 @@ from unittest import result
 from IPython import embed
 from tqdm import tqdm
 import subprocess
+import threading
 
-benchmark = "CROMU_00001"
-
-
-
+lock = threading.Lock()
 
 
-def runOne(input_dir,build_dir,executable, just_one = False):
-    ret = set()
-    for eachfile in tqdm(os.listdir(input_dir)):
-        if(just_one and eachfile != "000000"):
-            continue
+
+def worker(index,input_dir, build_dir, executable, files, start_index,end_index,ret):
+    for i in tqdm(range(start_index, end_index)):
+        eachfile = files[i]
         input_file = os.path.join(input_dir, eachfile)
-        result_file = os.path.join(build_dir,"coverage")
-        if(os.path.exists(result_file)):
-            os.system("rm coverage")
-        assert(not os.path.exists(result_file))
 
         p1 = subprocess.Popen(["cat", input_file], stdout=subprocess.PIPE)
         exit_status = p1.wait()
         if(exit_status != 0):
             embed()
-        p2 = subprocess.Popen([executable], stdin=p1.stdout)
-        exit_status = p2.wait()
-        #embed()
-        #assert(exit_status == 0)
+        p2 = subprocess.run([executable], stdin=p1.stdout,stdout=subprocess.PIPE)
+        
+        lines = p2.stdout.decode('utf-8')
+        lock.acquire()
+        for eachline in lines.split('\n'):
+            if(not eachline.startswith('cc:')):
+                continue
+            eachline = eachline.strip()[3:]
+            ret.add(eachline)
+        lock.release()
+        
 
-        assert(os.path.exists(result_file))
-        with open(result_file,"r") as rfile:
-            lines = rfile.readlines()
-        assert(len(lines) > 0)
-        for eachline in lines:
-            ret.add(eachline.strip())
-        os.system("rm coverage")
+
+def runOne(input_dir,build_dir,executable, just_one = False):
+    files = os.listdir(input_dir)
+    len_files = len(files)
+    num_cores = 4
+    threads = []
+    ret = set()
+    partition = len_files // num_cores
+    for i in range(num_cores):
+        if i == num_cores - 1:
+            start = partition * i
+            end = len_files
+        else:
+            start = partition * i
+            end = partition * (i + 1)
+        p = threading.Thread(target=worker,args=[i, input_dir, build_dir, executable, files, start,end,ret])
+        p.start()
+        threads.append(p)
+    for p in threads:
+        p.join()
+    print("finished")
+    embed()
     return ret
 def runTest(benchmark):
     input_dir = "/home/lcm/github/spear/spear-code/code_coverage/{}".format(benchmark)
@@ -64,7 +79,7 @@ def runTest(benchmark):
     
 def main():
     #checkMake()
-    for each_bench in ["CROMU_00004","CROMU_00005"]:
+    for each_bench in ["CROMU_00001"]:
         runTest(each_bench)
 if __name__ == '__main__':
     main()
