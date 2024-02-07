@@ -7,10 +7,27 @@ import subprocess
 import threading
 
 lock = threading.Lock()
+from conf import coverage_executable as executable
+from conf import coverage_dir
 
+def single_coverage_worker(input_file):
+    global executable
+    os.path.exists(input_file)
+    assert(os.path.isabs(input_file))
+    p1 = subprocess.Popen(["cat", input_file], stdout=subprocess.PIPE)
+    exit_status = p1.wait()
+    if(exit_status != 0):
+        print("cat failed")
+        embed()
+    p2 = subprocess.run([executable], stdin=p1.stdout, stdout=subprocess.PIPE)
+    lines = p2.stdout.decode('utf-8')
+    for eachline in lines.split('\n'):
+        if(not eachline.startswith('cc:')):
+            continue
+        eachline = eachline.strip()[3:]
+        yield eachline
 
-
-def worker(index,input_dir, build_dir, executable, files, start_index,end_index,ret):
+def batch_worker(input_dir, executable, files, start_index,end_index,ret):
     for i in tqdm(range(start_index, end_index)):
         eachfile = files[i]
         input_file = os.path.join(input_dir, eachfile)
@@ -32,8 +49,9 @@ def worker(index,input_dir, build_dir, executable, files, start_index,end_index,
         
 
 
-def runOne(input_dir,build_dir,executable, just_one = False):
+def runBatch(input_dir,executable):
     files = os.listdir(input_dir)
+    files.remove('tmp_out')
     len_files = len(files)
     num_cores = 4
     threads = []
@@ -46,40 +64,34 @@ def runOne(input_dir,build_dir,executable, just_one = False):
         else:
             start = partition * i
             end = partition * (i + 1)
-        p = threading.Thread(target=worker,args=[i, input_dir, build_dir, executable, files, start,end,ret])
+        p = threading.Thread(target=batch_worker,args=[input_dir, executable, files, start,end,ret])
         p.start()
         threads.append(p)
     for p in threads:
         p.join()
     print("finished")
-    embed()
     return ret
-def runTest(benchmark):
-    input_dir = "/home/lcm/github/spear/spear-code/code_coverage/{}".format(benchmark)
-    build_dir = os.path.join(input_dir,"build")
-    executable = os.path.join(build_dir,"out")
+def runBenchmark(benchmark):
     symcc_input = "/home/lcm/github/spear/spear-code/symcc_benchmark/shared_volume/{}/output".format(benchmark)
     spear_input = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/Spear{}/intermediate_results/output".format(benchmark)
     
-    assert(os.path.exists(input_dir))
-    assert(os.path.exists(build_dir))
     assert(os.path.exists(executable))
     assert(os.path.exists(symcc_input))
     assert(os.path.exists(spear_input))
 
-    os.chdir(build_dir)## we can always change to this, since this is an absolute path
-    symcc_bb = runOne(symcc_input,build_dir, executable)
-    spear_bb = runOne(spear_input,build_dir, executable)
+    
+    symcc_bb = runBatch(symcc_input, executable)
+    #spear_bb = runBatch(spear_input,build_dir, executable)
 
-    with open(os.path.join(input_dir,"result.txt"),"w") as wfile:
+    with open(os.path.join(coverage_dir,"result.txt"),"w") as wfile:
         wfile.write("symcc edges, {}:{}".format(len(symcc_bb),symcc_bb))
-        wfile.write("spear edges, {}:{}".format(len(spear_bb),spear_bb))
+    #    wfile.write("spear edges, {}:{}".format(len(spear_bb),spear_bb))
     print("symcc covered edges:{}\n".format(len(symcc_bb)))
-    print("spear covered edges:{}\n".format(len(spear_bb)))
+    #print("spear covered edges:{}\n".format(len(spear_bb)))
     
 def main():
     #checkMake()
     for each_bench in ["CROMU_00001"]:
-        runTest(each_bench)
+        runBenchmark(each_bench)
 if __name__ == '__main__':
     main()

@@ -7,6 +7,14 @@ numExecution = 1000
 timeout = 10
 sleep_time = 10
 
+coverage_dir = "/home/lcm/github/spear/spear-code/code_coverage/{}".format(benchmark)
+coverage_build_dir = os.path.join(coverage_dir,"build")
+coverage_executable = os.path.join(coverage_build_dir,"out")
+
+assert(os.path.exists(coverage_dir))
+assert(os.path.exists(coverage_build_dir))
+assert(os.path.exists(coverage_executable))
+
 def get_highest_id(input_dir):
     ## this aggegates all Qsym generated file, and get the highest id
     highest = 0
