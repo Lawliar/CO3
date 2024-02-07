@@ -8,7 +8,7 @@ import time
 import re
 import json
 
-from conf import benchmark,time_budget, zfill_len, get_highest_id, get_total_time_out_err,sleep_time, timeout
+from conf import benchmark,time_budget, zfill_len, get_highest_id, get_total_time_out_err,sleep_time, timeout, estimate_inputs_needed
 from conf import coverage_dir
 
 from main import single_coverage_worker
@@ -68,7 +68,7 @@ def runSymcc(benchmark):
                 print("Symcc did not end well")
                 embed()
 
-            print("iter:{},cur at {} from {} to {}, time:{} / {}, edge:{}".format(it, cur_input_id, batch_input_id_start , batch_input_id_end, total_time , time_budget, len(coverage)))
+            print("iter:{},cur at {} from {} to {}, time:{:.2f} / {}, edge:{}, need {} inputs to finish".format(it, cur_input_id, batch_input_id_start , batch_input_id_end, total_time , time_budget, len(coverage), estimate_inputs_needed(cur_input_id + 1, total_time, time_budget)))
             ## copy the newly generated file to other places
             tmp_output_id = get_highest_id(symcc_output_dir) + 1
             
@@ -85,6 +85,8 @@ def runSymcc(benchmark):
                 if found_new_edge:
                     with open(coverage_file,"w") as wfile:
                         json.dump(coverage, wfile)
+                if(tmp_output_id >= estimate_inputs_needed(cur_input_id + 1, total_time, time_budget)):
+                    continue ## not copying
                 dest_file_name = str(tmp_output_id).zfill(zfill_len) 
                 tmp_output_id += 1
                 if("-optimistic" in each_symcc_output):

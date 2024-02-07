@@ -28,6 +28,12 @@ def get_highest_id(input_dir):
             highest = digits
     return highest
 
+def estimate_inputs_needed(num_execute, time_cost, time_budget):
+    inputs_needed = (num_execute / time_cost) * time_budget * 1.3 ## some buffer
+    return int(inputs_needed)
+
+
+
 def get_total_time_out_err(input):
     splitted = input.split(b'\n')
     cur = len(splitted) - 1
