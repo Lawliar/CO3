@@ -1,5 +1,5 @@
 import os,re
-benchmark =  "CROMU_00001"
+benchmark =  "CROMU_00002"
 time_budget = 60 * 60 * 24 # in seconds
 serial_port = os.path.join("/","dev","ttyACM1")
 zfill_len = 12
