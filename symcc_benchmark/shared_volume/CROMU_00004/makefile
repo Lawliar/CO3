@@ -18,12 +18,12 @@ CLI_LDFLAG_OVERRIDES ?=
 # our path by default but allow things to be easily overridden, i.e:
 #
 # COMPILER=<PATH_TO_OTHER_GCC_VERSION>/arm-none-eabi-gcc make
-SYMCC_BUILD_DIR := /home/lcm/github/spear/symcc_latest/build
+SYMCC_BUILD_DIR := /home/lcm/github/spear/symcc_latest/new_build
 
 INSTRUMENTATION_LIB := $(SYMCC_BUILD_DIR)/libSymbolize.so 
 RUNTIME_DIR         := $(SYMCC_BUILD_DIR)/SymRuntime-prefix/src/SymRuntime-build
 Z3_BUILD_DIR        := /home/lcm/github/tools/z3/build
-NATIVE_CLANG_COMPILER := /home/lcm/github/toolchains/x86_64/clang+llvm-13.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/clang
+NATIVE_CLANG_COMPILER := /home/lcm/ssd/toolchains/x86_64/clang+llvm-13.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/clang
 
 ifdef INSTRUMENT
 CLANG_COMPILER      := $(SYMCC_BUILD_DIR)/symcc
