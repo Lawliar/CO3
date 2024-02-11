@@ -15,6 +15,10 @@
 ## before you start:
 1. many components rely on cmake, if you see `cmake build`, it means 1. create an empty build dir, 2. cd to it, 3. type `cmake ..` , 4. type `make`.
 
+## tested platform
+- Ubuntu 22.04 (older version should work)
+- MacOS
+
 ## current llvm support:
 - Both instrumentation and symbolic backend are built on LLVM-14. 
 
