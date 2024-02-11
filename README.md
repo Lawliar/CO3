@@ -16,19 +16,14 @@
 1. many components rely on cmake, if you see `cmake build`, it means 1. create an empty build dir, 2. cd to it, 3. type `cmake ..` , 4. type `make`.
 
 ## tested platform
-- Ubuntu 22.04 (older version should work)
-- MacOS
+- Ubuntu 22.04 (older version also should work)
 
 ## current llvm support:
 - Both instrumentation and symbolic backend are built on LLVM-14. 
 
 ## Prerequisite 
-### OS-agnostic part:
 - Download llvm-14.0x pre-built and unzip to deps/llvm through `tar -xf <llvm-14>.tar.gz -C ./deps/llvm/`
-### Ubuntu:
-    - `sudo apt install autoconf automake libtool`
-### macOS:
-    - `brew install autoconf automake libtool`
+- `sudo apt install autoconf automake libtool`
 
 ## submodules:
 - `git submodule init`
