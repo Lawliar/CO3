@@ -8,21 +8,21 @@ import time
 import re
 import json
 
-from conf import benchmark,time_budget, zfill_len, get_highest_id, get_total_time_out_err,sleep_time, timeout,serial_port
+from conf import benchmark,time_budget, zfill_len, get_highest_id, get_total_time_out_err,sleep_time, timeout,serial_port,baud_rate
 from conf import coverage_dir, estimate_inputs_needed
 
 from main import single_coverage_worker
 
-def runSpear(benchmark):
+def runSpear(benchmark, debug = False, buggy_index = 0):
     spear_inter_dir          = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/Spear{}/intermediate_results".format(benchmark)
     concrete_input           = "{}/concreteInputs.bin".format(spear_inter_dir)
     output_dir          = "{}/output".format(spear_inter_dir)
     tmp_output_dir      = "{}/tmp_out".format(output_dir)
     backend_executable = "/home/lcm/github/spear/spear-code/sym_backend/build_release/qsym_backend/orchestrator"
     coverage_file            = os.path.join(coverage_dir,"co3.json")
-    if(os.path.exists(output_dir)):
+    if(debug == False and os.path.exists(output_dir)):
         shutil.rmtree(output_dir)
-    os.mkdir(output_dir)
+        os.mkdir(output_dir)
     if(os.path.exists(tmp_output_dir)):
         shutil.rmtree(tmp_output_dir)
     os.mkdir(tmp_output_dir)
@@ -40,11 +40,13 @@ def runSpear(benchmark):
     coverage = {}
     while (True):
         for cur_input_id in range(batch_input_id_start, batch_input_id_end):
+            if debug == True and cur_input_id < buggy_index:
+                continue
             input_file = os.path.join(output_dir, str(cur_input_id).zfill(zfill_len))
             if(not os.path.exists(input_file)):
                 assert(os.path.exists(input_file + '-optimistic'))
                 input_file += '-optimistic'
-            cmd = [backend_executable,"-i",spear_inter_dir,"-s",serial_port,"-b",str(10000000)]
+            cmd = [backend_executable,"-i",spear_inter_dir,"-s",serial_port,"-b",str(baud_rate)]
             p1 = subprocess.Popen(cmd, \
                          stdout=subprocess.PIPE,stderr=subprocess.PIPE, \
                         env={**os.environ,'SYMCC_INPUT_FILE':input_file, 'SYMCC_OUTPUT_DIR': tmp_output_dir})
@@ -107,7 +109,7 @@ def runSpear(benchmark):
 
 def main():
     
-    spear_output_num, spear_input_num,total_time = runSpear(benchmark)
+    spear_output_num, spear_input_num,total_time = runSpear(benchmark, False, 1309)
     print("spear generate:{} with {} runs using {}us\n".format(spear_output_num, spear_input_num,total_time))
 
 if __name__ == '__main__':

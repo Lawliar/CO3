@@ -1,11 +1,12 @@
 import os,re
-benchmark =  "CROMU_00002"
+benchmark =  "CROMU_00005"
 time_budget = 60 * 60 * 24 # in seconds
 serial_port = os.path.join("/","dev","ttyACM1")
 zfill_len = 12
 numExecution = 1000
 timeout = 10
 sleep_time = 10
+baud_rate = 75000000
 
 coverage_dir = "/home/lcm/github/spear/spear-code/code_coverage/{}".format(benchmark)
 coverage_build_dir = os.path.join(coverage_dir,"build")

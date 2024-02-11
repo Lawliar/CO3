@@ -376,7 +376,7 @@ protected:
   }
 
   bool printAux(ostream& os) const override {
-    os << "value=0x" << value_.toString(16, false)
+    os << "value=0x" << LLVMIntToString(value_, 16)
       << ", bits=" << bits_;
     return true;
   }
@@ -385,7 +385,7 @@ protected:
     if (value_.getNumWords() == 1)
       return context_.bv_val((__uint64)value_.getZExtValue(), bits_);
     else
-      return context_.bv_val(value_.toString(10, false).c_str(), bits_);
+      return context_.bv_val(LLVMIntToString(value_, 10).c_str(), bits_);
   }
 
   void hashAux(XXH32_state_t* state) override {
