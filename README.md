@@ -46,4 +46,5 @@
 - sudo make install
 
 ## fair warning:
-Due to historical reasons, the whole codebase is filled with name referecens to `SPEAR`, which is the old name for `CO3`. If you see `SPEAR`, that means the same thing as `CO3`. 
+- Due to historical reasons, the whole codebase is filled with name referecens to `SPEAR`, which is the old name for `CO3`. If you see `SPEAR`, that means the same thing as `CO3`. 
+- This is a research prototype, not intended for production. In the meantime, I am open for all helpful PRs that can make CO3 better. 

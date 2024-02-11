@@ -40,3 +40,4 @@ Debug/
 
 test/
 benchmark/
+/firmware/Microchip/SAMD51/dist/
