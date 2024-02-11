@@ -17,7 +17,7 @@
 
 ## tested platform
 - Ubuntu 22.04 (older version should work)
-- MacOS
+- MacOS (note: no support for symbolizer pass and firmware building due to its dependencies on gcc compiler, but you can instrument and build firmware on linux)
 
 ## current llvm support:
 - Both instrumentation and symbolic backend are built on LLVM-14. 
@@ -46,7 +46,10 @@
 - make
 ### z3
 - cd to deps/z3
-- cmake build 
+- mkdir build
+- cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install ..
+- make
+- make install 
 
 ## build symbolizer
 - cd to pass/symbolizer
