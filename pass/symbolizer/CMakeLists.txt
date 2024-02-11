@@ -17,14 +17,13 @@ project(SymInstrumentation)
 
 set(CO3_DEPS_DIR "${CMAKE_SOURCE_DIR}/../../deps")
 set(LLVM_HINTS "${CO3_DEPS_DIR}/llvm/clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04/lib/cmake")
-set(llvm_hints ${LLVM_HINTS})
 
 set(CO3_BOOST_INCLUDE_DIR "${CO3_DEPS_DIR}/boost")
 set(CO3_BOOST_LIB_DIR "${CO3_DEPS_DIR}/boost/stage/lib")
 
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS true)
-find_package(LLVM REQUIRED CONFIG HINTS ${llvm_hints})
+find_package(LLVM REQUIRED CONFIG HINTS ${LLVM_HINTS})
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake from ${LLVM_DIR}")
 #if (${LLVM_VERSION_MAJOR} LESS 8 OR ${LLVM_VERSION_MAJOR} GREATER 11)
