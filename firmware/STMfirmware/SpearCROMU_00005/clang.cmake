@@ -7,9 +7,10 @@
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR ARM)
 
-set(CLANG_TOOLCHAIN_BIN_DIR /home/lcm/github/toolchains/x86_64/clang+llvm-13.0.0-x86_64-linux-gnu-ubuntu-20.04/bin)
+set(CLANG_TOOLCHAIN_BIN_DIR /home/lcm/ssd/toolchains/x86_64/clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04/bin)
 
-set(ARM_TOOLCHAIN_BIN_DIR  /home/lcm/github/toolchains/arm/gcc-linaro12.3.1-0x20020000/bin)
+set(ARM_TOOLCHAIN_BIN_DIR  /home/lcm/ssd/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin)
+set(ARM_GNU_CC "${ARM_TOOLCHAIN_BIN_DIR}/arm-none-eabi-gcc")
 # point ARM_TOOLCHAIN_BIN_DIR to things like
 # "C:/Program Files (x86)/GNU Arm Embedded Toolchain/10 2020-q4-major/bin")
 # "C:/NXP/MCUXpressoIDE_11.7.0_9198/ide/tools/bin")
