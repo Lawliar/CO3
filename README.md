@@ -12,51 +12,55 @@
 - symcc_benchmark: benchmark we use to evaluate SymCC.
 - test: visualization code to generate control- data flow graph. 
 ```
+## before you start:
+1. many components rely on cmake, if you see `cmake build`, it means 1. create an empty build dir, 2. cd to it, 3. type `cmake ..` , 4. type `make`.
 
 ## current llvm support:
 - Both instrumentation and symbolic backend are built on LLVM-14. 
 
 ## Prerequisite 
 ### OS-agnostic part:
-1. - Download llvm-14.0x pre-built and unzip to folders of your preference and memorize it. 
+- Download llvm-14.0x pre-built and unzip to deps/llvm through `tar -xf <llvm-14>.tar.gz -C ./deps/llvm/`
 ### Ubuntu:
-    - `sudo apt install pkg-config autoconf automake libtool`
+    - `sudo apt install autoconf automake libtool`
 ### macOS:
-    - `brew install pkg-config autoconf automake libtool`
+    - `brew install autoconf automake libtool`
 
-## how to instrument the firmware
-### mac:
-
-1. required utility
-    - 
-    - 
-2. building the pass:
-    - build boost library
-        - if you have boost library installed from apt, please considering removing them. Check out if there is any input from `apt list --installed | grep boost` we apologize for the inconvenience.
-        - at the same dir as the README.md
-            - `git submodule init`
-            - `git submodule update`
-        - cd to deps/boost
-            - `git submodule init`
-            - `git submodule update`
-            - `./bootstrap.sh`
-            - `sudo ./b2 install --with-filesystem --with-graph --with-program_options`
-    - download llvm 12.0:
-        - download from https://github.com/llvm/llvm-project/releases/download/llvmorg-12.0.0/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04.tar.xz and unzip it
-        - under ./pass/
-            - `mkdir build`
-            - `cd build`
-            - `cmake .. -DLLVM_HINTS=<abs path to llvm you just download>/lib/cmake`
-            - `make`
-3. instrument the firmware
-    - `make LLVM_TOOLCHAIN=<llvm folder you just unzip> INSTRUMENTATION_LIB=<llvm pass generated>`
-
-## build libserialport
+## submodules:
+- `git submodule init`
+- `git submodule update`
+### boost:
+- cd to deps/boost
+- `git submodule init`
+- `git submodule update`
+- `./bootstrap.sh`
+- `./b2 --with-filesystem --with-graph --with-program_options`
+### libserialport
 - cd to deps/libserialport
 - ./autogen.sh
 - ./configure
 - make
-- sudo make install
+### z3
+- cd to deps/z3
+- cmake build 
+
+## build symbolizer
+- cd to pass/symbolizer
+- [optional] double check `CO3_DEPS_DIR` `LLVM_HINTS` point to the right folder
+- cmake build 
+
+## instrument prepare firmware
+- pick one firmware, e.g., "SpearCROMU_00001"
+- make sure the ProtocolConfig.h fits your need
+- make sure variables in clang.cmake and CMakeLists.txt point to the dependencies that you created before
+- cmake build 
+- flash the firmware
+
+## build orchestrator
+- cd to sym_backend
+- double check the configurations fit your needs, there are three builds, debug, release, profiling
+- cmake build 
+
 
 ## fair warning:
 - Due to historical reasons, the whole codebase is filled with name referecens to `SPEAR`, which is the old name for `CO3`. If you see `SPEAR`, that means the same thing as `CO3`. 
