@@ -15,8 +15,14 @@
 cmake_minimum_required(VERSION 3.5)
 project(SymInstrumentation)
 
+set(CO3_DEPS_DIR "${CMAKE_SOURCE_DIR}/../../deps")
+set(LLVM_HINTS "${CO3_DEPS_DIR}/llvm/clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04/lib/cmake")
 set(llvm_hints ${LLVM_HINTS})
-set(boost_hints "/usr/local/lib/cmake")
+
+set(CO3_BOOST_INCLUDE_DIR "${CO3_DEPS_DIR}/boost")
+set(CO3_BOOST_LIB_DIR "${CO3_DEPS_DIR}/boost/stage/lib")
+
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 find_package(LLVM REQUIRED CONFIG HINTS ${llvm_hints})
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
@@ -31,18 +37,12 @@ message(STATUS "LLVM_INCLUDE_DIRS ${LLVM_INCLUDE_DIRS}")
 include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 
 
-set(Boost_DEBUG 1)
-FIND_PACKAGE( Boost REQUIRED HINTS ${boost_hints})
-if(NOT Boost_FOUND)
-  message( SEND_ERROR "Boost Library not found" )
-endif()
-message(STATUS "${Boost_INCLUDE_DIR}=${${Boost_INCLUDE_DIR}}")
-
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 \
+-Wno-error=redundant-decls -Wno-error=deprecated-declarations -Wno-error=deprecated-copy \
 -Wredundant-decls -Wcast-align -Wmissing-include-dirs -Wswitch-default \
--Wextra -Wall -Winvalid-pch -Wredundant-decls -Wformat=2 \
--Wmissing-format-attribute -Wformat-nonliteral -Werror -Wno-error=deprecated-declarations")
+-Wextra -Wall -Winvalid-pch -Wformat=2 \
+-Wmissing-format-attribute -Wformat-nonliteral -Werror")
 
 # Mark nodelete to work around unload bug in upstream LLVM 5.0+
 set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,-z,nodelete")
@@ -68,9 +68,8 @@ if (NOT LLVM_ENABLE_RTTI)
   set_source_files_properties(Lower PROPERTIES COMPILE_FLAGS "-fno-rtti")
 endif()
 
-target_include_directories(Symbolize PUBLIC ${Boost_INCLUDE_DIR} )
-
-TARGET_LINK_LIBRARIES( Symbolize LINK_PUBLIC ${Boost_LIBRARIES} )
+target_include_directories(Symbolize PRIVATE ${CO3_BOOST_INCLUDE_DIR})
+target_link_directories(Symbolize PRIVATE ${CO3_BOOST_LIB_DIR})
 TARGET_LINK_LIBRARIES( Symbolize boost_graph )
 TARGET_LINK_LIBRARIES( Symbolize boost_filesystem )
 
