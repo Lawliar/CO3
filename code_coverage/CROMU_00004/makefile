@@ -18,7 +18,7 @@ CLI_LDFLAG_OVERRIDES ?=
 # COMPILER=<PATH_TO_OTHER_GCC_VERSION>/arm-none-eabi-gcc make
 
 
-CLANG_DIR           := /home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04
+CLANG_DIR           := /home/lcm/ssd/toolchains/x86_64/clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04
 OPT                 := ${CLANG_DIR}/bin/opt
 LLC                 := ${CLANG_DIR}/bin/llc
 INSTRUMENTATION_LIB := /home/lcm/github/spear/spear-code/code_coverage/compiler/build/libCoverageInstrument.so
