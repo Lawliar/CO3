@@ -51,21 +51,10 @@ configure CMake with -DZ3_TRUST_SYSTEM_VERSION=on (see also docs/Configuration.t
   endif()
 endif()
 
-## BOOST
-set(Boost_DEBUG 1)
-find_package( Boost REQUIRED HINTS ${boost_hints})
-if(NOT Boost_FOUND)
-  message( SEND_ERROR "Boost Library not found" )
-endif()
-message(STATUS "Boost_INCLUDE_DIR=${Boost_INCLUDE_DIR}")
-
-include_directories( ${Boost_INCLUDE_DIR} )
 
 ## Serial Port Source
 include_directories(${SERIAL_INCLUDE_DIR})
 
-## libserialport
-find_package(PkgConfig REQUIRED)
 
 
 add_executable(orchestrator
@@ -86,17 +75,18 @@ add_executable(orchestrator
   ${GRAPH_SOURCES}
   Runtime.cpp ../ThreadPool.h ../graph/Val.cpp ../graph/Val.h ../getTimeStamp.h ../getTimeStamp.cpp)
 
-
-## even when LIBSERIALPORT is found by pkg_check_modules, no related variables are set, so we have to do this in this ugly way, thanks cmake!!
-## when i tried to manually run pkg-config with execute_process, and find_library. While libserialport is literally under /usr/local/lib, and I specify this as hints to the find_library , it gave me NOTFOUND, this has been truly amazing.
-target_include_directories(orchestrator PRIVATE "/usr/local/include/")
-target_link_libraries(orchestrator "/usr/local/lib/libserialport.so")
-
 ##graph
 target_include_directories(orchestrator PRIVATE ${GRAPH_INCLUDE_DIR})
-target_include_directories(orchestrator PRIVATE ${RUNTIME_GRAPH_INCLUDE_DIR})
+target_include_directories(orchestrator PRIVATE ${BACKEND_GRAPH_INCLUDE_DIR})
+
+## libserialport
+target_include_directories(orchestrator PRIVATE ${LIBSERIALPORTS_INCLUDE_DIR})
+target_link_directories(orchestrator PRIVATE ${LIBSERIALPORTS_LIB_DIR})
+target_link_libraries(orchestrator serialport)
+
 ## link boost
-target_link_libraries( orchestrator LINK_PUBLIC ${Boost_LIBRARIES} )
+target_include_directories(orchestrator PRIVATE ${CO3_BOOST_INCLUDE_DIR})
+target_link_directories(orchestrator PRIVATE ${CO3_BOOST_LIB_DIR})
 target_link_libraries( orchestrator boost_graph )
 target_link_libraries( orchestrator boost_filesystem )
 target_link_libraries( orchestrator boost_program_options)

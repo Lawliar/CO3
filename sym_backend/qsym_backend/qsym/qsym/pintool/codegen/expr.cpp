@@ -380,7 +380,7 @@ void Expr::addConstraint(Kind kind, llvm::APInt rhs, llvm::APInt adjustment) {
 }
 
 void ConstantExpr::print(ostream& os, UINT depth) const {
-    os << "0x" << value_.toString(16, false);
+    os << "0x" << LLVMIntToString(value_, 16);
 }
 
 void ConcatExpr::print(ostream& os, UINT depth) const {

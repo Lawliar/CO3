@@ -1,6 +1,29 @@
 #include "range.h"
 
+#include <llvm/ADT/SmallString.h>
+
 namespace qsym {
+
+    std::string LLVMIntToString(const llvm::APInt &i, unsigned radix) {
+#if LLVM_VERSION_MAJOR < 13
+    return i.toString(radix, false);
+#else
+    llvm::SmallString<16> str;
+    i.toString(str, radix, false);
+    return static_cast<std::string>(str);
+#endif
+  }
+
+  std::string LLVMIntToString(const llvm::APSInt &i, unsigned radix) {
+#if LLVM_VERSION_MAJOR < 13
+    return i.toString(radix);
+#else
+    llvm::SmallString<16> str;
+    i.toString(str, radix);
+    return static_cast<std::string>(str);
+#endif
+  }
+  
   RangeSet RangeSet::intersectLT(llvm::APInt value, llvm::APInt adjustment) {
     llvm::APSInt adj = BV_.getValue(adjustment);
     llvm::APSInt val = BV_.getValue(value);

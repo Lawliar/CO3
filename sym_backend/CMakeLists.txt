@@ -17,19 +17,27 @@ project(SymBackend)
 
 option(QSYM_BACKEND "Use the Qsym backend instead of our own" ON)
 option(Z3_TRUST_SYSTEM_VERSION "Use the system-provided Z3 without a version check" ON)
-option(RELEASE_BUILD "BUILD for performance" OFF)
-option(DEBUG_BUILD "BUILD for adding debug macros" ON)
+option(RELEASE_BUILD "BUILD for performance" ON)
+option(DEBUG_BUILD "BUILD for adding debug macros" OFF)
 option(PROFILING_BUILD "BUILD for profiling" OFF)
-option(CO3_NO_MCU_SHADOW "MCU does not have SHADOW, so disable some sanity checks that helps debugging" ON)
+option(CO3_NO_MCU_SHADOW "MCU does not have SHADOW, so disable some sanity checks that helps debugging" OFF)
+
+
+set(LIBSERIALPORTS_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../deps/libserialport")
+set(LIBSERIALPORTS_LIB_DIR "${LIBSERIALPORTS_INCLUDE_DIR}/.libs")
+
+set(CO3_BOOST_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../deps/boost")
+set(CO3_BOOST_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../deps/boost/stage/lib")
+
+set(Z3_DIR "${PROJECT_SOURCE_DIR}/../deps/z3/install/lib/cmake")
+
+
+set(LLVM_DIR "${PROJECT_SOURCE_DIR}/../deps/llvm/clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04")
+
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS true)
-if(NOT Z3_DIR)
-  set(Z3_DIR "${PROJECT_SOURCE_DIR}/../deps/z3/install/lib/cmake")
-endif()
 
-if(NOT LLVM_DIR)
-  set(LLVM_DIR "/home/lcm/github/toolchains/x86_64/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04")
-endif()
+
 
 if(${CO3_NO_MCU_SHADOW})
   add_compile_definitions(CO3_NO_MCU_SHADOW)
@@ -80,6 +88,8 @@ set(SERIAL_PORT_SOURCES
 )
 set(SERIAL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/serialport)
 
+
+
 set(GRAPH_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/graph/RuntimeDataFlowGraph.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/graph/RuntimeCFG.cpp
@@ -87,7 +97,7 @@ set(GRAPH_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/graph/SymGraph.h
         ${CMAKE_CURRENT_SOURCE_DIR}/../pass/symbolizer/dfg/DataFlowGraph.cpp)
 set(GRAPH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../pass/symbolizer/dfg)
-set(RUNTIME_GRAPH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/graph)
+set(BACKEND_GRAPH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/graph)
 if (${QSYM_BACKEND})
   add_subdirectory(qsym_backend)
 else()
