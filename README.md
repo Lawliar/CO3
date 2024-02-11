@@ -41,7 +41,10 @@
 - make
 ### z3
 - cd to deps/z3
-- cmake build 
+- mkdir build
+- cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install ..
+- make
+- make install 
 
 ## build symbolizer
 - cd to pass/symbolizer
