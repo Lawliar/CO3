@@ -13,10 +13,23 @@
 - test: visualization code to generate control- data flow graph. 
 ```
 
+## current llvm support:
+- Both instrumentation and symbolic backend are built on LLVM-14. 
+
+## Prerequisite 
+### OS-agnostic part:
+1. - Download llvm-14.0x pre-built and unzip to folders of your preference and memorize it. 
+### Ubuntu:
+    - `sudo apt install pkg-config autoconf automake libtool`
+### macOS:
+    - `brew install pkg-config autoconf automake libtool`
 
 ## how to instrument the firmware
+### mac:
+
 1. required utility
-    - `sudo apt install pkg-config`
+    - 
+    - 
 2. building the pass:
     - build boost library
         - if you have boost library installed from apt, please considering removing them. Check out if there is any input from `apt list --installed | grep boost` we apologize for the inconvenience.
