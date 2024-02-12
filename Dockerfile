@@ -31,7 +31,8 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
         zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY . /CO3_SOURCE
+COPY ./deps /CO3_SOURCE/deps/
+COPY ./.git /CO3_SOURCE/.git
 
 WORKDIR /CO3_SOURCE/deps/libserialport
 RUN ./autogen.sh && ./configure && make
@@ -43,5 +44,23 @@ WORKDIR /CO3_SOURCE/deps/boost
 RUN ./bootstrap.sh && ./b2 --with-filesystem --with-graph --with-program_options
 
 
-#WORKDIR /CO3_SOURCE/sym_backend/build
-#RUN cmake .. && make
+FROM ubuntu:22.04
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        build-essential \
+        autoconf \
+        cmake \
+        g++ \
+        python2 \
+        && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /CO3_SOURCE/deps/libserialport       /CO3_SOURCE/deps/libserialport/
+COPY --from=builder /CO3_SOURCE/deps/z3/build/install    /CO3_SOURCE/deps/z3/build/install/
+COPY --from=builder /CO3_SOURCE/deps/boost               /CO3_SOURCE/deps/boost/
+COPY ./deps/llvm     /CO3_SOURCE/deps/llvm/
+COPY ./sym_backend   /CO3_SOURCE/sym_backend/
+COPY ./code_coverage /CO3_SOURCE/code_coverage/
+COPY ./USBtest       /CO3_SOURCE/USBtest
+COPY ./pass          /CO3_SOURCE/pass
+
+WORKDIR /CO3_SOURCE/sym_backend/build
+RUN cmake .. && make
