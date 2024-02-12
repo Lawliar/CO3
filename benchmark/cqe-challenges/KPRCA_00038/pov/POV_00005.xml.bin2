@@ -1,3 +1,0 @@
-END {
-    print "foobar" ~ //;
-}record1

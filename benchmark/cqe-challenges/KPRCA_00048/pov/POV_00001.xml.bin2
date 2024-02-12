@@ -1,4 +1,0 @@
-auth password
-append aaa bbb
-bitop and aaa bbb
-quit

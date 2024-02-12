@@ -1,4 +1,0 @@
-END {
-    printf "#s", -559038737;
-    print;
-}record1

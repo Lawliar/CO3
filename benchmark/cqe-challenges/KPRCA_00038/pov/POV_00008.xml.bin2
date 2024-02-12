@@ -1,6 +1,0 @@
-END {
-    print;
-    {
-    }
-    print;
-}record1

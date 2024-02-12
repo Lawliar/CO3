@@ -1,8 +1,0 @@
-END {
-    r = "((((((((((((((((";
-    for (i = 0; i != 13; i++)
-    {
-        r = r r;
-    }
-    print "asdf" ~ r;
-}record1
