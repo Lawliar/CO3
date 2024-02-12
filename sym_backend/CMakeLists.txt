@@ -29,7 +29,7 @@ set(LIBSERIALPORTS_LIB_DIR "${LIBSERIALPORTS_INCLUDE_DIR}/.libs")
 set(CO3_BOOST_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../deps/boost")
 set(CO3_BOOST_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../deps/boost/stage/lib")
 
-set(Z3_DIR "${PROJECT_SOURCE_DIR}/../deps/z3/install/lib/cmake")
+set(Z3_DIR "${PROJECT_SOURCE_DIR}/../deps/z3/build/install/lib/cmake")
 
 
 set(LLVM_DIR "${PROJECT_SOURCE_DIR}/../deps/llvm/clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04")

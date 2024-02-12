@@ -15,7 +15,6 @@
 # Build the parts of the Qsym backend that are relevant for us
 
 set(QSYM_SOURCE_DIR "qsym/qsym/pintool")
-set(boost_hints "/usr/local/lib/cmake")
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/expr__gen.cpp
   COMMAND python2 gen_expr.py ${CMAKE_CURRENT_BINARY_DIR}
