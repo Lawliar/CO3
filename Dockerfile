@@ -43,5 +43,5 @@ WORKDIR /CO3_SOURCE/deps/boost
 RUN ./bootstrap.sh && ./b2 --with-filesystem --with-graph --with-program_options
 
 
-WORKDIR /CO3_SOURCE/sym_backend/build
-RUN cmake .. && make
+#WORKDIR /CO3_SOURCE/sym_backend/build
+#RUN cmake .. && make
