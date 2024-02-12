@@ -33,6 +33,10 @@
     - If you are using docker to build orchestrator, you still need this step. 
     However, instead of the pre-built for you hosting OS, you can just use [llvm-prebuit-ubuntu](https://github.com/llvm/llvm-project/releases/download/llvmorg-14.0.0/clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz)
 
+### arm cross compiler:
+- This is only needed to build the firmware image. Simply select that one fitting your situation from 
+[arm-gnu-toolchain](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads). Unzip it and make sure the CMakeLists.txt under the firmware source code points to it. The version that we use is **11.3.rel1**. 
+
 ### dependent packages
 - `sudo apt install autoconf automake libtool`
 
@@ -85,7 +89,7 @@
 
 ## docker build
 ### symbolizer
-there is no dockerfile to build symbolizer, not because of the technical difficulty but because of the mixed of toolchain (e.g., cross-compiler from gcc) required to build a firmware image. 
+- there is no dockerfile to build symbolizer, not because of the technical difficulty but because of the mixed of toolchain (e.g., cross-compiler from gcc) required to build a firmware image. 
 The symbolizer is just one part of the firmware building process. Simply building it is not useful. 
 
 
