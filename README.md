@@ -1,7 +1,6 @@
 ## Directory:
 ```
 - USBtest: helper script to send and receive messages through the serial port for debugging purpose
-- benchmark: benchmark that we considered, not used.
 - code_coverage: script that we used to compare code coverage and speed.
 - deps: projects that CO3 is dependent upon
 - firmware: source code for the firmware images used in the paper.
@@ -15,8 +14,10 @@
 ## before you start:
 1. many components rely on cmake, if you see `cmake build`, it means 1. create an empty build dir, 2. cd to it, 3. type `cmake ..` , 4. type `make`.
 
+2. before using the docker file, submodule init are required, also llvm prebuilt should be decompressed to the specified folder. 
+
 ## tested platform
-- Ubuntu 22.04 (older version also should work)
+- Native Ubuntu 22.04 (older version also should work)
 
 ## current llvm support:
 - Both instrumentation and symbolic backend are built on LLVM-14. 
@@ -28,17 +29,20 @@
 ## submodules:
 - `git submodule init`
 - `git submodule update`
+
 ### boost:
 - cd to deps/boost
 - `git submodule init`
 - `git submodule update`
 - `./bootstrap.sh`
 - `./b2 --with-filesystem --with-graph --with-program_options`
+
 ### libserialport
 - cd to deps/libserialport
 - ./autogen.sh
 - ./configure
 - make
+
 ### z3
 - cd to deps/z3
 - mkdir build

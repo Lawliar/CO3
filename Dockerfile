@@ -20,6 +20,8 @@ FROM ubuntu:22.04 AS builder
 # Install dependencies
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
         build-essential \
+        autoconf \
+        libtool \
         cmake \
         g++ \
         git \
@@ -31,14 +33,15 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
 
 COPY . /CO3_SOURCE
 
+WORKDIR /CO3_SOURCE/deps/libserialport
+RUN ./autogen.sh && ./configure && make
+
 WORKDIR /CO3_SOURCE/deps/z3/build
-RUN cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install .. && make -j4 && make install
+RUN cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install .. && make && make install
 
 WORKDIR /CO3_SOURCE/deps/boost
 RUN ./bootstrap.sh && ./b2 --with-filesystem --with-graph --with-program_options
 
-WORKDIR /CO3_SOURCE/deps/libserialport
-RUN ./autogen.sh && ./configure && make
 
 WORKDIR /CO3_SOURCE/sym_backend/build
 RUN cmake .. && make
