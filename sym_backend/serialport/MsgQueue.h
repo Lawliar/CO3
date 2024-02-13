@@ -132,12 +132,12 @@ enum {
 #define SIZE_SYM_END                1      // | FCODE(1) |
 
 extern "C"{
-#include "serialport.h"
+#include "transmit.h"
 }
 #include "Message.h"
 class MsgQueue {
 public:
-    MsgQueue(OpenedSP sp):sp(sp){
+    MsgQueue(CO3_SER ser):ser(ser){
 
     }
     ~MsgQueue();
@@ -148,7 +148,7 @@ public:
     Message* Pop();
     void Push(Message*);
 private:
-    OpenedSP sp;
+    CO3_SER ser;
 #ifdef DEBUG_CHECKING
     unsigned int dbgNumBytesReceived = 0;
 #endif

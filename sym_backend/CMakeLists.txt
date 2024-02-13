@@ -21,7 +21,8 @@ option(RELEASE_BUILD "BUILD for performance" ON)
 option(DEBUG_BUILD "BUILD for adding debug macros" OFF)
 option(PROFILING_BUILD "BUILD for profiling" OFF)
 option(CO3_NO_MCU_SHADOW "MCU does not have SHADOW, so disable some sanity checks that helps debugging" OFF)
-option(CO3_NATIVE_BUILD "natively built z3 and llvm" OFF)
+option(CO3_NATIVE_BUILD "natively built z3 and llvm" ON)
+option(CO3_SER2NET "use serial2net instead of the usb serial device" ON)
 
 set(LIBSERIALPORTS_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../deps/libserialport")
 set(LIBSERIALPORTS_LIB_DIR "${LIBSERIALPORTS_INCLUDE_DIR}/.libs")
@@ -37,6 +38,11 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 
 
+
+
+if(${CO3_SER2NET})
+  add_compile_definitions(CO3_SER2NET)
+endif()
 
 if(${CO3_NO_MCU_SHADOW})
   add_compile_definitions(CO3_NO_MCU_SHADOW)
@@ -79,11 +85,12 @@ set(SHARED_RUNTIME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/Orchestrator.cpp)
 
 set(SERIAL_PORT_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/serialport/serialport.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/serialport/transmit.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/serialport/co3_serialport.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/serialport/co3_socket.c
         ${CMAKE_CURRENT_SOURCE_DIR}/serialport/ring.c
         ${CMAKE_CURRENT_SOURCE_DIR}/serialport/ring.h
         ${CMAKE_CURRENT_SOURCE_DIR}/serialport/MsgQueue.cpp
-
 )
 set(SERIAL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/serialport)
 

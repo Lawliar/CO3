@@ -40,9 +40,9 @@ void MsgQueue::Push(Message *msg) {
 extern std::string dbgUsbFileName;
 uint64_t MsgQueue::Listen() {
 
-    if(sp.port != nullptr){
+    if(ser.used == true){
         while(true){
-            int received = receiveData(sp.port);
+            int received = receiveData(ser);
 #ifdef DEBUG_CHECKING
             dbgNumBytesReceived += received;
 #endif
