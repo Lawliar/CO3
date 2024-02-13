@@ -37,8 +37,8 @@ COPY ./.git /CO3_SOURCE/.git
 WORKDIR /CO3_SOURCE/deps/libserialport
 RUN ./autogen.sh && ./configure && make
 
-WORKDIR /CO3_SOURCE/deps/z3/build
-RUN cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install .. && make && make install
+#WORKDIR /CO3_SOURCE/deps/z3/build
+#RUN cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install .. && make && make install
 
 WORKDIR /CO3_SOURCE/deps/boost
 RUN ./bootstrap.sh && ./b2 --with-filesystem --with-graph --with-program_options
@@ -51,10 +51,15 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
         cmake \
         g++ \
         python2 \
+        zlib1g-dev \
+        clang-14 \
+        llvm-14-dev \
+        llvm-14-tools \
+        libz3-dev \
         && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /CO3_SOURCE/deps/libserialport       /CO3_SOURCE/deps/libserialport/
-COPY --from=builder /CO3_SOURCE/deps/z3/build/install    /CO3_SOURCE/deps/z3/build/install/
+#COPY --from=builder /CO3_SOURCE/deps/z3/build/install    /CO3_SOURCE/deps/z3/build/install/
 COPY --from=builder /CO3_SOURCE/deps/boost               /CO3_SOURCE/deps/boost/
 COPY ./deps/llvm     /CO3_SOURCE/deps/llvm/
 COPY ./sym_backend   /CO3_SOURCE/sym_backend/

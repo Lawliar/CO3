@@ -21,7 +21,7 @@ option(RELEASE_BUILD "BUILD for performance" ON)
 option(DEBUG_BUILD "BUILD for adding debug macros" OFF)
 option(PROFILING_BUILD "BUILD for profiling" OFF)
 option(CO3_NO_MCU_SHADOW "MCU does not have SHADOW, so disable some sanity checks that helps debugging" OFF)
-
+option(CO3_NATIVE_BUILD "natively built z3 and llvm" OFF)
 
 set(LIBSERIALPORTS_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../deps/libserialport")
 set(LIBSERIALPORTS_LIB_DIR "${LIBSERIALPORTS_INCLUDE_DIR}/.libs")
@@ -29,11 +29,10 @@ set(LIBSERIALPORTS_LIB_DIR "${LIBSERIALPORTS_INCLUDE_DIR}/.libs")
 set(CO3_BOOST_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../deps/boost")
 set(CO3_BOOST_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../deps/boost/stage/lib")
 
-set(Z3_DIR "${PROJECT_SOURCE_DIR}/../deps/z3/build/install/lib/cmake")
-
-
-set(LLVM_DIR "${PROJECT_SOURCE_DIR}/../deps/llvm/clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04")
-
+if(${CO3_NATIVE_BUILD})
+  set(Z3_DIR "${PROJECT_SOURCE_DIR}/../deps/z3/build/install/lib/cmake")
+  set(LLVM_DIR "${PROJECT_SOURCE_DIR}/../deps/llvm/clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04")
+endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 
