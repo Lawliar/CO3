@@ -88,16 +88,19 @@ int receiveData(CO3_SER ser){
         return HEADER_LEN;
     }
     // overwriting the header
+    int cur = 0;
+    while (cur < packet_len - HEADER_LEN){
 #if defined(CO3_SER2NET)
-    result = read(ser.tcp_handle,buf,packet_len - HEADER_LEN);
+        result = read(ser.tcp_handle,buf + cur, packet_len - HEADER_LEN - cur);
 #else
-    result = check(sp_blocking_read(ser.sp.port, buf, packet_len - HEADER_LEN, 1000));
+        result = check(sp_blocking_read(ser.sp.port, buf, packet_len - HEADER_LEN, 1000));
 #endif
-    if(result != packet_len - HEADER_LEN){
+        cur += result;
+    }
+    if(cur != packet_len - HEADER_LEN){
         fprintf(stderr,"payload is not as long as what the header says\n");
         abort();
     }
-    assert(result == packet_len - HEADER_LEN);
     unsigned freeBytes = ring_buffer_num_empty_items(&RingBuffer);
     if(freeBytes < packet_len){
         fprintf(stderr,"no enough space in the ringbuffer to write %d bytes!\n", freeBytes);
