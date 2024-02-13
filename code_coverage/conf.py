@@ -1,7 +1,9 @@
 import os,re
-benchmark =  "CROMU_00005"
+benchmark =  "CROMU_00001"
+SER2NET = True
 time_budget = 60 * 60 * 24 # in seconds
 serial_port = os.path.join("/","dev","ttyACM1")
+tcp_port = 3002
 zfill_len = 12
 numExecution = 1000
 timeout = 10
