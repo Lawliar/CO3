@@ -43,19 +43,21 @@
 //#define CO3_USE_STM32
 #define CO3_USE_NXP
 
+// 3. board specification
 //#define CO3_USE_STM32_H743
 #define CO3_USE_NXP_K66F
 //#define CO3_USE_MICROCHIP_SAMD51
 
 
-// 3. which communication channel you would like to use
+// 4. which communication channel you would like to use
 #define CO3_USE_USB
 //#define CO3_USE_SERIAL
 
-// 4. which RTOS you use
+// 5. which RTOS you use
 #define CO3_USE_FREERTOS
 //#define CO3_USE_CHIBIOS
 
+// 6. app specification
 #define CO3_TEST_COMMANDLINE
 //#define CO3_TEST_CGC
 
