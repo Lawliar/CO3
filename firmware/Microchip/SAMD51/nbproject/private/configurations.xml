@@ -4,7 +4,7 @@
   <defaultConf>0</defaultConf>
   <confs>
     <conf name="Default" type="2">
-      <platformToolSN>noToolString</platformToolSN>
+      <platformToolSN>:=ThirdParty-DLL-SEGGER:=&lt;man>SEGGER:=&lt;prod>J-Link:=&lt;sn>801049158:=&lt;drv>v:=&lt;xpt>u:=en</platformToolSN>
       <languageToolchainDir>/home/lcm/github/toolchains/arm/gcc-linaro12.3.1-0x20020000/bin</languageToolchainDir>
       <mdbdebugger version="1">
         <placeholder1>place holder 1</placeholder1>
