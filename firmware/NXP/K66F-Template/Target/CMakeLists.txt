@@ -12,16 +12,13 @@ set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/../arm.cmake)
 endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Setup project, output and linker file
-set(BUILD_FOLDER ${CMAKE_BINARY_DIR})
-
-
 
 project(EVKMIMXRT1176_Target_CMake)
 
-set(CO3_OUTPUT_DIR "${PROJECT_SOURCE_DIR}/../intermediate_results")
-set(CO3_INSTRUMENTATION_LIB "/home/lcm/github/spear/spear-code/pass/symbolizer/cmake-build-debug/libSymbolize.so")
-set(CommonDIR "/home/lcm/github/spear/spear-code/firmware/NXP/Common")
+
+set(CO3_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/../intermediate_results")
+set(CO3_INSTRUMENTATION_LIB "${CMAKE_SOURCE_DIR}/../../../../pass/symbolizer/cmake-build-debug/libSymbolize.so")
+set(CommonDIR "${CMAKE_SOURCE_DIR}/../../Common")
 
 enable_language(C ASM)
 set(CMAKE_C_STANDARD 99)
@@ -34,11 +31,6 @@ set(CMAKE_BUILD_TYPE Debug)
 set(ARCH_CFLAGS
   -mthumb -mcpu=cortex-m4 -mfloat-abi=hard  -mfpu=fpv4-sp-d16 
 ) 
-
-#set(START_UP_LIB
-#  ${CMAKE_SOURCE_DIR}/startup/build/libstartup.a
-#)
-message(STATUS "CMAKE_TOOLCHAIN_FILE is: ${CMAKE_TOOLCHAIN_FILE}")
 
 file(GLOB FILESNORMAL
   ./src/test.c
@@ -86,11 +78,6 @@ set(COMPILER_SPECIFIC_LDFLAGS
   -L${ARM_CORTEXM_SYSROOT}/lib/${ARM_CORTEXM_MULTI_DIR} ${ARM_CORTEXM_BUILTINS_LIBGCC}
 )
 
-
-message(STATUS "ARM_CORTEXM_SYSROOT:${ARM_CORTEXM_SYSROOT}")
-message(STATUS "COMPILER_SPECIFIC_LDFLAGS:${COMPILER_SPECIFIC_LDFLAGS}")
-message(STATUS "ARM_CORTEXM_BUILTINS_LIBGCC:${ARM_CORTEXM_BUILTINS_LIBGCC}")
-#message(STATUS "CMAKE_C_LINK_EXECUTABLE:${CMAKE_C_LINK_EXECUTABLE}")
 
 
 # Build the executable based on the source files
@@ -188,24 +175,7 @@ if(${LLVM_BUILD})
     "${ARM_GNU_CC} <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>"
   )
 endif()
-# Linker options
-target_link_options(${CMAKE_PROJECT_NAME} PRIVATE
-  -g
-  -Wall
-  -Wl,--no-warn-mismatch
-  -fno-common 
-  -ffunction-sections 
-  -fdata-sections 
-  #-ffreestanding 
-  -fno-builtin 
-  -nostdlib 
-  #${START_UP_LIB}
-  -Xlinker -Map=${EXECUTABLE_OUTPUT_PATH}/${PROJECT_NAME}.map
-  ${ARCH_CFLAGS}
-  -specs=nosys.specs
-  -L "${CMAKE_SOURCE_DIR}/ld"
-  -T "${LINKER_FILE}"
-)
+
 
 target_include_directories(
   ${CMAKE_PROJECT_NAME}
