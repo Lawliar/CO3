@@ -371,17 +371,18 @@ enum
          u8currentRegister = (uint8_t) (u16coil / 16);
          u8currentBit = (uint8_t) (u16coil % 16);
 
-         bitWrite(
+         /*bitWrite(
         	 ModbusH->au8Buffer[ ModbusH->u8BufferSize ],
              u8bitsno,
              // out of bound read can happen here
              bitRead( regs[ u8currentRegister ], u8currentBit ) );
+         */
          u8bitsno ++;
 
          if (u8bitsno > 7)
          {
              u8bitsno = 0;
-             ModbusH->u8BufferSize++;
+             //ModbusH->u8BufferSize++;
          }
      }
 
@@ -416,10 +417,10 @@ enum
 
      for (i = u8StartAdd; i < u8StartAdd + u8regsno; i++)
      {
-    	 ModbusH->au8Buffer[ ModbusH->u8BufferSize ] = highByte(regs[i]);
-    	 ModbusH->u8BufferSize++;
-         ModbusH->au8Buffer[ ModbusH->u8BufferSize ] = lowByte(regs[i]);
-         ModbusH->u8BufferSize++;
+    	 //ModbusH->au8Buffer[ ModbusH->u8BufferSize ] = highByte(regs[i]);
+    	 //ModbusH->u8BufferSize++;
+         //ModbusH->au8Buffer[ ModbusH->u8BufferSize ] = lowByte(regs[i]);
+         //ModbusH->u8BufferSize++;
      }
      //u8CopyBufferSize = u8BufferSize +2;
 
@@ -449,10 +450,11 @@ enum
      u8currentBit = (uint8_t) (u16coil % 16);
 
      // write to coil
-     bitWrite(
+     /*bitWrite(
          regs[ u8currentRegister ],
          u8currentBit,
 		 ModbusH->au8Buffer[ NB_HI ] == 0xff );
+		 */
 
      // send answer to master
      ModbusH->u8BufferSize = 6;
@@ -524,10 +526,10 @@ enum
         		 ModbusH->au8Buffer[ u8frameByte ],
                      u8bitsno );
 
-         bitWrite(
+         /*bitWrite(
              regs[ u8currentRegister ],
              u8currentBit,
-             bTemp );
+             bTemp );*/
 
          u8bitsno ++;
 
@@ -577,7 +579,7 @@ enum
         		 ModbusH->au8Buffer[ (BYTE_CNT + 1) + i * 2 ],
 				 ModbusH->au8Buffer[ (BYTE_CNT + 2) + i * 2 ]);
 
-         regs[ u8StartAdd + i ] = temp;
+         //regs[ u8StartAdd + i ] = temp;
      }
     // u8CopyBufferSize = u8BufferSize +2;
 
