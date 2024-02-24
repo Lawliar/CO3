@@ -12,12 +12,20 @@ set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/arm.cmake)
 endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+
 # Setup project, output and linker file
 set(BUILD_FOLDER ${CMAKE_BINARY_DIR})
 project(EVKMIMXRT1176_CMake)
 set(EXECUTABLE ${PROJECT_NAME}.elf)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR})
 set(LINKER_FILE "frdmk66f_dev_cdc_vcom_freertos_Debug.ld")
+
+
+
+set(CO3_OUTPUT_DIR "${PROJECT_SOURCE_DIR}/intermediate_results")
+set(CO3_INSTRUMENTATION_LIB "/home/lcm/github/spear/spear-code/pass/symbolizer/cmake-build-debug/libSymbolize.so")
+set(CO3_TARGET_INSTRUMENTED_LIB "${CMAKE_SOURCE_DIR}/Target/build/libEVKMIMXRT1176_Target_CMake.a")
+
 
 enable_language(C ASM)
 set(CMAKE_C_STANDARD 99)
@@ -92,7 +100,7 @@ message(STATUS "ARM_CORTEXM_BUILTINS_LIBGCC:${ARM_CORTEXM_BUILTINS_LIBGCC}")
 
 # Build the executable based on the source files
 add_executable(${EXECUTABLE} ${SRC_FILES})
-set(CO3_OPTIMIZATION_FLAG -O0)
+set(CO3_OPTIMIZATION_FLAG -Os)
 # List of compiler defines, prefix with -D compiler option. Copy from the project settings
 
 set(CO3_COMPILE_OPTIONS
@@ -187,7 +195,6 @@ if(${LLVM_BUILD})
 endif()
 # Linker options
 target_link_options(${EXECUTABLE} PRIVATE
-   
   -g
   -Wall
   -Wl,--no-warn-mismatch
@@ -203,14 +210,13 @@ target_link_options(${EXECUTABLE} PRIVATE
   -specs=nosys.specs
   -L "${CMAKE_SOURCE_DIR}/ld"
   -T "${LINKER_FILE}"
-
-  
 )
-set(PRJDIR )
+
+
 set(CommonDIR /home/lcm/github/spear/spear-code/firmware/NXP/Common)
 
 add_subdirectory(./CommonCO3   build/CommonCO3)
-add_subdirectory(./Target      build/Target)
+#add_subdirectory(./Target      build/Target)
 add_subdirectory(./board       build/board)
 add_subdirectory(./component   build/component)
 add_subdirectory(./drivers     build/drivers)
@@ -228,7 +234,7 @@ target_link_libraries(
   freertos
   usb
   CommonCO3
-  TargetEApp
+  ${CO3_TARGET_INSTRUMENTED_LIB}
 )
 
 # Optional: Print executable size as part of the post build process

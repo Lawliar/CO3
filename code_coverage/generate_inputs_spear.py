@@ -8,7 +8,7 @@ import time
 import re
 import json
 
-from conf import benchmark,time_budget, zfill_len, get_highest_id, get_total_time_out_err,sleep_time, timeout,serial_port,baud_rate
+from conf import benchmark,time_budget, zfill_len, get_highest_id, get_total_time_out_err,sleep_time, timeout,serial_port,baud_rate,SER2NET, tcp_port
 from conf import coverage_dir, estimate_inputs_needed
 
 from main import single_coverage_worker
@@ -46,7 +46,10 @@ def runSpear(benchmark, debug = False, buggy_index = 0):
             if(not os.path.exists(input_file)):
                 assert(os.path.exists(input_file + '-optimistic'))
                 input_file += '-optimistic'
-            cmd = [backend_executable,"-i",spear_inter_dir,"-s",serial_port,"-b",str(baud_rate)]
+            if SER2NET:
+                cmd = [backend_executable,"-i",spear_inter_dir,"-s",str(tcp_port),"-b",str(baud_rate)]
+            else:
+                cmd = [backend_executable,"-i",spear_inter_dir,"-s",serial_port,"-b",str(baud_rate)]
             p1 = subprocess.Popen(cmd, \
                          stdout=subprocess.PIPE,stderr=subprocess.PIPE, \
                         env={**os.environ,'SYMCC_INPUT_FILE':input_file, 'SYMCC_OUTPUT_DIR': tmp_output_dir})

@@ -12,7 +12,7 @@
 #include <stack>
 #include <boost/filesystem.hpp>
 extern "C" {
-#include "serialport.h"
+#include "transmit.h"
 }
 #include "ThreadPool.h"
 #include "Shadow.h"
@@ -51,8 +51,7 @@ public:
 
 
     ThreadPool pool;
-
-    OpenedSP sp;
+    CO3_SER ser;
     uint64_t start_time = 0;
     MsgQueue msgQueue;
     std::string symInputFile;

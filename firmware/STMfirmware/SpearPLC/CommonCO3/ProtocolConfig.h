@@ -20,7 +20,7 @@
 
 // 1. if you want to use the MCU-side shadow memory or not
 
-#define CO3_NO_MCU_SIDE_SHADOW
+//#define CO3_NO_MCU_SIDE_SHADOW
 
 
 #if defined CO3_NO_MCU_SIDE_SHADOW
@@ -40,26 +40,21 @@
 
 //2. which vendor is this board
 
-//#define CO3_USE_STM32
-#define CO3_USE_NXP
+#define CO3_USE_STM32
+//#define CO3_USE_NXP
 
-// 3. board specification
-//#define CO3_USE_STM32_H743
-#define CO3_USE_NXP_K66F
-//#define CO3_USE_MICROCHIP_SAMD51
+#define CO3_USE_STM32_H743
 
-
-// 4. which communication channel you would like to use
+// 3. which communication channel you would like to use
 #define CO3_USE_USB
 //#define CO3_USE_SERIAL
 
-// 5. which RTOS you use
+// 4. which RTOS you use
 #define CO3_USE_FREERTOS
 //#define CO3_USE_CHIBIOS
 
-// 6. app specification
-#define CO3_TEST_COMMANDLINE
-//#define CO3_TEST_CGC
+//#define CO3_TEST_COMMANDLINE
+#define CO3_TEST_PLC
 
 
 #endif /* PROTOCOLCONFIG_H_ */

@@ -4,11 +4,7 @@
 
 
 file(GLOB FILESTARGET
-  ./Src/libcgc.c 
-  ./Src/mymath.c 
-  ./Src/printf.c 
-  ./Src/service.c
-  ./Src/stdlib.c 
+  ./Src/test.c
 )
 
 

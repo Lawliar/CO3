@@ -11,11 +11,10 @@ set(CMAKE_TOOLCHAIN_FILE clang.cmake)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Setup project, output and linker file
-project(CO3CROMU_00001_CMake C ASM)
+project(CO3PLC_CMake C ASM)
 set(EXECUTABLE ${PROJECT_NAME}.elf)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 set(LINKER_FILE "${PROJECT_SOURCE_DIR}/STM32H743ZITX_FLASH.ld")
-set(ARM_GNU_CC "arm-none-eabi-gcc")
 
 set(CO3_OUTPUT_DIR "${PROJECT_SOURCE_DIR}/intermediate_results")
 set(CO3_INSTRUMENTATION_LIB "/home/lcm/github/spear/spear-code/pass/symbolizer/cmake-build-debug/libSymbolize.so") 
@@ -119,7 +118,6 @@ set(CFLAGS
   -ffunction-sections
   -fdata-sections
   -Wall
-  -Werror 
   -nostdlib 
   -DUSE_HAL_DRIVER 
   -DSTM32H743xx 

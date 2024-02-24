@@ -38,8 +38,6 @@ set(SRC_FILES
   stdio_start.c
 )
 
-set(HPL_LIB ${CMAKE_SOURCE_DIR}/hpl/build/libhpl.a)
-set(samd51a_LIB ${CMAKE_SOURCE_DIR}/samd51a/build/libsamd51a.a)
 set(CommonDIR /home/lcm/github/spear/spear-code/firmware/Microchip/Common)
 
 set(ALL_NINE_YARDS_INCLUDE_DIRS

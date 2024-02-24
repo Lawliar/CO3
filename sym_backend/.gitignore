@@ -1,2 +1,4 @@
 build*/
 .vscode/
+cmake_build/
+tmp_build/

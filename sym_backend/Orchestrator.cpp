@@ -23,8 +23,13 @@ int msgCounter = 0;
 
 extern WriteShadowIteratorDR * DR_INPUT;
 
-Orchestrator::Orchestrator(std::string inputDir, std::string sp_port, int baud_rate): \
-pool(2),sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
+
+#if defined(CO3_SER2NET)
+Orchestrator::Orchestrator(std::string inputDir, std::string sp_port, int baud_rate):ser(initSer(sp_port.c_str())),pool(2),msgQueue(ser)
+#else
+Orchestrator::Orchestrator(std::string inputDir, std::string sp_port, int baud_rate):ser(initSer(sp_port.c_str(), baud_rate)),pool(2),msgQueue(ser)
+#endif
+
 {
     _sym_initialize_config(inputDir);
     boost::filesystem::path dir (inputDir);
@@ -101,7 +106,7 @@ pool(2),sp(initSerialPort(sp_port.c_str(), baud_rate)), msgQueue(sp)
     }
 }
 Orchestrator::~Orchestrator() {
-    freeSerialPort(sp);
+    releaseSer(ser);
     for(auto eachFunc :symGraphs){
         delete eachFunc.second;
     }
@@ -627,7 +632,7 @@ void Orchestrator::SendInput() {
     input[2] = (total_size & 0x00ff0000) >> 16;
     input[3] = (total_size & 0xff000000) >> 24;
 
-    sendDataSerialPort(sp.port, (uint8_t *)input, total_size);
+    sendData(ser, (uint8_t *)input, total_size);
 }
 int Orchestrator::Run() {
     auto listen_job = pool.enqueue(&MsgQueue::Listen,&(this->msgQueue));

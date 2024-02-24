@@ -1,7 +1,7 @@
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR ARM)
 
-set(ARM_TOOLCHAIN_BIN_DIR /home/lcm/github/toolchains/arm/gcc-linaro12.3.1-0x20020000/bin)
+set(ARM_TOOLCHAIN_BIN_DIR /home/lcm/ssd/toolchains/arm/gcc-linaro12.3.1-0x20020000/bin)
 # point ARM_TOOLCHAIN_BIN_DIR to things like
 # "C:/Program Files (x86)/GNU Arm Embedded Toolchain/10 2020-q4-major/bin")
 # "C:/NXP/MCUXpressoIDE_11.7.0_9198/ide/tools/bin")
