@@ -5,7 +5,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # enable export of compiler commands to compile_commands.json
 #set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
-option(LLVM_BUILD "USE LLVM instead of ARM to build" OFF)
+option(LLVM_BUILD "USE LLVM instead of ARM to build" ON)
 # Path to toolchain file. This one has to be before 'project()' below
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/../clang.cmake")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -113,14 +113,15 @@ set_property(SOURCE ${FILESTARGET} APPEND PROPERTY COMPILE_OPTIONS
 )
 
 
-add_library(${CMAKE_PROJECT_NAME} OBJECT ${FILESTARGET})
+add_library(${CMAKE_PROJECT_NAME} STATIC  ${FILESTARGET})
 
 
 
 set(CO3_OPTIMIZATION_FLAGS -Os)
 
 set(CO3_COMPILE_OPTIONS
-  -D__SAMD51J19A__ 
+        ${ARCH_CFLAGS}
+        -D__SAMD51J19A__
   -x c 
   -c
   -DXPRJ_Default=Default
@@ -128,7 +129,7 @@ set(CO3_COMPILE_OPTIONS
   -mlong-calls 
   -Wall
   ${CO3_OPTIMIZATION_FLAGS}
-  ${ARCH_CFLAGS} 
+
 )
 
 if(${LLVM_BUILD})
@@ -140,7 +141,8 @@ add_compile_options(
 )
 
 set(CO3_TARGET_COMPILE_OPTIONS
-  -D__SAMD51J19A__ 
+  ${ARCH_CFLAGS}
+  -D__SAMD51J19A__
   -x c 
   -c
   -DXPRJ_Default=Default
@@ -148,7 +150,6 @@ set(CO3_TARGET_COMPILE_OPTIONS
   -mlong-calls 
   -Wall
   ${CO3_OPTIMIZATION_FLAGS}
-  ${ARCH_CFLAGS} 
 )
 
 if(${LLVM_BUILD})

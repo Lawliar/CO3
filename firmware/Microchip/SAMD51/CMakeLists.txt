@@ -16,6 +16,7 @@ project(samd51j19a_CMake)
 set(EXECUTABLE ${PROJECT_NAME}.elf)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR})
 set(LINKER_FILE "${CMAKE_SOURCE_DIR}/samd51a/gcc/gcc/samd51j19a_flashMPU.ld")
+set(CO3_TARGET_INSTRUMENTED_LIB "${CMAKE_SOURCE_DIR}/Target/build/libsamd51j19a_Target_CMake.a")
 
 enable_language(C ASM)
 set(CMAKE_C_STANDARD 99)
@@ -41,6 +42,7 @@ set(SRC_FILES
 set(CommonDIR /home/lcm/github/spear/spear-code/firmware/Microchip/Common)
 
 set(ALL_NINE_YARDS_INCLUDE_DIRS
+  ${PROJECT_SOURCE_DIR}/CommonCO3
   ${PROJECT_SOURCE_DIR}/usb
   ${PROJECT_SOURCE_DIR}/usb/class/cdc
   ${PROJECT_SOURCE_DIR}/hpl/port
@@ -174,7 +176,6 @@ target_link_options(${EXECUTABLE} PRIVATE
 set(CommonDIR /home/lcm/github/spear/spear-code/firmware/Microchip/Common)
 
 add_subdirectory(./CommonCO3   build/CommonCO3)
-add_subdirectory(./Target      build/Target)
 add_subdirectory(./examples    build/examples)
 add_subdirectory(./hal         build/hal)
 add_subdirectory(./printf      build/printf)
@@ -187,7 +188,6 @@ add_subdirectory(./hpl         build/hpl)
 target_link_libraries(
   ${EXECUTABLE}
   CommonCO3
-  Target
   examples
   hal
   #hpl
@@ -196,6 +196,7 @@ target_link_libraries(
   stdio_redirect
   samd51a
   hpl
+  ${CO3_TARGET_INSTRUMENTED_LIB}
 )
 
 # Optional: Print executable size as part of the post build process
