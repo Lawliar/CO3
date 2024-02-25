@@ -27,6 +27,107 @@
 
 using namespace llvm;
 
+
+Symbolizer::Symbolizer(llvm::Module &M, llvm::LoopInfo& LI)
+: runtime(M), loopinfo(LI), dataLayout(M.getDataLayout()),
+ptrBits(M.getDataLayout().getPointerSizeInBits()),
+ptrBytes(M.getDataLayout().getPointerSize()),
+maxNumSymVars((1 << llvm::IntegerType::getInt16Ty(M.getContext())->getBitWidth()) - 1),
+g(true)
+{
+    intPtrType = M.getDataLayout().getIntPtrType(M.getContext());
+    voidType = llvm::Type::getVoidTy(M.getContext());
+    int8Type = llvm::Type::getInt8Ty(M.getContext());
+    isSymType = llvm::Type::getInt1Ty(M.getContext());
+    symIntType = llvm::Type::getInt16Ty(M.getContext());
+    constFalse = llvm::ConstantInt::getFalse(M.getContext());
+
+    if(M.getDataLayout().isLegalInteger(64)){
+        archIntType = llvm::Type::getInt64Ty(M.getContext());
+    }else if(M.getDataLayout().isLegalInteger(32)){
+        archIntType = llvm::Type::getInt32Ty(M.getContext());
+    }else if(M.getDataLayout().isLegalInteger(16)){
+        archIntType = llvm::Type::getInt16Ty(M.getContext());
+    }else{
+        llvm_unreachable("integer width less than 16 bit?");
+    }
+    assert(ptrBytes <= 8 );
+    for(auto eachIntFunction : kInterceptedFunctions){
+        std::string newFuncName = kInterceptedFunctionPrefix.str() + eachIntFunction.str() ;
+        size_t len = newFuncName.size();
+        // I know, I know..
+        char * buf = (char *)malloc(len+ 1);
+        snprintf(buf, len + 1, "%s%s",kInterceptedFunctionPrefix.str().c_str(),eachIntFunction.str().c_str());
+        //buf[len] = '\0';
+        interpretedFunctionNames.insert(buf);
+    }
+}
+
+Symbolizer::~Symbolizer(){
+    symbolicExpressions.clear();
+    symbolicIDs.clear();
+    for(auto eachSymPhi: phiSymbolicIDs){
+        delete eachSymPhi.second;
+    }
+    symIdRedirect.clear();
+    phiSymbolicIDs.clear();
+    for(auto eachCallToSetPara: callToSetParaMap){
+        eachCallToSetPara.second.clear();
+    }
+    callToCallId.clear();
+    callToSetParaMap.clear();
+    phiNodes.clear();
+    splited2OriginalBB.clear();
+    originalBB2ID.clear();
+    stageSettingOperations.clear();
+    perBBConcretenessChecking.clear();
+
+    loopBB2Offset.clear();
+    truePhi2Offset.clear();
+    for(auto eachTryAltUnit : tryAlternatives){
+        delete eachTryAltUnit;
+    }
+    tryAlternatives.clear();
+}
+
+void Symbolizer::deleteSymPhi(llvm::PHINode* symPhi){
+    bool found = false;
+    for(auto eachSymExpr: symbolicExpressions){
+        if(eachSymExpr.second == symPhi){
+            symbolicExpressions.erase(eachSymExpr.first);
+            found = true;
+            break;
+        }
+    }
+    assert(found);
+    auto it = phiSymbolicIDs.find(symPhi);
+    assert(it != phiSymbolicIDs.end());
+    delete it->second;
+    phiSymbolicIDs.erase(it);
+    return;
+}
+
+void Symbolizer::assignSymIDPhi(llvm::PHINode* symPhi, PhiStatus* phiStatus){
+    auto exprIt = phiSymbolicIDs.find(symPhi);
+    if(exprIt != phiSymbolicIDs.end()){
+        llvm_unreachable("assigning phi sym id to a already existing sym phi");
+    }
+    phiSymbolicIDs[symPhi] = phiStatus;
+}
+Value* Symbolizer::getSymExprBySymId(unsigned symid){
+    for(auto eachSymExpr: symbolicIDs){
+        if(eachSymExpr->second == symid){
+            return eachSymExpr->first;
+        }
+    }
+    for(auto eachSymPhi : phiSymbolicIDs){
+        if(eachSymPhi.second->symid == symid){
+            return eachSymPhi.first;
+        }
+    }
+    return nullptr;
+}
+
 void Symbolizer::initializeFunctions(Function &F) {
 
     IRBuilder<> IRB(F.getEntryBlock().getFirstNonPHI());
@@ -109,6 +210,20 @@ void Symbolizer::initializeFunctions(Function &F) {
 #endif
 }
 
+bool Symbolizer::isStaticallyConcrete(llvm::Value* input){
+    auto symExpr = getSymbolicExpression(input);
+    if(symExpr == constFalse){
+        return true;
+    }
+    if(PHINode * phiNode = dyn_cast<PHINode>(input)){
+        if (std::all_of(phiNode->op_begin(), phiNode->op_end(), [this](Value *input) {
+            return (getSymbolicExpression(input) == constFalse);
+        })) {
+            return true;
+        }
+    }
+    return false;
+}
 void Symbolizer::recordBasicBlockMapping(llvm::BasicBlock &B) {
     originalBB2ID[&B] = getNextBBID();
 }
@@ -119,16 +234,14 @@ void Symbolizer::finalizePHINodes() {
     for (auto *phi : phiNodes) {
         auto symPhi = getSymbolicExpression(phi);
         auto symbolicPHI = cast<PHINode>(symPhi);
-
         // A PHI node that receives only compile-time constants can be replaced by
         // a null expression.
         if (std::all_of(phi->op_begin(), phi->op_end(), [this](Value *input) {
-            return (tryGetSymExpr(input) == false);
+            return (isStaticallyConcrete(input) == true);
         })) {
             nodesToErase.insert(symbolicPHI);
             continue;
         }
-
         for (unsigned incoming = 0, totalIncoming = phi->getNumIncomingValues();incoming < totalIncoming; incoming++) {
             symbolicPHI->setIncomingValue(
                     incoming,
@@ -140,7 +253,8 @@ void Symbolizer::finalizePHINodes() {
     for (auto *symbolicPHI : nodesToErase) {
         // this code might fail because isa<KeySansPointerT>(...) assertation is not true
         //symbolicPHI->replaceAllUsesWith(ConstantInt::get( isSymType, 0 ));
-        replaceAllUseWith(symbolicPHI, ConstantInt::get( isSymType, 0 ));
+        deleteSymPhi(symbolicPHI);
+        replaceAllUseWith(symbolicPHI, constFalse);
         symbolicPHI->eraseFromParent();
     }
 }
@@ -505,13 +619,14 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
         return;
     }
     if(!(intByteSize == 1 || intByteSize == 2 || intByteSize == 4)){
-        errs()<<I<<'\n';
-        llvm_unreachable("loading values not 1, or 2, or 4 bytes");
+        assert(intByteSize == 8);
+        // TODO: even in MCU, this is still 32-bit, as, llvm assumes all functions pointers are 32-bit.
+        // TODO: instead of assuming this is not symbolic, support this.
+        assert(dataType->getPointerElementType()->isFunctionTy() || dataType->getPointerElementType()->isStructTy()); //making sure it is a pointer to a function
+        symbolicExpressions[&I] = IRB.getFalse();
+        return;
     }
     Value* ptrOperand  = IRB.CreatePtrToInt(addr, intPtrType);;
-    //if(isa<Constant>(addr)){
-    //    ptrOperand = CastInst::Create( llvm::AddrSpaceCastInst::PtrToInt ,addr, intPtrType, "", &I);
-    //}else{
 
     //}
     auto *data = IRB.CreateCall(
@@ -558,9 +673,9 @@ void Symbolizer::visitGetElementPtrInst(GetElementPtrInst &I) {
     // computations at the symbolic level.
 
     // If everything is compile-time concrete, we don't need to emit code.
-    if (tryGetSymExpr(I.getPointerOperand()) == false &&
+    if (isStaticallyConcrete(I.getPointerOperand()) == true &&
         std::all_of(I.idx_begin(), I.idx_end(), [this](Value *index) {
-            return (tryGetSymExpr(index) == false);
+            return (isStaticallyConcrete(index) == true);
         })) {
         return;
     }
@@ -843,11 +958,12 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
 
     IRBuilder<> IRB(&I);
     auto *condition = I.getCondition();
-    auto *conditionExpr = getSymbolicExpression(condition);
-    if (auto tmpExpr = dyn_cast<ConstantInt>(conditionExpr); tmpExpr != nullptr && tmpExpr->isZero())
+    if(isStaticallyConcrete(condition))
         return;
+    auto *conditionExpr = getSymbolicExpression(condition);
 
     auto conditionExprSymId = getSymIDFromSym(conditionExpr);
+    errs() << "condition symid:"<< conditionExprSymId <<",condition expr:"<< *conditionExpr<<'\n';
     assert(conditionExprSymId > 0);
 
     BasicBlock* head = I.getParent();
@@ -873,8 +989,6 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
                 {conditionExpr, createValueExpression(caseHandle.getCaseValue(), IRB)});
         assignSymID(caseConstraint, getNextID());
 
-
-
         if(first_concrete_comp == nullptr){
             IRB.SetInsertPoint(&I);
         }else{
@@ -882,6 +996,7 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
         }
 
         auto *finalExpression = IRB.CreatePHI(isSymType, 2);
+
         auto falsePhiRoot = new FalsePhiRoot(getNextID(), {conditionExprSymId});
         assignSymIDPhi(finalExpression,falsePhiRoot);
 
@@ -1202,8 +1317,7 @@ void Symbolizer::shortCircuitExpressionUses() {
         std::set<FalsePhiLeaf*> falsePhiPeers;
 
 
-        for (unsigned argIndex = 0; argIndex < symbolicComputation.inputs.size();
-             argIndex++) {
+        for (unsigned argIndex = 0; argIndex < symbolicComputation.inputs.size();argIndex++) {
             auto &argument = symbolicComputation.inputs[argIndex];
             auto *originalArgExpression = argument.getSymbolicOperand();
 
@@ -1286,23 +1400,22 @@ void Symbolizer::shortCircuitExpressionUses() {
 
         if (dyn_cast<CallInst>(symbolicComputation.lastInstruction)->getCalledFunction()->getReturnType() != voidType ) {
             IRB.SetInsertPoint(&tail->front());
+            //errs()<<"before creating:"<<*tail<<'\n';
             auto *finalExpression = IRB.CreatePHI(isSymType, 2);
+            //errs()<<"after creating:"<<*tail<<'\n';
             if(falsePhiLeavesSymIDs.size() == 0){
                 //this simply means this is based on all constants, and this phiRootNode functionally equals false
                 assert(numUnknownConcreteness == 0);
             }
-
-            auto falsePhiRoot = new FalsePhiRoot(getNextID(), falsePhiLeavesSymIDs);
-            assignSymIDPhi(finalExpression,falsePhiRoot);
-
             //symbolicComputation.lastInstruction->replaceAllUsesWith(finalExpression);
             replaceAllUseWith(symbolicComputation.lastInstruction, finalExpression);
-
             finalExpression->addIncoming(IRB.getFalse(),
                                          head);
             finalExpression->addIncoming(
                     symbolicComputation.lastInstruction,
                     symbolicComputation.lastInstruction->getParent());
+            auto falsePhiRoot = new FalsePhiRoot(getNextID(), falsePhiLeavesSymIDs);
+            assignSymIDPhi(finalExpression,falsePhiRoot);
         }
 
     }
@@ -1622,28 +1735,34 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                     assert(falsePhiLeaf != nullptr);
                     assert(numIncomingValue == 2);
                     for(auto eachPeer : falsePhiLeaf->peersOriginal){
-
                         g.AddPhiEdge(eachPeer, userSymID, 2 , 0, 1);
                     }
                 }
+                std::map<BasicBlock*, unsigned> valuesToSet;
+                unsigned counter = 0;
                 for (unsigned incoming = 0, totalIncoming =numIncomingValue;incoming < totalIncoming; incoming++) {
                     BasicBlock *incomingBB = symPhi->getIncomingBlock(incoming);
                     unsigned incomingBBID = GetBBID(incomingBB);
                     Value *incomingValue = symPhi->getIncomingValue(incoming);
+                    if(valuesToSet.find(incomingBB) == valuesToSet.end()){
+                        valuesToSet[incomingBB] = counter++;
+                    }
+                    unsigned valueToSet = valuesToSet.at(incomingBB);
                     if(isa<TruePhi>(phi_status)){
                         reportingPhi->addIncoming(
-                                ConstantHelper(int8Type, incoming),
+                                ConstantHelper(int8Type, valueToSet),
                                 incomingBB);
                     }
 
                     unsigned incomingValueSymID = getSymIDFromSym(incomingValue);
                     //assert(incomingValueSymID != 0); // incoming symid could be zero
                     // add incoming BBID as edge property just to double check
-                    g.AddPhiEdge(incomingValueSymID, userSymID,incoming, incomingBBID, 0);
+                    g.AddPhiEdge(incomingValueSymID, userSymID,valueToSet, incomingBBID, 0);
                 }
             }
         }
     }
+#if defined(CO3_REPLACE)
     for(auto eachToBeRemoved: toReplaceToNone){
         eachToBeRemoved->eraseFromParent();
     }
@@ -1677,6 +1796,7 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
         replaceAllUseWith(eachToReplaceWithOr, orExpression);
         eachToReplaceWithOr->eraseFromParent();
     }
+#endif
     g.writeToFile(filename);
     // Replacing all uses has fixed uses of the symbolic PHI nodes in existing
     // code, but the nodes may still be referenced via symbolicExpressions. We
