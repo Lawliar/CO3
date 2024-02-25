@@ -43,7 +43,8 @@ g(true)
     constFalse = llvm::ConstantInt::getFalse(M.getContext());
 
     if(M.getDataLayout().isLegalInteger(64)){
-        archIntType = llvm::Type::getInt64Ty(M.getContext());
+        llvm_unreachable("64 bit integer should not be legal on MCUs");
+        //archIntType = llvm::Type::getInt64Ty(M.getContext());
     }else if(M.getDataLayout().isLegalInteger(32)){
         archIntType = llvm::Type::getInt32Ty(M.getContext());
     }else if(M.getDataLayout().isLegalInteger(16)){
@@ -90,6 +91,14 @@ Symbolizer::~Symbolizer(){
     tryAlternatives.clear();
 }
 
+unsigned Symbolizer::numBits2NumBytes(unsigned numBits){
+    unsigned ret = numBits / 8;
+    if(numBits % 8 != 0){
+        ret += 1;
+    }
+    return ret;
+}
+
 void Symbolizer::deleteSymPhi(llvm::PHINode* symPhi){
     bool found = false;
     for(auto eachSymExpr: symbolicExpressions){
@@ -114,20 +123,6 @@ void Symbolizer::assignSymIDPhi(llvm::PHINode* symPhi, PhiStatus* phiStatus){
     }
     phiSymbolicIDs[symPhi] = phiStatus;
 }
-Value* Symbolizer::getSymExprBySymId(unsigned symid){
-    for(auto eachSymExpr: symbolicIDs){
-        if(eachSymExpr->second == symid){
-            return eachSymExpr->first;
-        }
-    }
-    for(auto eachSymPhi : phiSymbolicIDs){
-        if(eachSymPhi.second->symid == symid){
-            return eachSymPhi.first;
-        }
-    }
-    return nullptr;
-}
-
 void Symbolizer::initializeFunctions(Function &F) {
 
     IRBuilder<> IRB(F.getEntryBlock().getFirstNonPHI());
@@ -622,7 +617,7 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
         assert(intByteSize == 8);
         // TODO: even in MCU, this is still 32-bit, as, llvm assumes all functions pointers are 32-bit.
         // TODO: instead of assuming this is not symbolic, support this.
-        assert(dataType->getPointerElementType()->isFunctionTy() || dataType->getPointerElementType()->isStructTy()); //making sure it is a pointer to a function
+        llvm_unreachable("loading 8-byte data");
         symbolicExpressions[&I] = IRB.getFalse();
         return;
     }
@@ -963,7 +958,6 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
     auto *conditionExpr = getSymbolicExpression(condition);
 
     auto conditionExprSymId = getSymIDFromSym(conditionExpr);
-    errs() << "condition symid:"<< conditionExprSymId <<",condition expr:"<< *conditionExpr<<'\n';
     assert(conditionExprSymId > 0);
 
     BasicBlock* head = I.getParent();

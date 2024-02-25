@@ -456,7 +456,6 @@ public:
     bool isStaticallyConcrete(llvm::Value*);
     void assignSymIDPhi(llvm::PHINode* symPhi, PhiStatus* phiStatus);
     void deleteSymPhi(llvm::PHINode* symPhi);
-    llvm::Value* getSymExprBySymId(unsigned symid);
     void setCallInstId(llvm::CallInst* notifyCall, llvm::ConstantInt* con){
         assert(callToCallId.find(notifyCall) == callToCallId.end());
         callToCallId[notifyCall] = con;
@@ -607,13 +606,7 @@ public:
           output<<"tryAlt:symid:"<<tryAltSymId<<",bbid:"<<tryAltBBid<<",symop:"<<*operandSym<<",op:"<<*operand<<'\n';
       }*/
   }
-  unsigned numBits2NumBytes(unsigned numBits){
-      unsigned ret = numBits / 8;
-      if(numBits % 8 != 0){
-          ret += 1;
-      }
-      return ret;
-  }
+    unsigned numBits2NumBytes(unsigned numBits);
 
   /// Compute the offset of a member in a (possibly nested) aggregate.
   uint64_t aggregateMemberOffset(llvm::Type *aggregateType,
@@ -649,7 +642,6 @@ public:
   llvm::ValueMap<llvm::Value *, llvm::Value *> symbolicExpressions;
   /// Maps symbolic value to its IDs
   llvm::ValueMap<llvm::CallInst *, unsigned int> symbolicIDs;
-
   /// Maps phi nodes to its IDs
   std::map<llvm::PHINode* , PhiStatus* > phiSymbolicIDs;
   // redirect the symID into a new one(as we are finer-grained by symcc(e.g, they didn't distinguish different branches for the SwitchInst, but we need to))
