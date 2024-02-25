@@ -13,6 +13,7 @@ file(GLOB FILESTARGET
 
 
 set_property(SOURCE ${FILESTARGET} APPEND PROPERTY COMPILE_OPTIONS 
+#"-gdwarf-4" # to match with gcc
 "-Xclang" "-load" 
 "-Xclang" "${CO3_INSTRUMENTATION_LIB}" 
 "-Xclang" "-fpass-plugin=${CO3_INSTRUMENTATION_LIB}" "-mllvm" "-out=${CO3_OUTPUT_DIR}"
