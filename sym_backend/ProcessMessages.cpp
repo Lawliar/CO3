@@ -1,6 +1,12 @@
 #include <Orchestrator.h>
 #include <getTimeStamp.h>
 
+
+#ifdef DEBUG_OUTPUT
+extern int indent;
+extern int indentNum;
+#endif
+
 int Orchestrator::ProcessMessage(Message* msg) {
     int ret = 1;
     if(auto cnt_msg = dynamic_cast<ControlMessgaes*>(msg); cnt_msg != nullptr){
