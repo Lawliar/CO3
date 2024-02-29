@@ -130,7 +130,7 @@ void spawnNewTarget( void )
 #if defined CO3_USE_STM32_H743
 					configMINIMAL_STACK_SIZE * 8,
 #elif defined CO3_USE_MICROCHIP_SAMD51
-					configMINIMAL_STACK_SIZE,
+					configMINIMAL_STACK_SIZE * 2,
 #elif defined CO3_USE_NXP_K66F
 					configMINIMAL_STACK_SIZE,
 #endif
@@ -378,12 +378,14 @@ static void TargetTask( void * pvParameters )
 #elif defined CO3_TEST_MIDIDMA
         main_midi(input_len);
 #elif defined CO3_TEST_SHELLYDIMMER
-        size_aux = AFLfuzzer.inputAFL.u32availablenopad-4;
+        size_aux = AFLfuzzer.inputAFL.u32availablenopad-AFL_BUFFER_STARTING_POINT;
         main_shelly_test((char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT));
 #elif defined CO3_TEST_ATPARSER
-        mainparser(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4);
+        mainparser(&AFLfuzzer.inputAFL.uxBuffer[AFL_BUFFER_STARTING_POINT], AFLfuzzer.inputAFL.u32availablenopad-AFL_BUFFER_STARTING_POINT);
+#elif defined CO3_TEST_PLC
+        modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[AFL_BUFFER_STARTING_POINT], AFLfuzzer.inputAFL.u32availablenopad-AFL_BUFFER_STARTING_POINT );
 #else
-        //modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
+        //
         test(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4);
         //HAL_UART_Transmit_test(&huart2,  (unsigned char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT), AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT,  HAL_MAX_DELAY);
         //gps_init((gps_t*)GPSHandleRegion);
