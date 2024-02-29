@@ -180,5 +180,4 @@ public:
 };
 
 
-
 #endif //SYMBACKEND_SYMGRAPH_H

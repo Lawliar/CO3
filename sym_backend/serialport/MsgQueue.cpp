@@ -38,8 +38,8 @@ void MsgQueue::Push(Message *msg) {
 
 extern std::string dbgUsbFileName;
 uint64_t MsgQueue::Listen() {
-
     if(ser.used == true){
+        // if we use the serial port (including the real serial port and TCP  port)
         while(true){
             int received = receiveData(ser);
 #ifdef DEBUG_CHECKING
@@ -55,6 +55,7 @@ uint64_t MsgQueue::Listen() {
             }
         }
     }else{
+        // we are reading from a file
         std::ifstream inputFile(dbgUsbFileName, std::ios::binary);
         assert(inputFile.is_open());
         char buf[128];

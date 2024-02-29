@@ -47,6 +47,7 @@ public:
     void SetRetAndRefreshGraph();
     void ForwardExecution(Val*, SymGraph::RootTask*,unsigned);
     void BackwardExecution(SymVal*, Val::ReadyType);
+    int ProcessMessage(Message*);
     ~Orchestrator();
 
 
@@ -57,8 +58,6 @@ public:
     std::string symInputFile;
 
 
-
-
     Val::BasicBlockIdType lastBBID = 0;
     std::stack<SymGraph*> callStack;
 
@@ -66,4 +65,10 @@ public:
     std::map<unsigned, SymGraph*> vanillaSymGraphs;
     //std::map<string, FuncFileNames> funcFiles;
 };
+
+
+#if !defined(CO3_REPLACE)
+std::map<unsigned, std::map<Val::SymIDType, NormalMessage*>> msgTemplates;
+#endif
+
 #endif //SYMBACKEND_ORCHESTRATOR_H

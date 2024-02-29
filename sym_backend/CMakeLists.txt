@@ -23,6 +23,7 @@ option(PROFILING_BUILD "BUILD for profiling" OFF)
 option(CO3_NO_MCU_SHADOW "MCU does not have SHADOW, so disable some sanity checks that helps debugging" OFF)
 option(CO3_NATIVE_BUILD "use natively built z3 and llvm instead of the packages from ubuntu" ON)
 option(CO3_SER2NET "use serial2net instead of the usb serial device" OFF)
+option(CO3_REPLACE "Replace the majority of SymCC's operation with CO3's optimization(should be used in combination with symbolizer, MCU's runtime). This should be turned ON by default for better performance" ON)
 
 set(LIBSERIALPORTS_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../deps/libserialport")
 set(LIBSERIALPORTS_LIB_DIR "${LIBSERIALPORTS_INCLUDE_DIR}/.libs")
@@ -39,7 +40,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 
 
 
-
+if(${CO3_REPLACE})
+  add_compile_definitions(CO3_REPLACE)
+endif()
 if(${CO3_SER2NET})
   add_compile_definitions(CO3_SER2NET)
 endif()
@@ -91,8 +94,14 @@ set(SERIAL_PORT_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/serialport/ring.c
         ${CMAKE_CURRENT_SOURCE_DIR}/serialport/ring.h
         ${CMAKE_CURRENT_SOURCE_DIR}/serialport/MsgQueue.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/serialport/Message.cpp
 )
+if(${CO3_REPLACE})
+  set(SERIAL_PORT_SOURCES  ${SERIAL_PORT_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/serialport/Message.cpp)
+  set(SHARED_RUNTIME_SOURCES ${SHARED_RUNTIME_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/ProcessMessages.cpp)
+else ()
+  set(SERIAL_PORT_SOURCES  ${SERIAL_PORT_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/serialport/Message_no_replace.cpp)
+  set(SHARED_RUNTIME_SOURCES ${SHARED_RUNTIME_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/ProcessMessages_no_replace.cpp)
+endif ()
 set(SERIAL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/serialport)
 
 
