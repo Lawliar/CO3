@@ -21,8 +21,8 @@ option(RELEASE_BUILD "BUILD for performance" ON)
 option(DEBUG_BUILD "BUILD for adding debug macros" OFF)
 option(PROFILING_BUILD "BUILD for profiling" OFF)
 option(CO3_NO_MCU_SHADOW "MCU does not have SHADOW, so disable some sanity checks that helps debugging" OFF)
-option(CO3_NATIVE_BUILD "natively built z3 and llvm" ON)
-option(CO3_SER2NET "use serial2net instead of the usb serial device" ON)
+option(CO3_NATIVE_BUILD "use natively built z3 and llvm instead of the packages from ubuntu" ON)
+option(CO3_SER2NET "use serial2net instead of the usb serial device" OFF)
 
 set(LIBSERIALPORTS_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../deps/libserialport")
 set(LIBSERIALPORTS_LIB_DIR "${LIBSERIALPORTS_INCLUDE_DIR}/.libs")
@@ -91,6 +91,7 @@ set(SERIAL_PORT_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/serialport/ring.c
         ${CMAKE_CURRENT_SOURCE_DIR}/serialport/ring.h
         ${CMAKE_CURRENT_SOURCE_DIR}/serialport/MsgQueue.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/serialport/Message.cpp
 )
 set(SERIAL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/serialport)
 

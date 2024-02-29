@@ -31,7 +31,7 @@ int initTCPSocket(const char * port_str){
           server->h_length);
     serv_addr.sin_port = htons(portno);
     if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0){
-        fprintf(stderr, "error connecting to a port");
+        fprintf(stderr, "error connecting to a TCP port");
         abort();
     }
     return sockfd;
