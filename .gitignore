@@ -41,3 +41,5 @@ Debug/
 test/
 benchmark/
 /firmware/Microchip/SAMD51/dist/
+build_replace/
+build_no_replace/

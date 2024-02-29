@@ -52,6 +52,12 @@ g(true)
     }else{
         llvm_unreachable("integer width less than 16 bit?");
     }
+
+#if defined(CO3_REPLACE)
+    availableSymID = 1;
+#else
+    availableSymID = 7; // first 6 are reserved for symbolize_memory, sym_end ,notifyCall, notifyFunc, notifyRet, notifyBasicBlock
+#endif
     assert(ptrBytes <= 8 );
     for(auto eachIntFunction : kInterceptedFunctions){
         std::string newFuncName = kInterceptedFunctionPrefix.str() + eachIntFunction.str() ;
@@ -130,9 +136,12 @@ void Symbolizer::initializeFunctions(Function &F) {
         // The main function doesn't receive symbolic arguments.
         for (auto &arg : F.args()) {
             if (!arg.user_empty()){
-                auto * symcall  = IRB.CreateCall(runtime.getParameterExpression,
-                                                                IRB.getInt8(arg.getArgNo()));
                 auto paraGetSymID = getNextID();
+#if defined(CO3_REPLACE)
+                auto * symcall  = IRB.CreateCall(runtime.getParameterExpression,IRB.getInt8(arg.getArgNo()));
+#else
+                auto * symcall  = IRB.CreateCall(runtime.getParameterExpression,{IRB.getInt8(arg.getArgNo()),ConstantHelper(symIntType,paraGetSymID)});
+#endif
                 symbolicExpressions[&arg] = symcall;
                 assignSymID(symcall,paraGetSymID);
                 stageSettingOperations.push_back(paraGetSymID);
@@ -435,9 +444,13 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
     SmallVector<CallInst*, 8> setParas;
     for (Use &arg : I.args()){
         auto argSymExpr = getSymbolicExpression(arg);
-        CallInst * call_to_set_para = IRB.CreateCall(runtime.setParameterExpression,
-                     {ConstantInt::get(IRB.getInt8Ty(), arg.getOperandNo()), argSymExpr});
-        assignSymID(call_to_set_para,getNextID());
+        auto argSymID = getNextID();
+#if defined(CO3_REPLACE)
+        CallInst * call_to_set_para = IRB.CreateCall(runtime.setParameterExpression,{ConstantInt::get(IRB.getInt8Ty(), arg.getOperandNo()), argSymExpr});
+#else
+        CallInst * call_to_set_para = IRB.CreateCall(runtime.setParameterExpression,{ConstantInt::get(IRB.getInt8Ty(), arg.getOperandNo()), argSymExpr,ConstantHelper(symIntType, argSymID)});
+#endif
+        assignSymID(call_to_set_para,argSymID);
         setParas.push_back(call_to_set_para);
     }
     auto callIdConstant = ConstantHelper(IRB.getInt8Ty(), callInstID);
@@ -457,12 +470,23 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
         // order to avoid accidentally using whatever is stored there from the
         // previous function call. (If the function is instrumented, it will just
         // override our null with the real expression.)
+        auto setRetSymID = getNextID();
+#if defined(CO3_REPLACE)
         auto callToSetReturn = IRB.CreateCall(runtime.setReturnExpression, IRB.getFalse());
-        assignSymID(callToSetReturn,getNextID());
+#else
+        auto callToSetReturn = IRB.CreateCall(runtime.setReturnExpression, {IRB.getFalse(), ConstantHelper(symIntType,setRetSymID)});
+#endif
+        assignSymID(callToSetReturn,setRetSymID);
         IRB.SetInsertPoint(returnPoint);
+
+        auto getRetSymID = getNextID();
+#if defined(CO3_REPLACE)
         auto getReturnCall = IRB.CreateCall(runtime.getReturnExpression);
+#else
+        auto getReturnCall = IRB.CreateCall(runtime.getReturnExpression, ConstantHelper(symIntType,getRetSymID ));
+#endif
         symbolicExpressions[&I] = getReturnCall;
-        assignSymID(getReturnCall,getNextID());
+        assignSymID(getReturnCall,getRetSymID);
     }
 }
 
@@ -549,9 +573,12 @@ void Symbolizer::visitReturnInst(ReturnInst &I) {
     // processing.
     IRBuilder<> IRB(&I);
     auto returnSymExpr = getSymbolicExpression(I.getReturnValue());
-
-    CallInst * set_return_inst = IRB.CreateCall(runtime.setReturnExpression,returnSymExpr);
     auto retSymID = getNextID();
+#if defined(CO3_REPLACE)
+    CallInst * set_return_inst = IRB.CreateCall(runtime.setReturnExpression,returnSymExpr);
+#else
+    CallInst * set_return_inst = IRB.CreateCall(runtime.setReturnExpression,{returnSymExpr, ConstantHelper(symIntType, retSymID)});
+#endif
     assignSymID(set_return_inst,retSymID);
     stageSettingOperations.push_back(retSymID);
 }
@@ -632,10 +659,14 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
        ConstantHelper(symIntType,readMemSymID)});
     assignSymID(data,readMemSymID);
     if (dataType->isFloatingPointTy()) {
+        auto bitsToFloatSymID = getNextID();
+#if defined(CO3_REPLACE)
         data = IRB.CreateCall(runtime.buildBitsToFloat,{data, IRB.getInt1(dataType->isDoubleTy())});
-        assignSymID(data,getNextID());
+#else
+        data = IRB.CreateCall(runtime.buildBitsToFloat,{data, IRB.getInt1(dataType->isDoubleTy()), ConstantHelper(symIntType, bitsToFloatSymID)});
+#endif
+        assignSymID(data,bitsToFloatSymID);
     }
-
     symbolicExpressions[&I] = data;
 }
 //TODO
@@ -647,8 +678,13 @@ void Symbolizer::visitStoreInst(StoreInst &I) {
     Value * dataSymExpr = getSymbolicExpression(I.getValueOperand());
     auto *dataType = I.getValueOperand()->getType();
     if (dataType->isFloatingPointTy()) {
+        auto dataSymID = getNextID();
+#if defined(CO3_REPLACE)
         dataSymExpr = IRB.CreateCall(runtime.buildFloatToBits, {dataSymExpr});
-        assignSymID(cast<CallInst>(dataSymExpr), getNextID());
+#else
+        dataSymExpr = IRB.CreateCall(runtime.buildFloatToBits, {dataSymExpr, ConstantHelper(symIntType, dataSymID)});
+#endif
+        assignSymID(cast<CallInst>(dataSymExpr), dataSymID);
     }
     auto writeMemSymID = getNextID();
     auto writeMemCall = IRB.CreateCall(
@@ -978,10 +1014,17 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
     for (auto &caseHandle : I.cases()) {
         IRB.SetInsertPoint(constraintBlock);
 
+        auto caseConstraintSymID = getNextID();
+#if defined(CO3_REPLACE)
         auto *caseConstraint = IRB.CreateCall(
                 runtime.comparisonHandlers[CmpInst::ICMP_EQ],
                 {conditionExpr, createValueExpression(caseHandle.getCaseValue(), IRB)});
-        assignSymID(caseConstraint, getNextID());
+#else
+        auto *caseConstraint = IRB.CreateCall(
+                runtime.comparisonHandlers[CmpInst::ICMP_EQ],
+                {conditionExpr, createValueExpression(caseHandle.getCaseValue(), IRB), ConstantHelper(symIntType, caseConstraintSymID)});
+#endif
+        assignSymID(caseConstraint, caseConstraintSymID);
 
         if(first_concrete_comp == nullptr){
             IRB.SetInsertPoint(&I);
@@ -1042,8 +1085,13 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
     auto *valueType = V->getType();
     CallInst* ret = nullptr;
     if (isa<ConstantPointerNull>(V)) {
+        auto buildNullPtrSymID = getNextID();
+#if defined(CO3_REPLACE)
         ret = IRB.CreateCall(runtime.buildNullPointer, {});
-        assignSymID(ret,getNextID());
+#else
+        ret = IRB.CreateCall(runtime.buildNullPointer, {ConstantHelper(symIntType, buildNullPtrSymID)});
+#endif
+        assignSymID(ret,buildNullPtrSymID);
         return ret;
     }
 
@@ -1115,8 +1163,12 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
         // between different representations according to the type.
         if(isa<UndefValue>(V)){
             auto symid = getNextID();
-            ret = IRB.CreateCall(runtime.buildZeroBytes,{ConstantInt::get(intPtrType,
-                                                                          dataLayout.getTypeStoreSize(valueType))});
+#if defined(CO3_REPLACE)
+            ret = IRB.CreateCall(runtime.buildZeroBytes,{ConstantInt::get(intPtrType,dataLayout.getTypeStoreSize(valueType))});
+#else
+            ret = IRB.CreateCall(runtime.buildZeroBytes,{ConstantInt::get(intPtrType,dataLayout.getTypeStoreSize(valueType)),
+                                                         ConstantHelper(symIntType, symid)});
+#endif
             assignSymID(ret,symid);
             return ret;
         }else{
@@ -1139,8 +1191,13 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
 
     }
     if(isa<UndefValue>(V)){
+        auto undefValSymID = getNextID();
+#if defined(CO3_REPLACE)
         ret = IRB.CreateCall(runtime.buildNullPointer, {});
-        assignSymID(ret,getNextID());
+#else
+        ret = IRB.CreateCall(runtime.buildNullPointer, {ConstantHelper(symIntType, undefValSymID)});
+#endif
+        assignSymID(ret,undefValSymID);
         return ret;
         /*
         llvm_unreachable("Undef Value not support, not because itself is hard to support, but the composite value after it. \
@@ -1756,7 +1813,13 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
             }
         }
     }
-#if defined(CO3_REPLACE)
+#if  !defined(CO3_REPLACE)
+    assert(toReplaceToNone.size() == 0);
+    assert(toReplaceToFalse.size() == 0);
+    assert(toReplaceToTrue.size() == 0);
+    assert(toReplaceToInput.size() == 0);
+    assert(toReplaceToOr.size() == 0);
+#endif
     for(auto eachToBeRemoved: toReplaceToNone){
         eachToBeRemoved->eraseFromParent();
     }
@@ -1784,13 +1847,12 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
         assert(isSymStatusType(0,eachToReplaceWithOr->getCalledFunction()->getName()));
         Value * input2 = eachToReplaceWithOr->getArgOperand(1);
         assert(isSymStatusType(1,eachToReplaceWithOr->getCalledFunction()->getName()));
-
         IRBuilder<> IRB(eachToReplaceWithOr);
         Value * orExpression = IRB.CreateOr(input1, input2);
         replaceAllUseWith(eachToReplaceWithOr, orExpression);
         eachToReplaceWithOr->eraseFromParent();
     }
-#endif
+
     g.writeToFile(filename);
     // Replacing all uses has fixed uses of the symbolic PHI nodes in existing
     // code, but the nodes may still be referenced via symbolicExpressions. We

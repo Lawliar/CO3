@@ -336,7 +336,6 @@ public:
         }
         return false;
     }
-    unsigned availableSymID = 1;
 
     unsigned int getNextID(){
         unsigned id;
@@ -616,7 +615,7 @@ public:
   const llvm::LoopInfo& loopinfo;
   /// The data layout of the currently processed module.
   const llvm::DataLayout &dataLayout;
-
+  unsigned availableSymID;
   /// The width in bits of pointers in the module.
   unsigned ptrBits;
   unsigned ptrBytes;
