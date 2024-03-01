@@ -32,7 +32,14 @@ Symbolizer::Symbolizer(llvm::Module &M, llvm::LoopInfo& LI)
 : runtime(M), loopinfo(LI), dataLayout(M.getDataLayout()),
 ptrBits(M.getDataLayout().getPointerSizeInBits()),
 ptrBytes(M.getDataLayout().getPointerSize()),
-maxNumSymVars((1 << llvm::IntegerType::getInt16Ty(M.getContext())->getBitWidth()) - 1),
+#if defined(CO3_REPLACE)
+maxNumSymVars((1 << (llvm::IntegerType::getInt16Ty(M.getContext())->getBitWidth()) ) - 1),
+#else
+        // we reserve the first 3 bit to represent the message type at the MCU side. this is because
+        // 1. 8192 should be already plenty 2. we don't want another 1 byte to tell the workstation how to parse messages.
+maxNumSymVars((1 << (llvm::IntegerType::getInt16Ty(M.getContext())->getBitWidth() - 3) ) - 1),
+
+#endif
 g(true)
 {
     intPtrType = M.getDataLayout().getIntPtrType(M.getContext());

@@ -253,10 +253,10 @@ void _sym_initialize()
 {
 }
 
-#define REPORT_SYMID                                              \
-    uint8_t *byteval;                                             \
-    byteval = (uint8_t *)(&symID);                                \
-    AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval++;  \
+#define REPORT_SYMID(PREFIX) \
+    symID = (PREFIX << 13 & 0xe000) | (symID & 0x1fff);              \
+    byteval = (uint8_t *)(&symID);                                  \
+    AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval++;    \
     AFLfuzzer.txbuffer[AFLfuzzer.txCurrentIndex++] = *byteval;
 
 
@@ -267,32 +267,50 @@ void _sym_initialize()
 
 
 #define CO3_REPORT_0_OP                                     \
-    unsigned msgSize = 2;                                         \
+    unsigned msgSize = 2;                                   \
+    uint8_t *byteval;                                             \
     txCommandtoMonitorF;                                          \
-    REPORT_SYMID
+    REPORT_SYMID(0b000)
 
 
 
-#define CO3_REPORT_1_OP(OP1)                               \
+#define CO3_REPORT_1_OP(OP1)                                      \
     unsigned msgSize = 2 + sizeof(OP1);                           \
+    uint8_t *byteval;                                             \
     txCommandtoMonitorF;                                          \
-    REPORT_SYMID                                                 \
+    if(msgSize == 3){                                             \
+        REPORT_SYMID(0b001)                                        \
+    }else if(msgSize == 4){                                        \
+        REPORT_SYMID(0b010)                                        \
+    }else if(msgSize == 6){                                        \
+        REPORT_SYMID(0b011)                                         \
+    }else{                                                        \
+         while(1){}                                                              \
+    }                                                              \
     REPORT_OP(OP1)
 
 
 #define CO3_REPORT_2_OPS(OP1, OP2) \
-    unsigned msgSize = 2 + sizeof(OP1) + sizeof(OP2);   \
+    unsigned msgSize = 2 + sizeof(OP1) + sizeof(OP2); \
+    uint8_t *byteval;              \
     txCommandtoMonitorF;                                \
-    REPORT_SYMID                                        \
-    REPORT_OP(OP1)                                        \
+    if(msgSize != 10){                                 \
+        while(1){}                                     \
+    }                                                  \
+    REPORT_SYMID(0b100)                                 \
+    REPORT_OP(OP1)                                     \
     REPORT_OP(OP2)
 
 #define CO3_REPORT_3_OPS(OP1, OP2, OP3) \
-    unsigned msgSize = 2 + sizeof(OP1) + sizeof(OP2);   \
-    txCommandtoMonitorF;                \
-    REPORT_SYMID                                        \
-    REPORT_OP(OP1)                              \
-    REPORT_OP(OP2)                              \
+    unsigned msgSize = 2 + sizeof(OP1) + sizeof(OP2) + sizeof(OP3); \
+    uint8_t *byteval;                   \
+    txCommandtoMonitorF;                            \
+    if(msgSize != 14){                              \
+        while(1){}                                  \
+    }                                              \
+    REPORT_SYMID(0b101)                            \
+    REPORT_OP(OP1)                                 \
+    REPORT_OP(OP2)                                 \
     REPORT_OP(OP3)
 
 #define CO3_DEFINE_BINARY_OPERATION(NAME) \
