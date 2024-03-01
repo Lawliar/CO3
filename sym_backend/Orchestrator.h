@@ -67,8 +67,4 @@ public:
 };
 
 
-#if !defined(CO3_REPLACE)
-std::map<unsigned, std::map<Val::SymIDType, NormalMessage*>> msgTemplates;
-#endif
-
 #endif //SYMBACKEND_ORCHESTRATOR_H
