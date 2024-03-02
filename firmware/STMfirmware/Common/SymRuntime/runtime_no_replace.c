@@ -464,7 +464,7 @@ void _sym_notify_phi(int8_t phi_value, uint16_t symID, bool input, char * ptr, i
 
 void _sym_symbolize_memory(char * addr, size_t len, bool DR){
     uint16_t symID = 1;
-    CO3_REPORT_2_OPS(addr, len)
+    CO3_REPORT_1_OP(addr)
 }
 
 void _sym_end(){
