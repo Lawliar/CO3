@@ -15,7 +15,7 @@
 cmake_minimum_required(VERSION 3.5)
 project(SymInstrumentation)
 
-option(CO3_REPLACE "replace all sorts of symbolic operations with either true, false, none or logic or (should be turned on normally)" ON)
+option(CO3_REPLACE "replace all sorts of symbolic operations with either true, false, none or logic or (should be turned on normally)" OFF)
 set(CO3_DEPS_DIR "${CMAKE_SOURCE_DIR}/../../deps")
 set(LLVM_HINTS "${CO3_DEPS_DIR}/llvm/clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04/lib/cmake")
 

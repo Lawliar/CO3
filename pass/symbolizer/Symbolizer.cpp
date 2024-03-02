@@ -1820,13 +1820,7 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
             }
         }
     }
-#if  !defined(CO3_REPLACE)
-    assert(toReplaceToNone.size() == 0);
-    assert(toReplaceToFalse.size() == 0);
-    assert(toReplaceToTrue.size() == 0);
-    assert(toReplaceToInput.size() == 0);
-    assert(toReplaceToOr.size() == 0);
-#endif
+#if defined(CO3_REPLACE)
     for(auto eachToBeRemoved: toReplaceToNone){
         eachToBeRemoved->eraseFromParent();
     }
@@ -1859,6 +1853,7 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
         replaceAllUseWith(eachToReplaceWithOr, orExpression);
         eachToReplaceWithOr->eraseFromParent();
     }
+#endif
 
     g.writeToFile(filename);
     // Replacing all uses has fixed uses of the symbolic PHI nodes in existing
