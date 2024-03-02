@@ -692,10 +692,6 @@ int Orchestrator::Run() {
 
             cout << "End message processed:"<< getTimeStamp() - start_time <<'\n';
             cout.flush();
-#ifdef DEBUG_OUTPUT
-            cout<< "finish "<<end_msg->Str()<<"\n\n";
-            cout.flush();
-#endif
             break;
         }
         delete(msg);

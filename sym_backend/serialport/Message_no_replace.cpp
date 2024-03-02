@@ -138,7 +138,7 @@ bool MsgQueue::RenderAndPush(char * buf, char size){
                 uint32_t op2 = reinterpret_cast<uint32_t>(*(uint32_t *)(buf + cur + 4));
                 uint32_t op3 = reinterpret_cast<uint32_t>(*(uint32_t *)(buf + cur + 8));
                 Push(new NormalMessage_1OP32_2OP32_3OP32(symID, op1, op2, op3));
-                cur += 8;
+                cur += 12;
             }else{
                 std::cerr <<"corrupt type:"<< t  <<", the connection is corrupted";
                 abort();

@@ -39,11 +39,19 @@ public:
     char* addr;
     bool DR = false;
     InitMessage(char* addr, bool DR): Message(SymSymbolizeMsg), addr(addr), DR(DR) {}
+    std::string Str(){
+        std::ostringstream s;
+        s << "SymInit: Addr:"<<reinterpret_cast<std::uintptr_t>(addr)<<",for DR:"<< DR;
+        return s.str();
+    }
 };
 
 class EndMessage: public Message{
 public:
-    EndMessage(): Message(SymEndMsg){};
+    EndMessage(): Message(SymEndMsg){}
+    std::string Str(){
+        return "SymEnd";
+    }
 };
 
 NOTIFYCLASSTEMPLATE(Call)
