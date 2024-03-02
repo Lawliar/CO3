@@ -1,14 +1,13 @@
 //
 // Created by lcm on 2/29/24.
 //
-#include <Message.h>
 #include <MsgQueue.h>
 #include <iostream>
 #include <assert.h>
 
 bool MsgQueue::RenderAndPush(char * buf, char size){
     int cur = 0;
-    bool ret_received = false;
+    bool end_received = false;
     while(cur < size ){
         if(buf[cur] == SYM_BLD_INT_1){
             uint8_t symid = *(uint8_t*)(buf + cur + 1);
@@ -248,7 +247,7 @@ bool MsgQueue::RenderAndPush(char * buf, char size){
             Push(new EndMessage());
             std::cout<<"end msg received\n";
             std::cout.flush();
-            ret_received = true;
+            end_received = true;
             cur += SIZE_SYM_END;
         }else{
             std::cerr <<"unhandled msg type:"<< static_cast<unsigned>(buf[cur])  <<", the connection is corrupted";
@@ -256,5 +255,5 @@ bool MsgQueue::RenderAndPush(char * buf, char size){
         }
     }
     assert(cur == size);
-    return ret_received;
+    return end_received;
 }

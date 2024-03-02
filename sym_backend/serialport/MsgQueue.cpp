@@ -9,13 +9,6 @@
 
 extern ring_buffer_t RingBuffer;
 
-size_t MsgQueue::GetQueueSize(){
-    size_t ret = 0;
-    msgQMutex.lock();
-    ret = msgQueue.size();
-    msgQMutex.unlock();
-    return ret;
-}
 Message* MsgQueue::Pop(){
     Message* ret;
     msgQMutex.lock();

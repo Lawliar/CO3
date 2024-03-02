@@ -1,7 +1,8 @@
+#ifndef SYMBACKEND_MESSAGE_NO_REPLACE_H
+#define SYMBACKEND_MESSAGE_NO_REPLACE_H
+
 #include "stdint.h"
 #include <sstream>
-
-
 
 class Message{
 public:
@@ -28,8 +29,8 @@ public:
 #define NOTIFYCLASSTEMPLATE(Name) \
     class Notify##Name##Message: public Message{ \
     public:                       \
-         uint16_t id;             \
-         Notify##Name##Message(uint16_t id): Message(Notify##Name##Msg), id(id){}\
+         uint8_t id;             \
+         Notify##Name##Message(uint8_t id): Message(Notify##Name##Msg), id(id){}\
     };
 
 
@@ -37,12 +38,12 @@ class InitMessage: public Message{
 public:
     char* addr;
     bool DR = false;
-    InitMessage(char* addr): Message(SymSymbolizeMsg), addr(addr) {}
+    InitMessage(char* addr, bool DR): Message(SymSymbolizeMsg), addr(addr), DR(DR) {}
 };
 
-class SymEndMessage: public Message{
+class EndMessage: public Message{
 public:
-    SymEndMessage(): Message(SymEndMsg){};
+    EndMessage(): Message(SymEndMsg){};
 };
 
 NOTIFYCLASSTEMPLATE(Call)
@@ -92,3 +93,5 @@ public:
     uint32_t op3;
     NormalMessage_1OP32_2OP32_3OP32(uint16_t symID, uint32_t op1,uint32_t op2, uint32_t op3 ): NormalMessage(symID), op1(op1), op2(op2), op3(op3){}
 };
+
+#endif

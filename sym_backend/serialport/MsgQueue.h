@@ -29,7 +29,6 @@ public:
     bool RenderAndPush(char * buf, char size);
     bool ProcessMsgs();
     uint64_t Listen();
-    size_t GetQueueSize();
     Message* Pop();
     void Push(Message*);
 private:
