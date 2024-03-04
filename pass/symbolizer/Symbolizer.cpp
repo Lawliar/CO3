@@ -477,15 +477,16 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
         // order to avoid accidentally using whatever is stored there from the
         // previous function call. (If the function is instrumented, it will just
         // override our null with the real expression.)
-        auto setRetSymID = getNextID();
-#if defined(CO3_REPLACE)
-        auto callToSetReturn = IRB.CreateCall(runtime.setReturnExpression, IRB.getFalse());
-#else
-        auto callToSetReturn = IRB.CreateCall(runtime.setReturnExpression, {IRB.getFalse(), ConstantHelper(symIntType,setRetSymID)});
-#endif
-        assignSymID(callToSetReturn,setRetSymID);
-        IRB.SetInsertPoint(returnPoint);
 
+#if defined(CO3_REPLACE)
+        auto setRetSymID = getNextID();
+        auto callToSetReturn = IRB.CreateCall(runtime.setReturnExpression, IRB.getFalse());
+        assignSymID(callToSetReturn,setRetSymID);
+#else
+        // since we do this automatically on the workstation, we don't need to set ret on the MCU.
+        //auto callToSetReturn = IRB.CreateCall(runtime.setReturnExpression, {IRB.getFalse(), ConstantHelper(symIntType,setRetSymID)});
+#endif
+        IRB.SetInsertPoint(returnPoint);
         auto getRetSymID = getNextID();
 #if defined(CO3_REPLACE)
         auto getReturnCall = IRB.CreateCall(runtime.getReturnExpression);
