@@ -84,8 +84,9 @@ bool instrumentFunction(Function &F, LoopInfo &LI, PostDominatorTree& pdTree,Dom
 
     boost::filesystem::path dir (outDir.getValue());
     if(! boost::filesystem::exists(dir)){
-        errs()<< outDir<<'\n';
-        llvm_unreachable("output dir does not exist");
+        boost::filesystem::create_directory(dir);
+        //errs()<< outDir<<'\n';
+        //llvm_unreachable("output dir does not exist");
     }
     boost::filesystem::path dfgFile = dir / (F.getName() + "_dfg.dot").str();
     boost::filesystem::path cfgFile = dir / (F.getName() + "_cfg.dot").str();
