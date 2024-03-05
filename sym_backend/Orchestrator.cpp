@@ -622,7 +622,12 @@ void Orchestrator::SetRetAndRefreshGraph() {
     auto setRetSym = cur_func->setRetSym;
     bool ret_sym_is_concrete = true;
     if(setRetSym != nullptr){
-        auto targetReady = (setRetSym->ready + 1);
+        Val::ReadyType targetReady = 0;
+        if(setRetSym->inLoop){
+            targetReady = (setRetSym->ready + 1);
+        }else{
+            targetReady = 1;
+        }
         BackwardExecution(setRetSym,  targetReady);
         assert(setRetSym->ready == targetReady);
         if(SymVal::extractSymExprFromSymVal(setRetSym,targetReady) != nullptr){
