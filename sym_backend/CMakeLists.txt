@@ -25,6 +25,7 @@ option(CO3_NATIVE_BUILD "use natively built z3 and llvm instead of the packages 
 option(CO3_SER2NET "use serial2net instead of the usb serial device" OFF)
 option(CO3_REPLACE "Replace the majority of SymCC's operation with CO3's optimization(should be used in combination with symbolizer, MCU's runtime). This should be turned ON by default for better performance" OFF)
 
+
 set(LIBSERIALPORTS_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../deps/libserialport")
 set(LIBSERIALPORTS_LIB_DIR "${LIBSERIALPORTS_INCLUDE_DIR}/.libs")
 
@@ -42,7 +43,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 
 if(${CO3_REPLACE})
   add_compile_definitions(CO3_REPLACE)
+else()
+  set(CO3_NO_MCU_SHADOW ON CACHE INTERNAL "no replace means no MCU side shadow too")
 endif()
+
 if(${CO3_SER2NET})
   add_compile_definitions(CO3_SER2NET)
 endif()
