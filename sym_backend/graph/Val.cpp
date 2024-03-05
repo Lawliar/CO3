@@ -114,8 +114,9 @@ Val::ReadyType SymVal_sym_TruePhi::getDepTargetReady(Val * nodeInQuestion) {
 
 vector<Val*> Val::realChildren() {
     vector<Val*> realChildren;
-    SymVal_sym_FalsePhiRoot * false_phi_root = dynamic_cast<SymVal_sym_FalsePhiRoot*>(this);
-    SymVal_sym_FalsePhiLeaf * false_phi_leaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(this);
+    auto false_phi_root = dynamic_cast<SymVal_sym_FalsePhiRoot*>(this);
+    auto false_phi_leaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(this);
+
     if(false_phi_root != nullptr) {
         for (auto eachLeaf: false_phi_root->falsePhiLeaves) {
             realChildren.push_back(eachLeaf);
@@ -125,12 +126,15 @@ vector<Val*> Val::realChildren() {
         for(auto eachPeerOrig: false_phi_leaf->peerOriginals) {
             realChildren.push_back(eachPeerOrig);
         }
-    }else{
+    }
+    else{
         //normal nodes
         for(auto eachDep : In_edges){
             realChildren.push_back(eachDep.second);
         }
     }
+
+
     return realChildren;
 }
 bool SymVal::directlyConstructable(Val::ReadyType targetReady){
