@@ -194,7 +194,8 @@ bool Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot, Va
         auto leaf = dynamic_cast<SymVal*>(*falsePhiRoot->falsePhiLeaves.begin());
         assert( leaf != nullptr);
         // make sure the only one leaf is executed.
-        if(! falsePhiRoot->isThisNodeReady(leaf, targetReady )){
+        //if(! falsePhiRoot->isThisNodeReady(leaf, targetReady )){
+        if(! ExecuteNode(leaf, targetReady )){
             return false;
         }
         if(SymVal::extractSymExprFromSymVal(leaf, targetReady) ==  nullptr){
@@ -217,7 +218,8 @@ bool Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot, Va
         // and each leaf must be FalsePhiLeaf
         bool allConcrete = true;
         for(auto eachLeaf : falsePhiRoot->falsePhiLeaves){
-            if( ! falsePhiRoot->isThisNodeReady(eachLeaf, targetReady)){
+            //if( ! falsePhiRoot->isThisNodeReady(eachLeaf, targetReady)){
+            if( ! ExecuteNode(eachLeaf, targetReady)){
                 return false;
             }
             auto eachFalsePhiLeaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(eachLeaf);
@@ -362,13 +364,28 @@ bool Orchestrator::ExecuteNode(Val* nodeToExecute, Val::ReadyType targetReady) {
     cout << string(indent, ' ') << "Trying to construct:"<<nodeToExecute->Str() <<"\n";
     std::cout.flush();
 #endif
+    if(nodeToExecute->ready == targetReady){
+#ifdef DEBUG_OUTPUT
+        cout << string(indent, ' ') <<nodeToExecute->Str() <<" already constructed\n";
+        std::cout.flush();
+        indent -= indentNum;
+#endif
+        return true;
+    }
     if(auto runtimeVal = dynamic_cast<RuntimeVal*>(nodeToExecute); runtimeVal != nullptr){
 #ifdef DEBUG_CHECKING
         assert(targetReady == (runtimeVal->ready + 1));
 #endif
         runtimeVal->Unassign();
 #ifdef DEBUG_OUTPUT
-        cout << string(indent, ' ') << "constructed:"<<nodeToExecute->Str() <<"\n";
+        cout << string(indent, ' ') << "unassign constructed:"<<nodeToExecute->Str() <<"\n";
+        std::cout.flush();
+        indent -= indentNum;
+#endif
+        return true;
+    }else if(auto constantVal = dynamic_cast<ConstantVal*>(nodeToExecute); constantVal != nullptr){
+#ifdef DEBUG_OUTPUT
+        cout << string(indent, ' ') << "constant already constructed "<<nodeToExecute->Str() <<"\n";
         std::cout.flush();
         indent -= indentNum;
 #endif
@@ -388,8 +405,14 @@ bool Orchestrator::ExecuteNode(Val* nodeToExecute, Val::ReadyType targetReady) {
             getCurFunc()->ReleaseOrRemoveRootTask(symVal);
             return true;
         }else if(isSpecial == NotSpecial){
-            if(symVal->directlyConstructable(targetReady)) {
-                // if we can construct right now, just do it
+            bool node_ready = true;
+            for(auto eachDep : symVal->realChildren()){
+                if(!ExecuteNode(eachDep, targetReady)){
+                    node_ready = false;
+                    break;
+                }
+            }
+            if(node_ready){
                 symVal->Construct(targetReady);
 #ifdef DEBUG_OUTPUT
                 cout << string(indent, ' ') << "constructed:"<<symVal->Str() <<"\n";
@@ -407,7 +430,6 @@ bool Orchestrator::ExecuteNode(Val* nodeToExecute, Val::ReadyType targetReady) {
 #endif
         return false;
     }
-
 }
 void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, unsigned targetReady) {
 #ifdef DEBUG_CHECKING
@@ -548,19 +570,9 @@ void Orchestrator::BackwardExecution(SymVal* sink, Val::ReadyType targetReady) {
 #endif
     //assuming all its dependents are ready
     SymGraph* cur_func = getCurFunc();
-#ifdef DEBUG_CHECKING
-    if(cur_func->funcname == "receive_cgc_until" && sink->symID == 22){
-        __asm__("nop");
-    }
-#endif
     if(sink->ready >= targetReady || ExecuteNode(sink, targetReady)){
         //already constructed or can be constructed right away
     }else{
-#ifdef DEBUG_CHECKING
-        if(cur_func->funcname == "calcCRC" && sink->symID == 28 && targetReady == 3){
-            __asm__("nop");
-        }
-#endif
         auto rootTask = cur_func->GetRootTask(sink);
         assert(rootTask != nullptr);
         for(auto eachBBDep : rootTask->depNonReadyNonLoopBB){
@@ -715,7 +727,6 @@ int Orchestrator::Run() {
             }else{
                 cout << "End message received time:"<< end_message_receive_time - start_time <<'\n';
             }
-
             cout << "End message processed:"<< getTimeStamp() - start_time <<'\n';
             cout.flush();
             break;
