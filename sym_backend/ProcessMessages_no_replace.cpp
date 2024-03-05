@@ -29,7 +29,7 @@ int Orchestrator::ProcessMessage(Message* msg) {
                 runtime_value->Assign(one_8op->op1);
                 bool executed = ExecuteNode(symVal,symVal->ready + 1);
                 assert(executed);
-            }else if(symVal->Op.compare("_sym_notify_phi") == 0){
+            }else if(symVal->Op.compare("truePhi") == 0){
                 auto truePhi =  dynamic_cast<SymVal_sym_TruePhi*>(val);
                 assert(truePhi != nullptr);
                 auto chosen_val = dynamic_cast<SymVal*>(truePhi->In_edges.at(one_8op->op1));
@@ -40,9 +40,9 @@ int Orchestrator::ProcessMessage(Message* msg) {
                 truePhi->historyValues.push_back(make_pair(one_8op->op1, symExprToTake));
                 truePhi->ready ++;
             }else if(symVal->Op.compare("_sym_notify_select") == 0){
-                auto* notifySelect = dynamic_cast<SymVal_sym_notify_select*>(symVal);
+                auto notifySelect = dynamic_cast<SymVal_sym_notify_select*>(symVal);
                 assert(notifySelect != nullptr);
-                auto* cond_node = dynamic_cast<RuntimeIntVal*>(notifySelect->In_edges.at(0));
+                auto cond_node = dynamic_cast<RuntimeIntVal*>(notifySelect->In_edges.at(0));
                 assert(cond_node != nullptr);
                 cond_node->Assign(one_8op->op1);
                 bool executed = ExecuteNode(notifySelect, notifySelect->ready + 1);
@@ -111,6 +111,10 @@ int Orchestrator::ProcessMessage(Message* msg) {
                 abort();
             }
         }
+        else{
+            cerr<<"unhandled symVal"<< symID<<'\n';
+            abort();
+        }
     }else if(auto call_msg = dynamic_cast<NotifyCallMessage*>(msg); call_msg != nullptr){
 #ifdef DEBUG_OUTPUT
         assert(indent == 0);
@@ -178,9 +182,11 @@ int Orchestrator::ProcessMessage(Message* msg) {
         cout.flush();
 #endif
     }
-
     else if(auto end_msg = dynamic_cast<EndMessage*>(msg); end_msg != nullptr ){
         ret = 0;
+    }else{
+        cerr<<"unhandled message"<< msg->type<<'\n';
+        abort();
     }
     return ret;
 }
