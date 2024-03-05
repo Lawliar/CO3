@@ -9,7 +9,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 # Path to toolchain file. This one has to be before 'project()' below
 set(CMAKE_TOOLCHAIN_FILE clang.cmake)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CO3_REPLACE ON)
+set(CO3_REPLACE OFF)
 # Setup project, output and linker file
 project(CO3CROMU_00001_CMake C ASM)
 set(EXECUTABLE ${PROJECT_NAME}.elf)
@@ -19,7 +19,7 @@ set(LINKER_FILE "${PROJECT_SOURCE_DIR}/STM32H743ZITX_FLASH.ld")
 set(CO3_OUTPUT_DIR "${PROJECT_SOURCE_DIR}/intermediate_results")
 
 if(${CO3_REPLACE})
-  set(CO3_INSTRUMENTATION_LIB "/home/lcm/github/spear/spear-code/pass/symbolizer/cmake-build-debug/libSymbolize.so") 
+  set(CO3_INSTRUMENTATION_LIB "/home/lcm/github/spear/spear-code/pass/symbolizer/build_replace/libSymbolize.so")
 else()
   set(CO3_INSTRUMENTATION_LIB "/home/lcm/github/spear/spear-code/pass/symbolizer/build_no_replace/libSymbolize.so")
 endif() 
