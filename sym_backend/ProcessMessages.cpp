@@ -153,7 +153,7 @@ int Orchestrator::ProcessMessage(Message* msg) {
         }
 
     }else if (auto sym_source_msg = dynamic_cast<SymSourceMessage*>(msg) ; sym_source_msg != nullptr){
-        SymGraph * cur_func = callStack.top();
+        SymGraph * cur_func = getCurFunc();
         Val * cur_val =  cur_func->Nodes.at(cur_func->symID2offMap.at(sym_source_msg->symid));
         cur_func->changed = true;
         if(auto sym_read_mem_msg = dynamic_cast<ReadMemMessage*>(msg) ; sym_read_mem_msg != nullptr){
