@@ -74,7 +74,7 @@ std::map<std::string, Message::MessageType> SymOp2MsgType = {
         SYM_0OP("_sym_try_alternative"),
         SYM_1OP8("_sym_notify_phi"),
 
-        SYM_1OP32_2OP32("_sym_symbolize_memory"),
+        SYM_1OP32("_sym_symbolize_memory"),
         SYM_0OP("_sym_end"),
         SYM_1OP8("_sym_notify_call"),
         SYM_1OP8("_sym_notify_func"),
@@ -109,7 +109,7 @@ bool MsgQueue::RenderAndPush(char * buf, char size){
             cur += sizeof(uint8_t);
         }else if(symID == 5){
             uint8_t retID = reinterpret_cast<uint8_t>(*(uint8_t *)(buf + cur));
-            Push(new NotifyFuncMessage(retID));
+            Push(new NotifyRetMessage(retID));
             cur += sizeof(uint8_t);
         }else if(symID == 6){
             assert(false);
