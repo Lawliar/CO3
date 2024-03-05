@@ -137,14 +137,7 @@ vector<Val*> Val::realChildren() {
 
     return realChildren;
 }
-bool SymVal::directlyConstructable(Val::ReadyType targetReady){
-    for(auto eachDep: realChildren()){
-        if( ! this->isThisNodeReady(eachDep, targetReady)){
-            return false;
-        }
-    }
-    return true;
-}
+
 
 void RuntimeIntVal::Assign(IntValType val) {
     Val=val;

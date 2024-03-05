@@ -166,7 +166,6 @@ public:
 
     // todo: remove the targetReady parameter
     virtual void Construct(Val::ReadyType targetReady) {};
-    bool directlyConstructable(Val::ReadyType targetReady);
     static SymExpr extractSymExprFromSymVal(SymVal*, ReadyType);
     string Str() {
         std::ostringstream ss;
