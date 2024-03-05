@@ -126,7 +126,7 @@ bool MsgQueue::RenderAndPush(char * buf, char size){
                 cur += 2;
             }else if(t == 0b011){
                 uint32_t op1 = reinterpret_cast<uint32_t>(*(uint32_t *)(buf + cur));
-                Push(new NormalMessage_1OP16(symID, op1));
+                Push(new NormalMessage_1OP32(symID, op1));
                 cur += 4;
             }else if(t == 0b100){
                 uint32_t op1 = reinterpret_cast<uint32_t>(*(uint32_t *)(buf + cur));
