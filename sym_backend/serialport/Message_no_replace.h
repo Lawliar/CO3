@@ -31,6 +31,11 @@ public:
     public:                       \
          uint8_t id;             \
          Notify##Name##Message(uint8_t id): Message(Notify##Name##Msg), id(id){}\
+        std::string Str(){                          \
+            std::ostringstream s;                               \
+            s<<"Notify" #Name "Msg:"<<static_cast<unsigned>(id);      \
+            return s.str();                                     \
+        }                              \
     };
 
 
