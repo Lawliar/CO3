@@ -8,7 +8,7 @@ import time
 import re
 import json
 
-from conf import benchmark,time_budget, zfill_len, get_highest_id, get_total_time_out_err,process_co3_output
+from conf import benchmark,time_budget, zfill_len, get_highest_id, get_total_time_out_err,process_co3_output,convert_size
 from conf import sleep_time, timeout,serial_port,baud_rate,SER2NET, tcp_port,REPLACE
 from conf import coverage_dir, estimate_inputs_needed
 
@@ -42,6 +42,7 @@ def runSpear(benchmark, debug = False, buggy_index = 0):
     total_time = 0
     total_building_time = 0
     total_receiving_time = 0
+    total_num_bytes = 0
     it = 0
     coverage = {}
     while (True):
@@ -72,18 +73,18 @@ def runSpear(benchmark, debug = False, buggy_index = 0):
             o, e = p1.communicate()
             try:
                 total_time += get_total_time_out_err(e) / 1000000
-                building_time, receiving_time = process_co3_output(o)
+                building_time, receiving_time, numBytes = process_co3_output(o)
                 building_time /= 1000000
                 receiving_time /= 1000000
                 total_building_time += building_time
                 total_receiving_time += receiving_time
-            
+                total_num_bytes += numBytes
             except IndexError as err:
                 print("program did not end well")
                 embed()
             
             print("iter:{},cur at {} from {} to {}, edge size:{}, need {} inputs to finish".format(it, cur_input_id, batch_input_id_start , batch_input_id_end, len(coverage), estimate_inputs_needed(cur_input_id + 1, total_time, time_budget)))
-            print("building time:{:.2f}, receiving time:{:.2f}, total time:{:.2f} / {}".format( total_building_time, total_receiving_time, total_time , time_budget))
+            print("building time:{:.2f}, transmit {} costs:{:.2f}, total time:{:.2f} / {}".format( total_building_time, convert_size(total_num_bytes), total_receiving_time, total_time , time_budget))
             tmp_output_id = get_highest_id(output_dir) + 1
 
             new_edges = 0

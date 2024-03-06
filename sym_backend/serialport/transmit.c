@@ -71,6 +71,7 @@ inline void sendData(CO3_SER* ser, uint8_t * buf, uint32_t size ){
 #else
     int result = check(sp_blocking_write(ser->sp.port, buf, size, write_timeout));
 #endif
+    ser->total_bytes += result;
     if (result != size){
         fprintf(stderr,"Serial Port Timed out, %d/%d bytes sent.\n", result, size);
         abort();
@@ -90,6 +91,7 @@ int receiveData(CO3_SER* ser){
 #else 
     int result = check(sp_blocking_read(ser->sp.port, buf, HEADER_LEN, 1000));
 #endif
+    ser->total_bytes += result;
     if(result == 0){
         return 0;
     }
@@ -107,6 +109,7 @@ int receiveData(CO3_SER* ser){
         result = check(sp_blocking_read(ser->sp.port, buf, packet_len - HEADER_LEN, 1000));
 #endif
         cur += result;
+        ser->total_bytes += result;
     }
     if(cur != packet_len - HEADER_LEN){
         fprintf(stderr,"payload is not as long as what the header says\n");

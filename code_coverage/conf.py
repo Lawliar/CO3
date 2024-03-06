@@ -1,4 +1,5 @@
-import os,re
+import os,re,math
+
 benchmark =  "CROMU_00001"
 SER2NET = False
 REPLACE = True
@@ -56,6 +57,7 @@ def process_co3_output(input):
     cur = len(splitted) - 1
     building_time = 0
     receiving_time = 0
+    num_bytes = 0
     while True:
         if(cur < 0):
             print("no message found")
@@ -70,10 +72,21 @@ def process_co3_output(input):
         elif("receiving time costs:" in s):
             t = re.search('''receiving time costs:(\d+)''',s).group(1)
             receiving_time = int(t)
-        if(building_time != 0 and receiving_time != 0):
+        elif("Bytes transmitted:" in s):
+            t = re.search('''Bytes transmitted:(\d+)''',s).group(1)
+            num_bytes = int(t)
+        if(building_time != 0 and receiving_time != 0 and num_bytes != 0):
             break
         cur -= 1
     assert(building_time != 0)
     assert(receiving_time != 0)
-    return building_time, receiving_time
-    
+    return building_time, receiving_time, num_bytes
+
+def convert_size(size_bytes):
+   if size_bytes == 0:
+       return "0B"
+   size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+   i = int(math.floor(math.log(size_bytes, 1024)))
+   p = math.pow(1024, i)
+   s = round(size_bytes / p, 2)
+   return "%s %s" % (s, size_name[i])

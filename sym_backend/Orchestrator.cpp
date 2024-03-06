@@ -752,6 +752,7 @@ int Orchestrator::Run() {
             // end message is received.
             listen_job.get();
             cout << "Orchestrator processing time:"<< building_total_time <<'\n';
+            cout << "Bytes transmitted:" << ser->total_bytes<<'\n';
             cout.flush();
             break;
         }
