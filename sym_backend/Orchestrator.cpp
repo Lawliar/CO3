@@ -19,7 +19,6 @@ int indent = 0;
 int indentNum = 4;
 #endif
 
-int msgCounter = 0;
 
 extern WriteShadowIteratorDR * DR_INPUT;
 
@@ -453,9 +452,10 @@ void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, uns
     assert(tmpConstant == nullptr);
 #endif
 
+
 #ifdef  DEBUG_CHECKING
     if(target != nullptr){
-        assert( ! target->root->isThisNodeReady(source, targetReady));
+        assert( !target->root->isThisNodeReady(source, targetReady));
     }
 #endif
     bool shouldMoveForward = false;
@@ -679,7 +679,7 @@ void Orchestrator::SendInput() {
 }
 int Orchestrator::Run() {
     auto listen_job = pool.enqueue(&MsgQueue::Listen,&(this->msgQueue));
-
+    int msgCounter = 0;
     // get the initialization msg so that we can initialize on our side:
     while(true){
 
@@ -724,7 +724,7 @@ int Orchestrator::Run() {
         cout<<msgCounter<< "th msg,";
         cout.flush();
 #endif
-        if( ProcessMessage(msg) == 0){
+        if( ProcessMessage(msg,msgCounter) == 0){
             // end message is received.
             uint64_t end_message_receive_time = listen_job.get();
             if(end_message_receive_time <= start_time){

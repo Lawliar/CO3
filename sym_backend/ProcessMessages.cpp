@@ -7,7 +7,7 @@ extern int indent;
 extern int indentNum;
 #endif
 
-int Orchestrator::ProcessMessage(Message* msg) {
+int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
     int ret = 1;
     if(auto cnt_msg = dynamic_cast<ControlMessgaes*>(msg); cnt_msg != nullptr){
         if(auto bb_msg = dynamic_cast<NotifyBasicBlockMessage*>(cnt_msg) ; bb_msg != nullptr){
@@ -267,6 +267,7 @@ int Orchestrator::ProcessMessage(Message* msg) {
             assert(buildConstraintVal != nullptr);
 
             UpdateCallStackHashBB(buildConstraintVal->BBID);
+
 
             auto runtime_value = dynamic_cast<RuntimeIntVal*>(buildConstraintVal->In_edges.at(1));
             assert(runtime_value != nullptr);

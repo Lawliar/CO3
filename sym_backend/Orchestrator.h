@@ -48,7 +48,7 @@ public:
     void SetRetAndRefreshGraph();
     void ForwardExecution(Val*, SymGraph::RootTask*,unsigned);
     void BackwardExecution(SymVal*, Val::ReadyType);
-    int ProcessMessage(Message*);
+    int ProcessMessage(Message*, int);
     ~Orchestrator();
 
 
