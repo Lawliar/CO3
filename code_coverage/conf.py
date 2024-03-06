@@ -1,6 +1,7 @@
 import os,re
 benchmark =  "CROMU_00001"
-SER2NET = True
+SER2NET = False
+REPLACE = True
 time_budget = 60 * 60 * 24 # in seconds
 serial_port = os.path.join("/","dev","ttyACM1")
 tcp_port = 3002
@@ -49,3 +50,30 @@ def get_total_time_out_err(input):
             total_time = re.search('''total_time": (\d+)''', s).group(1)
             return int(total_time)
         cur -= 1
+
+def process_co3_output(input):
+    splitted = input.split(b'\n')
+    cur = len(splitted) - 1
+    building_time = 0
+    receiving_time = 0
+    while True:
+        if(cur < 0):
+            print("no message found")
+            assert(False)
+        try:
+            s = splitted[cur].decode("ascii")
+        except IndexError as e :
+            raise e
+        if("Orchestrator processing time" in s):
+            t = re.search('''Orchestrator processing time:(\d+)''', s).group(1)
+            building_time = int(t)
+        elif("receiving time costs:" in s):
+            t = re.search('''receiving time costs:(\d+)''',s).group(1)
+            receiving_time = int(t)
+        if(building_time != 0 and receiving_time != 0):
+            break
+        cur -= 1
+    assert(building_time != 0)
+    assert(receiving_time != 0)
+    return building_time, receiving_time
+    

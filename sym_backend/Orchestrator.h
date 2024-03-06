@@ -54,7 +54,6 @@ public:
 
     ThreadPool pool;
     CO3_SER ser;
-    uint64_t start_time = 0;
     MsgQueue msgQueue;
     std::string symInputFile;
 

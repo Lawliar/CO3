@@ -485,7 +485,7 @@ void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, uns
             ExecuteBasicBlock(eachBBDep->BBID);
         }
         if(!rootTask->hasRuntimeDep()){
-            // if there is not, then, we can also construct this
+            // if there is not, then, we can also cons truct this
             for(auto eachInEdge : rootTask->inBBNonReadyLeafDeps){
                 ForwardExecution(eachInEdge, rootTask,targetReady);
             }
@@ -690,6 +690,9 @@ void Orchestrator::SendInput() {
 int Orchestrator::Run() {
     auto listen_job = pool.enqueue(&MsgQueue::Listen,&(this->msgQueue));
     int msgCounter = 0;
+    uint64_t building_total_time = 0;
+    uint64_t start_time = 0;
+    uint64_t end_time = 0;
     // get the initialization msg so that we can initialize on our side:
     while(true){
 
@@ -709,14 +712,20 @@ int Orchestrator::Run() {
         cout<<init_msg->Str()<<'\n';
         cout.flush();
 #endif
+
+        start_time = getTimeStamp();
         _sym_initialize_mem(init_msg->addr, init_msg->DR);
         if(init_msg->DR == true){
             // then the shadow mem is not set up in _sym_initialize_mem, we need to create a global iter for DR
             unsigned inputSize = boost::filesystem::file_size(g_config.inputFile);
             DR_INPUT = new WriteShadowIteratorDR(reinterpret_cast<uintptr_t>(init_msg->addr), inputSize);
         }
+        end_time = getTimeStamp();
+        building_total_time += (end_time - start_time);
+
+
         //now we know the MCU is properly initialized
-        start_time = getTimeStamp();
+
 #ifdef DEBUG_OUTPUT
         cout<<"finish "<<init_msg->Str()<<"\n\n";
         cout.flush();
@@ -734,25 +743,23 @@ int Orchestrator::Run() {
         cout<<msgCounter<< "th msg,";
         cout.flush();
 #endif
-        if( ProcessMessage(msg,msgCounter) == 0){
+        start_time = getTimeStamp();
+        int ret = ProcessMessage(msg,msgCounter);
+        delete(msg);
+        end_time = getTimeStamp();
+        building_total_time += (end_time - start_time);
+        if( ret == 0){
             // end message is received.
-            uint64_t end_message_receive_time = listen_job.get();
-            if(end_message_receive_time <= start_time){
-                cout << "End message received before the symbolic backend starts building formulae\n";
-            }else{
-                cout << "End message received time:"<< end_message_receive_time - start_time <<'\n';
-            }
-            cout << "End message processed:"<< getTimeStamp() - start_time <<'\n';
+            listen_job.get();
+            cout << "Orchestrator processing time:"<< building_total_time <<'\n';
             cout.flush();
             break;
         }
-        delete(msg);
     }
     if(DR_INPUT != nullptr){
         delete(DR_INPUT);
         DR_INPUT = nullptr;
     }
-
     return 0;
 }
 #pragma clang diagnostic pop

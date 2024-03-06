@@ -23,7 +23,7 @@ option(PROFILING_BUILD "BUILD for profiling" OFF)
 option(CO3_NO_MCU_SHADOW "MCU does not have SHADOW, so disable some sanity checks that helps debugging" OFF)
 option(CO3_NATIVE_BUILD "use natively built z3 and llvm instead of the packages from ubuntu" ON)
 option(CO3_SER2NET "use serial2net instead of the usb serial device" OFF)
-option(CO3_REPLACE "Replace the majority of SymCC's operation with CO3's optimization(should be used in combination with symbolizer, MCU's runtime). This should be turned ON by default for better performance" ON)
+option(CO3_REPLACE "Replace the majority of SymCC's operation with CO3's optimization(should be used in combination with symbolizer, MCU's runtime). This should be turned ON by default for better performance" OFF)
 
 
 set(LIBSERIALPORTS_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../deps/libserialport")

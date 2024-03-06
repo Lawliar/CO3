@@ -6,8 +6,9 @@
 #include <assert.h>
 #include <fstream>
 #include "getTimeStamp.h"
-
+#include <iostream>
 extern ring_buffer_t RingBuffer;
+
 
 Message* MsgQueue::Pop(){
     Message* ret;
@@ -31,10 +32,16 @@ void MsgQueue::Push(Message *msg) {
 
 extern std::string dbgUsbFileName;
 uint64_t MsgQueue::Listen() {
+    uint64_t start_time = 0;
+    uint64_t end_time = 0;
+    uint64_t total_receiving_time = 0;
     if(ser.used == true){
         // if we use the serial port (including the real serial port and TCP  port)
         while(true){
+            start_time = getTimeStamp();
             int received = receiveData(ser);
+            end_time = getTimeStamp();
+            total_receiving_time += (end_time - start_time);
 #ifdef DEBUG_CHECKING
             dbgNumBytesReceived += received;
 #endif
@@ -73,7 +80,9 @@ uint64_t MsgQueue::Listen() {
         }
         inputFile.close();
     }
-    return  getTimeStamp();
+
+    std::cout << "receiving time costs:"<< total_receiving_time <<'\n';
+    return  end_time;
 }
 
 MsgQueue::~MsgQueue() {

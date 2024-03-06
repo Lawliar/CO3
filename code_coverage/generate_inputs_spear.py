@@ -8,7 +8,8 @@ import time
 import re
 import json
 
-from conf import benchmark,time_budget, zfill_len, get_highest_id, get_total_time_out_err,sleep_time, timeout,serial_port,baud_rate,SER2NET, tcp_port
+from conf import benchmark,time_budget, zfill_len, get_highest_id, get_total_time_out_err,process_co3_output
+from conf import sleep_time, timeout,serial_port,baud_rate,SER2NET, tcp_port,REPLACE
 from conf import coverage_dir, estimate_inputs_needed
 
 from main import single_coverage_worker
@@ -18,7 +19,10 @@ def runSpear(benchmark, debug = False, buggy_index = 0):
     concrete_input           = "{}/concreteInputs.bin".format(spear_inter_dir)
     output_dir          = "{}/output".format(spear_inter_dir)
     tmp_output_dir      = "{}/tmp_out".format(output_dir)
-    backend_executable = "/home/lcm/github/spear/spear-code/sym_backend/build_release/qsym_backend/orchestrator"
+    if REPLACE:
+        backend_executable = "/home/lcm/github/spear/spear-code/sym_backend/build_release/qsym_backend/orchestrator"
+    else:
+        backend_executable = "/home/lcm/github/spear/spear-code/sym_backend/build_no_replace/qsym_backend/orchestrator"
     coverage_file            = os.path.join(coverage_dir,"co3.json")
     if(debug == False and os.path.exists(output_dir)):
         shutil.rmtree(output_dir)
@@ -36,6 +40,8 @@ def runSpear(benchmark, debug = False, buggy_index = 0):
     spear_break = False
 
     total_time = 0
+    total_building_time = 0
+    total_receiving_time = 0
     it = 0
     coverage = {}
     while (True):
@@ -58,18 +64,26 @@ def runSpear(benchmark, debug = False, buggy_index = 0):
                 p1.wait(timeout)
             except subprocess.TimeoutExpired:
                 print("time out, something is wrong, sleep for sometime")
+                embed()
                 p1.kill()
                 time.sleep(sleep_time)
                 total_time += timeout + sleep_time
                 continue
-            _, e = p1.communicate()
+            o, e = p1.communicate()
             try:
                 total_time += get_total_time_out_err(e) / 1000000
+                building_time, receiving_time = process_co3_output(o)
+                building_time /= 1000000
+                receiving_time /= 1000000
+                total_building_time += building_time
+                total_receiving_time += receiving_time
+            
             except IndexError as err:
                 print("program did not end well")
                 embed()
             
-            print("iter:{},cur at {} from {} to {}, time:{:.2f} / {}, edge:{}, need {} inputs to finish".format(it, cur_input_id, batch_input_id_start , batch_input_id_end, total_time , time_budget, len(coverage), estimate_inputs_needed(cur_input_id + 1, total_time, time_budget)))
+            print("iter:{},cur at {} from {} to {}, edge size:{}, need {} inputs to finish".format(it, cur_input_id, batch_input_id_start , batch_input_id_end, len(coverage), estimate_inputs_needed(cur_input_id + 1, total_time, time_budget)))
+            print("building time:{:.2f}, receiving time:{:.2f}, total time:{:.2f} / {}".format( total_building_time, total_receiving_time, total_time , time_budget))
             tmp_output_id = get_highest_id(output_dir) + 1
 
             new_edges = 0
@@ -92,7 +106,7 @@ def runSpear(benchmark, debug = False, buggy_index = 0):
                 if("-optimistic" in each_spear_output):
                     dest_file_name += "-optimistic"
                 shutil.copyfile(src_file, os.path.join(output_dir, dest_file_name))
-            print("co3 generated {} inputs, {} new edge found".format(len(os.listdir(tmp_output_dir)), new_edges))
+            print("co3 generated {} inputs, {} new edge found\n".format(len(os.listdir(tmp_output_dir)), new_edges))
             ## clean up tmp output
             shutil.rmtree(tmp_output_dir)
             os.mkdir(tmp_output_dir)
