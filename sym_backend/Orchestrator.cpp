@@ -193,8 +193,11 @@ bool Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot, Va
         auto leaf = dynamic_cast<SymVal*>(*falsePhiRoot->falsePhiLeaves.begin());
         assert( leaf != nullptr);
         // make sure the only one leaf is executed.
-        //if(! falsePhiRoot->isThisNodeReady(leaf, targetReady )){
+#if defined(CO3_REPLACE)
+        if(! falsePhiRoot->isThisNodeReady(leaf, targetReady )){
+#else
         if(! ExecuteNode(leaf, targetReady )){
+#endif
             return false;
         }
         if(SymVal::extractSymExprFromSymVal(leaf, targetReady) ==  nullptr){
@@ -217,8 +220,11 @@ bool Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot, Va
         // and each leaf must be FalsePhiLeaf
         bool allConcrete = true;
         for(auto eachLeaf : falsePhiRoot->falsePhiLeaves){
-            //if( ! falsePhiRoot->isThisNodeReady(eachLeaf, targetReady)){
+#if defined(CO3_REPLACE)
+            if( ! falsePhiRoot->isThisNodeReady(eachLeaf, targetReady)){
+#else
             if( ! ExecuteNode(eachLeaf, targetReady)){
+#endif
                 return false;
             }
             auto eachFalsePhiLeaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(eachLeaf);
@@ -406,7 +412,11 @@ bool Orchestrator::ExecuteNode(Val* nodeToExecute, Val::ReadyType targetReady) {
         }else if(isSpecial == NotSpecial){
             bool node_ready = true;
             for(auto eachDep : symVal->realChildren()){
+#if defined(CO3_REPLACE)
+                if(!symVal->isThisNodeReady(eachDep, targetReady)){
+#else
                 if(!ExecuteNode(eachDep, targetReady)){
+#endif
                     node_ready = false;
                     break;
                 }
