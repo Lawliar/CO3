@@ -53,7 +53,7 @@ public:
 
 
     ThreadPool pool;
-    CO3_SER ser;
+    CO3_SER * ser;
     MsgQueue msgQueue;
     std::string symInputFile;
 

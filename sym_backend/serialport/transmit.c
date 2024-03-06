@@ -24,41 +24,52 @@ u32 write_timeout = 1000;
 ring_buffer_t RingBuffer;
 
 #if defined(CO3_SER2NET)
-CO3_SER initSer(const char * port){
+CO3_SER* initSer(const char * port){
+    CO3_SER* ret = (CO3_SER*) malloc(sizeof(CO3_SER));
     if(strcmp(port, DUMMY_STR) == 0){
-        CO3_SER ret = {-1,false};
+        ret->tcp_handle = -1;
+        ret->used = false;
+        ret->total_bytes = 0;
         return ret;
     }
     int sock_no =  initTCPSocket(port);
-    CO3_SER ret ={sock_no,true};
+    ret->tcp_handle = sock_no;
+    ret->used = true;
+    ret->total_bytes = 0;
     return ret;
 }
 #else
-CO3_SER initSer(const char * port, int baud_rate){
+CO3_SER* initSer(const char * port, int baud_rate){
+    CO3_SER* ret = (CO3_SER*) malloc(sizeof(CO3_SER));
     if(strcmp(port,"dummy") == 0){
         OpenedSP sp = {NULL, NULL};
-        CO3_SER ret = {sp, false};
+        ret->sp = sp;
+        ret->used = false;
+        ret->total_bytes = 0;
         return ret;
     }
     OpenedSP sp = initSerialPort(port, baud_rate);
-    CO3_SER ret = {sp, true};
+    ret->sp = sp;
+    ret->used = true;
+    ret->total_bytes = 0;
     return ret;
 }
 #endif
 
-void releaseSer(CO3_SER ser){
+void releaseSer(CO3_SER* ser){
 #if defined(CO3_SER2NET)
-      close(ser.tcp_handle);
+      close(ser->tcp_handle);
 #else
-      freeSerialPort(ser.sp);
+      freeSerialPort(ser->sp);
 #endif
+    free(ser);
 }
 
-inline void sendData(CO3_SER ser, uint8_t * buf, uint32_t size ){
+inline void sendData(CO3_SER* ser, uint8_t * buf, uint32_t size ){
 #if defined(CO3_SER2NET)
-    int result = write(ser.tcp_handle, buf, size);
+    int result = write(ser->tcp_handle, buf, size);
 #else
-    int result = check(sp_blocking_write(ser.sp.port, buf, size, write_timeout));
+    int result = check(sp_blocking_write(ser->sp.port, buf, size, write_timeout));
 #endif
     if (result != size){
         fprintf(stderr,"Serial Port Timed out, %d/%d bytes sent.\n", result, size);
@@ -68,16 +79,16 @@ inline void sendData(CO3_SER ser, uint8_t * buf, uint32_t size ){
 
 #define FRAME_LEN 64
 #define HEADER_LEN 1
-int receiveData(CO3_SER ser){
+int receiveData(CO3_SER* ser){
     u8 buf[FRAME_LEN];
 #if defined(CO3_SER2NET)
-    int result = read(ser.tcp_handle,buf,HEADER_LEN);
+    int result = read(ser->tcp_handle,buf,HEADER_LEN);
     if(result < 0){
         fprintf(stderr,"reading 1-byte long header failed");
         abort();
     }
 #else 
-    int result = check(sp_blocking_read(ser.sp.port, buf, HEADER_LEN, 1000));
+    int result = check(sp_blocking_read(ser->sp.port, buf, HEADER_LEN, 1000));
 #endif
     if(result == 0){
         return 0;
@@ -91,9 +102,9 @@ int receiveData(CO3_SER ser){
     int cur = 0;
     while (cur < packet_len - HEADER_LEN){
 #if defined(CO3_SER2NET)
-        result = read(ser.tcp_handle,buf + cur, packet_len - HEADER_LEN - cur);
+        result = read(ser->tcp_handle,buf + cur, packet_len - HEADER_LEN - cur);
 #else
-        result = check(sp_blocking_read(ser.sp.port, buf, packet_len - HEADER_LEN, 1000));
+        result = check(sp_blocking_read(ser->sp.port, buf, packet_len - HEADER_LEN, 1000));
 #endif
         cur += result;
     }

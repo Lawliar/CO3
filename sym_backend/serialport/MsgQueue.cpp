@@ -35,7 +35,7 @@ uint64_t MsgQueue::Listen() {
     uint64_t start_time = 0;
     uint64_t end_time = 0;
     uint64_t total_receiving_time = 0;
-    if(ser.used == true){
+    if(ser->used == true){
         // if we use the serial port (including the real serial port and TCP  port)
         while(true){
             start_time = getTimeStamp();

@@ -21,19 +21,20 @@ typedef struct _CO3_SER{
     OpenedSP sp;
 #endif
     bool used;
+    uint64_t total_bytes;
 } CO3_SER;
 
-void sendData(CO3_SER ser, uint8_t * buf, uint32_t size);
+void sendData(CO3_SER* ser, uint8_t * buf, uint32_t size);
 
-int receiveData(CO3_SER ser);
+int receiveData(CO3_SER* ser);
 
 #if defined(CO3_SER2NET)
-CO3_SER initSer(const char *);
+CO3_SER* initSer(const char *);
 #else
-CO3_SER initSer(const char * port_name, int baud_rate);
+CO3_SER* initSer(const char * port_name, int baud_rate);
 #endif
 
-void releaseSer(CO3_SER);
+void releaseSer(CO3_SER*);
 /* Get unix time in milliseconds */
 
 

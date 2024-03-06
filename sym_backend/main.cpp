@@ -42,7 +42,7 @@ int main(int argc, const char *argv[])
 #ifdef GPROFILING
     ProfilerStart("orchestrator.prof");
 #endif
-    if(orc.ser.used){
+    if(orc.ser->used){
         orc.SendInput();
     }
 

@@ -22,7 +22,7 @@ extern "C"{
 
 class MsgQueue {
 public:
-    MsgQueue(CO3_SER ser):ser(ser){
+    MsgQueue(CO3_SER* ser):ser(ser){
 
     }
     ~MsgQueue();
@@ -32,7 +32,7 @@ public:
     Message* Pop();
     void Push(Message*);
 private:
-    CO3_SER ser;
+    CO3_SER* ser;
 #ifdef DEBUG_CHECKING
     unsigned int dbgNumBytesReceived = 0;
 #endif
