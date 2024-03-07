@@ -68,7 +68,8 @@ def runSymcc(benchmark):
                 print("Symcc did not end well")
                 embed()
 
-            print("iter:{},cur at {} from {} to {}, time:{:.2f} / {}, edge:{}, need {} inputs to finish".format(it, cur_input_id, batch_input_id_start , batch_input_id_end, total_time , time_budget, len(coverage), estimate_inputs_needed(cur_input_id + 1, total_time, time_budget)))
+            print("iter:{},cur at {} from {} to {}, edge:{}, need {} inputs to finish".format(it, cur_input_id, batch_input_id_start , batch_input_id_end, len(coverage), estimate_inputs_needed(cur_input_id + 1, total_time, time_budget)))
+            print("time:{:.2f} / {}".format(total_time , time_budget))
             ## copy the newly generated file to other places
             tmp_output_id = get_highest_id(symcc_output_dir) + 1
             
@@ -92,7 +93,7 @@ def runSymcc(benchmark):
                 if("-optimistic" in each_symcc_output):
                     dest_file_name += "-optimistic"
                 shutil.copyfile(src_file, os.path.join(symcc_output_dir, dest_file_name))
-            print("symcc generated {} inputs, {} new edge found".format(len(os.listdir(symcc_tmp_output_dir)), new_edges))
+            print("symcc generated {} inputs, {} new edge found\n".format(len(os.listdir(symcc_tmp_output_dir)), new_edges))
             
             ## clean the tmp output dir
             shutil.rmtree(symcc_tmp_output_dir)

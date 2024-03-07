@@ -9,20 +9,24 @@ import re
 import json
 
 from conf import benchmark,time_budget, zfill_len, get_highest_id, get_total_time_out_err,process_co3_output,convert_size
-from conf import sleep_time, timeout,serial_port,baud_rate,SER2NET, tcp_port,REPLACE
+from conf import sleep_time, timeout,serial_port,baud_rate,SER2NET, tcp_port,NO_REPLACE, NO_SHADOW
 from conf import coverage_dir, estimate_inputs_needed
 
 from main import single_coverage_worker
 
 def runSpear(benchmark, debug = False, buggy_index = 0):
-    spear_inter_dir          = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/Spear{}/intermediate_results".format(benchmark)
+    if NO_REPLACE:
+        backend_executable = "/home/lcm/github/spear/spear-code/sym_backend/build_no_replace/qsym_backend/orchestrator"
+        spear_inter_dir    = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/Spear{}/intermediate_results_no_replace".format(benchmark)
+    elif NO_SHADOW:
+        backend_executable = "/home/lcm/github/spear/spear-code/sym_backend/build_no_shadow/qsym_backend/orchestrator"
+        spear_inter_dir     = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/Spear{}/intermediate_results".format(benchmark)
+    else:
+        backend_executable = "/home/lcm/github/spear/spear-code/sym_backend/build_release/qsym_backend/orchestrator"
+        spear_inter_dir    = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/Spear{}/intermediate_results".format(benchmark)
     concrete_input           = "{}/concreteInputs.bin".format(spear_inter_dir)
     output_dir          = "{}/output".format(spear_inter_dir)
     tmp_output_dir      = "{}/tmp_out".format(output_dir)
-    if REPLACE:
-        backend_executable = "/home/lcm/github/spear/spear-code/sym_backend/build_release/qsym_backend/orchestrator"
-    else:
-        backend_executable = "/home/lcm/github/spear/spear-code/sym_backend/build_no_replace/qsym_backend/orchestrator"
     coverage_file            = os.path.join(coverage_dir,"co3.json")
     if(debug == False and os.path.exists(output_dir)):
         shutil.rmtree(output_dir)

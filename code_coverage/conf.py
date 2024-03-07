@@ -1,8 +1,8 @@
 import os,re,math
 
 benchmark =  "CROMU_00001"
-SER2NET = False
-REPLACE = True
+NO_SHADOW = False
+NO_REPLACE = False
 time_budget = 60 * 60 * 24 # in seconds
 serial_port = os.path.join("/","dev","ttyACM1")
 tcp_port = 3002
@@ -11,6 +11,7 @@ numExecution = 1000
 timeout = 10
 sleep_time = 10
 baud_rate = 75000000
+SER2NET = False
 
 coverage_dir = "/home/lcm/github/spear/spear-code/code_coverage/{}".format(benchmark)
 coverage_build_dir = os.path.join(coverage_dir,"build")
