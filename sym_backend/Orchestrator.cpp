@@ -630,7 +630,7 @@ void Orchestrator::SetRetAndRefreshGraph() {
     auto cur_func = getCurFunc();
     auto cur_func_name = getCurFunc()->funcname;// copy construct
     auto setRetSym = cur_func->setRetSym;
-    bool ret_sym_is_concrete = true;
+    bool hasSetRet;
     if(setRetSym != nullptr){
         Val::ReadyType targetReady = 0;
         if(setRetSym->inLoop){
@@ -640,9 +640,9 @@ void Orchestrator::SetRetAndRefreshGraph() {
         }
         BackwardExecution(setRetSym,  targetReady);
         assert(setRetSym->ready == targetReady);
-        if(SymVal::extractSymExprFromSymVal(setRetSym,targetReady) != nullptr){
-            ret_sym_is_concrete = false;
-        }
+        hasSetRet = true;
+    }else{
+        hasSetRet = false;
     }
 
 
@@ -654,7 +654,8 @@ void Orchestrator::SetRetAndRefreshGraph() {
         }
     }
     assert(funcId != UINT_MAX);
-    if( ret_sym_is_concrete == false || cur_func->changed == true){
+    if( hasSetRet == true || cur_func->changed == true){
+        // we need to have a fresh new graph when it has a ret, and the cur func has executed at least one instruction.
         delete cur_func;
         symGraphs[funcId] = new SymGraph(*vanillaSymGraphs.at(funcId));
     }

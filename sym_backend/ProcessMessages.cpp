@@ -35,7 +35,6 @@ int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
                 cout<<func_msg->Str()<< ':'<<nextFunc->funcname<<'\n';
                 cout.flush();
 #endif
-
             UpdateCallStackHashCall(func_msg->id);
             if(callStack.size() == 0){
                 callStack.push(nextFunc);
