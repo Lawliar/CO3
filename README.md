@@ -2,14 +2,14 @@
 ```
 - USBtest: helper script to send and receive messages through the serial port for debugging purpose
 - code_coverage: script that we used to compare code coverage and speed.
-- deps: projects that CO3 is dependent upon
+- deps: projects that CO3 is dependent upon (except symcc)
 - firmware: source code for the firmware images used in the paper.
 - fuzzer: fuzzing and CO3 coordinator script borrowed from SymCC.
 - pass: the LLVM instrumentation pass
 - sym_backend: the symbolizer running on the workstation.
 - symbion_concolic: scripts that we use to run symbion in a concolic execution way.
 - symcc_benchmark: benchmark we use to evaluate SymCC.
-- test: visualization code to generate control- data flow graph. 
+- test: visualization code for the SVFG. 
 ```
 ## before you start:
 1. many components rely on cmake, if you see `cmake build`, it means:
