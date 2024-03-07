@@ -314,45 +314,55 @@ void _sym_initialize()
     REPORT_OP(OP3)
 
 #define CO3_DEFINE_BINARY_OPERATION(NAME) \
-    void NAME(bool input1, bool input2, uint16_t symID){  \
+    bool NAME(bool input1, bool input2, uint16_t symID){  \
         CO3_REPORT_0_OP                                                \
+        return true;                                  \
     }
 
 
-void _sym_build_integer(int val, bool is_signed, uint16_t symID){
+bool _sym_build_integer(uint32_t val, uint8_t is_signed, uint16_t symID){
     CO3_REPORT_1_OP(val)
+    return true;
 }
 //void _sym_build_integer128
 //void _sym_build_float
 
-void _sym_build_null_pointer(uint16_t symID){
+bool _sym_build_null_pointer(uint16_t symID){
     CO3_REPORT_0_OP
+    return true;
 }
 
-void _sym_build_true(uint16_t symID){
+bool _sym_build_true(uint16_t symID){
     CO3_REPORT_0_OP
+    return true;
 }
 
-void _sym_build_false(uint16_t symID){
+bool _sym_build_false(uint16_t symID){
     CO3_REPORT_0_OP
+    return true;
 }
 
-void _sym_build_bool(bool input, uint16_t symID){
+bool _sym_build_bool(bool input, uint16_t symID){
     CO3_REPORT_1_OP(input)
+    return true;
 }
 
-void _sym_build_sext(bool input, int8_t ext, uint16_t symID){
+bool _sym_build_sext(bool input, int8_t ext, uint16_t symID){
     CO3_REPORT_0_OP
+    return true;
 }
 
-void _sym_build_zext(bool input, int8_t ext, uint16_t symID){
+bool _sym_build_zext(bool input, int8_t ext, uint16_t symID){
     CO3_REPORT_0_OP
+    return true;
 }
-void _sym_build_trunc(bool input, int8_t ext, uint16_t symID){
+bool _sym_build_trunc(bool input, int8_t ext, uint16_t symID){
     CO3_REPORT_0_OP
+    return true;
 }
-void _sym_build_bswap(bool input, uint16_t symID){
+bool _sym_build_bswap(bool input, uint16_t symID){
     CO3_REPORT_0_OP
+    return true;
 }
 
 
@@ -388,8 +398,9 @@ CO3_DEFINE_BINARY_OPERATION(_sym_build_less_equal)
 
 
 
-void _sym_build_bool_to_bits(bool input, int8_t bits, uint16_t symID){
+bool _sym_build_bool_to_bits(bool input, int8_t bits, uint16_t symID){
     CO3_REPORT_0_OP
+    return true;
 }
 
 
@@ -403,8 +414,9 @@ void _sym_set_parameter_expression(int8_t para_index, bool input, uint16_t symID
     CO3_REPORT_0_OP
 }
 
-void _sym_get_parameter_expression(int8_t para_index, uint16_t symID){
+bool _sym_get_parameter_expression(int8_t para_index, uint16_t symID){
     CO3_REPORT_0_OP
+    return true;
 }
 
 void _sym_set_return_expression(bool input, uint16_t symID)
@@ -412,9 +424,10 @@ void _sym_set_return_expression(bool input, uint16_t symID)
     CO3_REPORT_0_OP
 }
 
-void _sym_get_return_expression(uint16_t symID)
+bool _sym_get_return_expression(uint16_t symID)
 {
     CO3_REPORT_0_OP
+    return true;
 }
 
 void _sym_build_memcpy(char * dest, char * src, int len, uint16_t symID){
@@ -429,28 +442,33 @@ void _sym_build_memmove(char * dest, char * src, int len, uint16_t symID){
     CO3_REPORT_3_OPS(dest, src, len)
 }
 
-void _sym_build_read_memory(char * ptr, int size, int8_t is_little, uint16_t symID){
+bool _sym_build_read_memory(char * ptr, int size, int8_t is_little, uint16_t symID){
     CO3_REPORT_1_OP(ptr)
+    return true;
 }
 
 void _sym_build_write_memory(char * ptr, int size, bool input, int8_t is_little, uint16_t symID){
     CO3_REPORT_1_OP(ptr)
 }
 
-void _sym_build_zero_bytes(int size, uint16_t symID){
+bool _sym_build_zero_bytes(int size, uint16_t symID){
     CO3_REPORT_0_OP
+    return true;
 }
 
-void _sym_notify_select(bool cond, bool if_true, bool if_false, char * base_addr, int8_t offset, uint16_t symID){
+bool _sym_notify_select(bool cond, bool if_true, bool if_false, char * base_addr, int8_t offset, uint16_t symID){
     CO3_REPORT_1_OP(cond)
+    return true;
 }
 
-void _sym_build_insert(bool aggr_operand, bool inserted_operand, int offset, int8_t is_little, uint16_t symID){
+bool _sym_build_insert(bool aggr_operand, bool inserted_operand, int offset, int8_t is_little, uint16_t symID){
     CO3_REPORT_0_OP
+    return true;
 }
 
-void _sym_build_extract(bool input, int32_t offset, int32_t store_size, int8_t is_little, uint16_t symID){
+bool _sym_build_extract(bool input, int32_t offset, int32_t store_size, int8_t is_little, uint16_t symID){
     CO3_REPORT_0_OP
+    return true;
 }
 
 void _sym_try_alternative(bool input1, bool input2, uint16_t symID){

@@ -9,6 +9,7 @@ extern int indentNum;
 
 int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
     int ret = 1;
+
     if(auto normal_msg = dynamic_cast<NormalMessage*>(msg); normal_msg != nullptr){
         uint16_t symID = normal_msg->symID;
         auto cur_func = getCurFunc();

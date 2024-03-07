@@ -258,7 +258,11 @@ bool Orchestrator::ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf * falsePhiLeaf, V
 
     SymExpr originalSymExpr = nullptr;
     bool allConcrete = true;
+#if defined(CO3_REPLACE)
     if(!falsePhiLeaf->isThisNodeReady(falsePhiLeafOriginalVal, targetReady)){
+#else
+    if(!ExecuteNode(falsePhiLeafOriginalVal, targetReady)){
+#endif
         return false;
     }else{
         originalSymExpr = SymVal::extractSymExprFromSymVal(falsePhiLeafOriginalVal, targetReady);
@@ -268,7 +272,11 @@ bool Orchestrator::ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf * falsePhiLeaf, V
         }
     }
     for(auto eachPeerOrig: falsePhiLeaf->peerOriginals){
+#if defined(CO3_REPLACE)
         if(!falsePhiLeaf->isThisNodeReady(eachPeerOrig, targetReady)){
+#else
+        if(!ExecuteNode(eachPeerOrig, targetReady)){
+#endif
             return false;
         }else{
             if(SymVal::extractSymExprFromSymVal(eachPeerOrig, targetReady) != nullptr){
