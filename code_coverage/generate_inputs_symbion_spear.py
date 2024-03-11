@@ -1,28 +1,50 @@
-from generate_inputs_symcc_spear import serial_port, numIteration, time_budget, zfill_len, runSpear,get_highest_id
+from conf import time_budget, zfill_len,get_highest_id,convert_size
+
+
+benchmark = "PLC"
+import sys
+
+symbion_dir = "../symbion_concolic"
+sys.path.append(symbion_dir)
+import testPLC
+
 import os,shutil,time
+from IPython import embed
+import sys
+import threading
 
-import sys,subprocess
 
-_benchmark = "PLC"
+class RunWithTimeout(object):
+    def __init__(self, function, args):
+        self.function = function
+        self.args = args
+        self.answer = None
 
+    def worker(self):
+        self.answer = self.function(*self.args)
+
+    def run(self, timeout):
+        thread = threading.Thread(target=self.worker)
+        thread.start()
+        thread.join(timeout)
+        return self.answer
 
 def runSymbion(benchmark):
     ## getting the input
     spear_inter_dir          = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/Symbion{}/intermediate_results".format(benchmark)
     concrete_input           = "{}/concreteInputs.bin".format(spear_inter_dir)
 
+     
 
-    symbion_script         = "/home/lcm/github/spear/spear-code/symbion_concolic/test-{}.py".format(benchmark)
-
-    symbion_dir                = os.path.join(os.path.dirname(symbion_script), benchmark) 
-    symbion_output_dir          = "{}/output".format(symbion_dir)
-    symbion_tmp_output_dir      = "{}/tmp_out".format(symbion_dir)
+    symbion_bm_dir                = os.path.join( symbion_dir, benchmark) 
+    symbion_output_dir          = "{}/output".format(symbion_bm_dir)
+    symbion_tmp_output_dir      = "{}/tmp_out".format(symbion_bm_dir)
     
 
 
-    if(os.path.exists(symbion_dir)):
-        shutil.rmtree(symbion_dir)
-    os.mkdir(symbion_dir)
+    if(os.path.exists(symbion_bm_dir)):
+        shutil.rmtree(symbion_bm_dir)
+    os.mkdir(symbion_bm_dir)
     os.mkdir(symbion_output_dir)
     os.mkdir(symbion_tmp_output_dir)
 
@@ -35,31 +57,35 @@ def runSymbion(benchmark):
     symbion_start_time = time.time()
     symbion_break = False
 
-    for it in range(numIteration):
+    total_time = 0
+    trans_time = 0
+    totalNumBytes = 0
+    while(True):
         batch_size = len(range(symbion_input_cur_id, symbion_output_cur_id))
         cur_symbion_input_id = symbion_input_cur_id
         while True:
             if(cur_symbion_input_id >= symbion_output_cur_id):
                 break
-            if(time.time() - symbion_start_time >=  time_budget):
+            if(total_time >=  time_budget):
                 symbion_break = True
                 break
             symbion_input_file = os.path.join(symbion_output_dir, str(cur_symbion_input_id).zfill(zfill_len))
-            p1 = subprocess.Popen(
-                ["python",symbion_script,"-i",symbion_input_file, "-o",symbion_tmp_output_dir],
-                stdout=subprocess.DEVNULL,
-                #stderr=subprocess.DEVNULL
-                )
+            with open(symbion_input_file,"rb") as wfile:
+                concrete_input  = wfile.read()
             
             repeat = False
-            try:
-                p1.wait(45)
-            except subprocess.TimeoutExpired:
-                print("timed out, something is wrong at the MCU moved on")
-                p1.kill()
-                repeat = True
-            finally:
-                print("iter:{},cur: {} / {},total:{},time:{} / {}".format(it, cur_symbion_input_id - symbion_input_cur_id ,batch_size ,cur_symbion_input_id, int(time.time() - symbion_start_time) , time_budget))
+            t = RunWithTimeout(testPLC.runSymbion, (concrete_input, symbion_tmp_output_dir))
+            answer = t.run(40)
+            if(answer == None):
+                repeat  = True
+            if(repeat == True):
+                continue
+            
+            cur_total_time, cur_trans_time, numBytes = answer
+            total_time += cur_total_time
+            trans_time += cur_trans_time
+            totalNumBytes += numBytes
+            print("cur: {},  transmit {} costs:{:.2f} , total time:{:.2f} / {}".format(cur_symbion_input_id, convert_size(totalNumBytes), trans_time, total_time, time_budget))
             
             if(repeat):
                 continue
@@ -83,7 +109,6 @@ def runSymbion(benchmark):
     shutil.rmtree(symbion_tmp_output_dir)
     return symbion_output_cur_id, cur_symbion_input_id, time.time() - symbion_start_time
 def main():
-    benchmark = "Steering_Control"
 
     symbion_output_num, symbion_input_num,symbion_total_time = runSymbion(benchmark)
     #spear_output_num, spear_input_num,spear_total_time = runSpear(benchmark)

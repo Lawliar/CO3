@@ -2,7 +2,7 @@ import os,re,math
 
 benchmark =  "CROMU_00001"
 NO_SHADOW = False
-NO_REPLACE = False
+NO_REPLACE = True
 time_budget = 60 * 60 * 24 # in seconds
 serial_port = os.path.join("/","dev","ttyACM1")
 tcp_port = 3002
