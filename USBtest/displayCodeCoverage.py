@@ -62,6 +62,7 @@ indent = 0
 def parsePackage(package,parseStart = False):
     cur = 0
     result = []
+    ended = False
     if(parseStart):
         assert(package[cur] == MsgTypes.SYM_INIT)
         addr  = int.from_bytes(package[cur + 1: cur + 5],byteorder='little')
@@ -72,13 +73,14 @@ def parsePackage(package,parseStart = False):
             cur += 1
             #print("SymEnd")
             assert(indent == 0)
+            ended = True
         else:
             r = hex(int.from_bytes(package[cur:cur+4],byteorder='little'))
             #print("{}".format(r))
             assert(package[cur + 4] == 10) ## ascii for '\n
             cur += 5
             result.append(r)
-    return result
+    return result, ended
     
 
 def main(data):
@@ -92,7 +94,8 @@ def main(data):
         payload_len = package_len - 1
         package = data[cur + 1 : cur + 1 +  payload_len]
         try:
-            result += parsePackage(package,parseStart=parse_start)
+            bbs,ended = parsePackage(package,parseStart=parse_start)
+            result += bbs
         except:
             print("parsing wrong")
             embed()

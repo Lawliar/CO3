@@ -4,15 +4,38 @@ from struct import *
 import sys,os
 import argparse
 import time
+from displayCodeCoverage import parsePackage
 
 MAX_INPUT_LEN = 1024
 
 plaintext_input = b'hello serial!'
 
+
+def bb_send_receive(data,rate,port):
+    inputLen = len(data) + 4
+    data =  pack('<I', inputLen) + data
+    parse_start = True
+    result = []
+    ser =  serial.Serial(port,baudrate=rate)
+    ser.write(data)
+    while(True):
+        pack_len = ser.read(1)[0]
+        pack_len = pack_len - 1
+        package = ser.read(pack_len)
+        try:
+            bbs, ended = parsePackage(package,parseStart=parse_start)
+            result += bbs
+            if(ended):
+                ser.close()
+                return result
+        except:
+            print("parsing wrong")
+            assert(False)
+        parse_start = False
+        
 def send_receive(data,rate,port):
     inputLen = len(data) + 4
     data =  pack('<I', inputLen) + data
-
     with open("input_data","wb") as wfile:
         wfile.write(data)
     
@@ -32,6 +55,7 @@ def send_receive(data,rate,port):
         print(len(r))
         with open("data",'wb') as wfile:
             wfile.write(r)
+    return r
 
 def send(data,rate,port):
     inputLen = len(data) + 4
@@ -44,26 +68,27 @@ def send(data,rate,port):
         ser.timeout = 5
         ser.write(data)
 
+def prepare_data(input_file):
+    assert(os.path.exists(input_file))
+    with open(input_file,"rb") as rfile:
+        input_data = rfile.read()
+
+    if(len(input_data) > MAX_INPUT_LEN):
+        input_data = input_data[:MAX_INPUT_LEN]
+
+    return input_data
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-p","--port",type=str,required=False, help="Serial port for feeding input",default="/dev/ttyACM1")
     parser.add_argument("-b","--baud", type=int,required=False, help="Baud rate for the specified serial port",default=115200)
     parser.add_argument("-i","--input_file",type=str,required=False,help="if you want to feed a binary file instead of the default string", default="")
     args = parser.parse_args()
-    input_data = b'' 
     if(args.input_file != "" ):
-        assert(os.path.exists(args.input_file))
-        with open(args.input_file,"rb") as rfile:
-            input_data = rfile.read()
-
-    if(len(input_data) > MAX_INPUT_LEN):
-        input_data = input_data[:MAX_INPUT_LEN]
-
-    if(len(input_data) == 0):
-        data = plaintext_input
+        input_data = prepare_data(args.input_file)
     else:
-        data = input_data
-    send_receive(data,args.baud,args.port)
+        input_data = plaintext_input
+    send_receive(input_data,args.baud,args.port)
     
 if __name__ == "__main__":
     main()

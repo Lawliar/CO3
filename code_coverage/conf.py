@@ -31,7 +31,7 @@ if not FW_COVERAGE:
 import sys
 sys.path.append("../USBtest")
 
-from serialEcho import send, send_receive,prepare_data
+from serialEcho import send, bb_send_receive,prepare_data
 
 
 import displayCodeCoverage
@@ -109,8 +109,7 @@ def convert_size(size_bytes):
 
 def fw_coverage_worker(input_file):
     input_data = prepare_data(input_file)
-    bb_data =  send_receive(input_data, baud_rate, bb_serial_port, False)
-    parsed_bb = displayCodeCoverage.main(bb_data)
+    parsed_bb =  bb_send_receive(input_data, baud_rate, bb_serial_port)
     return parsed_bb
 
 def single_coverage_worker(input_file):
