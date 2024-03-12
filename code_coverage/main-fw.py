@@ -8,14 +8,7 @@ import threading
 import time
 import struct
 
-import sys
-sys.path.append("../USBtest")
 
-from serialEcho import send
-
-import displayCodeCoverage
-
-import serial
 
 dbg_print = False
 
@@ -39,29 +32,7 @@ def runOne(input_dir):
         inputLen = len(concrete_input) + 4
         concrete_input =  struct.pack('<I', inputLen) + concrete_input
 
-        broken = False
-        with serial.Serial('/dev/ttyACM1',baudrate=1000000) as ser:
-            ser.timeout = 0.1
-            ser.write(concrete_input)
-            r = b''
-            while True:
-                p_len = ser.read(1)
-                if(len(p_len) != 1):
-                    break
-                r += p_len
-                content_len = int.from_bytes(p_len,byteorder='little') - 1
-                p_content = ser.read(content_len)
-                if(len(p_content) != content_len):
-                    break
-                r += p_content
-                if r[-1] == displayCodeCoverage.MsgTypes.SYM_END and r[-2] == 10:
-                    broken = True
-                    break
-        try:
-            parsed_bbs = displayCodeCoverage.main(r)
-        except:
-            print("weird data collected")
-            embed()
+        
         for bb in parsed_bbs:
             ret.add(bb)
         counter += 1

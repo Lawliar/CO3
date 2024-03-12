@@ -1,10 +1,12 @@
-import os,re,math
+import os,re,math,subprocess
+from IPython import embed
 
-benchmark =  "CROMU_00001"
+benchmark =  "PLC"
 NO_SHADOW = False
-NO_REPLACE = True
+NO_REPLACE = False
 time_budget = 60 * 60 * 24 # in seconds
 serial_port = os.path.join("/","dev","ttyACM1")
+bb_serial_port = os.path.join("/","dev","ttyACM3")
 tcp_port = 3002
 zfill_len = 12
 numExecution = 1000
@@ -12,14 +14,28 @@ timeout = 10
 sleep_time = 10
 baud_rate = 75000000
 SER2NET = False
+FW_COVERAGE = True
 
 coverage_dir = "/home/lcm/github/spear/spear-code/code_coverage/{}".format(benchmark)
-coverage_build_dir = os.path.join(coverage_dir,"build")
-coverage_executable = os.path.join(coverage_build_dir,"out")
 
-assert(os.path.exists(coverage_dir))
-assert(os.path.exists(coverage_build_dir))
-assert(os.path.exists(coverage_executable))
+if not FW_COVERAGE:
+    coverage_build_dir = os.path.join(coverage_dir,"build")
+    coverage_executable = os.path.join(coverage_build_dir,"out")
+
+    assert(os.path.exists(coverage_dir))
+    assert(os.path.exists(coverage_build_dir))
+    assert(os.path.exists(coverage_executable))
+
+
+
+import sys
+sys.path.append("../USBtest")
+
+from serialEcho import send, send_receive,prepare_data
+
+
+import displayCodeCoverage
+
 
 def get_highest_id(input_dir):
     ## this aggegates all Qsym generated file, and get the highest id
@@ -61,8 +77,7 @@ def process_co3_output(input):
     num_bytes = 0
     while True:
         if(cur < 0):
-            print("no message found")
-            assert(False)
+            return -1, -1, -1
         try:
             s = splitted[cur].decode("ascii")
         except IndexError as e :
@@ -91,3 +106,25 @@ def convert_size(size_bytes):
    p = math.pow(1024, i)
    s = round(size_bytes / p, 2)
    return "%s %s" % (s, size_name[i])
+
+def fw_coverage_worker(input_file):
+    input_data = prepare_data(input_file)
+    bb_data =  send_receive(input_data, baud_rate, bb_serial_port, False)
+    parsed_bb = displayCodeCoverage.main(bb_data)
+    return parsed_bb
+
+def single_coverage_worker(input_file):
+    os.path.exists(input_file)
+    assert(os.path.isabs(input_file))
+    p1 = subprocess.Popen(["cat", input_file], stdout=subprocess.PIPE)
+    exit_status = p1.wait()
+    if(exit_status != 0):
+        print("cat failed")
+        embed()
+    p2 = subprocess.run([coverage_executable], stdin=p1.stdout, stdout=subprocess.PIPE)
+    lines = p2.stdout.decode('utf-8')
+    for eachline in lines.split('\n'):
+        if(not eachline.startswith('cc:')):
+            continue
+        eachline = eachline.strip()[3:]
+        yield eachline
