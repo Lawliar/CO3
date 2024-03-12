@@ -111,6 +111,21 @@ Val::ReadyType SymVal_sym_TruePhi::getDepTargetReady(Val * nodeInQuestion) {
     }
 }
 
+Val::ReadyType SymVal_sym_notify_select::getDepTargetReady(Val * nodeInQuestion) {
+    Val::ReadyType current_ready = ready;
+    if(nodeInQuestion->BBID == BBID){
+        // if the select instruction and the selected instruction is inside the same BB
+        // the select instruction must come after the selected instruction (right?)
+        // otherwise the LLVM IR would be invalid
+        return current_ready + 1;
+    }else {
+        if(nodeInQuestion->inLoop){
+            return nodeInQuestion->ready;
+        }else {
+            return 1;
+        }
+    }
+}
 
 vector<Val*> Val::realChildren() {
     vector<Val*> realChildren;
@@ -172,7 +187,14 @@ SymExpr SymVal::extractSymExprFromSymVal(SymVal * op, ReadyType targetReady) {
         }else {
             ret = tmpTruePhi->historyValues.back().second;
         }
-    }else if(auto tmpNull = dynamic_cast<SymVal_NULL*>(op);tmpNull != nullptr) {
+    }else if(auto tmpSelect = dynamic_cast<SymVal_sym_notify_select*>(op);tmpSelect!= nullptr){
+        if(tmpSelect->historyValues.size() == 0){
+            ret = nullptr;
+        }else {
+            ret = tmpSelect->historyValues.back().second;
+        }
+    }
+    else if(auto tmpNull = dynamic_cast<SymVal_NULL*>(op);tmpNull != nullptr) {
         ret = nullptr;
     }
     else{
@@ -419,6 +441,7 @@ void SymVal_sym_try_alternative::Construct(ReadyType targetReady) {
 }
 
 void SymVal_sym_notify_select::Construct(Val::ReadyType targetReady){
+    assert(false);
     assert(targetReady == (ready + 1));
 
     auto condOperand = dynamic_cast<RuntimeIntVal*>(In_edges.at(0));

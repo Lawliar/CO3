@@ -106,6 +106,7 @@ int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
             auto cur_func = getCurFunc();
             cur_func->changed = true;
             auto truePhi =  dynamic_cast<SymVal_sym_TruePhi*>(cur_func->Nodes.at(cur_func->symID2offMap.at(phi_msg->symid)));
+            assert(truePhi != nullptr);
             UpdateCallStackHashBB(truePhi->BBID);
 
             // get the chosen Symval
@@ -132,12 +133,24 @@ int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
             cur_func->changed = true;
             auto* notifySelect = dynamic_cast<SymVal_sym_notify_select*>(cur_func->Nodes.at(cur_func->symID2offMap.at(select_msg->symid)));
             assert(notifySelect != nullptr);
+            UpdateCallStackHashBB(notifySelect->BBID);
 
             auto* cond_node = dynamic_cast<RuntimeIntVal*>(notifySelect->In_edges.at(0));
             assert(cond_node != nullptr);
             cond_node->Assign(select_msg->cond);
 
-            BackwardExecution(notifySelect, notifySelect->ready + 1);
+            SymVal * val = nullptr;
+            if(static_cast<bool>(cond_node->Val)){
+                val = dynamic_cast<SymVal*>(notifySelect->In_edges.at(1));
+            }else{
+                val = dynamic_cast<SymVal*>(notifySelect->In_edges.at(2));
+            }
+            auto desiredReady = notifySelect->getDepTargetReady(val);
+            BackwardExecution(val, desiredReady);
+            assert(notifySelect->isThisNodeReady(val, desiredReady));
+            auto symExpr = SymVal::extractSymExprFromSymVal(val,desiredReady);
+            notifySelect->historyValues.push_back(make_pair(select_msg->cond, symExpr));
+            notifySelect->ready++;
 #ifdef DEBUG_OUTPUT
             cout<<"finish "<<select_msg->Str()<<"\n\n";
                 cout.flush();

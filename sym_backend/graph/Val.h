@@ -259,7 +259,6 @@ public:
 
 
 DECLARE_SYMVAL_TYPE2(_sym_try_alternative)
-DECLARE_SYMVAL_TYPE3(_sym_notify_select)
 
 DECLARE_SYMVAL_TYPE0(_NULL) // NULL valued symval found from compile time
 
@@ -445,6 +444,22 @@ public:
     ~SymVal_sym_FalsePhiLeaf(){In_edges.clear();
         tmpIn_edges.clear(); UsedBy.clear();
         peerOriginals.clear();tmpPeerOriginals.clear();}
+};
+
+class SymVal_sym_notify_select : public SymVal{
+public:
+    void Construct(ReadyType) override;
+    static const unsigned numOps = 3;
+    Val::ReadyType getDepTargetReady(Val*);
+    vector<pair<Val::ArgIndexType, SymExpr> > historyValues;
+    SymVal_sym_notify_select(SymIDType symid,SymIDType symidr, BasicBlockIdType bid,
+                  ValVertexType dep1, ValVertexType dep2,
+                  ValVertexType dep3 ): SymVal(symid,symidr,"_sym_notify_select", bid){
+               tmpIn_edges[0] = dep1;
+               tmpIn_edges[1] = dep2;
+               tmpIn_edges[2] = dep3;}
+    SymVal_sym_notify_select(const SymVal_sym_notify_select & other): SymVal(other) {}
+    ~SymVal_sym_notify_select(){In_edges.clear();tmpIn_edges.clear(); UsedBy.clear();}
 };
 
 #endif //SYMBACKEND_VAL_H

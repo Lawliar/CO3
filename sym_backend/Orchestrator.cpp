@@ -312,31 +312,12 @@ bool Orchestrator::ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf * falsePhiLeaf, V
     }
     return true;
 }
-bool Orchestrator::ExecuteSelect(SymVal_sym_notify_select* ntfSelect, Val::ReadyType targetReady){
-    // this seems overlapping a lot with the construct function, there might be something we can do about this.
-    if(ntfSelect->isThisNodeReady(ntfSelect->In_edges.at(0),targetReady)){
-        auto condOperand = dynamic_cast<RuntimeIntVal*>(ntfSelect->In_edges.at(0));
-        assert(condOperand != nullptr);
-        if(condOperand->Unassigned){
-            ntfSelect->Construct(targetReady);
-            return true;
-        }
-        if(static_cast<bool>(condOperand->Val)){
-            return ExecuteNode(ntfSelect->In_edges.at(1), targetReady);
-        }else{
-            return ExecuteNode(ntfSelect->In_edges.at(2), targetReady);
-        }
-    }else{
-        return false;
-    }
-}
 
 SpecialNodeReturn Orchestrator::ExecuteSpecialNode(SymVal *symval, Val::ReadyType targetReady) {
     auto notifyCall = dynamic_cast<SymVal_sym_notify_call*>(symval);
     //auto tryAlternative = dynamic_cast<SymVal_sym_try_alternative*>(symval);
     auto truePhi = dynamic_cast<SymVal_sym_TruePhi*>(symval);
     auto symNull = dynamic_cast<SymVal_NULL*>(symval);
-    auto notifySelect = dynamic_cast<SymVal_sym_notify_select*>(symval);
     if(notifyCall != nullptr  || truePhi != nullptr || symNull != nullptr){
         // notifycall and true phi are handled else where
         // tryAlternative are simply ignored(for now)
@@ -361,13 +342,7 @@ SpecialNodeReturn Orchestrator::ExecuteSpecialNode(SymVal *symval, Val::ReadyTyp
             return SpecialNotReady;
         }
     }
-    if(notifySelect != nullptr){
-        if(ExecuteSelect(notifySelect, targetReady)){
-            return SpecialConstructed;
-        }else{
-            return SpecialNotReady;
-        }
-    }
+
     return NotSpecial;
 }
 

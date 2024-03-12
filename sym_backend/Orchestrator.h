@@ -38,7 +38,6 @@ public:
     void UpdateCallStackRet(unsigned);
     bool ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot*, Val::ReadyType);
     bool ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf*, Val::ReadyType);
-    bool ExecuteSelect(SymVal_sym_notify_select*, Val::ReadyType );
 
     SpecialNodeReturn ExecuteSpecialNode(SymVal*, Val::ReadyType);
 

@@ -789,11 +789,6 @@ SymGraph::RootTask* SymGraph::GetRootTask(SymVal * root) {
         old_rootTask->Refresh();
         return old_rootTask;
     }
-#ifdef DEBUG_CHECKING
-    if(funcname == "receive_cgc_until" && root->symID){
-        __asm__("nop");
-    }
-#endif
     SymGraph::BasicBlockTask* rootBBTask = bbTasks.at(root->BBID);
     RootTask* rootTask = new RootTask(root, rootBBTask);
     queue<Val*> work_queue;
