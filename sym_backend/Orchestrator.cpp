@@ -21,7 +21,7 @@ int indentNum = 4;
 
 
 extern WriteShadowIteratorDR * DR_INPUT;
-
+extern bool co3_solver_checked;
 
 #if defined(CO3_SER2NET)
 Orchestrator::Orchestrator(std::string inputDir, std::string sp_port, int baud_rate):ser(initSer(sp_port.c_str())),pool(2),msgQueue(ser)
@@ -697,16 +697,12 @@ int Orchestrator::Run() {
         cout.flush();
 #endif
 
-        start_time = getTimeStamp();
         _sym_initialize_mem(init_msg->addr, init_msg->DR);
         if(init_msg->DR == true){
             // then the shadow mem is not set up in _sym_initialize_mem, we need to create a global iter for DR
             unsigned inputSize = boost::filesystem::file_size(g_config.inputFile);
             DR_INPUT = new WriteShadowIteratorDR(reinterpret_cast<uintptr_t>(init_msg->addr), inputSize);
         }
-        end_time = getTimeStamp();
-        building_total_time += (end_time - start_time);
-
 
         //now we know the MCU is properly initialized
 
@@ -716,6 +712,7 @@ int Orchestrator::Run() {
 #endif
         break;
     }
+    uint64_t batch_build_time = 0;
     while(true){
         Message* msg = msgQueue.Pop();
         if(msg == nullptr){
@@ -731,7 +728,7 @@ int Orchestrator::Run() {
         int ret = ProcessMessage(msg,msgCounter);
         delete(msg);
         end_time = getTimeStamp();
-        building_total_time += (end_time - start_time);
+        batch_build_time += (end_time - start_time);
         if( ret == 0){
             // end message is received.
             listen_job.get();
@@ -739,6 +736,11 @@ int Orchestrator::Run() {
             cout << "Bytes transmitted:" << ser->total_bytes<<'\n';
             cout.flush();
             break;
+        }
+        if(co3_solver_checked){
+            co3_solver_checked = false;
+            building_total_time += batch_build_time;
+            batch_build_time = 0;
         }
     }
     if(DR_INPUT != nullptr){

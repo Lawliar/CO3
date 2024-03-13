@@ -44,6 +44,7 @@ def runSpear(benchmark, debug = False, buggy_index = 0):
     spear_break = False
 
     total_time = 0
+    total_runtime = 0
     total_building_time = 0
     total_receiving_time = 0
     total_num_bytes = 0

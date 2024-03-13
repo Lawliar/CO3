@@ -1,7 +1,7 @@
 import os,re,math,subprocess
 from IPython import embed
 
-benchmark =  "PLC"
+benchmark =  "CROMU_00001"
 NO_SHADOW = False
 NO_REPLACE = False
 time_budget = 60 * 60 * 24 # in seconds
@@ -14,7 +14,7 @@ timeout = 10
 sleep_time = 10
 baud_rate = 75000000
 SER2NET = False
-FW_COVERAGE = True
+FW_COVERAGE = False
 
 coverage_dir = "/home/lcm/github/spear/spear-code/code_coverage/{}".format(benchmark)
 

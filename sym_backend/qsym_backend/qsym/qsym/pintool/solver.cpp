@@ -2,6 +2,9 @@
 #include <byteswap.h>
 #include "solver.h"
 #include "getTimeStamp.h"
+
+
+bool co3_solver_checked = false;
 namespace qsym {
 
 namespace {
@@ -135,10 +138,14 @@ z3::check_result Solver::check() {
     // timeout can cause exception
     res = z3::unknown;
   }
+  assert(co3_solver_checked == false);
+  co3_solver_checked = true;
   uint64_t cur = getTimeStamp();
   uint64_t elapsed = cur - before;
   solving_time_ += elapsed;
-  LOG_STAT("SMT: { \"solving_time\": " + decstr(solving_time_) + " }\n");
+  LOG_STAT(
+            "SMT: { \"solving_time\": " + decstr(solving_time_) + ", "
+            + "\"total_time\": " + decstr(cur - start_time_) + " }\n");
   return res;
 }
 
