@@ -44,6 +44,11 @@ int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
                 assert(callStack.top() == nullptr);
                 callStack.top() = nextFunc;
             }
+            // now we are in the new func, get Parameter first
+            auto curFunc = getCurFunc();
+            for(auto eachGetPara : curFunc->getParametersSym){
+                ExecuteNode(eachGetPara, 1);
+            }
 #ifdef DEBUG_OUTPUT
             cout<<"finish "<<func_msg->Str()<< ':'<<nextFunc->funcname<<"\n\n";
                 cout.flush();
@@ -181,7 +186,6 @@ int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
             // assign the Val from msg to the RuntimePtr's Val, and increase the ready value of that runtime operand by 1, and build this node
             // and then move on to this parents
             UpdateCallStackHashBB(readMemSymVal->BBID);
-
             auto runtime_operand = dynamic_cast<RuntimeIntVal*>(readMemSymVal->In_edges.at(0));
             assert(runtime_operand != nullptr);
             runtime_operand->Assign(sym_read_mem_msg->ptr);
@@ -279,7 +283,6 @@ int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
             assert(buildConstraintVal != nullptr);
 
             UpdateCallStackHashBB(buildConstraintVal->BBID);
-
 
             auto runtime_value = dynamic_cast<RuntimeIntVal*>(buildConstraintVal->In_edges.at(1));
             assert(runtime_value != nullptr);

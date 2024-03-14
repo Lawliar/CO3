@@ -143,11 +143,7 @@ void Orchestrator::ExecuteBasicBlock(Val::BasicBlockIdType bbid) {
     cout << string(indent, ' ')<<"Executing BB:"<<bbid<<'\n';
     cout.flush();
 #endif
-#ifdef DEBUG_CHECKING
-    if(cur_func->funcname == "process_FC1" and bbid == 1){
-        __asm__("nop");
-    }
-#endif
+
     cur_func->RefreshBBTask(bbid, cur_func->bbTasks.at(bbid)->ready + 1);
     auto bbTask = cur_func->bbTasks.at(bbid);
 
@@ -595,6 +591,7 @@ void Orchestrator::PreparingCalling(NotifyCallMessage* callMsg){
     auto* notifyCallVal = dynamic_cast<SymVal_sym_notify_call*>(cur_graph->callInsts.at(callMsg->id));
     assert(notifyCallVal != nullptr);
 
+    // the index 0  is the callInst ID
     for(unsigned index = 1; index < notifyCallVal->In_edges.size() ; index ++){
         auto setPara = dynamic_cast<SymVal_sym_set_parameter_expression*>(notifyCallVal->In_edges.at(index));
 #ifdef DEBUG_CHECKING
