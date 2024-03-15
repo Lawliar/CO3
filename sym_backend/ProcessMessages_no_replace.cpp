@@ -29,6 +29,9 @@ int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
                 assert(runtime_value != nullptr);
                 runtime_value->Assign(one_8op->op1);
                 bool executed = ExecuteNode(symVal,symVal->ready + 1);
+#if defined(DEBUG_OUTPUT)
+                cout << "push constraints:"<<  symVal->symExpr <<'\n';
+#endif
                 assert(executed);
             }else if(symVal->Op.compare("truePhi") == 0){
                 auto truePhi =  dynamic_cast<SymVal_sym_TruePhi*>(val);
@@ -46,8 +49,18 @@ int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
                 auto cond_node = dynamic_cast<RuntimeIntVal*>(notifySelect->In_edges.at(0));
                 assert(cond_node != nullptr);
                 cond_node->Assign(one_8op->op1);
-                bool executed = ExecuteNode(notifySelect, notifySelect->ready + 1);
-                assert(executed);
+                SymVal * val = nullptr;
+                if(static_cast<bool>(cond_node->Val)){
+                    val = dynamic_cast<SymVal*>(notifySelect->In_edges.at(1));
+                }else{
+                    val = dynamic_cast<SymVal*>(notifySelect->In_edges.at(2));
+                }
+                auto desiredReady = notifySelect->getDepTargetReady(val);
+                BackwardExecution(val, desiredReady);
+                assert(notifySelect->isThisNodeReady(val, desiredReady));
+                auto symExpr = SymVal::extractSymExprFromSymVal(val,desiredReady);
+                notifySelect->historyValues.push_back(make_pair(one_8op->op1, symExpr));
+                notifySelect->ready++;
             }else{
                 std::cerr << "unhandled op one symval"<<'\n';
                 assert(false);
