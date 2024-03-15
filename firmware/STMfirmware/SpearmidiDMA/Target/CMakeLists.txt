@@ -4,13 +4,12 @@
 
 
 file(GLOB FILESTARGET
-  ./Src/libcgc.c 
-  ./Src/mymath.c 
-  ./Src/printf.c 
-  ./Src/service.c
-  ./Src/stdlib.c 
+  ./Src/*.c
 )
 
+file(GLOB FILE_UNINSTRUMENTED
+  ./UninstrumentedSrc/*.c
+)
 
 set_property(SOURCE ${FILESTARGET} APPEND PROPERTY COMPILE_OPTIONS 
 "-Xclang" "-load" 
@@ -21,7 +20,7 @@ set_property(SOURCE ${FILESTARGET} APPEND PROPERTY COMPILE_OPTIONS
 # add_library: With this declaration, you express the intent to build a library. 
 # The first argument, here its pico-shift-register, is the name of the library, 
 # the second argument are the files that will be compiled to create your library.
-add_library(Target OBJECT ${FILESTARGET})
+add_library(Target OBJECT ${FILESTARGET} ${FILE_UNINSTRUMENTED})
 
 # target_link_libraries: If you link with other libraries, list them here
 target_link_libraries(  
