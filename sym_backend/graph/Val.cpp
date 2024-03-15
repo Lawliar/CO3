@@ -117,7 +117,7 @@ Val::ReadyType SymVal_sym_notify_select::getDepTargetReady(Val * nodeInQuestion)
         // if the select instruction and the selected instruction is inside the same BB
         // the select instruction must come after the selected instruction (right?)
         // otherwise the LLVM IR would be invalid
-        return current_ready + 1;
+        return nodeInQuestion->ready + 1;
     }else {
         if(nodeInQuestion->inLoop){
             return nodeInQuestion->ready;
