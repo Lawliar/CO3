@@ -30,7 +30,7 @@ from IPython import embed
 #logging.getLogger("pyvex").setLevel('DEBUG')
 
 st_gdb_server = "/opt/st/stm32cubeide_1.14.0/plugins/com.st.stm32cube.ide.mcu.externaltools.stlink-gdb-server.linux64_2.1.100.202310302101/tools/bin/ST-LINK_gdbserver"
-
+serial_number = "003F003D3532510131333430"
 gdb_client = "/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-gdb"
 GDB_SERVER_IP = "localhost"
 GDB_SERVER_PORT = 61234
@@ -48,7 +48,7 @@ elf_file = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/SymbionPLC/De
 def runSymbion(concrete_input,output_dir = None):
 
     symbionbytes.numBytes = 0
-    gdb_server = subprocess.Popen("{} -p {} -l 1 -d -s -cp /opt/st/stm32cubeide_1.14.0/plugins/com.st.stm32cube.ide.mcu.externaltools.cubeprogrammer.linux64_2.1.100.202311100844/tools/bin -m 0 -k".format(st_gdb_server,GDB_SERVER_PORT),
+    gdb_server = subprocess.Popen("{} -p {} -i {} -l 1 -d -s -cp /opt/st/stm32cubeide_1.14.0/plugins/com.st.stm32cube.ide.mcu.externaltools.cubeprogrammer.linux64_2.1.100.202311100844/tools/bin -m 0 -k".format(st_gdb_server,GDB_SERVER_PORT, serial_number),
     #                  stdout=subprocess.PIPE,
     #                  stderr=subprocess.PIPE,
                       shell=True

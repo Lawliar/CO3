@@ -17,34 +17,36 @@ from serialEcho import send
 
 from IPython import embed
 
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument("-i",required=True,help="input file")
-parser.add_argument("-o",required=True,help="output dir")
-args = parser.parse_args()
 
 # First set everything up
 
 # Spawning of the gdbserver analysis environment
 
-#import logging
-#logging.getLogger('angr').setLevel('DEBUG')
-#logging.getLogger('angr_targets.avatar_gdb').setLevel('DEBUG')
-#logging.getLogger('avatar').setLevel('DEBUG')
-#logging.getLogger("state_plugin").setLevel('DEBUG')
-#logging.getLogger("pyvex").setLevel('DEBUG')
-st_gdb_server = "/home/lcm/st/stm32cubeide_1.10.1/plugins/com.st.stm32cube.ide.mcu.externaltools.stlink-gdb-server.linux64_2.0.300.202203231527/tools/bin/ST-LINK_gdbserver"
+import logging
+logging.getLogger('angr').setLevel('DEBUG')
+logging.getLogger('angr_targets.avatar_gdb').setLevel('DEBUG')
+logging.getLogger('avatar').setLevel('DEBUG')
+logging.getLogger("state_plugin").setLevel('DEBUG')
+logging.getLogger("pyvex").setLevel('DEBUG')
 
-gdb_client = "/home/lcm/github/toolchains/arm/asan-0x24000000/bin/arm-none-eabi-gdb"
+st_gdb_server = "/opt/st/stm32cubeide_1.14.0/plugins/com.st.stm32cube.ide.mcu.externaltools.stlink-gdb-server.linux64_2.1.100.202310302101/tools/bin/ST-LINK_gdbserver"
+serial_number = "003F003D3532510131333430"
+gdb_client = "/home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-gdb"
 GDB_SERVER_IP = "localhost"
 GDB_SERVER_PORT = 61234
 
+import symbionbytes
 
+before_hal_addr = 0x800121a
+before_target_addr = 0x800123c
+after_target_addr = 0x8001241
+sym_buff_addr = 0x240001200
+elf_file = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/SymbionModbusDMA/Debug/SymbionModbusDMA.elf"
 
+def runSymbion(concrete_input,output_dir = None):
 
-
-def runSymbion(elf_file,before_hal_addr,before_target_addr,concrete_input,after_target_addr,sym_buff_addr,output_dir = None):
-    gdb_server = subprocess.Popen("{} -p {} -l 1 -d -s -cp /home/lcm/st/stm32cubeide_1.10.1/plugins/com.st.stm32cube.ide.mcu.externaltools.cubeprogrammer.linux64_2.0.301.202207041506/tools/bin -m 0 -k".format(st_gdb_server,GDB_SERVER_PORT),
+    symbionbytes.numBytes = 0
+    gdb_server = subprocess.Popen("{} -p {} -i {} -l 1 -d -s -cp /opt/st/stm32cubeide_1.14.0/plugins/com.st.stm32cube.ide.mcu.externaltools.cubeprogrammer.linux64_2.1.100.202311100844/tools/bin -m 0 -k".format(st_gdb_server,GDB_SERVER_PORT,serial_number),
     #                  stdout=subprocess.PIPE,
     #                  stderr=subprocess.PIPE,
                       shell=True
@@ -53,6 +55,9 @@ def runSymbion(elf_file,before_hal_addr,before_target_addr,concrete_input,after_
     time.sleep(2) ## to make sure the gdbserver is up
     # Instantiation of the AvatarGDBConcreteTarget
     
+    
+    start_time = time.time()
+
     avatar_gdb = AvatarGDBConcreteTarget(architecture=avatar2.archs.arm.ARM_CORTEX_M3,
                                          gdbserver_ip=GDB_SERVER_IP, 
                                          gdbserver_port=GDB_SERVER_PORT,
@@ -79,9 +84,9 @@ def runSymbion(elf_file,before_hal_addr,before_target_addr,concrete_input,after_
 
 
     t1 = threading.Thread(target = simgr.run,kwargs={'thumb':True})
-    t2 = threading.Thread(target = send, args=(concrete_input,115200,"/dev/ttyACM0"))
+    t2 = threading.Thread(target = send, args=(concrete_input,1000000,"/dev/ttyACM0"))
     t1.start()
-    time.sleep(0.1)##  have to wait for it to hit the break point to take place, then we feed the inputs, otherwise the input will be missed
+    time.sleep(0.3)##  have to wait for it to hit the break point to take place, then we feed the inputs, otherwise the input will be missed
     t2.start()
     t1.join()
     t2.join()
@@ -111,7 +116,9 @@ def runSymbion(elf_file,before_hal_addr,before_target_addr,concrete_input,after_
     '''
     explore till the end of the target function
     '''
-    
+
+
+    trans_time = time.time() - start_time
     simgr.explore(find=after_target_addr,n = 99999999, thumb=True)
 
     trace = []
@@ -152,6 +159,8 @@ def runSymbion(elf_file,before_hal_addr,before_target_addr,concrete_input,after_
             alt_input += this_byte.to_bytes(1,byteorder='little')
         alternating_inputs.append(alt_input)
     avatar_gdb.shutdown()
+
+    total_time = time.time() - start_time
     time.sleep(1) ## waiting for it to really shutdown, otherwise, the subsequent connection will fail
     if output_dir == None:
         return alternating_inputs
@@ -159,15 +168,16 @@ def runSymbion(elf_file,before_hal_addr,before_target_addr,concrete_input,after_
         for id, each_input in enumerate(alternating_inputs):
             with open(os.path.join(output_dir, str(id)), 'wb') as wfile:
                 wfile.write(each_input)
+    return total_time, trans_time, symbionbytes.numBytes
 if __name__ == '__main__':
-    elf_file = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/SymbionmidiDMA/Debug/SymbionmidiDMA.elf"
-    
-    before_hal_addr = 0x800121a
-    before_target_addr = 0x800123c
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i",required=True,help="input file")
+    parser.add_argument("-o",required=True,help="output dir")
+    args = parser.parse_args()
     with open(args.i,"rb") as wfile:
         concrete_input  = wfile.read()
-    after_target_addr = 0x8001241
-    sym_buff_addr = 0x240001200
-    alt_inputs = runSymbion(elf_file, before_hal_addr, before_target_addr, concrete_input, after_target_addr, sym_buff_addr, args.o)
+    
+    alt_inputs = runSymbion(concrete_input, args.o)
     
     
