@@ -44,11 +44,13 @@ int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
                 assert(callStack.top() == nullptr);
                 callStack.top() = nextFunc;
             }
+#if defined(CO3_REPLACE)
             // now we are in the new func, get Parameter first
             auto curFunc = getCurFunc();
             for(auto eachGetPara : curFunc->getParametersSym){
                 ExecuteNode(eachGetPara, 1);
             }
+#endif
 #ifdef DEBUG_OUTPUT
             cout<<"finish "<<func_msg->Str()<< ':'<<nextFunc->funcname<<"\n\n";
                 cout.flush();
