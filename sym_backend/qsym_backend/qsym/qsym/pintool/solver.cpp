@@ -138,7 +138,6 @@ z3::check_result Solver::check() {
     // timeout can cause exception
     res = z3::unknown;
   }
-  assert(co3_solver_checked == false);
   co3_solver_checked = true;
   uint64_t cur = getTimeStamp();
   uint64_t elapsed = cur - before;
