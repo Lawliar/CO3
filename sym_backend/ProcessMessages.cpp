@@ -390,8 +390,13 @@ int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
 
 
             auto lengthVal = dynamic_cast<RuntimeIntVal*>(memsetVal->In_edges.at(2));
-            assert(lengthVal != nullptr);
-            lengthVal->Assign(memsetMsg->length);
+            auto constLengthVal = dynamic_cast<ConstantIntVal*>(memsetVal->In_edges.at(2));
+            if(lengthVal == nullptr){
+                assert(constLengthVal != nullptr);
+            }else{
+                lengthVal->Assign(memsetMsg->length);
+            }
+
 
             BackwardExecution(memsetVal, memsetVal->ready + 1);
 #ifdef DEBUG_OUTPUT

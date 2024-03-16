@@ -685,12 +685,19 @@ void SymVal_sym_build_memset::Construct(ReadyType targetReady) {
     assert(symVal != nullptr);
 
     auto lengthOperand = dynamic_cast<RuntimeIntVal*>(In_edges.at(2));
-    assert(lengthOperand != nullptr);
+    auto constlengthOperand = dynamic_cast<ConstantIntVal*>(In_edges.at(2));
+    IntValType lengthVal = 0;
+    if(lengthOperand == nullptr){
+        assert(constlengthOperand != nullptr);
+        lengthVal = constlengthOperand->Value;
+    }else{
+        lengthVal = lengthOperand->Val;
+    }
 
-    if(memOperand->Unassigned || lengthOperand->Unassigned){
+    if(memOperand->Unassigned || (lengthOperand != nullptr && lengthOperand->Unassigned)){
         assert(symVal->symExpr == nullptr && memOperand->Unassigned && lengthOperand->Unassigned);
     }else{
-        _sym_build_memset(reinterpret_cast<uint8_t*>(memOperand->Val), extractSymExprFromSymVal(symVal, targetReady), lengthOperand->Val);
+        _sym_build_memset(reinterpret_cast<uint8_t*>(memOperand->Val), extractSymExprFromSymVal(symVal, targetReady), lengthVal );
     }
     ready++;
 }
