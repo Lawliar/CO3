@@ -91,8 +91,12 @@ int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
             ptrVal->Assign(reinterpret_cast<void*>(two_32_32op->op1));
 
             auto lengthVal = dynamic_cast<RuntimeIntVal*>(memsetVal->In_edges.at(2));
-            assert(lengthVal != nullptr);
-            lengthVal->Assign(two_32_32op->op2);
+            auto constLengthVal = dynamic_cast<ConstantIntVal*>(memsetVal->In_edges.at(2));
+            if(lengthVal == nullptr){
+                assert(constLengthVal != nullptr);
+            }else{
+                lengthVal->Assign(two_32_32op->op2);
+            }
 
             bool executed = ExecuteNode(memsetVal, memsetVal->ready + 1);
             assert(executed);
