@@ -14,13 +14,35 @@ from conf import sleep_time, timeout,serial_port,baud_rate,SER2NET, tcp_port,NO_
 from conf import coverage_dir, estimate_inputs_needed
 
 
-def runSpear(benchmark, debug = False, buggy_index = 0):
+def runSpear(benchmark, port, shadow, replace, debug = False, buggy_index = 98):
+    if port == "":
+        sp = serial_port
+    else:
+        sp = port
+    if shadow == 1:
+        NO_SHADOW = False
+    elif shadow == 2:
+        NO_SHADOW = True
+    elif shadow == 0:
+        pass
+    else:
+        assert(False)
+    
+    if(replace == 1):
+        NO_REPLACE = False
+    elif replace == 2:
+        NO_REPLACE = True
+    elif replace == 0:
+        pass
+    else:
+        assert(False)
+
     if NO_REPLACE:
         backend_executable = "/home/lcm/github/spear/spear-code/sym_backend/build_no_replace/qsym_backend/orchestrator"
         spear_inter_dir    = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/Spear{}/intermediate_results_no_replace".format(benchmark)
     elif NO_SHADOW:
         backend_executable = "/home/lcm/github/spear/spear-code/sym_backend/build_no_shadow/qsym_backend/orchestrator"
-        spear_inter_dir     = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/Spear{}/intermediate_results".format(benchmark)
+        spear_inter_dir     = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/Spear{}/intermediate_results_no_shadow".format(benchmark)
     else:
         backend_executable = "/home/lcm/github/spear/spear-code/sym_backend/build_release/qsym_backend/orchestrator"
         spear_inter_dir    = "/home/lcm/github/spear/spear-code/firmware/STMfirmware/Spear{}/intermediate_results".format(benchmark)
@@ -61,7 +83,7 @@ def runSpear(benchmark, debug = False, buggy_index = 0):
             if SER2NET:
                 cmd = [backend_executable,"-i",spear_inter_dir,"-s",str(tcp_port),"-b",str(baud_rate)]
             else:
-                cmd = [backend_executable,"-i",spear_inter_dir,"-s",serial_port,"-b",str(baud_rate)]
+                cmd = [backend_executable,"-i",spear_inter_dir,"-s",sp,"-b",str(baud_rate)]
             p1 = subprocess.Popen(cmd, \
                          stdout=subprocess.PIPE,stderr=subprocess.PIPE, \
                         env={**os.environ,'SYMCC_INPUT_FILE':input_file, 'SYMCC_OUTPUT_DIR': tmp_output_dir})
@@ -79,8 +101,6 @@ def runSpear(benchmark, debug = False, buggy_index = 0):
             try:
                 total_time += get_total_time_out_err(e) / 1000000
                 building_time, receiving_time, numBytes = process_co3_output(o)
-                if building_time == -1:
-                    continue
                 building_time /= 1000000
                 receiving_time /= 1000000
                 total_building_time += building_time
@@ -90,6 +110,13 @@ def runSpear(benchmark, debug = False, buggy_index = 0):
                 print("program did not end well")
                 embed()
             
+            if total_time == 0 and building_time == 0 and receiving_time != 0 and total_num_bytes != 0:
+                ## this execution finishs, with no call to push constraint is made
+                print("no new input is generated")
+                embed()
+            if building_time == 0 and receiving_time == 0 and total_num_bytes == 0:
+                print("program did not end well")
+                embed()
             print("iter:{},cur at {} from {} to {}, edge size:{}, need {} inputs to finish".format(it, cur_input_id, batch_input_id_start , batch_input_id_end, len(coverage), estimate_inputs_needed(cur_input_id + 1, total_time, time_budget)))
             print("building time:{:.2f}, transmit {} costs:{:.2f}, total time:{:.2f} / {}".format( total_building_time, convert_size(total_num_bytes), total_receiving_time, total_time , time_budget))
             tmp_output_id = get_highest_id(output_dir) + 1
@@ -122,7 +149,7 @@ def runSpear(benchmark, debug = False, buggy_index = 0):
             ## clean up tmp output
             shutil.rmtree(tmp_output_dir)
             os.mkdir(tmp_output_dir)
-            os.remove(input_file)
+            #os.remove(input_file)
             
             #if cur_spear_input_id >= numExecution:
             if total_time >= time_budget:
@@ -137,8 +164,15 @@ def runSpear(benchmark, debug = False, buggy_index = 0):
     return batch_input_id_end,cur_input_id, total_time
 
 def main():
-    
-    spear_output_num, spear_input_num,total_time = runSpear(benchmark, False, 1309)
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p",type=str,required=False,help="port",default="")
+    ## 1 is for have MCU side shadow, 2 is for without
+    parser.add_argument("-s",type=int, required=False,help="MCU side shadow",default=0)
+    ## 1 is for have replace, 2 is for without
+    parser.add_argument("-r",type=int,required=False,help="USE replace",default=0)
+    args = parser.parse_args()
+    spear_output_num, spear_input_num,total_time = runSpear(benchmark,args.p,args.s, args.r)
     print("spear generate:{} with {} runs using {}us\n".format(spear_output_num, spear_input_num,total_time))
 
 if __name__ == '__main__':
