@@ -138,7 +138,7 @@ private:
 public:
 
 
-    SymGraph(std::string funcname, std::string cfg, std::string dt, std::string pdt, std::string dfg );
+    SymGraph(unsigned funcID, std::string funcname, std::string cfg, std::string dt, std::string pdt, std::string dfg );
     SymGraph(const SymGraph&);
     ~SymGraph(){
         ver2offMap.clear();
@@ -159,6 +159,7 @@ public:
 
 
     // some basic information
+    unsigned funcID;
     std::string funcname;
     RuntimeCFG *cfg;
     RuntimeSymFlowGraph *dfg;

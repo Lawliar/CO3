@@ -156,14 +156,7 @@ int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
             cout.flush();
 #endif
             //get the funcID of the callee
-            auto funcId = INT32_MAX;
-            for(auto eachFunc = symGraphs.begin(); eachFunc != symGraphs.end(); eachFunc++){
-                if(eachFunc->second == callStack.top()){
-                    funcId = eachFunc->first;
-                    break;
-                }
-            }
-            assert(funcId != INT32_MAX);
+            auto funcId = getCurFunc()->funcID;
             UpdateCallStackRet(funcId);
             SetRetAndRefreshGraph();
         }else{
@@ -179,7 +172,7 @@ int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
         cout.flush();
 #endif
     }else if(auto func_msg = dynamic_cast<NotifyFuncMessage*>(msg); func_msg != nullptr){
-        auto nextFunc = symGraphs.at(func_msg->id);
+        auto nextFunc = getCurFunc();
 #ifdef DEBUG_OUTPUT
         assert(indent == 0);
         cout<<func_msg->Str()<< ':'<<nextFunc->funcname<<'\n';

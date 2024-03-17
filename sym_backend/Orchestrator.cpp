@@ -97,19 +97,20 @@ Orchestrator::Orchestrator(std::string inputDir, std::string sp_port, int baud_r
         cout << "processing func:"<< cur_funcname<<'\n';
         cout.flush();
 #endif
-        SymGraph* cur_symgraph = new SymGraph(cur_funcname, cfg_file.string(),\
+        vanillaSymGraphs[cur_id] = new SymGraph(cur_id, cur_funcname, cfg_file.string(),\
                                         dom_file.string(),postDom_file.string(),\
                                         dfg_file.string());
-        symGraphs[cur_id] = cur_symgraph;
-        vanillaSymGraphs[cur_id] = new SymGraph(*cur_symgraph);
     }
 }
 Orchestrator::~Orchestrator() {
     releaseSer(ser);
-    for(auto eachFunc :symGraphs){
-        delete eachFunc.second;
+    for(auto eachFunc: recyclable){
+        for(SymGraph* eachGraph : eachFunc.second){
+            delete eachGraph;
+        }
+        eachFunc.second.clear();
     }
-    symGraphs.clear();
+    recyclable.clear();
     for(auto eachFunc :vanillaSymGraphs){
         delete eachFunc.second;
     }
@@ -130,6 +131,54 @@ void Orchestrator::UpdateCallStackHashBB(Val::BasicBlockIdType cur_bbid) {
 
 void Orchestrator::UpdateCallStackHashCall(unsigned funcID) {
     _sym_notify_call(funcID);
+}
+
+SymGraph* Orchestrator::GetNextFunc(unsigned funcID) {
+    SymGraph * ret = nullptr;
+    if(recyclable.find(funcID) == recyclable.end() || (recyclable.find(funcID) != recyclable.end() && recyclable.at(funcID).size() == 0)  ){
+        ret = new SymGraph( * vanillaSymGraphs.at(funcID));
+    }else{
+        ret = recyclable.at(funcID).back();
+        recyclable.at(funcID).pop_back();
+    }
+    return ret;
+}
+
+void Orchestrator::SetRetAndRefreshGraph() {
+    auto cur_func = getCurFunc();
+    auto cur_func_name = getCurFunc()->funcname;// copy construct
+    auto setRetSym = cur_func->setRetSym;
+    bool hasSetRet;
+    if(setRetSym != nullptr){
+        Val::ReadyType targetReady = 0;
+        if(setRetSym->inLoop){
+            targetReady = (setRetSym->ready + 1);
+        }else{
+            targetReady = 1;
+        }
+        BackwardExecution(setRetSym,  targetReady);
+        assert(setRetSym->ready == targetReady);
+        hasSetRet = true;
+    }else{
+        hasSetRet = false;
+    }
+
+
+    unsigned funcId = cur_func->funcID;
+    if( hasSetRet == true || cur_func->changed == true){
+        // the returned func is dirty and needs to be discarded
+        delete cur_func;
+    }else{
+        // the cur_func is still freshly new, can be recycled
+        if(recyclable.find(funcId) == recyclable.end()){
+            recyclable[funcId] = vector<SymGraph*>{cur_func};
+        }else{
+            recyclable.at(funcId).push_back(cur_func);
+        }
+    }
+
+    //symGraphs[funcId] = new SymGraph(cur_func_name, funcFiles.at(cur_func_name).cfg_file,funcFiles.at(cur_func_name).dom_file,\
+    //                            funcFiles.at(cur_func_name).postDom_file, funcFiles.at(cur_func_name).dfg_file);
 }
 
 void Orchestrator::UpdateCallStackRet(unsigned funcID) {
@@ -606,43 +655,7 @@ void Orchestrator::PreparingCalling(NotifyCallMessage* callMsg){
     notifyCallVal->ready ++;
 }
 
-void Orchestrator::SetRetAndRefreshGraph() {
-    auto cur_func = getCurFunc();
-    auto cur_func_name = getCurFunc()->funcname;// copy construct
-    auto setRetSym = cur_func->setRetSym;
-    bool hasSetRet;
-    if(setRetSym != nullptr){
-        Val::ReadyType targetReady = 0;
-        if(setRetSym->inLoop){
-            targetReady = (setRetSym->ready + 1);
-        }else{
-            targetReady = 1;
-        }
-        BackwardExecution(setRetSym,  targetReady);
-        assert(setRetSym->ready == targetReady);
-        hasSetRet = true;
-    }else{
-        hasSetRet = false;
-    }
 
-
-    unsigned funcId = UINT_MAX;
-    for(auto eachSymGraph : symGraphs){
-        if(eachSymGraph.second == cur_func){
-            funcId = eachSymGraph.first;
-            break;
-        }
-    }
-    assert(funcId != UINT_MAX);
-    if( hasSetRet == true || cur_func->changed == true){
-        // we need to have a fresh new graph when it has a ret, and the cur func has executed at least one instruction.
-        delete cur_func;
-        symGraphs[funcId] = new SymGraph(*vanillaSymGraphs.at(funcId));
-    }
-
-    //symGraphs[funcId] = new SymGraph(cur_func_name, funcFiles.at(cur_func_name).cfg_file,funcFiles.at(cur_func_name).dom_file,\
-    //                            funcFiles.at(cur_func_name).postDom_file, funcFiles.at(cur_func_name).dfg_file);
-}
 
 void Orchestrator::SendInput() {
     ifstream inputFile (symInputFile,ios::in | ios::binary);

@@ -33,9 +33,12 @@ public:
 
     void InitializeInputBuffer(char * addr);
 
+    SymGraph* GetNextFunc(unsigned);
     void UpdateCallStackHashBB(Val::BasicBlockIdType);
     void UpdateCallStackHashCall(unsigned);
     void UpdateCallStackRet(unsigned);
+
+
     bool ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot*, Val::ReadyType);
     bool ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf*, Val::ReadyType);
 
@@ -60,7 +63,7 @@ public:
     Val::BasicBlockIdType lastBBID = 0;
     std::stack<SymGraph*> callStack;
 
-    std::map<unsigned, SymGraph*> symGraphs;
+    std::map<unsigned, vector<SymGraph*> > recyclable;
     std::map<unsigned, SymGraph*> vanillaSymGraphs;
     //std::map<string, FuncFileNames> funcFiles;
 };

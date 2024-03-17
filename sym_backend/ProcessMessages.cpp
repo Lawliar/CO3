@@ -29,7 +29,7 @@ int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
 #endif
         }
         else if(auto func_msg = dynamic_cast<NotifyFuncMessage*>(cnt_msg); func_msg != nullptr){
-            auto nextFunc = symGraphs.at(func_msg->id);
+            auto nextFunc = GetNextFunc(func_msg->id);
 #ifdef DEBUG_OUTPUT
             assert(indent == 0);
                 cout<<func_msg->Str()<< ':'<<nextFunc->funcname<<'\n';
@@ -44,13 +44,11 @@ int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
                 assert(callStack.top() == nullptr);
                 callStack.top() = nextFunc;
             }
-#if defined(CO3_REPLACE)
             // now we are in the new func, get Parameter first
             auto curFunc = getCurFunc();
             for(auto eachGetPara : curFunc->getParametersSym){
                 ExecuteNode(eachGetPara, 1);
             }
-#endif
 #ifdef DEBUG_OUTPUT
             cout<<"finish "<<func_msg->Str()<< ':'<<nextFunc->funcname<<"\n\n";
                 cout.flush();
@@ -81,16 +79,7 @@ int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
                 cout <<"back from:"<<callStack.top()->funcname<<'\n';
                     cout.flush();
 #endif
-                //get the funcID of the callee
-                auto funcId = INT32_MAX;
-                for(auto eachFunc = symGraphs.begin(); eachFunc != symGraphs.end(); eachFunc++){
-                    if(eachFunc->second == callStack.top()){
-                        funcId = eachFunc->first;
-                        break;
-                    }
-                }
-                assert(funcId != INT32_MAX);
-                UpdateCallStackRet(funcId);
+                UpdateCallStackRet(getCurFunc()->funcID);
                 SetRetAndRefreshGraph();
             }else{
 #ifdef DEBUG_OUTPUT

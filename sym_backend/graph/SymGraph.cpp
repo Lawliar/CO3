@@ -36,8 +36,8 @@ set<string> leaves;
 set<string> nodesDepOnRuntime;
 #endif
 
-SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_filename, std::string pdt_filename, std::string dfg_filename) \
-:funcname(funcname),changed(false) {
+SymGraph::SymGraph(unsigned funcID, std::string funcname,std::string cfg_filename,std::string dt_filename, std::string pdt_filename, std::string dfg_filename) \
+:funcID(funcID),funcname(funcname),changed(false) {
     cfg = new RuntimeCFG(cfg_filename,dt_filename, pdt_filename);
     dfg = new RuntimeSymFlowGraph(dfg_filename);
     unsigned numNodes = boost::num_vertices(dfg->graph);
@@ -386,7 +386,7 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
     else if(auto old_Val = dynamic_cast<SymVal##SYMOP*>(old_one); old_Val != nullptr){                          \
         new_one = new SymVal##SYMOP(*old_Val);  \
     }
-SymGraph::SymGraph(const SymGraph& other):funcname(other.funcname),symID2offMap(other.symID2offMap),changed(false),symIDReditectMap(other.symIDReditectMap){
+SymGraph::SymGraph(const SymGraph& other):funcID(other.funcID),funcname(other.funcname),symID2offMap(other.symID2offMap),changed(false),symIDReditectMap(other.symIDReditectMap){
     //we're not going to use these 2 anyway
     cfg = nullptr;
     dfg = nullptr;

@@ -349,6 +349,9 @@ void SymVal_sym_build_integer::Construct(Val::ReadyType targetReady) {
     return;
 }
 void SymVal_sym_build_float::Construct(Val::ReadyType targetReady) {
+    symExpr = nullptr;
+    ready++;
+    return;
     assert(targetReady == (ready + 1));
     auto val_op = In_edges.at(0);
     double val;
