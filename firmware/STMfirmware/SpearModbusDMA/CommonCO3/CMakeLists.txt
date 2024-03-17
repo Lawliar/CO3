@@ -2,11 +2,10 @@
 # You can use a GLOB function as shown here, or explicitly mention the specific files
 #file(GLOB FILES *.c *.h)
 
-file(GLOB FILES
+set(CO3_COMMON_FILES
   ${CommonDIR}/Protocol/monitor.c
   ${CommonDIR}/Protocol/protocol.c
   ${CommonDIR}/Protocol/ring.c
-  ${CommonDIR}/SymRuntime/runtime.c
   ${CommonDIR}/SymRuntime/wrapped_malloc.c
   ${CommonDIR}/SymRuntime/FreeRTOS_callbacks.c
   ${CommonDIR}/FreeRTOS-Kernel/tasks.c 
@@ -20,10 +19,15 @@ file(GLOB FILES
   ${CommonDIR}/FreeRTOS-Kernel/portable/MemMang/heap_4.c
  )
 
+if(${CO3_REPLACE})
+ set(CO3_COMMON_FILES ${CO3_COMMON_FILES} "${CommonDIR}/SymRuntime/runtime.c")
+else()
+ set(CO3_COMMON_FILES ${CO3_COMMON_FILES} "${CommonDIR}/SymRuntime/runtime_no_replace.c")
+endif()
 # add_library: With this declaration, you express the intent to build a library. 
 # The first argument, here its pico-shift-register, is the name of the library, 
 # the second argument are the files that will be compiled to create your library.
-add_library(CommonCO3 OBJECT ${FILES})
+add_library(CommonCO3 OBJECT ${CO3_COMMON_FILES})
 
 # target_link_libraries: If you link with other libraries, list them here
 target_link_libraries(  

@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.15.3)
 
 # Optional: print out extra messages to see what is going on. Comment it to have less verbose messages
 set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CO3_REPLACE OFF)
 
 # enable export of compiler commands to compile_commands.json
 #set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -15,10 +16,15 @@ project(CO3CROMU_00001_CMake C ASM)
 set(EXECUTABLE ${PROJECT_NAME}.elf)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 set(LINKER_FILE "${PROJECT_SOURCE_DIR}/STM32H743ZITX_FLASH.ld")
-set(ARM_GNU_CC "arm-none-eabi-gcc")
 
-set(CO3_OUTPUT_DIR "${PROJECT_SOURCE_DIR}/intermediate_results")
-set(CO3_INSTRUMENTATION_LIB "/home/lcm/github/spear/spear-code/pass/symbolizer/cmake-build-debug/libSymbolize.so") 
+
+if(${CO3_REPLACE})
+  set(CO3_INSTRUMENTATION_LIB "/home/lcm/github/spear/spear-code/pass/symbolizer/build_replace/libSymbolize.so")
+  set(CO3_OUTPUT_DIR "${PROJECT_SOURCE_DIR}/intermediate_results")
+else()
+  set(CO3_INSTRUMENTATION_LIB "/home/lcm/github/spear/spear-code/pass/symbolizer/build_no_replace/libSymbolize.so")
+  set(CO3_OUTPUT_DIR "${PROJECT_SOURCE_DIR}/intermediate_results_no_replace")
+endif()
 
 enable_language(C ASM)
 set(CMAKE_C_STANDARD 99)

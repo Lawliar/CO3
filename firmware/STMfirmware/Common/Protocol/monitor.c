@@ -62,7 +62,7 @@
 
 
 
-static uint32_t start_time_val, stop_time_val;
+
 
 
 #ifdef CO3_USE_CHIBIOS
@@ -297,7 +297,7 @@ volatile int size_aux;
 extern uint8_t GPSHandleRegion[];
 static void TargetTask( void * pvParameters )
 {
-
+    //static uint32_t start_time_val, stop_time_val;
 #if (defined CO3_TEST_MODBUSDMA || defined CO3_TEST_MIDIDMA)
     SytemCall_1_code(); //ERROR we need this line to receive data from serial port and it has to be called before it notifies to the monitor
 #endif
@@ -333,7 +333,7 @@ static void TargetTask( void * pvParameters )
 #endif
 
 #if defined STM32
-        start_time_val = DWT->CYCCNT;
+        //start_time_val = DWT->CYCCNT;
 #endif
 
 #if defined CO3_TEST_CGC
@@ -396,9 +396,9 @@ static void TargetTask( void * pvParameters )
         _sym_end();
 
 #if defined CO3_USE_STM32
-        stop_time_val = DWT->CYCCNT;
+        //stop_time_val = DWT->CYCCNT;
 #endif
-		printf("time:%d\n",stop_time_val - start_time_val);
+		//printf("time:%d\n",stop_time_val - start_time_val);
 	}
 }
 
