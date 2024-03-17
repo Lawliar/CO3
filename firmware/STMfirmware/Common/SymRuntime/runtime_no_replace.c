@@ -509,6 +509,56 @@ void _sym_notify_basic_block(int16_t bb_id, bool input, char * base_addr, int8_t
 }
 
 
+
+//unsupported float
+bool _sym_build_float(double val, bool is_double, uint16_t symID ){
+    return false;
+}
+bool _sym_build_int_to_float(bool input, bool op2, bool op3, uint16_t symID){
+    return false;
+}
+bool _sym_build_float_to_float(bool op1, bool op2, bool op, uint16_t symID){
+    return false;
+}
+bool _sym_build_bits_to_float(bool op1, bool op2, uint16_t symID){
+    return false;
+}
+bool _sym_build_float_to_bits(bool op1, uint16_t symID){
+    return false;
+}
+bool _sym_build_float_to_signed_integer(bool op1, uint8_t op2, uint16_t symID){
+    return false;
+}
+bool _sym_build_float_to_unsigned_integer(bool op1, uint8_t op2, uint16_t symID){
+    return false;
+}
+
+bool _sym_build_fp_abs(bool op1, uint16_t symID){
+    return false;
+}
+
+#define UNSUPPORTED_FP(OP) \
+bool _sym_build_##OP(bool op1, bool op2, uint16_t symID){ return false;}
+
+UNSUPPORTED_FP(fp_add)
+UNSUPPORTED_FP(fp_sub)
+UNSUPPORTED_FP(fp_mul)
+UNSUPPORTED_FP(fp_div)
+UNSUPPORTED_FP(fp_rem)
+UNSUPPORTED_FP(float_ordered_greater_than)
+UNSUPPORTED_FP(float_ordered_greater_equal)
+UNSUPPORTED_FP(float_ordered_less_than)
+UNSUPPORTED_FP(float_ordered_less_equal)
+UNSUPPORTED_FP(float_ordered_equal)
+UNSUPPORTED_FP(float_ordered_not_equal)
+UNSUPPORTED_FP(float_ordered)
+UNSUPPORTED_FP(float_unordered)
+UNSUPPORTED_FP(float_unordered_greater_than)
+UNSUPPORTED_FP(float_unordered_greater_equal)
+UNSUPPORTED_FP(float_unordered_less_than)
+UNSUPPORTED_FP(float_unordered_less_equal)
+UNSUPPORTED_FP(float_unordered_equal)
+UNSUPPORTED_FP(float_unordered_not_equal)
 /*
 void _sym_build_integer128(uint64_t left, uint64_t right){
 
