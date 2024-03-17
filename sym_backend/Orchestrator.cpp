@@ -144,7 +144,7 @@ SymGraph* Orchestrator::GetNextFunc(unsigned funcID) {
     return ret;
 }
 
-void Orchestrator::SetRetAndRefreshGraph() {
+void Orchestrator::SetRetAndRecycleGraph() {
     auto cur_func = getCurFunc();
     auto cur_func_name = getCurFunc()->funcname;// copy construct
     auto setRetSym = cur_func->setRetSym;

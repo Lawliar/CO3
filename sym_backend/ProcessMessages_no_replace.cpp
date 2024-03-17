@@ -158,7 +158,7 @@ int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
             //get the funcID of the callee
             auto funcId = getCurFunc()->funcID;
             UpdateCallStackRet(funcId);
-            SetRetAndRefreshGraph();
+            SetRetAndRecycleGraph();
         }else{
 #ifdef DEBUG_OUTPUT
             cout <<"back from: Uninstrumented\n";

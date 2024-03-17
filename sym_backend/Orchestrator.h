@@ -47,7 +47,7 @@ public:
     bool ExecuteNode(Val*, Val::ReadyType);
     void ExecuteBasicBlock(Val::BasicBlockIdType);
     void PreparingCalling(NotifyCallMessage*);
-    void SetRetAndRefreshGraph();
+    void SetRetAndRecycleGraph();
     void ForwardExecution(Val*, SymGraph::RootTask*,unsigned);
     void BackwardExecution(SymVal*, Val::ReadyType);
     int ProcessMessage(Message*, int);

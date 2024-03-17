@@ -80,7 +80,7 @@ int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
                     cout.flush();
 #endif
                 UpdateCallStackRet(getCurFunc()->funcID);
-                SetRetAndRefreshGraph();
+                SetRetAndRecycleGraph();
             }else{
 #ifdef DEBUG_OUTPUT
                 cout <<"back from: Uninstrumented\n";
