@@ -11,7 +11,7 @@ boost::program_options::variables_map ParseCommand(int argc, const char *argv[])
     boost::program_options::options_description desc{"Options"};
     desc.add_options()
             ("inputDir,i",  boost::program_options::value<std::string>()->required(), "path to the intermediate folder")
-            ("sp,s",   boost::program_options::value<std::string>()->required(), "sp")
+            ("port,p",   boost::program_options::value<std::string>()->required(), "port")
             ("baudrate,b",boost::program_options::value<int>()->required(), "baudrate");
 
     boost::program_options::variables_map vm;
@@ -29,7 +29,7 @@ int main(int argc, const char *argv[])
 {
     boost::program_options::variables_map vm = ParseCommand(argc, argv);
     std::string input_path = vm["inputDir"].as<std::string>();
-    std::string serial_port = vm["sp"].as<std::string>();
+    std::string serial_port = vm["port"].as<std::string>();
     int baud_rate = vm["baudrate"].as<int>();
 
     boost::filesystem::path dir (input_path);

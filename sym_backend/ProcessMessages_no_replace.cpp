@@ -172,7 +172,7 @@ int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
         cout.flush();
 #endif
     }else if(auto func_msg = dynamic_cast<NotifyFuncMessage*>(msg); func_msg != nullptr){
-        auto nextFunc = getCurFunc();
+        auto nextFunc = GetNextFunc(func_msg->id);
 #ifdef DEBUG_OUTPUT
         assert(indent == 0);
         cout<<func_msg->Str()<< ':'<<nextFunc->funcname<<'\n';
