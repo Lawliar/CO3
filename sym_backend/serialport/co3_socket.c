@@ -8,13 +8,15 @@
 #include <netdb.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/un.h>
 
-int initTCPSocket(const char * port_str){
-    int sockfd = socket(AF_INET , SOCK_STREAM , 0);
-    int portno = atoi(port_str);
+char * dir_cstr = NULL; 
+
+int initTCPSocket(int portno){
     struct hostent *server;
     struct sockaddr_in serv_addr;
     char * hostname = "localhost";
+    int sockfd = socket(AF_INET , SOCK_STREAM , 0);
     if(sockfd == -1){
         fprintf(stderr, "cannot create socket");
         abort();
@@ -34,5 +36,51 @@ int initTCPSocket(const char * port_str){
         fprintf(stderr, "error connecting to a TCP port");
         abort();
     }
+    return sockfd;
+}
+
+
+
+int initUnixSocket(){
+    struct sockaddr_un addr;
+    if(dir_cstr == NULL){
+        fprintf(stderr, "dir_cstr is NULL");
+        abort();
+    }
+    int dir_cstr_len = strlen(dir_cstr);
+    if(dir_cstr_len == 0){
+        fprintf(stderr, "dir_cstr is empty");
+        abort();
+    }
+    int cur =  dir_cstr_len-1; 
+    while(dir_cstr[cur] == '/' && cur >= 0){
+        dir_cstr[cur] = '\0';
+        cur--;
+    }
+    int sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+        fprintf(stderr, "cannot create socket");
+        abort();
+    }
+    memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    strncpy(addr.sun_path, dir_cstr, sizeof(addr.sun_path)-1);
+    strncat(addr.sun_path, "/CO3.sock", sizeof(addr.sun_path)-1);
+    if (bind(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+        fprintf(stderr, "binding to %s failed", addr.sun_path);
+        abort();
+    }
+    return sockfd;
+}
+
+int initSock(const char * port_str){
+    int sockfd;
+    int portno = atoi(port_str);
+    if(portno == 0){
+        
+    }else{
+        sockfd = initTCPSocket(port_str);
+    }
+    
     return sockfd;
 }

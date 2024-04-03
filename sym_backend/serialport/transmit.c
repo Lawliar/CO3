@@ -32,7 +32,7 @@ CO3_SER* initSer(const char * port){
         ret->total_bytes = 0;
         return ret;
     }
-    int sock_no =  initTCPSocket(port);
+    int sock_no =  initSock(port);
     ret->tcp_handle = sock_no;
     ret->used = true;
     ret->total_bytes = 0;
