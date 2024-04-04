@@ -68,7 +68,7 @@ Runtime::Runtime(Module &M) {
     llvm::IntegerType* intPtrType = M.getDataLayout().getIntPtrType(M.getContext());
     if(M.getDataLayout().isLegalInteger(64)){
         //int_type = IRB.getInt64Ty();
-        llvm_unreachable("MCU with 64-bit data layout?");
+        llvm_unreachable("MCU with 64-bit memory layout?");
     }else if(M.getDataLayout().isLegalInteger(32)){
         int_type = IRB.getInt32Ty();
     }else if(M.getDataLayout().isLegalInteger(16)){
