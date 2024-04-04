@@ -7,12 +7,12 @@
 #define RX_BUFFER_STARTING_POINT 4
 #define TX_BUFFER_STARTING_POINT 1
 
-#define MAX_RX_BUFFER_SIZE 1036
-#define MAX_TX_BUFFER_SIZE 256 
+#define RX_BUFFER_SIZE 1036
+#define TX_BUFFER_SIZE 256 
 
 // 1. if you want to use the MCU-side shadow memory or not
 
-//#define CO3_NO_SHADOW
+#define CO3_NO_SHADOW
 
 
 #if defined CO3_NO_SHADOW

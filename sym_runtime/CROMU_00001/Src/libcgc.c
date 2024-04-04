@@ -53,13 +53,13 @@ int transmit(int fd, const void *buf, size_t_cgc count, size_t_cgc *tx_bytes){
 int input_cur = 0;
 extern char * rxBuffer;
 int receive_cgc( int fd, void *buf, size_t count, size_t *rx_bytes){
-    uint32_t total_available = *(uint32_t*) - RX_BUFFER_STARTING_POINT;
+    uint32_t total_available = *(uint32_t*)rxBuffer - RX_BUFFER_STARTING_POINT;
     if(input_cur >= total_available){
         return EFAULT;
     }
     else if( (total_available - input_cur) < count ){
         *rx_bytes = (size_t_cgc) total_available - input_cur;
-        memcpy(buf,  + RX_BUFFER_STARTING_POINT + input_cur, *rx_bytes);
+        memcpy(buf, rxBuffer + RX_BUFFER_STARTING_POINT + input_cur, *rx_bytes);
         input_cur = total_available;
         return 0;
     }else{

@@ -8,7 +8,6 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # Path to toolchain file. This one has to be before 'project()' below
 
-set(CO3_REPLACE ON)
 set(CMAKE_TOOLCHAIN_FILE clang.cmake)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -17,14 +16,8 @@ set(EXECUTABLE ${PROJECT_NAME}.elf)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
 
-
-if(${CO3_REPLACE})
-  set(CO3_INSTRUMENTATION_LIB "/home/lcm/github/spear/spear-code/pass/symbolizer/build_replace/libSymbolize.so")
-  set(CO3_OUTPUT_DIR "${PROJECT_SOURCE_DIR}/intermediate_results")
-else()
-  set(CO3_INSTRUMENTATION_LIB "/home/lcm/github/spear/spear-code/pass/symbolizer/build_no_replace/libSymbolize.so")
-  set(CO3_OUTPUT_DIR "${PROJECT_SOURCE_DIR}/intermediate_results_no_replace")
-endif() 
+set(CO3_INSTRUMENTATION_LIB "/home/lcm/github/spear/spear-code/pass/symbolizer/build_workstation/libSymbolize.so")
+set(CO3_OUTPUT_DIR "${PROJECT_SOURCE_DIR}/intermediate_results")
 
 enable_language(C)
 set(CMAKE_C_STANDARD 99)
@@ -60,19 +53,18 @@ include_directories(
 # Build the executable based on the source files
 add_executable(${EXECUTABLE} ${SRC_INSTRUMENTATION_FILES} ${SRC_UNINSTRUMENTATION_FILES} ${RUNTIME_SRC})
 
+## some macro defintions
+target_compile_definitions(${EXECUTABLE} PUBLIC CO3_PROJECT_DIR=${CO3_OUTPUT_DIR})
 
-
+## flags
 set(CFLAGS
   -O0
-)
-
-
-add_compile_options(
-  ${CFLAGS}
 )
 
 target_compile_options(
   ${EXECUTABLE} PRIVATE
   ${CFLAGS}
 )
+
+target_link_libraries(${EXECUTABLE} m)
 
