@@ -24,6 +24,8 @@
 #include "libcgc.h"
 #include "stdlib.h" // for free and malloc
 #include "string.h"
+#include "stdint.h"
+#include "ProtocolConfig.h"
 // lame so we don't have to include over-riding .h files
 #define MAP_ANONYMOUS 0x20
 #define MAP_PRIVATE 0x02
@@ -48,13 +50,25 @@ int transmit(int fd, const void *buf, size_t_cgc count, size_t_cgc *tx_bytes){
 	//return 0;
 	return 0;
 }
-
+int input_cur = 0;
+extern char * rxBuffer;
 int receive_cgc( int fd, void *buf, size_t count, size_t *rx_bytes){
-		unsigned s = read(fd, buf, count);
-        if(s <= 0)
-                return EFAULT;
-        *rx_bytes = (size_t) s;
+    uint32_t total_available = *(uint32_t*) - RX_BUFFER_STARTING_POINT;
+    if(input_cur >= total_available){
+        return EFAULT;
+    }
+    else if( (total_available - input_cur) < count ){
+        *rx_bytes = (size_t_cgc) total_available - input_cur;
+        memcpy(buf,  + RX_BUFFER_STARTING_POINT + input_cur, *rx_bytes);
+        input_cur = total_available;
         return 0;
+    }else{
+        memcpy(buf, rxBuffer + RX_BUFFER_STARTING_POINT + input_cur,count);
+        input_cur += count;
+        *rx_bytes = count;
+        return 0;
+    }
+    return 0;
 }
 
 
