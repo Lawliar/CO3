@@ -22,7 +22,6 @@ int indentNum = 4;
 
 extern WriteShadowIteratorDR * DR_INPUT;
 extern bool co3_solver_checked;
-extern char * dir_cstr;
 
 #if defined(CO3_SER2NET)
 Orchestrator::Orchestrator(std::string inputDir, std::string sp_port, int baud_rate):ser(initSer(sp_port.c_str())),pool(2),msgQueue(ser)
@@ -30,7 +29,6 @@ Orchestrator::Orchestrator(std::string inputDir, std::string sp_port, int baud_r
 Orchestrator::Orchestrator(std::string inputDir, std::string sp_port, int baud_rate):ser(initSer(sp_port.c_str(), baud_rate)),pool(2),msgQueue(ser)
 #endif
 {
-    dir_cstr = (char *)inputDir.c_str();
     _sym_initialize_config(inputDir);
     boost::filesystem::path dir (inputDir);
     boost::filesystem::path funcIDFilePath = dir / "spear_func_id.txt";

@@ -12,6 +12,7 @@
 #include "stdio.h"
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <unistd.h>
 
 #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
 #define bitSet(value, bit) ((value) |= (1UL << (bit)))
@@ -45,14 +46,14 @@ bool return_exp;
 int sockfd;
 int clientfd;
 
-uint8_t rxBuffer[MAX_RX_BUFFER_SIZE];
-uint8_t  txBuffer[MAX_TX_BUFFER_SIZE];
+uint8_t rxBuffer[RX_BUFFER_SIZE];
+uint8_t  txBuffer[TX_BUFFER_SIZE];
 uint32_t txCur = 0; 
 
 void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t length, uint16_t symID);
 
-#ifndef CO3_NO_SHADOW
-//return address
+#if defined (CO3_NO_SHADOW)
+#else
 uint32_t AddressToShadow(char *addr);
 #endif
 
@@ -63,36 +64,28 @@ bool checkSymbolicSetConcrete(char *);
 
 void ReceiveInput()
 {
-    int result = read(clientfd,  (uint8_t * )&AFLfuzzer.inputLength, sizeof(uint32_t));
-    AFLfuzzer.inputLengthpadded  = AFLfuzzer.inputLength;
+    int result = read(clientfd, rxBuffer , sizeof(uint32_t));
     if (result != 4) {
         perror("read error");
         exit(1);
     }
-    if((AFLfuzzer.inputLengthpadded)> MAX_BUFFER_INPUT)
-    {
-        error = 1;
-    }
-    if( AFLfuzzer.inputLengthpadded && (error == 0) ){
-        unsigned u32Tocopy = (AFLfuzzer.inputLengthpadded) - AFLfuzzer.inputAFL.u32available - sizeof(uint32_t);
-        RingCopy(&AFLfuzzer.inputAFL, (uint8_t * )&AFLfuzzer.inputLength, AFL_BUFFER_STARTING_POINT);
-        RingCopy(&AFLfuzzer.inputAFL, (uint8_t * )&AFLfuzzer.inputLength, AFL_BUFFER_STARTING_POINT);
-        read(clientfd, AFLfuzzer.inputAFL.u8buffer + AFLfuzzer.inputAFL.u32available, u32Tocopy);
-    }
+    unsigned u32Tocopy = *(uint32_t*)rxBuffer - sizeof(uint32_t);
+    read(clientfd, rxBuffer + sizeof(uint32_t), u32Tocopy);
+    return;
 }
 
 // this should be only called by the monitor
 void TransmitPack(void)
 {
     txBuffer[0]= txCur;
-    n = write(clientfd, txBuffer, n);
+    int n = write(clientfd, txBuffer, n);
     if (n < 0) {
         perror("write error");
         exit(1);
     }
     //reset
-    txCur = REPORTING_BUFFER_STARTING_POINT;
-    memset(AFLfuzzer.txBuffer,0,TX_BUFFER_SIZE);
+    txCur = TX_BUFFER_STARTING_POINT;
+    memset(txBuffer,0,TX_BUFFER_SIZE);
 }
 
 #if DEBUGPRINT ==1
@@ -102,7 +95,7 @@ void txCommandtoMonitor(uint8_t size)
 #endif
 {
     //If we don't have more space in the buffer TX the packet
-    if (txCur + size >= MAX_TX_BUFFER_SIZE  )
+    if (txCur + size >= TX_BUFFER_SIZE  )
     {
         TransmitPack();
     }
@@ -112,7 +105,8 @@ void _sym_initialize()
 {
     int i;
     struct sockaddr_un addr;
-#ifndef CO3_NO_SHADOW
+#if defined (CO3_NO_SHADOW)
+#else 
     shadowram = (uint32_t *)malloc(SYM_SHADOW_RAM_LENGTH);
     memset((void*)shadowram,0x00,SYM_SHADOW_RAM_LENGTH);
 #endif
@@ -129,11 +123,19 @@ void _sym_initialize()
         perror("socket error");
         exit(1);
     }
-
     addr.sun_family = AF_UNIX;
-    strcpy(addr.sun_path, "PROJECT_DIR/intermediate_results/CO3.sock");
+#ifndef CO3_PROJECT_DIR
+    #error "CO3_PROJECT_DIR" not defined
+#else
+    #define xSTR(x) STR(x)
+    #define STR(x) #x
+    sprintf(addr.sun_path, "%s%s", xSTR(CO3_PROJECT_DIR), "/CO3.sock");
+#endif
+
+    // create a UNIX socket file and bind to it
+    unlink(addr.sun_path);
     if(bind(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-        perror("bind error");
+        fprintf(stderr,"%s, bind error", addr.sun_path);
         exit(1);
     }
     listen(sockfd, 5);
@@ -145,7 +147,7 @@ void _sym_initialize()
     }
 
     // initialize global variables
-    txCur=REPORTING_BUFFER_STARTING_POINT;
+    txCur=TX_BUFFER_STARTING_POINT;
     memset(txBuffer,0,TX_BUFFER_SIZE);
     memset(rxBuffer,0,RX_BUFFER_SIZE);
     ReceiveInput();
@@ -592,7 +594,8 @@ void _sym_notify_basic_block(uint16_t bbid, bool isSym, char * base_addr, uint8_
 
 
 
-#ifndef CO3_NO_SHADOW
+#if defined(CO3_NO_SHADOW)
+#else 
 uint32_t AddressToShadow(char *addr)
 {
 	uint32_t adr32 = (uint32_t)addr;
@@ -603,20 +606,14 @@ uint32_t AddressToShadow(char *addr)
 //return true if byte is symbolic
 bool checkSymbolic(char *addr)
 {
-	int peri = checkSymPeripheral((uint32_t *)addr);
-	int flash = checkSymFlash((uint32_t *)addr);
-	if(peri != -1){
-		return peri > 0 ? true : false;
-	}else if(flash != -1){
-		return false;
-	}
-#ifndef CO3_NO_SHADOW
+#if defined (CO3_NO_SHADOW) 
+	return true;
+	
+#else
 	char *addrShadow = (char *)AddressToShadow(addr);
 	char val = *addrShadow;
 	uint32_t bitnum = ((uint32_t)addr) & 0x07;
 	return bitRead(val,bitnum);
-#else
-	return true;
 #endif
 }
 
@@ -624,14 +621,6 @@ bool checkSymbolic(char *addr)
 //return true if byte was symbolic and convert it to concrete
 bool checkSymbolicSetConcrete(char *addr)
 {
-	int peri = checkSymPeripheral((uint32_t *)addr);
-	int flash = checkSymFlash((uint32_t *)addr);
-	if(peri != -1){
-		return peri > 0 ? true : false;
-	}else if(flash != -1){
-		return false;
-	}
-	// then we are at RAM
 #ifndef CO3_NO_SHADOW
 	char *addrShadow = (char *)AddressToShadow(addr);
 	char val = *addrShadow;
@@ -660,13 +649,6 @@ bool checkSymbolicSetSymbolic(char *addr)
 void SetSymbolic(char *addr)
 {
 #ifndef CO3_NO_SHADOW
-	int peri = checkSymPeripheral((uint32_t *)addr);
-	int flash = checkSymFlash((uint32_t *)addr);
-	if(peri != -1){
-		return;
-	}else if(flash != -1){
-		return;
-	}
 	char *addrShadow =  (char *)AddressToShadow (addr);
 	uint32_t bitnum = ((uint32_t)addr) & 0x07;
 	bitSet(*addrShadow,  bitnum);
@@ -714,8 +696,8 @@ void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t 
 	//txBuffer[txCur++]= *byteval++;
 	//txBuffer[txCur++]= *byteval++;
 	//txBuffer[txCur++]= *byteval;
-	*(uint32_t*)(AFLfuzzer.txBuffer + AFLfuzzer.txCurrentIndex) = (uint32_t) dest;
-	AFLfuzzer.txCurrentIndex += 4;
+	*(uint32_t*)(txBuffer + txCur) = (uint32_t) dest;
+	txCur += 4;
 
 
 	if(msgCode == SYM_BLD_MEMCPY || msgCode == SYM_BLD_MEMCPY_1  || msgCode == SYM_BLD_MEMMOVE || msgCode == SYM_BLD_MEMMOVE_1)
@@ -726,8 +708,8 @@ void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t 
 		//txBuffer[txCur++]= *byteval++;
 		//txBuffer[txCur++]= *byteval++;
 		//txBuffer[txCur++]= *byteval;
-		*(uint32_t*)(AFLfuzzer.txBuffer + AFLfuzzer.txCurrentIndex) = (uint32_t) src;
-		AFLfuzzer.txCurrentIndex += 4;
+		*(uint32_t*)(txBuffer + txCur) = (uint32_t) src;
+		txCur += 4;
 	}
 
     if(msgCode != SYM_BLD_READ_MEM  && msgCode != SYM_BLD_READ_MEM_1 \
@@ -747,8 +729,8 @@ void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t 
     		//txBuffer[txCur++]= *byteval++;
     		//txBuffer[txCur++]= *byteval++;
     		//txBuffer[txCur++]= *byteval;
-    		*(uint32_t*)(AFLfuzzer.txBuffer + AFLfuzzer.txCurrentIndex) = *(uint32_t*)(dest);
-    		AFLfuzzer.txCurrentIndex += 4;
+    		*(uint32_t*)(txBuffer + txCur) = *(uint32_t*)(dest);
+    		txCur += 4;
     }
 
     if(msgCode == SYM_BLD_READ_MEM_HW || msgCode ==  SYM_BLD_READ_MEM_HW_1) // we need to send the concrete half  word
@@ -995,8 +977,8 @@ void _sym_symbolize_memory(char * addr, size_t length, bool DR)
 
 	txCommandtoMonitorF;
 	txBuffer[txCur++] = msgCode;
-	*(uint32_t*)(AFLfuzzer.txBuffer + AFLfuzzer.txCurrentIndex) = (uint32_t) addr;
-	AFLfuzzer.txCurrentIndex += 4;
+	*(uint32_t*)(txBuffer + txCur) = (uint32_t) addr;
+	txCur += 4;
 }
 
 
@@ -1010,8 +992,8 @@ void _sym_notify_basic_block_cc(uintptr_t site_id) {
 	uintptr_t r = site_id ^ prev_site_id;
 	int msgSize = sizeof(uintptr_t) + 1;
 	txCommandtoMonitorF;
-	*(uintptr_t*)(AFLfuzzer.txBuffer + AFLfuzzer.txCurrentIndex) = r;
-	AFLfuzzer.txCurrentIndex += sizeof(uintptr_t);
+	*(uintptr_t*)(txBuffer + txCur) = r;
+	txCur += sizeof(uintptr_t);
 	txBuffer[txCur++] = '\n';
     prev_site_id = site_id >> 1;
 }
@@ -1021,14 +1003,14 @@ void _spear_report1(uint32_t userID, char * arg1)
 {
 
 	txCommandtoMonitor(SIZE_SPEAR_RPT1);
-	AFLfuzzer.txBuffer[AFLfuzzer.txCurrentIndex] = SPEAR_RPT1; //set the function in the buffer
+	txBuffer[txCur] = SPEAR_RPT1; //set the function in the buffer
 	if(AFLfuzzer.txTotalFunctions)
 	{
 		//write the index where the current function starts
-		AFLfuzzer.txBuffer[AFLfuzzer.txTotalFunctions]=AFLfuzzer.txCurrentIndex;
+		txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
 	}
 	AFLfuzzer.txTotalFunctions++;
-	AFLfuzzer.txCurrentIndex++;
+	txCur++;
 	set_id(userID);
 	get_report( (uint8_t*) arg1);
 }
@@ -1037,14 +1019,14 @@ void _spear_report1(uint32_t userID, char * arg1)
 void _spear_report2(uint32_t userID, char * arg1,char * arg2)
 {
 	txCommandtoMonitor(SIZE_SPEAR_RPT2);
-	AFLfuzzer.txBuffer[AFLfuzzer.txCurrentIndex] = SPEAR_RPT2; //set the function in the buffer
+	txBuffer[txCur] = SPEAR_RPT2; //set the function in the buffer
 	if(AFLfuzzer.txTotalFunctions)
 	{
 		//write the index where the current function starts
-		AFLfuzzer.txBuffer[AFLfuzzer.txTotalFunctions]=AFLfuzzer.txCurrentIndex;
+		txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
 	}
 	AFLfuzzer.txTotalFunctions++;
-	AFLfuzzer.txCurrentIndex++;
+	txCur++;
 	set_id(userID);
 	get_report( (uint8_t*) arg1);
 	get_report( (uint8_t*) arg2);
@@ -1055,14 +1037,14 @@ void _spear_report2(uint32_t userID, char * arg1,char * arg2)
 void _spear_report3(uint32_t userID, char * arg1,char * arg2,char * arg3)
 {
 	txCommandtoMonitor(SIZE_SPEAR_RPT3);
-	AFLfuzzer.txBuffer[AFLfuzzer.txCurrentIndex] = SPEAR_RPT3; //set the function in the buffer
+	txBuffer[txCur] = SPEAR_RPT3; //set the function in the buffer
 	if(AFLfuzzer.txTotalFunctions)
 	{
 		//write the index where the current function starts
-		AFLfuzzer.txBuffer[AFLfuzzer.txTotalFunctions]=AFLfuzzer.txCurrentIndex;
+		txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
 	}
 	AFLfuzzer.txTotalFunctions++;
-	AFLfuzzer.txCurrentIndex++;
+	txCur++;
 	set_id(userID);
 	get_report( (uint8_t*) arg1);
 	get_report( (uint8_t*) arg2);
@@ -1073,14 +1055,14 @@ void _spear_report3(uint32_t userID, char * arg1,char * arg2,char * arg3)
 void _spear_report4(uint32_t userID, char * arg1,char * arg2,char * arg3,char * arg4)
 {
 	txCommandtoMonitor(SIZE_SPEAR_RPT4);
-    AFLfuzzer.txBuffer[AFLfuzzer.txCurrentIndex] = SPEAR_RPT4; //set the function in the buffer
+    txBuffer[txCur] = SPEAR_RPT4; //set the function in the buffer
     if(AFLfuzzer.txTotalFunctions)
     {
     	//write the index where the current function starts
-    	AFLfuzzer.txBuffer[AFLfuzzer.txTotalFunctions]=AFLfuzzer.txCurrentIndex;
+    	txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
     }
     AFLfuzzer.txTotalFunctions++;
-    AFLfuzzer.txCurrentIndex++;
+    txCur++;
     set_id(userID);
     get_report( (uint8_t*) arg1);
     get_report( (uint8_t*) arg2);
@@ -1091,14 +1073,14 @@ void _spear_report4(uint32_t userID, char * arg1,char * arg2,char * arg3,char * 
 void _spear_symbolize(char *address, uint32_t len)
 {
 	txCommandtoMonitor(SIZE_SPEAR_SYM);
-	AFLfuzzer.txBuffer[AFLfuzzer.txCurrentIndex] = SPEAR_SYM; //set the function in the buffer
+	txBuffer[txCur] = SPEAR_SYM; //set the function in the buffer
 	if(AFLfuzzer.txTotalFunctions)
 	{
 		//write the index where the current function starts
-		AFLfuzzer.txBuffer[AFLfuzzer.txTotalFunctions]=AFLfuzzer.txCurrentIndex;
+		txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
 	}
 	AFLfuzzer.txTotalFunctions++;
-	AFLfuzzer.txCurrentIndex++;
+	txCur++;
 	set_id((uint32_t)address);
 	set_id((uint32_t)len);
 
@@ -1108,42 +1090,42 @@ void _spear_symbolize(char *address, uint32_t len)
 void _sym_notify_call(uint32_t id)
 {
 	txCommandtoMonitor(SIZE_SYM_N_CALL);
-	AFLfuzzer.txBuffer[AFLfuzzer.txCurrentIndex] = SYM_N_CALL; //set the function in the buffer
+	txBuffer[txCur] = SYM_N_CALL; //set the function in the buffer
 	if(AFLfuzzer.txTotalFunctions)
 	{
 		//write the index where the current function starts
-		AFLfuzzer.txBuffer[AFLfuzzer.txTotalFunctions]=AFLfuzzer.txCurrentIndex;
+		txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
 	}
 	AFLfuzzer.txTotalFunctions++;
-	AFLfuzzer.txCurrentIndex++;
+	txCur++;
 	set_id(id);
 }
 
 void _sym_notify_ret(uint32_t id)
 {
 	txCommandtoMonitor(SIZE_SYM_N_RET);
-	AFLfuzzer.txBuffer[AFLfuzzer.txCurrentIndex] = SYM_N_RET; //set the function in the buffer
+	txBuffer[txCur] = SYM_N_RET; //set the function in the buffer
 	if(AFLfuzzer.txTotalFunctions)
 	{
 		//write the index where the current function starts
-		AFLfuzzer.txBuffer[AFLfuzzer.txTotalFunctions]=AFLfuzzer.txCurrentIndex;
+		txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
 	}
 	AFLfuzzer.txTotalFunctions++;
-	AFLfuzzer.txCurrentIndex++;
+	txCur++;
 	set_id(id);
 }
 
 void _sym_notify_basic_block(uint8_t id)
 {
 	txCommandtoMonitor(SIZE_SYM_N_BB);
-	AFLfuzzer.txBuffer[AFLfuzzer.txCurrentIndex] = SYM_N_BB; //set the function in the buffer
+	txBuffer[txCur] = SYM_N_BB; //set the function in the buffer
 	if(AFLfuzzer.txTotalFunctions)
 	{
 		//write the index where the current function starts
-		AFLfuzzer.txBuffer[AFLfuzzer.txTotalFunctions]=AFLfuzzer.txCurrentIndex;
+		txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
 	}
 	AFLfuzzer.txTotalFunctions++;
-	AFLfuzzer.txCurrentIndex++;
+	txCur++;
 	set_id(id);
 }
 */

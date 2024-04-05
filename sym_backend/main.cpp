@@ -25,6 +25,7 @@ extern set<string> leaveOps;
 extern set<string> leaves;
 extern set<string> nodesDepOnRuntime;
 #endif
+extern char * dir_cstr;
 int main(int argc, const char *argv[])
 {
     boost::program_options::variables_map vm = ParseCommand(argc, argv);
@@ -37,7 +38,7 @@ int main(int argc, const char *argv[])
         cerr << "input dir:"<<input_path<<" does not exist";
         assert(false);
     }
-
+    dir_cstr = (char *)input_path.c_str();
     Orchestrator orc(input_path,serial_port,baud_rate);
 #ifdef GPROFILING
     ProfilerStart("orchestrator.prof");

@@ -64,9 +64,8 @@ int initUnixSocket(){
     }
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, dir_cstr, sizeof(addr.sun_path)-1);
-    strncat(addr.sun_path, "/CO3.sock", sizeof(addr.sun_path)-1);
-    if (bind(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+    sprintf(addr.sun_path, "%s%s", dir_cstr,"/CO3.sock");
+    if (connect(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
         fprintf(stderr, "binding to %s failed", addr.sun_path);
         abort();
     }
@@ -77,7 +76,7 @@ int initSock(const char * port_str){
     int sockfd;
     int portno = atoi(port_str);
     if(portno == 0){
-        
+        sockfd = initUnixSocket();
     }else{
         sockfd = initTCPSocket(port_str);
     }
