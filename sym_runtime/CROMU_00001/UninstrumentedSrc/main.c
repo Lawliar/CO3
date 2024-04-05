@@ -4,7 +4,9 @@
  **/
 #include "wrapped_malloc.h"
 #include "test.h"
+#include "runtime.h"
 int main(void) {
+	sockRec();
 	handle_menu();
 	whole_free();
 	return 0;

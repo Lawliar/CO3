@@ -192,6 +192,8 @@ void _sym_symbolize_memory(char * addr, size_t length, bool DR);
 void _sym_initialize();// allocate the shadow memory, and the space for the return values, parameters
 void _sym_end();
 
+
+void sockRec();
 /*
  *
  * https://github.com/RiS3-Lab/spear-writeup/blob/master/log.md?plain=1#L170

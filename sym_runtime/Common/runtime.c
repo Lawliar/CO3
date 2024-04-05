@@ -104,7 +104,6 @@ void txCommandtoMonitor(uint8_t size)
 void _sym_initialize()
 {
     int i;
-    struct sockaddr_un addr;
 #if defined (CO3_NO_SHADOW)
 #else 
     shadowram = (uint32_t *)malloc(SYM_SHADOW_RAM_LENGTH);
@@ -117,7 +116,10 @@ void _sym_initialize()
         parameter_exp[i]=false;
     }
     return_exp = false;
+}
 
+void sockRec(){
+    struct sockaddr_un addr;
     sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sockfd < -1) {
         perror("socket error");
@@ -139,7 +141,6 @@ void _sym_initialize()
         exit(1);
     }
     listen(sockfd, 5);
-
     clientfd = accept(sockfd, NULL, NULL);
     if(clientfd < 0) {
         perror("accept error");
