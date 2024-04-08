@@ -1,8 +1,9 @@
 #include <set>
 #include <byteswap.h>
 #include "solver.h"
+extern "C"{
 #include "getTimeStamp.h"
-
+}
 
 bool co3_solver_checked = false;
 namespace qsym {

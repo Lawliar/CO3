@@ -72,7 +72,7 @@ add_executable(orchestrator
   ${SHARED_RUNTIME_SOURCES}
   ${SERIAL_PORT_SOURCES}
   ${GRAPH_SOURCES}
-  Runtime.cpp ../ThreadPool.h ../graph/Val.cpp ../graph/Val.h ../getTimeStamp.h ../getTimeStamp.cpp)
+  Runtime.cpp ../ThreadPool.h ../graph/Val.cpp ../graph/Val.h ../getTimeStamp.h ../getTimeStamp.c)
 
 ##graph
 target_include_directories(orchestrator PRIVATE ${GRAPH_INCLUDE_DIR})

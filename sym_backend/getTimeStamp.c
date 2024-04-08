@@ -3,6 +3,7 @@
 //
 #include "getTimeStamp.h"
 
+const uint64_t kUsToS = 1000000;
 uint64_t getTimeStamp() {
     struct timeval tv;
     gettimeofday(&tv, NULL);

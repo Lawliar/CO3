@@ -1,6 +1,7 @@
 #include <Orchestrator.h>
+extern "C"{
 #include <getTimeStamp.h>
-
+}
 
 #ifdef DEBUG_OUTPUT
 extern int indent;

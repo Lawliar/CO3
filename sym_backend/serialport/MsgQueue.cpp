@@ -5,7 +5,9 @@
 #include "MsgQueue.h"
 #include <assert.h>
 #include <fstream>
+extern "C"{
 #include "getTimeStamp.h"
+}
 #include <iostream>
 extern ring_buffer_t RingBuffer;
 

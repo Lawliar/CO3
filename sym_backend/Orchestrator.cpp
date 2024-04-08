@@ -5,7 +5,9 @@
 #include "Orchestrator.h"
 #include <iostream>
 #include <fstream>
+extern "C"{
 #include "getTimeStamp.h"
+}
 #include "Config.h"
 
 #pragma clang diagnostic push
