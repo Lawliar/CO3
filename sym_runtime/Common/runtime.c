@@ -78,7 +78,7 @@ void ReceiveInput()
 void TransmitPack(void)
 {
     txBuffer[0]= txCur;
-    int n = write(clientfd, txBuffer, n);
+    int n = write(clientfd, txBuffer, txCur);
     if (n < 0) {
         perror("write error");
         exit(1);
