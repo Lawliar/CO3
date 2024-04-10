@@ -58,6 +58,7 @@ target_compile_definitions(${EXECUTABLE} PUBLIC CO3_PROJECT_DIR=${CO3_OUTPUT_DIR
 
 ## flags
 set(CFLAGS
+  -g
   -O0
 )
 

@@ -13,7 +13,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
-
+#include <sys/time.h>
+#include "stddef.h"
 #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
 #define bitSet(value, bit) ((value) |= (1UL << (bit)))
 #define bitClear(value, bit) ((value) &= ~(1UL << (bit)))
@@ -61,16 +62,36 @@ uint32_t AddressToShadow(char *addr);
 bool checkSymbolic(char *addr);
 bool checkSymbolicSetConcrete(char *);
 
+const uint64_t kUsToS = 1000000;
+uint64_t getTimeStamp() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec * kUsToS + tv.tv_usec;
+}
 
 void ReceiveInput()
 {
+    unsigned int read_timeout = 1000;
     int result = read(clientfd, rxBuffer , sizeof(uint32_t));
     if (result != 4) {
         perror("read error");
         exit(1);
     }
     unsigned u32Tocopy = *(uint32_t*)rxBuffer - sizeof(uint32_t);
-    read(clientfd, rxBuffer + sizeof(uint32_t), u32Tocopy);
+    unsigned cur = 0;
+    uint64_t start = getTimeStamp();
+    while(cur < u32Tocopy){
+        result = read(clientfd, rxBuffer + cur, u32Tocopy - cur);
+        if(result == -1){
+            perror("read error");
+            exit(1);
+        }
+        cur += result;
+        if(getTimeStamp() - start > read_timeout){
+            fprintf(stderr,"reading %d bytes timed out", u32Tocopy);
+            abort();
+        }
+    }
     return;
 }
 
@@ -697,8 +718,8 @@ void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t 
 	//txBuffer[txCur++]= *byteval++;
 	//txBuffer[txCur++]= *byteval++;
 	//txBuffer[txCur++]= *byteval;
-	*(uint32_t*)(txBuffer + txCur) = (uint32_t) dest;
-	txCur += 4;
+	*(uint64_t*)(txBuffer + txCur) = (uint64_t) dest;
+	txCur += 8;
 
 
 	if(msgCode == SYM_BLD_MEMCPY || msgCode == SYM_BLD_MEMCPY_1  || msgCode == SYM_BLD_MEMMOVE || msgCode == SYM_BLD_MEMMOVE_1)
@@ -709,8 +730,8 @@ void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t 
 		//txBuffer[txCur++]= *byteval++;
 		//txBuffer[txCur++]= *byteval++;
 		//txBuffer[txCur++]= *byteval;
-		*(uint32_t*)(txBuffer + txCur) = (uint32_t) src;
-		txCur += 4;
+		*(uint64_t*)(txBuffer + txCur) = (uint64_t) src;
+		txCur += 8;
 	}
 
     if(msgCode != SYM_BLD_READ_MEM  && msgCode != SYM_BLD_READ_MEM_1 \
@@ -978,8 +999,8 @@ void _sym_symbolize_memory(char * addr, size_t length, bool DR)
 
 	txCommandtoMonitorF;
 	txBuffer[txCur++] = msgCode;
-	*(uint32_t*)(txBuffer + txCur) = (uint32_t) addr;
-	txCur += 4;
+	*(uint64_t*)(txBuffer + txCur) = (uint64_t) addr;
+	txCur += 8;
 }
 
 

@@ -100,26 +100,26 @@ enum {
 #define SIZE_SYM_BLD_PATH_CNSTR     3      // | FCODE(1) | symID(1)         | val(1)      |
 #define SIZE_SYM_BLD_PATH_CNSTR_1   4      // | FCODE(1) | symID(2)         | val(1)      |
 
-#define SIZE_SYM_BLD_MEMCPY         12     // | FCODE(1) | symID(1)         | dest(4)     | src(4)    | length(2) |
-#define SIZE_SYM_BLD_MEMCPY_1       13     // | FCODE(1) | symID(2)         | dest(4)     | src(4)    | length(2) |
+#define SIZE_SYM_BLD_MEMCPY         20     // | FCODE(1) | symID(1)         | dest(8)     | src(8)    | length(2) |
+#define SIZE_SYM_BLD_MEMCPY_1       21     // | FCODE(1) | symID(2)         | dest(8)     | src(8)    | length(2) |
 
-#define SIZE_SYM_BLD_MEMSET         8      // | FCODE(1) | symID(1)         | mem(4)      | length(2) |
-#define SIZE_SYM_BLD_MEMSET_1       9      // | FCODE(1) | symID(2)         | mem(4)      | length(2) |
+#define SIZE_SYM_BLD_MEMSET         12      // | FCODE(1) | symID(1)         | mem(8)      | length(2) |
+#define SIZE_SYM_BLD_MEMSET_1       13      // | FCODE(1) | symID(2)         | mem(8)      | length(2) |
 
-#define SIZE_SYM_BLD_MEMMOVE        12     // | FCODE(1) | symID(1)         | dest(4)     | src(4)    | length(2) |
-#define SIZE_SYM_BLD_MEMMOVE_1      13     // | FCODE(1) | symID(2)         | dest(4)     | src(4)    | length(2) |
+#define SIZE_SYM_BLD_MEMMOVE        20     // | FCODE(1) | symID(1)         | dest(8)     | src(8)    | length(2) |
+#define SIZE_SYM_BLD_MEMMOVE_1      21     // | FCODE(1) | symID(2)         | dest(8)     | src(8)    | length(2) |
 
-#define SIZE_SYM_BLD_READ_MEM       6      // | FCODE(1) | symID(1)         | addr(4)     |
-#define SIZE_SYM_BLD_READ_MEM_1     7      // | FCODE(1) | symID(2)         | addr(4)     |
+#define SIZE_SYM_BLD_READ_MEM       10      // | FCODE(1) | symID(1)         | addr(8)     |
+#define SIZE_SYM_BLD_READ_MEM_1     11      // | FCODE(1) | symID(2)         | addr(8)     |
 
-#define SIZE_SYM_BLD_READ_MEM_HW    8      // | FCODE(1) | symID(1)         | addr(4)     | val(2)    |
-#define SIZE_SYM_BLD_READ_MEM_HW_1  9      // | FCODE(1) | symID(2)         | addr(4)     | val(2)    |
+#define SIZE_SYM_BLD_READ_MEM_HW    12      // | FCODE(1) | symID(1)         | addr(8)     | val(2)    |
+#define SIZE_SYM_BLD_READ_MEM_HW_1  13      // | FCODE(1) | symID(2)         | addr(8)     | val(2)    |
 
-#define SIZE_SYM_BLD_READ_MEM_W     10     // | FCODE(1) | symID(1)         | addr(4)     | val(4)    |
-#define SIZE_SYM_BLD_READ_MEM_W_1   11     // | FCODE(1) | symID(2)         | addr(4)     | val(4)    |
+#define SIZE_SYM_BLD_READ_MEM_W     14     // | FCODE(1) | symID(1)         | addr(8)     | val(4)    |
+#define SIZE_SYM_BLD_READ_MEM_W_1   15     // | FCODE(1) | symID(2)         | addr(8)     | val(4)    |
 
-#define SIZE_SYM_BLD_WRITE_MEM      6      // | FCODE(1) | symID(1)         | addr(4)     |
-#define SIZE_SYM_BLD_WRITE_MEM_1    7      // | FCODE(1) | symID(2)         | addr(4)     |
+#define SIZE_SYM_BLD_WRITE_MEM      10      // | FCODE(1) | symID(1)         | addr(8)     |
+#define SIZE_SYM_BLD_WRITE_MEM_1    11      // | FCODE(1) | symID(2)         | addr(8)     |
 
 #define SIZE_SYM_NTFY_PHI           3      // | FCODE(1) | symID(1)         | branchNo(1) |
 #define SIZE_SYM_NTFY_PHI_1         4      // | FCODE(1) | symID(2)         | branchNo(1) |
