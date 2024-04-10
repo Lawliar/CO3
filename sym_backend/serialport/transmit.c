@@ -78,7 +78,7 @@ inline void sendData(CO3_SER* ser, uint8_t * buf, uint32_t size ){
     }
 }
 
-#define FRAME_LEN 64
+#define FRAME_LEN 256
 #define HEADER_LEN 1
 int receiveData(CO3_SER* ser){
     u8 buf[FRAME_LEN];
@@ -95,7 +95,7 @@ int receiveData(CO3_SER* ser){
     if(result == 0){
         return 0;
     }
-    unsigned int packet_len = ( unsigned int)*(char *)buf;
+    unsigned int packet_len = *(unsigned char *)buf;
     if(packet_len == 1){
         // just the header itself
         return HEADER_LEN;
@@ -116,7 +116,7 @@ int receiveData(CO3_SER* ser){
         cur += result;
         ser->total_bytes += result;
         if(getTimeStamp() - read_start_time > read_timeout){
-            fprintf(stderr,"reading %d bytes timed out\n", packet_len - HEADER_LEN);
+            fprintf(stderr,"reading %u bytes timed out\n", packet_len - HEADER_LEN);
             abort();
         }
     }
