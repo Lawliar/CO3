@@ -17,7 +17,7 @@ typedef uint32_t u32;
 typedef uint8_t u8;
 typedef uint64_t u64;
 
-unsigned long long read_timeout = 1000;
+unsigned long long read_timeout = 2000;
 u32 write_timeout = 1000;
 
 #define DUMMY_STR "dummy"
@@ -110,13 +110,13 @@ int receiveData(CO3_SER* ser){
         result = check(sp_blocking_read(ser->sp.port, buf, packet_len - HEADER_LEN, 1000));
 #endif
         if(result < 0){
-            fprintf(stderr,"reading %d bytes failed", packet_len - HEADER_LEN - cur);
+            fprintf(stderr,"reading %d bytes failed\n", packet_len - HEADER_LEN - cur);
             abort();
         }
         cur += result;
         ser->total_bytes += result;
         if(getTimeStamp() - read_start_time > read_timeout){
-            fprintf(stderr,"reading %d bytes timed out", packet_len - HEADER_LEN);
+            fprintf(stderr,"reading %d bytes timed out\n", packet_len - HEADER_LEN);
             abort();
         }
     }
