@@ -69,7 +69,7 @@ uint64_t getTimeStamp() {
     return tv.tv_sec * kUsToS + tv.tv_usec;
 }
 
-void ReceiveInput()
+void ReceiveSymbolize()
 {
     unsigned int read_timeout = 1000;
     int result = read(clientfd, rxBuffer , sizeof(uint32_t));
@@ -92,6 +92,7 @@ void ReceiveInput()
             abort();
         }
     }
+    _sym_symbolize_memory(rxBuffer + sizeof(uint32_t), u32Tocopy,false);
     return;
 }
 
@@ -104,6 +105,7 @@ void TransmitPack(void)
         perror("write error");
         exit(1);
     }
+    printf("transmitted %d bytes\n", txCur);
     //reset
     txCur = TX_BUFFER_STARTING_POINT;
     memset(txBuffer,0,TX_BUFFER_SIZE);
@@ -172,7 +174,7 @@ void sockRec(){
     txCur=TX_BUFFER_STARTING_POINT;
     memset(txBuffer,0,TX_BUFFER_SIZE);
     memset(rxBuffer,0,RX_BUFFER_SIZE);
-    ReceiveInput();
+    ReceiveSymbolize();
 }
 
 
