@@ -66,53 +66,53 @@ uint8_t notiTarget;
 void notifyTXfinish()
 {
 #if defined CO3_USE_FREERTOS
-	BaseType_t xHigherPriorityTaskWoken;
-	xHigherPriorityTaskWoken = pdFALSE;
+    BaseType_t xHigherPriorityTaskWoken;
+    xHigherPriorityTaskWoken = pdFALSE;
 #endif
-	//cleaning the packet buffer to receive new messages
-	/*
-	AFLfuzzer.txTotalFunctions=0;
-	for(uint8_t i=1; i<8; i++)
-	{
-		AFLfuzzer.txbuffer[i]=0;
-	}
-	}*/
+    //cleaning the packet buffer to receive new messages
+    /*
+    AFLfuzzer.txTotalFunctions=0;
+    for(uint8_t i=1; i<8; i++)
+    {
+        AFLfuzzer.txbuffer[i]=0;
+    }
+    }*/
 
-	AFLfuzzer.txCurrentIndex=REPORTING_BUFFER_STARTING_POINT;  //we reserve the first byte for size
-	//clean the tx buffer
-	for(uint8_t j = 0; j<MAX_USB_FRAME; j++ )
-	{
-		AFLfuzzer.txbuffer[j]=0;
-	}
-	AFLfuzzer.txTotalFunctions=0;
+    AFLfuzzer.txCurrentIndex=REPORTING_BUFFER_STARTING_POINT;  //we reserve the first byte for size
+    //clean the tx buffer
+    for(uint8_t j = 0; j<MAX_USB_FRAME; j++ )
+    {
+        AFLfuzzer.txbuffer[j]=0;
+    }
+    AFLfuzzer.txTotalFunctions=0;
 
 
 
-	//notify the target to continue execution
-	if (notiTarget == NOTI_TARGET)
-	{
+    //notify the target to continue execution
+    if (notiTarget == NOTI_TARGET)
+    {
 #if defined CO3_USE_FREERTOS
-		xTaskNotifyIndexedFromISR(AFLfuzzer.xTaskTarget,
-  	  	    				1, //index
-  							1, //value = 1 data TX complete
-  							eSetBits,
-  							&xHigherPriorityTaskWoken);
+        xTaskNotifyIndexedFromISR(AFLfuzzer.xTaskTarget,
+                            1, //index
+                            1, //value = 1 data TX complete
+                            eSetBits,
+                            &xHigherPriorityTaskWoken);
 #elif defined CO3_USE_CHIBIOS
-		chEvtSignalI(AFLfuzzer.xTaskTarget, TRANSMIT_FINISHED);
+        chEvtSignalI(AFLfuzzer.xTaskTarget, TRANSMIT_FINISHED);
 #endif
-	}
-	else
-	{
+    }
+    else
+    {
 #if defined CO3_USE_FREERTOS
-		xTaskNotifyIndexedFromISR(AFLfuzzer.xTaskMonitor,
-		  	  	    				2, //index
-		  							1, //value = 1 data TX complete
-		  							eSetBits,
-		  							&xHigherPriorityTaskWoken);
+        xTaskNotifyIndexedFromISR(AFLfuzzer.xTaskMonitor,
+                                    2, //index
+                                    1, //value = 1 data TX complete
+                                    eSetBits,
+                                    &xHigherPriorityTaskWoken);
 #elif defined CO3_USE_CHIBIOS
-		chEvtSignalI(AFLfuzzer.xTaskMonitor, TRANSMIT_FINISHED);
+        chEvtSignalI(AFLfuzzer.xTaskMonitor, TRANSMIT_FINISHED);
 #endif
-	}
+    }
 #if defined CO3_USE_FREERTOS
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 #endif
@@ -123,29 +123,29 @@ void notifyTXfinish()
 void TransmitPack(void)
 {
     // Transmit all functions in output buffer if any
-	if(AFLfuzzer.txTotalFunctions)
-	{
+    if(AFLfuzzer.txTotalFunctions)
+    {
 #if DEBUGPRINT==1
-		printf("TX buffer f. num: %d\n", AFLfuzzer.txTotalFunctions);
+        printf("TX buffer f. num: %d\n", AFLfuzzer.txTotalFunctions);
 #endif
-		AFLfuzzer.txbuffer[0]= AFLfuzzer.txCurrentIndex; //set the total length of the payload without considering size itself
+        AFLfuzzer.txbuffer[0]= AFLfuzzer.txCurrentIndex; //set the total length of the payload without considering size itself
 #if defined CO3_USE_SERIAL
-	#if defined CO3_USE_FREERTOS
-		HAL_UART_Transmit(co3_huart,AFLfuzzer.txbuffer,AFLfuzzer.txCurrentIndex,portMAX_DELAY);
-	#elif defined CO3_USE_CHIBIOS
-		sdWrite(co3_huart, (uint8_t *)AFLfuzzer.txbuffer, AFLfuzzer.txCurrentIndex);
-	#endif
-		AFLfuzzer.txCurrentIndex=REPORTING_BUFFER_STARTING_POINT;  //we reserve the first byte for size
-		//clean the tx buffer
-		for(uint8_t j = 0; j<MAX_USB_FRAME; j++ )
-		{
-			AFLfuzzer.txbuffer[j]=0;
-		}
-		AFLfuzzer.txTotalFunctions=0;
-	#if defined CO3_USE_FREERTOS
-		// wake up the target who is waiting on the transmission
-		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-		xTaskNotifyIndexedFromISR(AFLfuzzer.xTaskTarget,
+    #if defined CO3_USE_FREERTOS
+        HAL_UART_Transmit(co3_huart,AFLfuzzer.txbuffer,AFLfuzzer.txCurrentIndex,portMAX_DELAY);
+    #elif defined CO3_USE_CHIBIOS
+        sdWrite(co3_huart, (uint8_t *)AFLfuzzer.txbuffer, AFLfuzzer.txCurrentIndex);
+    #endif
+        AFLfuzzer.txCurrentIndex=REPORTING_BUFFER_STARTING_POINT;  //we reserve the first byte for size
+        //clean the tx buffer
+        for(uint8_t j = 0; j<MAX_USB_FRAME; j++ )
+        {
+            AFLfuzzer.txbuffer[j]=0;
+        }
+        AFLfuzzer.txTotalFunctions=0;
+    #if defined CO3_USE_FREERTOS
+        // wake up the target who is waiting on the transmission
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xTaskNotifyIndexedFromISR(AFLfuzzer.xTaskTarget,
                                     1, //index
                                     1, //value = 1 data TX complete
                                     eSetBits,
@@ -154,11 +154,11 @@ void TransmitPack(void)
         if(xTaskGetCurrentTaskHandle() != AFLfuzzer.xTaskMonitor){
             while(1){}
         }
-	#elif defined CO3_USE_CHIBIOS
-		eventmask_t events = 0;
-		events |= TRANSMIT_FINISHED;
-		chEvtSignal(AFLfuzzer.xTaskTarget, events);
-	#endif
+    #elif defined CO3_USE_CHIBIOS
+        eventmask_t events = 0;
+        events |= TRANSMIT_FINISHED;
+        chEvtSignal(AFLfuzzer.xTaskTarget, events);
+    #endif
 
 #elif defined CO3_USE_USB
         #if defined CO3_USE_STM32
@@ -173,7 +173,7 @@ void TransmitPack(void)
             cdcdf_acm_write(AFLfuzzer.txbuffer, AFLfuzzer.txCurrentIndex);
         #endif
 #endif
-	}
+    }
 
 }
 
@@ -181,20 +181,20 @@ void TransmitPack(void)
 void SerialReceiveInput(uint8_t* Buf, uint32_t *Len)
 {
 
-	  //union ubytes_t auxbytes;
-	  uint32_t u32Tocopy;
-	  uint8_t error = 0;
-	  if(AFLfuzzer.inputLength == 0)
-	  {
+      //union ubytes_t auxbytes;
+      uint32_t u32Tocopy;
+      uint8_t error = 0;
+      if(AFLfuzzer.inputLength == 0)
+      {
 #if defined CO3_USE_FREERTOS
-	      HAL_UART_Receive(co3_huart, (uint8_t * )&AFLfuzzer.inputLength, sizeof(uint32_t), portMAX_DELAY );
+          HAL_UART_Receive(co3_huart, (uint8_t * )&AFLfuzzer.inputLength, sizeof(uint32_t), portMAX_DELAY );
 #elif defined CO3_USE_CHIBIOS
-	      sdReadTimeout(co3_huart, (uint8_t * )&AFLfuzzer.inputLength, sizeof(uint32_t) , TIME_INFINITE);
+          sdReadTimeout(co3_huart, (uint8_t * )&AFLfuzzer.inputLength, sizeof(uint32_t) , TIME_INFINITE);
 #endif
-	      AFLfuzzer.inputLengthpadded  = AFLfuzzer.inputLength;
-	      if((AFLfuzzer.inputLengthpadded)> MAX_BUFFER_INPUT)
-	      {
-        	  error = 1;
+          AFLfuzzer.inputLengthpadded  = AFLfuzzer.inputLength;
+          if((AFLfuzzer.inputLengthpadded)> MAX_BUFFER_INPUT)
+          {
+              error = 1;
           }
       }
 
@@ -223,50 +223,50 @@ void SerialReceiveInput(uint8_t* Buf, uint32_t *Len)
 void FuzzingInputHandler(uint8_t* Buf, uint32_t *Len)
 {
 
-	  BaseType_t xHigherPriorityTaskWoken;
-	  xHigherPriorityTaskWoken = pdFALSE;
-	  //union ubytes_t auxbytes;
-	  uint32_t u32Tocopy;
-	  uint8_t error;
+      BaseType_t xHigherPriorityTaskWoken;
+      xHigherPriorityTaskWoken = pdFALSE;
+      //union ubytes_t auxbytes;
+      uint32_t u32Tocopy;
+      uint8_t error;
 
 
-	  error = 0;
+      error = 0;
 
-	  if( AFLfuzzer.inputLength == 0 && error == 0 )
-	  {
+      if( AFLfuzzer.inputLength == 0 && error == 0 )
+      {
 
-	      AFLfuzzer.inputLength = *(uint32_t*)Buf;
-	      AFLfuzzer.inputLengthpadded  = *(uint32_t*)Buf;
+          AFLfuzzer.inputLength = *(uint32_t*)Buf;
+          AFLfuzzer.inputLengthpadded  = *(uint32_t*)Buf;
 
-	      if((AFLfuzzer.inputLengthpadded)> MAX_BUFFER_INPUT)
-	      {
-        	  //u32copied = 0;
-        	  //SendBackFault(FAULT_INLEGTH);
-        	  error = 1;
+          if((AFLfuzzer.inputLengthpadded)> MAX_BUFFER_INPUT)
+          {
+              //u32copied = 0;
+              //SendBackFault(FAULT_INLEGTH);
+              error = 1;
           }
       }
 
       if( AFLfuzzer.inputLengthpadded && (error == 0) )
       {
-	    	 u32Tocopy = (AFLfuzzer.inputLengthpadded) - AFLfuzzer.inputAFL.u32available;
-	    	 if (u32Tocopy > *Len)
-	    	 {
-	    		 u32Tocopy = *Len;
+            u32Tocopy = (AFLfuzzer.inputLengthpadded) - AFLfuzzer.inputAFL.u32available;
+            if (u32Tocopy > *Len)
+            {
+                u32Tocopy = *Len;
 
-	    	 }
-	    	 RingCopy(&AFLfuzzer.inputAFL, Buf, u32Tocopy);
+            }
+            RingCopy(&AFLfuzzer.inputAFL, Buf, u32Tocopy);
 
 
-	  	     if( AFLfuzzer.inputLengthpadded == AFLfuzzer.inputAFL.u32available)
-	  	     {
-                 AFLfuzzer.inputAFL.u32availablenopad = AFLfuzzer.inputLength;
-	  	    	 AFLfuzzer.bRXcomplete = 1;
-    	    	 xTaskNotifyIndexedFromISR(AFLfuzzer.xTaskMonitor,
-	  	    				1, //index
-							1, //value = 1 data received
-							eSetBits,
-							&xHigherPriorityTaskWoken);
-	  	     }
+            if( AFLfuzzer.inputLengthpadded == AFLfuzzer.inputAFL.u32available)
+            {
+                AFLfuzzer.inputAFL.u32availablenopad = AFLfuzzer.inputLength;
+                AFLfuzzer.bRXcomplete = 1;
+                xTaskNotifyIndexedFromISR(AFLfuzzer.xTaskMonitor,
+                              1, //index
+                            1, //value = 1 data received
+                            eSetBits,
+                            &xHigherPriorityTaskWoken);
+            }
 
       }
       portYIELD_FROM_ISR( xHigherPriorityTaskWoken );

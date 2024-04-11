@@ -29,11 +29,11 @@
 #define NOTI_MONITOR 1
 
 union ubytes_t{
-	 uint8_t vbytes [4];
-	 uint16_t vuwords[2];
-	 int16_t  vwords[2];
-	 int32_t  vint32;
-	 uint32_t vuint32;
+     uint8_t vbytes [4];
+     uint16_t vuwords[2];
+     int16_t  vwords[2];
+     int32_t  vint32;
+     uint32_t vuint32;
 
 };
 
@@ -57,9 +57,9 @@ enum {
 typedef struct
 {
 
-	RingBuffer_t inputAFL;
-	uint32_t inputLength;
-	uint32_t inputLengthpadded;
+    RingBuffer_t inputAFL;
+    uint32_t inputLength;
+    uint32_t inputLengthpadded;
 
     uint16_t indexdif;
     volatile bool bRXcomplete;  // variable must be declared as volatile otherwise the compiler may optimize out it

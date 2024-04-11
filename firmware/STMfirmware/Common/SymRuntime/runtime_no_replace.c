@@ -100,55 +100,55 @@
 
  char *fstrings[]={
 
-		 S_SYM_DUMMY            ,
-		 S_SYM_BLD_INT_1        ,
-		 S_SYM_BLD_INT_1_1      ,
-		 S_SYM_BLD_INT_2        ,
-		 S_SYM_BLD_INT_2_1      ,
-		 S_SYM_BLD_INT_4        ,
-		 S_SYM_BLD_INT_4_1      ,
-		 S_SYM_BLD_FLOAT        ,
-		 S_SYM_BLD_FLOAT_1      ,
-		 S_SYM_BLD_FLOAT_DBL    ,
-		 S_SYM_BLD_FLOAT_DBL_1  ,
-		 S_SYM_BLD_BOOL         ,
-		 S_SYM_BLD_BOOL_1       ,
-		 S_SYM_BLD_PATH_CNSTR   ,
-		 S_SYM_BLD_PATH_CNSTR_1 ,
-		 S_SYM_BLD_MEMCPY       ,
-		 S_SYM_BLD_MEMCPY_1     ,
-		 S_SYM_BLD_MEMSET       ,
-		 S_SYM_BLD_MEMSET_1     ,
-		 S_SYM_BLD_MEMMOVE      ,
-		 S_SYM_BLD_MEMMOVE_1    ,
-		 S_SYM_BLD_READ_MEM     ,
-		 S_SYM_BLD_READ_MEM_1   ,
+         S_SYM_DUMMY            ,
+         S_SYM_BLD_INT_1        ,
+         S_SYM_BLD_INT_1_1      ,
+         S_SYM_BLD_INT_2        ,
+         S_SYM_BLD_INT_2_1      ,
+         S_SYM_BLD_INT_4        ,
+         S_SYM_BLD_INT_4_1      ,
+         S_SYM_BLD_FLOAT        ,
+         S_SYM_BLD_FLOAT_1      ,
+         S_SYM_BLD_FLOAT_DBL    ,
+         S_SYM_BLD_FLOAT_DBL_1  ,
+         S_SYM_BLD_BOOL         ,
+         S_SYM_BLD_BOOL_1       ,
+         S_SYM_BLD_PATH_CNSTR   ,
+         S_SYM_BLD_PATH_CNSTR_1 ,
+         S_SYM_BLD_MEMCPY       ,
+         S_SYM_BLD_MEMCPY_1     ,
+         S_SYM_BLD_MEMSET       ,
+         S_SYM_BLD_MEMSET_1     ,
+         S_SYM_BLD_MEMMOVE      ,
+         S_SYM_BLD_MEMMOVE_1    ,
+         S_SYM_BLD_READ_MEM     ,
+         S_SYM_BLD_READ_MEM_1   ,
 
-		 S_SYM_BLD_READ_MEM_HW  ,
-		 S_SYM_BLD_READ_MEM_HW_1,
+         S_SYM_BLD_READ_MEM_HW  ,
+         S_SYM_BLD_READ_MEM_HW_1,
 
-		 S_SYM_BLD_READ_MEM_W   ,
-		 S_SYM_BLD_READ_MEM_W_1 ,
+         S_SYM_BLD_READ_MEM_W   ,
+         S_SYM_BLD_READ_MEM_W_1 ,
 
-		 S_SYM_BLD_WRITE_MEM    ,
-		 S_SYM_BLD_WRITE_MEM_1  ,
-		 //S_SYM_SET_PAR_EXP      ,
-		 //S_SYM_GET_PAR_EXP      ,
-		 //S_SYM_SET_RET_EXP      ,
-		 //S_SYM_GET_RET_EXP      ,
-		 S_SYM_NTFY_PHI         ,
-		 S_SYM_NTFY_PHI_1       ,
-		 S_SYM_NTFY_CALL        ,
-		 S_SYM_NTFY_FUNC        ,
-		 S_SYM_NTFY_RET         ,
-		 S_SYM_NTFY_BBLK        ,
-		 S_SYM_NTFY_BBLK1       ,
+         S_SYM_BLD_WRITE_MEM    ,
+         S_SYM_BLD_WRITE_MEM_1  ,
+         //S_SYM_SET_PAR_EXP      ,
+         //S_SYM_GET_PAR_EXP      ,
+         //S_SYM_SET_RET_EXP      ,
+         //S_SYM_GET_RET_EXP      ,
+         S_SYM_NTFY_PHI         ,
+         S_SYM_NTFY_PHI_1       ,
+         S_SYM_NTFY_CALL        ,
+         S_SYM_NTFY_FUNC        ,
+         S_SYM_NTFY_RET         ,
+         S_SYM_NTFY_BBLK        ,
+         S_SYM_NTFY_BBLK1       ,
 
-		 S_SYM_TRY_ALT          ,
-		 S_SYM_TRY_ALT_1        ,
-		 S_SYM_INIT             ,
-		 S_SYM_INIT_DR          ,
-		 S_SYM_END
+         S_SYM_TRY_ALT          ,
+         S_SYM_TRY_ALT_1        ,
+         S_SYM_INIT             ,
+         S_SYM_INIT_DR          ,
+         S_SYM_END
  };
 
 #endif
@@ -181,38 +181,38 @@ bool _sym_peripheral_symb(uint32_t *addr)
 {
    if(total_sym_peripherals<NUMBER_SYM_PERI)
    {
-	   sym_peripherals[total_sym_peripherals++] = addr;
-	   return true;
+       sym_peripherals[total_sym_peripherals++] = addr;
+       return true;
    }
    return false;
 }
 
 int checkSymPeripheral(uint32_t * addr){
-	if((uint32_t)addr>= SYM_PERIPHERAL_ADDR_START && (uint32_t)addr <=(SYM_PERIPHERAL_ADDR_START + SYM_PERIPHERAL_SIZE)  )
-	{
-		//address is a peripheral
-		//here check the list of addresses in the initialization
-		//we only check the first byte TODO: check if this works with the instrumentation
-		for(int i=0; i<total_sym_peripherals; i++)
-		{
-			if((uint32_t*)addr == sym_peripherals[i])
-			{
-				//reportSymHelper( SYM_BLD_READ_MEM, SIZE_SYM_BLD_READ_MEM, addr, NULL, 0, symID);
-				return 1;
-			}
-		}
-		return 0;
-	}
-	return -1;
+    if((uint32_t)addr>= SYM_PERIPHERAL_ADDR_START && (uint32_t)addr <=(SYM_PERIPHERAL_ADDR_START + SYM_PERIPHERAL_SIZE)  )
+    {
+        //address is a peripheral
+        //here check the list of addresses in the initialization
+        //we only check the first byte TODO: check if this works with the instrumentation
+        for(int i=0; i<total_sym_peripherals; i++)
+        {
+            if((uint32_t*)addr == sym_peripherals[i])
+            {
+                //reportSymHelper( SYM_BLD_READ_MEM, SIZE_SYM_BLD_READ_MEM, addr, NULL, 0, symID);
+                return 1;
+            }
+        }
+        return 0;
+    }
+    return -1;
 }
 
 int checkSymFlash(uint32_t * addr){
-	if((uint32_t)addr>= SYM_FLASH_ADDR_START && (uint32_t)addr <=(SYM_FLASH_ADDR_START + SYM_FLASH_SIZE)  )
-	{
-		//flash is always concrete
-		return 0;
-	}
-	return -1;
+    if((uint32_t)addr>= SYM_FLASH_ADDR_START && (uint32_t)addr <=(SYM_FLASH_ADDR_START + SYM_FLASH_SIZE)  )
+    {
+        //flash is always concrete
+        return 0;
+    }
+    return -1;
 }
 #if DEBUGPRINT ==1
 void txCommandtoMonitor(uint8_t size, uint8_t func)
@@ -220,31 +220,31 @@ void txCommandtoMonitor(uint8_t size, uint8_t func)
 void txCommandtoMonitor(uint8_t size)
 #endif
 {
-	//If we don't have more space in the buffer TX the packet
-	if (AFLfuzzer.txCurrentIndex + size >= MAX_USB_FRAME  )
-	{
+    //If we don't have more space in the buffer TX the packet
+    if (AFLfuzzer.txCurrentIndex + size >= MAX_USB_FRAME  )
+    {
 
     #if DEBUGPRINT ==1
-	    printf("TX Nbytes: %d\n",(int)AFLfuzzer.txCurrentIndex );
+        printf("TX Nbytes: %d\n",(int)AFLfuzzer.txCurrentIndex );
     #endif
 #if defined CO3_USE_FREERTOS
-	    xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,3,1,eSetValueWithOverwrite); //notify the Monitor to transmit
-	    ulTaskNotifyTakeIndexed(1,pdTRUE, portMAX_DELAY); //get notification when transmission finishes to continue execution
+        xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,3,1,eSetValueWithOverwrite); //notify the Monitor to transmit
+        ulTaskNotifyTakeIndexed(1,pdTRUE, portMAX_DELAY); //get notification when transmission finishes to continue execution
 #elif defined CO3_USE_CHIBIOS
-	    chEvtSignal(AFLfuzzer.xTaskMonitor, MORE_DATA_TO_COME);
-	    eventmask_t evt = chEvtWaitAny(ALL_EVENTS);
-	    if(evt != TRANSMIT_FINISHED){
-	    	while(1) {}
-	    }
+        chEvtSignal(AFLfuzzer.xTaskMonitor, MORE_DATA_TO_COME);
+        eventmask_t evt = chEvtWaitAny(ALL_EVENTS);
+        if(evt != TRANSMIT_FINISHED){
+            while(1) {}
+        }
 #endif
-	    //Note: the TxComplete callback will clean buffer after transmission so we will have space for the next function.
-	    //It also notifies the target to continue execution
+        //Note: the TxComplete callback will clean buffer after transmission so we will have space for the next function.
+        //It also notifies the target to continue execution
 
-	}
+    }
 #if DEBUGPRINT ==1
-	printf("F.: %s, C.I.: %d\n",fstrings[func], (int)AFLfuzzer.txCurrentIndex );
+    printf("F.: %s, C.I.: %d\n",fstrings[func], (int)AFLfuzzer.txCurrentIndex );
 #endif
-	AFLfuzzer.txTotalFunctions++;
+    AFLfuzzer.txTotalFunctions++;
 }
 
 
