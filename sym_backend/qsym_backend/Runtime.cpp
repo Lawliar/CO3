@@ -143,7 +143,7 @@ void _sym_initialize_config(string inputDirName) {
     }
 }
 
-void _sym_initialize_mem(char * addr, bool for_dr) {
+void _sym_initialize_mem(void * addr, bool for_dr) {
     g_z3_context = new z3::context{};
     g_solver = new Solver(g_config.inputFile, g_config.outputDir, g_config.aflCoverageMap);
     g_expr_builder = g_config.pruning ? PruneExprBuilder::create()
@@ -154,7 +154,7 @@ void _sym_initialize_mem(char * addr, bool for_dr) {
     //initially symbolize the memory buffer
     unsigned inputSize = boost::filesystem::file_size(g_config.inputFile);
     if(! for_dr){
-        ReadWriteShadow shadow((void*)addr, inputSize);
+        ReadWriteShadow shadow(addr, inputSize);
         unsigned cursor = 0;
         std::generate(shadow.begin(), shadow.end(),
                       [&cursor]() { return _sym_get_input_byte(cursor++); });

@@ -94,19 +94,18 @@ MsgQueue::~MsgQueue() {
 
 
 
-#define frameByteNum 64
+
 bool MsgQueue::ProcessMsgs() {
     ring_buffer_size_t avaiNumBytes = ring_buffer_num_items(&RingBuffer);
     assert(avaiNumBytes > 0);
 
-    char packetLen = 0;
-    char tempBuffer[frameByteNum];
+    char tempBuffer[CO3_FRAME_LEN];
     bool end_received = false;
     while( avaiNumBytes > 0){
         int cur_len = 0;
-        if(avaiNumBytes > frameByteNum){
-            ring_buffer_dequeue_arr(&RingBuffer,tempBuffer, frameByteNum);
-            cur_len = frameByteNum;
+        if(avaiNumBytes > CO3_FRAME_LEN){
+            ring_buffer_dequeue_arr(&RingBuffer,tempBuffer, CO3_FRAME_LEN);
+            cur_len = CO3_FRAME_LEN;
         }else{
             ring_buffer_dequeue_arr(&RingBuffer,tempBuffer, avaiNumBytes);
             cur_len = avaiNumBytes;

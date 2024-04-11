@@ -28,6 +28,7 @@ void sendData(CO3_SER* ser, uint8_t * buf, uint32_t size);
 
 int receiveData(CO3_SER* ser);
 
+
 #if defined(CO3_SER2NET)
 CO3_SER* initSer(const char *);
 #else
@@ -35,6 +36,8 @@ CO3_SER* initSer(const char * port_name, int baud_rate);
 #endif
 
 void releaseSer(CO3_SER*);
+
+#define CO3_FRAME_LEN 256
 /* Get unix time in milliseconds */
 
 

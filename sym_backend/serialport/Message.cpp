@@ -5,7 +5,7 @@
 #include <iostream>
 #include <assert.h>
 
-bool MsgQueue::RenderAndPush(char * buf, char size){
+bool MsgQueue::RenderAndPush(char * buf, int size){
     int cur = 0;
     bool end_received = false;
     while(cur < size ){
@@ -80,67 +80,112 @@ bool MsgQueue::RenderAndPush(char * buf, char size){
             Push(new PushConstraintMessage(symid, static_cast<bool>(val)));
             cur += SIZE_SYM_BLD_PATH_CNSTR_1;
         }
-
         else if(buf[cur] == SYM_BLD_MEMCPY){
             uint8_t symid = *(uint8_t*)(buf + cur + 1);
-            uint32_t dest_ptr = *(uint32_t*)(buf + cur + 2);
-            uint32_t src_ptr = *(uint32_t*)(buf + cur + 6);
+#if defined(CO3_32BIT)
+            void * dest_ptr = reinterpret_cast<void *>(*(uint32_t*)(buf + cur + 2));
+            void * src_ptr = reinterpret_cast<void *>(*(uint32_t*)(buf + cur + 6));
             uint16_t len = *(uint16_t*)(buf + cur + 10);
+#else
+            void * dest_ptr = reinterpret_cast<void *>(*(uint64_t*)(buf + cur + 2));
+            void * src_ptr = reinterpret_cast<void *>(*(uint64_t*)(buf + cur + 10));
+            uint16_t len = *(uint16_t*)(buf + cur + 18);
+#endif
             Push(new MemCpyMessage(symid, dest_ptr, src_ptr, len));
             cur += SIZE_SYM_BLD_MEMCPY;
         }else if(buf[cur] == SYM_BLD_MEMCPY_1){
             uint16_t symid = *(uint16_t*)(buf + cur + 1);
-            uint32_t dest_ptr = *(uint32_t*)(buf + cur + 3);
-            uint32_t src_ptr = *(uint32_t*)(buf + cur + 7);
+#if defined(CO3_32BIT)
+            void * dest_ptr = reinterpret_cast<void *>(*(uint32_t*)(buf + cur + 3));
+            void * src_ptr = reinterpret_cast<void *>(*(uint32_t*)(buf + cur + 7));
             uint16_t len = *(uint16_t*)(buf + cur + 11);
+#else
+            void * dest_ptr = reinterpret_cast<void *>(*(uint64_t*)(buf + cur + 3));
+            void * src_ptr = reinterpret_cast<void *>(*(uint64_t*)(buf + cur + 11));
+            uint16_t len = *(uint16_t*)(buf + cur + 19);
+#endif
             Push(new MemCpyMessage(symid, dest_ptr, src_ptr, len));
             cur += SIZE_SYM_BLD_MEMCPY_1;
         }
         else if(buf[cur] == SYM_BLD_MEMSET){
             uint8_t symid = *(uint8_t*)(buf + cur + 1);
-            uint32_t ptr = *(uint32_t*)(buf + cur + 2);
+#if defined(CO3_32BIT)
+            void * ptr = reinterpret_cast<void *>(*(uint32_t*)(buf + cur + 2));
             uint16_t len = *(uint16_t*)(buf + cur + 6);
+#else
+            void * ptr = reinterpret_cast<void *>(*(uint64_t*)(buf + cur + 2));
+            uint16_t len = *(uint16_t*)(buf + cur + 10);
+#endif
             Push(new MemSetMessage(symid, ptr, len));
             cur += SIZE_SYM_BLD_MEMSET;
         }else if(buf[cur] == SYM_BLD_MEMSET_1){
             uint16_t symid = *(uint16_t*)(buf + cur + 1);
-            uint32_t ptr = *(uint32_t*)(buf + cur + 3);
+#if defined(CO3_32BIT)
+            void * ptr = reinterpret_cast<void *>(*(uint32_t*)(buf + cur + 3));
             uint16_t len = *(uint16_t*)(buf + cur + 7);
+#else
+            void * ptr = reinterpret_cast<void *>(*(uint64_t*)(buf + cur + 3));
+            uint16_t len = *(uint16_t*)(buf + cur + 11);
+#endif
             Push(new MemSetMessage(symid, ptr, len));
             cur += SIZE_SYM_BLD_MEMSET_1;
         }
         else if(buf[cur] == SYM_BLD_MEMMOVE){
             uint8_t symid = *(uint8_t*)(buf + cur + 1);
-            uint32_t dest_ptr = *(uint32_t*)(buf + cur + 2);
-            uint32_t src_ptr = *(uint32_t*)(buf + cur + 6);
+#if defined(CO3_32BIT)
+            void * dest_ptr = reinterpret_cast<void *>(*(uint32_t*)(buf + cur + 2));
+            void * src_ptr  = reinterpret_cast<void *>(*(uint32_t*)(buf + cur + 6));
             uint16_t len = *(uint16_t*)(buf + cur + 10);
+#else
+            void * dest_ptr = reinterpret_cast<void *>(*(uint64_t*)(buf + cur + 2));
+            void * src_ptr = reinterpret_cast<void *>(*(uint64_t*)(buf + cur + 10));
+            uint16_t len = *(uint16_t*)(buf + cur + 18);
+#endif
             Push(new MemMoveMessage(symid, dest_ptr, src_ptr, len));
             cur += SIZE_SYM_BLD_MEMMOVE;
         }else if(buf[cur] == SYM_BLD_MEMMOVE_1){
             uint16_t symid = *(uint16_t*)(buf + cur + 1);
-            uint32_t dest_ptr = *(uint32_t*)(buf + cur + 3);
-            uint32_t src_ptr = *(uint32_t*)(buf + cur + 7);
+#if defined(CO3_32BIT)
+            void * dest_ptr = reinterpret_cast<void *>(*(uint32_t*)(buf + cur + 3));
+            void * src_ptr = reinterpret_cast<void *>(*(uint32_t*)(buf + cur + 7));
             uint16_t len = *(uint16_t*)(buf + cur + 11);
+#else
+            void * dest_ptr = reinterpret_cast<void *>(*(uint64_t*)(buf + cur + 3));
+            void * src_ptr = reinterpret_cast<void *>(*(uint64_t*)(buf + cur + 11));
+            uint16_t len = *(uint16_t*)(buf + cur + 19);
+#endif
             Push(new MemMoveMessage(symid, dest_ptr, src_ptr, len));
             cur += SIZE_SYM_BLD_MEMMOVE_1;
         }
-
         else if(buf[cur] == SYM_BLD_READ_MEM){
             uint8_t symid = *(uint8_t*)(buf + cur + 1);
-            uint32_t ptr = *(uint32_t*)(buf + cur + 2);
+#if defined(CO3_32BIT)
+            void * ptr = reinterpret_cast<void *>(*(uint32_t*)(buf + cur + 2));
+#else
+            void * ptr = reinterpret_cast<void *>(*(uint64_t*)(buf + cur + 2));
+#endif
             Push(new ReadMemMessage(symid,ptr));
             cur += SIZE_SYM_BLD_READ_MEM;
         }
         else if(buf[cur] == SYM_BLD_READ_MEM_1){
             uint16_t symid = *(uint16_t*)(buf + cur + 1);
-            uint32_t ptr = *(uint32_t*)(buf + cur + 3);
+#if defined (CO3_32BIT)
+            void * ptr = reinterpret_cast<void *>(*(uint32_t*)(buf + cur + 3));
+#else
+            void * ptr = reinterpret_cast<void *>(*(uint64_t*)(buf + cur + 3));
+#endif
             Push(new ReadMemMessage(symid,ptr));
             cur += SIZE_SYM_BLD_READ_MEM_1;
         }
         else if(buf[cur] == SYM_BLD_READ_MEM_HW){
             uint8_t symid = *(uint8_t*)(buf + cur + 1);
-            uint32_t ptr = *(uint32_t*)(buf + cur + 2);
+#if defined(CO3_32BIT)
+            void * ptr = reinterpret_cast<void *>(*(uint32_t*)(buf + cur + 2));
             uint16_t val = *(uint16_t*)(buf + cur + 6);
+#else
+            void * ptr = reinterpret_cast<void *>(*(uint64_t*)(buf + cur + 2));
+            uint16_t val = *(uint16_t*)(buf + cur + 10);
+#endif
             auto cur_msg = new ReadMemMessage(symid,ptr);
             cur_msg->AddConcreteValue(val);
             Push(cur_msg);
@@ -148,8 +193,13 @@ bool MsgQueue::RenderAndPush(char * buf, char size){
         }
         else if(buf[cur] == SYM_BLD_READ_MEM_HW_1){
             uint16_t symid = *(uint16_t*)(buf + cur + 1);
-            uint32_t ptr = *(uint32_t*)(buf + cur + 3);
+#if defined(CO3_32BIT)
+            void * ptr = reinterpret_cast<void *>(*(uint32_t*)(buf + cur + 3));
             uint16_t val = *(uint16_t*)(buf + cur + 7);
+#else
+            void * ptr = reinterpret_cast<void *>(*(uint64_t*)(buf + cur + 3));
+            uint16_t val = *(uint16_t*)(buf + cur + 11);
+#endif
             auto cur_msg = new ReadMemMessage(symid,ptr);
             cur_msg->AddConcreteValue(val);
             Push(cur_msg);
@@ -157,8 +207,13 @@ bool MsgQueue::RenderAndPush(char * buf, char size){
         }
         else if(buf[cur] == SYM_BLD_READ_MEM_W){
             uint8_t symid = *(uint8_t*)(buf + cur + 1);
-            uint32_t ptr = *(uint32_t*)(buf + cur + 2);
+#if defined(CO3_32BIT)
+            void * ptr = reinterpret_cast<void *>(*(uint32_t*)(buf + cur + 2));
             uint32_t val = *(uint32_t*)(buf + cur + 6);
+#else
+            void * ptr = reinterpret_cast<void *>(*(uint64_t*)(buf + cur + 2));
+            uint32_t val = *(uint32_t*)(buf + cur + 10);
+#endif
             auto cur_msg = new ReadMemMessage(symid,ptr);
             cur_msg->AddConcreteValue(val);
             Push(cur_msg);
@@ -166,8 +221,13 @@ bool MsgQueue::RenderAndPush(char * buf, char size){
         }
         else if(buf[cur] == SYM_BLD_READ_MEM_W_1){
             uint16_t symid = *(uint16_t*)(buf + cur + 1);
-            uint32_t ptr = *(uint32_t*)(buf + cur + 3);
+#if defined(CO3_32BIT)
+            void * ptr = reinterpret_cast<void *>(*(uint32_t*)(buf + cur + 3));
             uint32_t val = *(uint32_t*)(buf + cur + 7);
+#else
+            void * ptr = reinterpret_cast<void *>(*(uint64_t*)(buf + cur + 3));
+            uint32_t val = *(uint32_t*)(buf + cur + 11);
+#endif
             auto cur_msg = new ReadMemMessage(symid,ptr);
             cur_msg->AddConcreteValue(val);
             Push(cur_msg);
@@ -175,12 +235,20 @@ bool MsgQueue::RenderAndPush(char * buf, char size){
         }
         else if(buf[cur] == SYM_BLD_WRITE_MEM){
             uint8_t symid = *(uint8_t*)(buf + cur + 1);
-            uint32_t ptr = *(uint32_t*)(buf + cur + 2);
+#if defined(CO3_32BIT)
+            void * ptr = reinterpret_cast<void *>(*(uint32_t*)(buf + cur + 2));
+#else
+            void * ptr = reinterpret_cast<void *>(*(uint64_t*)(buf + cur + 2));
+#endif
             Push(new WriteMemMessage(symid,ptr));
             cur += SIZE_SYM_BLD_WRITE_MEM;
         }else if(buf[cur] == SYM_BLD_WRITE_MEM_1){
             uint16_t symid = *(uint16_t*)(buf + cur + 1);
-            uint32_t ptr = *(uint32_t*)(buf + cur + 3);
+#if defined(CO3_32BIT)
+            void * ptr = reinterpret_cast<void *>(*(uint32_t*)(buf + cur + 3));
+#else
+            void * ptr = reinterpret_cast<void *>(*(uint64_t*)(buf + cur + 3));
+#endif
             Push(new WriteMemMessage(symid,ptr));
             cur += SIZE_SYM_BLD_WRITE_MEM_1;
         }
@@ -235,11 +303,19 @@ bool MsgQueue::RenderAndPush(char * buf, char size){
             cur += SIZE_SYM_TRY_ALTERNATIVE_1;
         }
         else if(buf[cur] == SYM_INIT){
-            char * addr = reinterpret_cast<char *>(*(uint32_t*)(buf + cur + 1));
+#if defined(CO3_32BIT)
+            void * addr = reinterpret_cast<void *>(*(uint32_t*)(buf + cur + 1));
+#else
+            void * addr = reinterpret_cast<void *>(*(uint64_t*)(buf + cur + 1));
+#endif
             Push(new InitMessage(addr, false));
             cur += SIZE_SYM_INIT;
         }else if(buf[cur] == SYM_INIT_DR){
-            char * addr = reinterpret_cast<char *>(*(uint32_t*)(buf + cur + 1));
+#if defined(CO3_32BIT)
+            void * addr = reinterpret_cast<void *>(*(uint32_t*)(buf + cur + 1));
+#else
+            void * addr = reinterpret_cast<void *>(*(uint64_t*)(buf + cur + 1));
+#endif
             Push(new InitMessage(addr, true));
             cur += SIZE_SYM_INIT;
         }

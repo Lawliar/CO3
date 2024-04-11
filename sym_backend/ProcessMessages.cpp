@@ -180,7 +180,16 @@ int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
             UpdateCallStackHashBB(readMemSymVal->BBID);
             auto runtime_operand = dynamic_cast<RuntimeIntVal*>(readMemSymVal->In_edges.at(0));
             assert(runtime_operand != nullptr);
-            runtime_operand->Assign(sym_read_mem_msg->ptr);
+            if(runtime_operand->ByteWidth == 4){
+                // I don't know, this makes me feel safe
+                runtime_operand->Assign(static_cast<uint32_t>(reinterpret_cast<uint64_t>(sym_read_mem_msg->ptr)));
+            }else if(runtime_operand->ByteWidth == 8){
+                runtime_operand->Assign(reinterpret_cast<uint64_t>(sym_read_mem_msg->ptr));
+            }else{
+                cerr<<"unsupported sym read mem addr width: "<<runtime_operand->ByteWidth<<"\n";
+                cerr.flush();
+                abort();
+            }
             // allow this to cross BB, but not by force(i.e., halt when meeting other unknown runtime dependency)
             ForwardExecution(readMemSymVal,nullptr, readMemSymVal->ready + 1);
 #ifdef DEBUG_OUTPUT
@@ -324,7 +333,16 @@ int Orchestrator::ProcessMessage(Message* msg, int msgCounter) {
 
             auto addrOperand = dynamic_cast<RuntimeIntVal*>(memWriteVal->In_edges.at(0));
             assert(addrOperand != nullptr);
-            addrOperand->Assign(memWriteMsg->ptr);
+            if(addrOperand->ByteWidth == 4){
+                addrOperand->Assign(static_cast<uint32_t>(reinterpret_cast<uint64_t>(memWriteMsg->ptr)));
+            }
+            else if(addrOperand->ByteWidth == 8){
+                addrOperand->Assign(reinterpret_cast<uint64_t>(memWriteMsg->ptr));
+            }
+            else{
+                cerr<<"unsupported sym write mem addr width: "<<addrOperand->ByteWidth<<"\n";
+                assert(false);
+            }
             BackwardExecution(memWriteVal,memWriteVal->ready + 1 );
 #ifdef DEBUG_CHECKING
 

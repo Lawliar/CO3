@@ -20,7 +20,7 @@ public:
     typedef unsigned short      BasicBlockIdType;
     typedef unsigned short      SymIDType;
     typedef unsigned int        ReadyType;
-    typedef unsigned int        IntValType;
+    typedef unsigned long int        IntValType;
     typedef unsigned char       ByteWidthType;
     typedef enum _ValType{
         ConstantIntValTy,

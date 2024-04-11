@@ -26,7 +26,7 @@ public:
 
     }
     ~MsgQueue();
-    bool RenderAndPush(char * buf, char size);
+    bool RenderAndPush(char * buf, int size);
     bool ProcessMsgs();
     uint64_t Listen();
     Message* Pop();

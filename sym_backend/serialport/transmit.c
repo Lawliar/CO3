@@ -78,10 +78,10 @@ inline void sendData(CO3_SER* ser, uint8_t * buf, uint32_t size ){
     }
 }
 
-#define FRAME_LEN 256
+
 #define HEADER_LEN 1
 int receiveData(CO3_SER* ser){
-    u8 buf[FRAME_LEN];
+    u8 buf[CO3_FRAME_LEN];
 #if defined(CO3_SER2NET)
     int result = read(ser->tcp_handle,buf,HEADER_LEN);
     if(result < 0){

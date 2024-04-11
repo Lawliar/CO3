@@ -81,7 +81,7 @@ std::map<std::string, Message::MessageType> SymOp2MsgType = {
         SYM_1OP8("_sym_notify_ret"),
 };
 
-bool MsgQueue::RenderAndPush(char * buf, char size){
+bool MsgQueue::RenderAndPush(char * buf, int size){
     int cur = 0;
     bool end_received = false;
     while(cur < size){
