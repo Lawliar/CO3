@@ -180,64 +180,64 @@ void sockRec(){
 
 void _sym_set_parameter_expression(int8_t para_index, bool input)
 {
-	if(para_index<NUMBER_PARAMETER_EXP)
-	{
-		parameter_exp[para_index]= input;
-	}
+    if(para_index<NUMBER_PARAMETER_EXP)
+    {
+        parameter_exp[para_index]= input;
+    }
 }
 
 bool _sym_get_parameter_expression(int8_t para_index)
 {
-	if(para_index<NUMBER_PARAMETER_EXP)
-	{
-		return parameter_exp[para_index];
-	}
-	return false;
+    if(para_index<NUMBER_PARAMETER_EXP)
+    {
+        return parameter_exp[para_index];
+    }
+    return false;
 }
 
 
 void _sym_set_return_expression(bool input)
 {
-	return_exp = input;
+    return_exp = input;
 }
 
 bool _sym_get_return_expression()
 {
-	return return_exp;
+    return return_exp;
 }
 
 
 inline void get_report(uint8_t * arg)
 {
 
-	uint8_t arg_id, width;
-	arg_id = arg[0];
-	width = arg[1];
+    uint8_t arg_id, width;
+    arg_id = arg[0];
+    width = arg[1];
 
-	if(width>4)
-	{
-		width = 4;
-	}
-	if(width==0)
-	{
-		width = 1;
-	}
+    if(width>4)
+    {
+        width = 4;
+    }
+    if(width==0)
+    {
+        width = 1;
+    }
 
-	uint32_t  *aux32;
+    uint32_t  *aux32;
 
-	txBuffer[txCur++]= arg_id;
+    txBuffer[txCur++]= arg_id;
 
-	aux32 = (uint32_t*)(&txBuffer[txCur]);
+    aux32 = (uint32_t*)(&txBuffer[txCur]);
     *aux32 = 0;
 
-	for(uint8_t i=0; i<width; i++)
-	{
-		txBuffer[txCur++] = arg[i+2];
-	}
-	for(uint8_t i=0; i<(4-width); i++)
-	{
-			txCur++;
-	}
+    for(uint8_t i=0; i<width; i++)
+    {
+        txBuffer[txCur++] = arg[i+2];
+    }
+    for(uint8_t i=0; i<(4-width); i++)
+    {
+            txCur++;
+    }
 }
 
 #define ONE_BYTE_SYMID_MAX 255
@@ -245,101 +245,48 @@ inline void get_report(uint8_t * arg)
 
 bool _sym_build_integer(uint32_t int_val, uint8_t numBits, uint16_t symID)
 {
-	int msgSize=0;
-	uint8_t msgCode;
-	uint8_t *byteval;
-
-	bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
-	if(numBits==1)
-	{
-		if(isSmallSymID){
-			msgSize = SIZE_SYM_BLD_INT_1;
-			msgCode = SYM_BLD_INT_1;
-		}else{
-			msgSize = SIZE_SYM_BLD_INT_1_1;
-			msgCode = SYM_BLD_INT_1_1;
-		}
-
-	}
-	else if(numBits==2)
-	{
-		if(isSmallSymID){
-			msgSize = SIZE_SYM_BLD_INT_2;
-			msgCode = SYM_BLD_INT_2;
-		}else{
-			msgSize = SIZE_SYM_BLD_INT_2_1;
-			msgCode = SYM_BLD_INT_2_1;
-		}
-
-	}
-	else
-	{
-#if DEBUGPRINT ==1
-	    if(numBits > 4){
-	    	printf("Error! Integer more than 4 bytes! %d\n",(int)numBits );
-	    }
-#endif
-	    if(isSmallSymID){
-	    	msgSize = SIZE_SYM_BLD_INT_4;
-	    	msgCode = SYM_BLD_INT_4;
-	    }else{
-	    	msgSize = SIZE_SYM_BLD_INT_4_1;
-	    	msgCode = SYM_BLD_INT_4_1;
-	    }
-
-	}
-
-	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
-	txBuffer[txCur++] = msgCode; //set the function in the buffer
-	//set the ID
-	byteval = (uint8_t *)(&symID);
-	txBuffer[txCur++] = *byteval++;
-	if(! isSmallSymID){
-		txBuffer[txCur++] = *byteval;
-	}
-	//set the val
-	byteval = (uint8_t *)(&int_val);
-	for(int i=0;i<numBits;i++)
-	{
-		txBuffer[txCur++] = *byteval++; //set the function in the buffer
-	}
-
-	return true;
-}
-
-
-bool _sym_build_float(double double_val, bool is_double, uint16_t symID)
-{
-	// should never be called
-	int msgSize=0;
-	uint8_t msgCode;
+    int msgSize=0;
+    uint8_t msgCode;
     uint8_t *byteval;
-    int numBits;
 
     bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
-
-    if(is_double)
+    if(numBits==1)
     {
-    	if(isSmallSymID){
-    		msgSize = SIZE_SYM_BLD_FLOAT_DBL;
-    		msgCode = SYM_BLD_FLOAT_DBL;
-    	}else{
-    		msgSize = SIZE_SYM_BLD_FLOAT_DBL_1;
-    		msgCode = SYM_BLD_FLOAT_DBL_1;
-    	}
+        if(isSmallSymID){
+            msgSize = SIZE_SYM_BLD_INT_1;
+            msgCode = SYM_BLD_INT_1;
+        }else{
+            msgSize = SIZE_SYM_BLD_INT_1_1;
+            msgCode = SYM_BLD_INT_1_1;
+        }
 
-    	numBits = 8;
+    }
+    else if(numBits==2)
+    {
+        if(isSmallSymID){
+            msgSize = SIZE_SYM_BLD_INT_2;
+            msgCode = SYM_BLD_INT_2;
+        }else{
+            msgSize = SIZE_SYM_BLD_INT_2_1;
+            msgCode = SYM_BLD_INT_2_1;
+        }
+
     }
     else
     {
-    	if(isSmallSymID){
-    		msgSize = SIZE_SYM_BLD_FLOAT;
-    		msgCode = SYM_BLD_FLOAT;
-    	}else{
-    		msgSize = SIZE_SYM_BLD_FLOAT_1;
-    		msgCode = SYM_BLD_FLOAT_1;
-    	}
-    	numBits = 4;
+#if DEBUGPRINT ==1
+        if(numBits > 4){
+            printf("Error! Integer more than 4 bytes! %d\n",(int)numBits );
+        }
+#endif
+        if(isSmallSymID){
+            msgSize = SIZE_SYM_BLD_INT_4;
+            msgCode = SYM_BLD_INT_4;
+        }else{
+            msgSize = SIZE_SYM_BLD_INT_4_1;
+            msgCode = SYM_BLD_INT_4_1;
+        }
+
     }
 
     txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
@@ -348,7 +295,60 @@ bool _sym_build_float(double double_val, bool is_double, uint16_t symID)
     byteval = (uint8_t *)(&symID);
     txBuffer[txCur++] = *byteval++;
     if(! isSmallSymID){
-    	txBuffer[txCur++] = *byteval;
+        txBuffer[txCur++] = *byteval;
+    }
+    //set the val
+    byteval = (uint8_t *)(&int_val);
+    for(int i=0;i<numBits;i++)
+    {
+        txBuffer[txCur++] = *byteval++; //set the function in the buffer
+    }
+
+    return true;
+}
+
+
+bool _sym_build_float(double double_val, bool is_double, uint16_t symID)
+{
+    // should never be called
+    int msgSize=0;
+    uint8_t msgCode;
+    uint8_t *byteval;
+    int numBits;
+
+    bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+
+    if(is_double)
+    {
+        if(isSmallSymID){
+            msgSize = SIZE_SYM_BLD_FLOAT_DBL;
+            msgCode = SYM_BLD_FLOAT_DBL;
+        }else{
+            msgSize = SIZE_SYM_BLD_FLOAT_DBL_1;
+            msgCode = SYM_BLD_FLOAT_DBL_1;
+        }
+
+        numBits = 8;
+    }
+    else
+    {
+        if(isSmallSymID){
+            msgSize = SIZE_SYM_BLD_FLOAT;
+            msgCode = SYM_BLD_FLOAT;
+        }else{
+            msgSize = SIZE_SYM_BLD_FLOAT_1;
+            msgCode = SYM_BLD_FLOAT_1;
+        }
+        numBits = 4;
+    }
+
+    txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
+    txBuffer[txCur++] = msgCode; //set the function in the buffer
+    //set the ID
+    byteval = (uint8_t *)(&symID);
+    txBuffer[txCur++] = *byteval++;
+    if(! isSmallSymID){
+        txBuffer[txCur++] = *byteval;
     }
     //set the val
     byteval = (uint8_t *)(&double_val);
@@ -363,17 +363,17 @@ bool _sym_build_float(double double_val, bool is_double, uint16_t symID)
 
 bool _sym_build_bool(bool bool_val, uint16_t symID)
 {
-	int msgSize=0;
-	uint8_t msgCode;
+    int msgSize=0;
+    uint8_t msgCode;
     uint8_t *byteval;
 
     bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
     if(isSmallSymID){
-    	msgSize = SIZE_SYM_BLD_BOOL;
-    	msgCode = SYM_BLD_BOOL;
+        msgSize = SIZE_SYM_BLD_BOOL;
+        msgCode = SYM_BLD_BOOL;
     }else{
-    	msgSize = SIZE_SYM_BLD_BOOL_1;
-    	msgCode = SYM_BLD_BOOL_1;
+        msgSize = SIZE_SYM_BLD_BOOL_1;
+        msgCode = SYM_BLD_BOOL_1;
     }
 
 
@@ -385,67 +385,67 @@ bool _sym_build_bool(bool bool_val, uint16_t symID)
     if(! isSmallSymID){
         txBuffer[txCur++]  = *byteval;
     }
-   	//set the val
+    //set the val
     txBuffer[txCur++]  = (uint8_t) bool_val;
-   	return true;
+    return true;
 
 }
 
 void _sym_build_path_constraint(bool input, bool runtimeVal, uint16_t symID)
 {
-	int msgSize=0;
-	uint8_t msgCode;
-	uint8_t *byteval;
-	if(!input) return;
+    int msgSize=0;
+    uint8_t msgCode;
+    uint8_t *byteval;
+    if(!input) return;
 
-	bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+    bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
 
-	if(isSmallSymID){
-		msgSize = SIZE_SYM_BLD_PATH_CNSTR;
-		msgCode = SYM_BLD_PATH_CNSTR;
-	}else{
-		msgSize = SIZE_SYM_BLD_PATH_CNSTR_1;
-		msgCode = SYM_BLD_PATH_CNSTR_1;
-	}
+    if(isSmallSymID){
+        msgSize = SIZE_SYM_BLD_PATH_CNSTR;
+        msgCode = SYM_BLD_PATH_CNSTR;
+    }else{
+        msgSize = SIZE_SYM_BLD_PATH_CNSTR_1;
+        msgCode = SYM_BLD_PATH_CNSTR_1;
+    }
 
 
-	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
-	txBuffer[txCur++] = msgCode; //set the function in the buffer
-	//set the ID
-	byteval = (uint8_t *)(&symID);
-	txBuffer[txCur++] = *byteval++;
-	if( ! isSmallSymID){
-		txBuffer[txCur++] = *byteval;
-	}
-	//set the val
-	txBuffer[txCur++] = (uint8_t) runtimeVal;
+    txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
+    txBuffer[txCur++] = msgCode; //set the function in the buffer
+    //set the ID
+    byteval = (uint8_t *)(&symID);
+    txBuffer[txCur++] = *byteval++;
+    if( ! isSmallSymID){
+        txBuffer[txCur++] = *byteval;
+    }
+    //set the val
+    txBuffer[txCur++] = (uint8_t) runtimeVal;
 
 }
 
 void _sym_notify_phi(uint8_t branchNo, uint16_t symID, bool isSym, char * base_addr, uint8_t offset)
 {
-	int msgSize=0;
-	uint8_t msgCode;
-	uint8_t *byteval;
+    int msgSize=0;
+    uint8_t msgCode;
+    uint8_t *byteval;
 
 
-	uint8_t byteOffset = offset / 8;
-	uint8_t bitOffsetInByte = offset % 8;
-	bool prev_state = bitRead( *(base_addr + byteOffset), bitOffsetInByte );
+    uint8_t byteOffset = offset / 8;
+    uint8_t bitOffsetInByte = offset % 8;
+    bool prev_state = bitRead( *(base_addr + byteOffset), bitOffsetInByte );
 
-	if(prev_state == false && isSym == false){
-		return;
-	}
-	bitWrite(*(base_addr + byteOffset), bitOffsetInByte, isSym);
-	bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+    if(prev_state == false && isSym == false){
+        return;
+    }
+    bitWrite(*(base_addr + byteOffset), bitOffsetInByte, isSym);
+    bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
 
-	if(isSmallSymID){
-		msgSize = SIZE_SYM_NTFY_PHI;
-		msgCode = SYM_NTFY_PHI;
-	}else{
-		msgSize = SIZE_SYM_NTFY_PHI_1;
-		msgCode = SYM_NTFY_PHI_1;
-	}
+    if(isSmallSymID){
+        msgSize = SIZE_SYM_NTFY_PHI;
+        msgCode = SYM_NTFY_PHI;
+    }else{
+        msgSize = SIZE_SYM_NTFY_PHI_1;
+        msgCode = SYM_NTFY_PHI_1;
+    }
 
 
     txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
@@ -463,7 +463,7 @@ void _sym_notify_phi(uint8_t branchNo, uint16_t symID, bool isSym, char * base_a
 
 void _sym_notify_call(uint8_t call_inst_id)
 {
-	int msgSize=0;
+    int msgSize=0;
     uint8_t msgCode;
 
     msgSize = SIZE_SYM_NTFY_CALL;
@@ -477,115 +477,115 @@ void _sym_notify_call(uint8_t call_inst_id)
 void _sym_try_alternative(bool destSym, bool concSym, uint16_t symID)
 {
 /*
-	if(! destSym || !concSym){
-		return;
-	}
+    if(! destSym || !concSym){
+        return;
+    }
 
-	int msgSize=0;
-	uint8_t msgCode;
-	uint8_t *byteval;
+    int msgSize=0;
+    uint8_t msgCode;
+    uint8_t *byteval;
 
-	bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+    bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
 
-	if(isSmallSymID){
-		msgSize = SIZE_SYM_TRY_ALTERNATIVE;
-		msgCode = SYM_TRY_ALT;
-	}else{
-		msgSize = SIZE_SYM_TRY_ALTERNATIVE_1;
-		msgCode = SYM_TRY_ALT_1;
-	}
+    if(isSmallSymID){
+        msgSize = SIZE_SYM_TRY_ALTERNATIVE;
+        msgCode = SYM_TRY_ALT;
+    }else{
+        msgSize = SIZE_SYM_TRY_ALTERNATIVE_1;
+        msgCode = SYM_TRY_ALT_1;
+    }
 
-	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
-	txBuffer[txCur++] = msgCode; //set the function in the buffer
-	//set the val
-	byteval = (uint8_t *)(&symID);
-	txBuffer[txCur++] = *byteval++;
-	if(! isSmallSymID){
-	    txBuffer[txCur++] = *byteval;
-	}
+    txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
+    txBuffer[txCur++] = msgCode; //set the function in the buffer
+    //set the val
+    byteval = (uint8_t *)(&symID);
+    txBuffer[txCur++] = *byteval++;
+    if(! isSmallSymID){
+        txBuffer[txCur++] = *byteval;
+    }
 */
 }
 
 void _sym_notify_func(uint8_t call_inst_id)
 {
-	int msgSize=0;
+    int msgSize=0;
     uint8_t msgCode;
 
     msgSize = SIZE_SYM_NTFY_FUNC;
     msgCode = SYM_NTFY_FUNC;
-	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
-	txBuffer[txCur++] = msgCode; //set the function in the buffer
-	//set the val
-	txBuffer[txCur++] = (uint8_t) call_inst_id;
+    txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
+    txBuffer[txCur++] = msgCode; //set the function in the buffer
+    //set the val
+    txBuffer[txCur++] = (uint8_t) call_inst_id;
 }
 
 void _sym_end(){
-	int msgSize = 0;
-	uint8_t msgCode;
-	msgSize = SIZE_SYM_END;
-	msgCode = SYM_END;
-	txCommandtoMonitorF;
-	txBuffer[txCur++] = msgCode;
-	close(clientfd);
-	close(sockfd);
-	return;
+    int msgSize = 0;
+    uint8_t msgCode;
+    msgSize = SIZE_SYM_END;
+    msgCode = SYM_END;
+    txCommandtoMonitorF;
+    txBuffer[txCur++] = msgCode;
+    close(clientfd);
+    close(sockfd);
+    return;
 }
 
 void _sym_notify_ret(uint8_t call_inst_id)
 {
-	int msgSize=0;
+    int msgSize=0;
     uint8_t msgCode;
 
     msgSize = SIZE_SYM_NTFY_RET;
     msgCode = SYM_NTFY_RET;
-	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
-	txBuffer[txCur++] = msgCode; //set the function in the buffer
-	//set the val
-	txBuffer[txCur++] = (uint8_t) call_inst_id;
+    txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
+    txBuffer[txCur++] = msgCode; //set the function in the buffer
+    //set the val
+    txBuffer[txCur++] = (uint8_t) call_inst_id;
 }
 
 void _sym_notify_select(bool cond, bool isSym1, bool isSym2, char * base_addr, uint8_t offset, uint16_t symID){
 
-	int msgSize=0;
-	uint8_t msgCode;
-	uint8_t *byteval;
+    int msgSize=0;
+    uint8_t msgCode;
+    uint8_t *byteval;
 
-	uint8_t byteOffset = offset / 8;
-	uint8_t bitOffsetInByte = offset % 8;
-	bool prev_state = bitRead( *(base_addr + byteOffset), bitOffsetInByte );
+    uint8_t byteOffset = offset / 8;
+    uint8_t bitOffsetInByte = offset % 8;
+    bool prev_state = bitRead( *(base_addr + byteOffset), bitOffsetInByte );
 
-	bool cur_state = isSym1 | isSym2;
-	if(prev_state == false && cur_state == false){
-		return;
-	}
+    bool cur_state = isSym1 | isSym2;
+    if(prev_state == false && cur_state == false){
+        return;
+    }
 
 
-	bitWrite(*(base_addr + byteOffset), bitOffsetInByte, cur_state);
-	bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
-	if(isSmallSymID){
-	    msgSize = SIZE_SYM_NTFY_SELECT;
-	    msgCode = SYM_NTFY_SELECT;
-	}else{
-	    msgSize = SIZE_SYM_NTFY_SELECT_1;
-	    msgCode = SYM_NTFY_SELECT_1;
-	}
+    bitWrite(*(base_addr + byteOffset), bitOffsetInByte, cur_state);
+    bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+    if(isSmallSymID){
+        msgSize = SIZE_SYM_NTFY_SELECT;
+        msgCode = SYM_NTFY_SELECT;
+    }else{
+        msgSize = SIZE_SYM_NTFY_SELECT_1;
+        msgCode = SYM_NTFY_SELECT_1;
+    }
 
-	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
-	//set the msg type
-	txBuffer[txCur++] = msgCode; //set the function in the buffer
-	//set the symid
-	byteval = (uint8_t *)(&symID);
-	txBuffer[txCur++] = *byteval++;
-	if(!isSmallSymID){
-		txBuffer[txCur++] = *byteval;
-	}
-	// set the cond
-	txBuffer[txCur++] = (char)cond;
+    txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
+    //set the msg type
+    txBuffer[txCur++] = msgCode; //set the function in the buffer
+    //set the symid
+    byteval = (uint8_t *)(&symID);
+    txBuffer[txCur++] = *byteval++;
+    if(!isSmallSymID){
+        txBuffer[txCur++] = *byteval;
+    }
+    // set the cond
+    txBuffer[txCur++] = (char)cond;
 
 }
 void _sym_notify_basic_block(uint16_t bbid, bool isSym, char * base_addr, uint8_t offset )
 {
-	int msgSize=0;
+    int msgSize=0;
     uint8_t msgCode;
     uint8_t *byteval;
 
@@ -594,26 +594,26 @@ void _sym_notify_basic_block(uint16_t bbid, bool isSym, char * base_addr, uint8_
     bool prev_state = bitRead( *(base_addr + byteOffset), bitOffsetInByte );
 
     if(prev_state == false && isSym == false){
-    	return;
+        return;
     }
     bitWrite(*(base_addr + byteOffset), bitOffsetInByte, isSym);
     bool isSmallBBID = bbid <= ONE_BYTE_BBID_MAX ? true : false;
     if(isSmallBBID){
-    	msgSize = SIZE_SYM_NTFY_BBLK;
-    	msgCode = SYM_NTFY_BBLK;
+        msgSize = SIZE_SYM_NTFY_BBLK;
+        msgCode = SYM_NTFY_BBLK;
     }else{
-    	msgSize = SIZE_SYM_NTFY_BBLK1;
-    	msgCode = SYM_NTFY_BBLK1;
+        msgSize = SIZE_SYM_NTFY_BBLK1;
+        msgCode = SYM_NTFY_BBLK1;
     }
 
-	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
-	txBuffer[txCur++] = msgCode; //set the function in the buffer
-	//set the val
-	byteval = (uint8_t *)(&bbid);
-	txBuffer[txCur++] = *byteval++;
-	if(!isSmallBBID){
-		txBuffer[txCur++] = *byteval;
-	}
+    txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
+    txBuffer[txCur++] = msgCode; //set the function in the buffer
+    //set the val
+    byteval = (uint8_t *)(&bbid);
+    txBuffer[txCur++] = *byteval++;
+    if(!isSmallBBID){
+        txBuffer[txCur++] = *byteval;
+    }
 }
 
 
@@ -622,8 +622,8 @@ void _sym_notify_basic_block(uint16_t bbid, bool isSym, char * base_addr, uint8_
 #else 
 uint32_t AddressToShadow(char *addr)
 {
-	uint32_t adr32 = (uint32_t)addr;
-	return ((adr32>>3) + SYM_SHADOW_RAM_OFFSET);
+    uint32_t adr32 = (uint32_t)addr;
+    return ((adr32>>3) + SYM_SHADOW_RAM_OFFSET);
 }
 #endif
 
@@ -631,13 +631,13 @@ uint32_t AddressToShadow(char *addr)
 bool checkSymbolic(char *addr)
 {
 #if defined (CO3_NO_SHADOW) 
-	return true;
-	
+    return true;
+    
 #else
-	char *addrShadow = (char *)AddressToShadow(addr);
-	char val = *addrShadow;
-	uint32_t bitnum = ((uint32_t)addr) & 0x07;
-	return bitRead(val,bitnum);
+    char *addrShadow = (char *)AddressToShadow(addr);
+    char val = *addrShadow;
+    uint32_t bitnum = ((uint32_t)addr) & 0x07;
+    return bitRead(val,bitnum);
 #endif
 }
 
@@ -646,14 +646,14 @@ bool checkSymbolic(char *addr)
 bool checkSymbolicSetConcrete(char *addr)
 {
 #ifndef CO3_NO_SHADOW
-	char *addrShadow = (char *)AddressToShadow(addr);
-	char val = *addrShadow;
-	uint32_t bitnum = ((uint32_t)addr) & 0x07;
-	bool symbolic  = bitRead(val,bitnum);
-	if(symbolic) bitClear(*addrShadow,  bitnum);
-	return symbolic;
+    char *addrShadow = (char *)AddressToShadow(addr);
+    char val = *addrShadow;
+    uint32_t bitnum = ((uint32_t)addr) & 0x07;
+    bool symbolic  = bitRead(val,bitnum);
+    if(symbolic) bitClear(*addrShadow,  bitnum);
+    return symbolic;
 #else
-	return true;
+    return true;
 #endif
 }
 
@@ -673,12 +673,12 @@ bool checkSymbolicSetSymbolic(char *addr)
 void SetSymbolic(char *addr)
 {
 #ifndef CO3_NO_SHADOW
-	char *addrShadow =  (char *)AddressToShadow (addr);
-	uint32_t bitnum = ((uint32_t)addr) & 0x07;
-	bitSet(*addrShadow,  bitnum);
+    char *addrShadow =  (char *)AddressToShadow (addr);
+    uint32_t bitnum = ((uint32_t)addr) & 0x07;
+    bitSet(*addrShadow,  bitnum);
 #else 
-	(void) addr;
-	return;
+    (void) addr;
+    return;
 #endif
 }
 
@@ -694,74 +694,84 @@ void SetConcrete(char *addr)
 void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t length, uint16_t symID)
 {
 
-	int msgSize=0;
-	msgSize = size;
-	//uint32_t addr;
-	uint8_t *byteval;
+    int msgSize=0;
+    msgSize = size;
+    //uint32_t addr;
+    uint8_t *byteval;
 
-	bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+    bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
 
-	txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
+    txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
 
-	txBuffer[txCur++] = msgCode;
-
-
-	byteval = (uint8_t*)(&symID);
-	txBuffer[txCur++]= *byteval++;
-	if( ! isSmallSymID){
-		txBuffer[txCur++]= *byteval;
-	}
+    txBuffer[txCur++] = msgCode;
 
 
-
-	//addr = (uint32_t) dest;
-	//byteval = (uint8_t*)(&addr);
-	//txBuffer[txCur++]= *byteval++;
-	//txBuffer[txCur++]= *byteval++;
-	//txBuffer[txCur++]= *byteval++;
-	//txBuffer[txCur++]= *byteval;
-	*(uint64_t*)(txBuffer + txCur) = (uint64_t) dest;
-	txCur += 8;
+    byteval = (uint8_t*)(&symID);
+    txBuffer[txCur++]= *byteval++;
+    if( ! isSmallSymID){
+        txBuffer[txCur++]= *byteval;
+    }
 
 
-	if(msgCode == SYM_BLD_MEMCPY || msgCode == SYM_BLD_MEMCPY_1  || msgCode == SYM_BLD_MEMMOVE || msgCode == SYM_BLD_MEMMOVE_1)
-	{
-		//addr = (uint32_t) src;
-		//byteval = (uint8_t*)(&addr);
-		//txBuffer[txCur++]= *byteval++;
-		//txBuffer[txCur++]= *byteval++;
-		//txBuffer[txCur++]= *byteval++;
-		//txBuffer[txCur++]= *byteval;
-		*(uint64_t*)(txBuffer + txCur) = (uint64_t) src;
-		txCur += 8;
-	}
+
+    //addr = (uint32_t) dest;
+    //byteval = (uint8_t*)(&addr);
+    //txBuffer[txCur++]= *byteval++;
+    //txBuffer[txCur++]= *byteval++;
+    //txBuffer[txCur++]= *byteval++;
+    //txBuffer[txCur++]= *byteval;
+#if defined(CO3_32BIT)
+    *(uint32_t*)(txBuffer + txCur) = (uint32_t) dest;
+    txCur += 4;
+#else
+    *(uint64_t*)(txBuffer + txCur) = (uint64_t) dest;
+    txCur += 8;
+#endif
+
+    if(msgCode == SYM_BLD_MEMCPY || msgCode == SYM_BLD_MEMCPY_1  || msgCode == SYM_BLD_MEMMOVE || msgCode == SYM_BLD_MEMMOVE_1)
+    {
+        //addr = (uint32_t) src;
+        //byteval = (uint8_t*)(&addr);
+        //txBuffer[txCur++]= *byteval++;
+        //txBuffer[txCur++]= *byteval++;
+        //txBuffer[txCur++]= *byteval++;
+        //txBuffer[txCur++]= *byteval;
+#if defined(CO3_32BIT)
+        *(uint32_t*)(txBuffer + txCur) = (uint32_t) src;
+        txCur += 4;
+#else
+        *(uint64_t*)(txBuffer + txCur) = (uint64_t) src;
+        txCur += 8;
+#endif
+    }
+
 
     if(msgCode != SYM_BLD_READ_MEM  && msgCode != SYM_BLD_READ_MEM_1 \
-    	&&	msgCode != SYM_BLD_READ_MEM_HW  && msgCode != SYM_BLD_READ_MEM_HW_1 \
-    	&&	msgCode != SYM_BLD_READ_MEM_W  && msgCode != SYM_BLD_READ_MEM_W_1 \
-    		&& msgCode != SYM_BLD_WRITE_MEM && msgCode != SYM_BLD_WRITE_MEM_1 ) // we don't need the length because it is already known on PC side for these functions
+        &&  msgCode != SYM_BLD_READ_MEM_HW  && msgCode != SYM_BLD_READ_MEM_HW_1 \
+        &&  msgCode != SYM_BLD_READ_MEM_W  && msgCode != SYM_BLD_READ_MEM_W_1 \
+        && msgCode != SYM_BLD_WRITE_MEM && msgCode != SYM_BLD_WRITE_MEM_1 ) // we don't need the length because it is already known on PC side for these functions
     {
-    	byteval = (uint8_t*)(&length);
-    	txBuffer[txCur++]= *byteval++;
-    	txBuffer[txCur++]= *byteval;
+        byteval = (uint8_t*)(&length);
+        txBuffer[txCur++]= *byteval++;
+            txBuffer[txCur++]= *byteval;
     }
 
     if(msgCode == SYM_BLD_READ_MEM_W || msgCode == SYM_BLD_READ_MEM_W_1) // we need to send the concrete word
     {
-    		byteval = (uint8_t*)(dest);
-    		//txBuffer[txCur++]= *byteval++;
-    		//txBuffer[txCur++]= *byteval++;
-    		//txBuffer[txCur++]= *byteval++;
-    		//txBuffer[txCur++]= *byteval;
-    		*(uint32_t*)(txBuffer + txCur) = *(uint32_t*)(dest);
-    		txCur += 4;
+            byteval = (uint8_t*)(dest);
+            //txBuffer[txCur++]= *byteval++;
+            //txBuffer[txCur++]= *byteval++;
+            //txBuffer[txCur++]= *byteval++;
+            //txBuffer[txCur++]= *byteval;
+            *(uint32_t*)(txBuffer + txCur) = *(uint32_t*)(dest);
+            txCur += 4;
     }
 
     if(msgCode == SYM_BLD_READ_MEM_HW || msgCode ==  SYM_BLD_READ_MEM_HW_1) // we need to send the concrete half  word
     {
-       		byteval = (uint8_t*)(dest);
-       		txBuffer[txCur++]= *byteval++;
-       		txBuffer[txCur++]= *byteval;
+            byteval = (uint8_t*)(dest);
+            txBuffer[txCur++]= *byteval++;
+            txBuffer[txCur++]= *byteval;
     }
 
 }
@@ -769,39 +779,39 @@ void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t 
 
 void _sym_build_memcpy(char * dest, char * src, size_t length, uint16_t symID)
 {
-	char *pCharDest = dest;
-	char *pCharSrc = src;
+    char *pCharDest = dest;
+    char *pCharSrc = src;
     bool report;
     report =false;
-	
+
 
     for(size_t i=0; i<length; i++)
     {
-    	if(!checkSymbolic(pCharSrc))
-    	{
-    		if(checkSymbolicSetConcrete(pCharDest))
-    		{
-    			report=true;
-    		}
-    	}
-    	else
-    	{
-    		SetSymbolic(pCharDest);
-    		report=true;
-    	}
+        if(!checkSymbolic(pCharSrc))
+        {
+            if(checkSymbolicSetConcrete(pCharDest))
+            {
+                report=true;
+            }
+        }
+        else
+        {
+            SetSymbolic(pCharDest);
+            report=true;
+        }
 
-    	pCharDest++;
-    	pCharSrc++;
+        pCharDest++;
+        pCharSrc++;
     }
 
     if(report)
     {
-    	bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
-    	if(isSmallSymID){
-    		reportSymHelper( SYM_BLD_MEMCPY, SIZE_SYM_BLD_MEMCPY, dest, src, length, symID);
-    	}else{
-    		reportSymHelper( SYM_BLD_MEMCPY_1, SIZE_SYM_BLD_MEMCPY_1, dest, src, length, symID);
-    	}
+        bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+        if(isSmallSymID){
+            reportSymHelper( SYM_BLD_MEMCPY, SIZE_SYM_BLD_MEMCPY, dest, src, length, symID);
+        }else{
+            reportSymHelper( SYM_BLD_MEMCPY_1, SIZE_SYM_BLD_MEMCPY_1, dest, src, length, symID);
+        }
 
     }
 
@@ -809,74 +819,74 @@ void _sym_build_memcpy(char * dest, char * src, size_t length, uint16_t symID)
 
 void _sym_build_memset(char * mem, bool input, size_t length, uint16_t symID)
 {
-	char *pChar=mem;
+    char *pChar=mem;
     bool report;
     report =false;
 
     for(size_t i=0; i<length; i++)
     {
-    	if(!input)
-    	{
-    		if(checkSymbolicSetConcrete(pChar)) // if input is concrete and at least one byte is symbolic
-    		{
-    			report=true;
-    		}
-    	}
-    	else
-    	{
-    		SetSymbolic(pChar);
-    		report=true;
-    	}
+        if(!input)
+        {
+            if(checkSymbolicSetConcrete(pChar)) // if input is concrete and at least one byte is symbolic
+            {
+                report=true;
+            }
+        }
+        else
+        {
+            SetSymbolic(pChar);
+            report=true;
+        }
 
-    	pChar++;
+        pChar++;
     }
 
     if(report)
     {
-    	bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
-    	if(isSmallSymID){
-    		reportSymHelper( SYM_BLD_MEMSET, SIZE_SYM_BLD_MEMSET,mem,NULL, length, symID);
-    	}else{
-    		reportSymHelper( SYM_BLD_MEMSET_1, SIZE_SYM_BLD_MEMSET_1,mem,NULL, length, symID);
-    	}
+        bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+        if(isSmallSymID){
+            reportSymHelper( SYM_BLD_MEMSET, SIZE_SYM_BLD_MEMSET,mem,NULL, length, symID);
+        }else{
+            reportSymHelper( SYM_BLD_MEMSET_1, SIZE_SYM_BLD_MEMSET_1,mem,NULL, length, symID);
+        }
 
     }
 }
 
 void _sym_build_memmove(char * dest, char * src, size_t length, uint16_t symID)
 {
-	char *pCharDest = dest;
-	char *pCharSrc = src;
+    char *pCharDest = dest;
+    char *pCharSrc = src;
     bool report;
     report =false;
 
     for(size_t i=0; i<length; i++)
     {
-    	if(!checkSymbolic(pCharSrc))
-    	{
-    		if(checkSymbolicSetConcrete(pCharDest))
-    		{
-    			report=true;
-    		}
-    	}
-    	else
-    	{
-    		SetSymbolic(pCharDest);
-    		report=true;
-    	}
+        if(!checkSymbolic(pCharSrc))
+        {
+            if(checkSymbolicSetConcrete(pCharDest))
+            {
+                report=true;
+            }
+        }
+        else
+        {
+            SetSymbolic(pCharDest);
+            report=true;
+        }
 
-    	pCharDest++;
-    	pCharSrc++;
+        pCharDest++;
+        pCharSrc++;
     }
 
     if(report)
     {
-    	bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
-    	if(isSmallSymID){
-    		reportSymHelper( SYM_BLD_MEMMOVE, SIZE_SYM_BLD_MEMMOVE, dest, src, length, symID);
-    	}else{
-    		reportSymHelper( SYM_BLD_MEMMOVE_1, SIZE_SYM_BLD_MEMMOVE_1, dest, src, length, symID);
-    	}
+        bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+        if(isSmallSymID){
+            reportSymHelper( SYM_BLD_MEMMOVE, SIZE_SYM_BLD_MEMMOVE, dest, src, length, symID);
+        }else{
+            reportSymHelper( SYM_BLD_MEMMOVE_1, SIZE_SYM_BLD_MEMMOVE_1, dest, src, length, symID);
+        }
 
     }
 }
@@ -885,124 +895,121 @@ void _sym_build_memmove(char * dest, char * src, size_t length, uint16_t symID)
 
 bool _sym_build_read_memory(char * addr, size_t length, bool is_little_edian, uint16_t symID)
 {
-	char *pChar=addr;
-	uint8_t countSymbols;
-	size_t i;
+    char *pChar=addr;
+    uint8_t countSymbols;
+    size_t i;
+    countSymbols =0;
 
-	countSymbols =0;
+    for(i=0; i<length; i++)
+    {
+        if(checkSymbolic(pChar))
+        {
+            countSymbols++;
+            //reportSymHelper( SYM_BLD_READ_MEM, SIZE_SYM_BLD_READ_MEM, addr, NULL, 0, symID);
 
-	for(i=0; i<length; i++)
-	{
-		if(checkSymbolic(pChar))
-		{
-			countSymbols++;
-			//reportSymHelper( SYM_BLD_READ_MEM, SIZE_SYM_BLD_READ_MEM, addr, NULL, 0, symID);
+        }
+        pChar++;
+    }
 
-		}
-		pChar++;
-	}
+    if(countSymbols == length) // all bytes are symbols report only the address
+    {
+        bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+        if(isSmallSymID){
+            reportSymHelper( SYM_BLD_READ_MEM, SIZE_SYM_BLD_READ_MEM, addr, NULL, 0, symID);
+        }
+        else{
+            reportSymHelper( SYM_BLD_READ_MEM_1, SIZE_SYM_BLD_READ_MEM_1, addr, NULL, 0, symID);
+        }
+        return true;
+    }
+    else if( length == 2 && countSymbols>0 ) // report address + value HalfWord
+    {
+        bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+        if(isSmallSymID){
+            reportSymHelper(SYM_BLD_READ_MEM_HW, SIZE_SYM_BLD_READ_MEM_HW, addr, NULL, 0, symID);
+        }else{
+            reportSymHelper(SYM_BLD_READ_MEM_HW_1, SIZE_SYM_BLD_READ_MEM_HW_1, addr, NULL, 0, symID);
+        }
 
-	if(countSymbols == length) // all bytes are symbols report only the address
-	{
-		bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
-		if(isSmallSymID){
-			reportSymHelper( SYM_BLD_READ_MEM, SIZE_SYM_BLD_READ_MEM, addr, NULL, 0, symID);
-		}
-		else{
-			reportSymHelper( SYM_BLD_READ_MEM_1, SIZE_SYM_BLD_READ_MEM_1, addr, NULL, 0, symID);
-		}
-		return true;
-	}
-	else if( length == 2 && countSymbols>0 ) // report address + value HalfWord
-	{
-		bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
-		if(isSmallSymID){
-			reportSymHelper(SYM_BLD_READ_MEM_HW, SIZE_SYM_BLD_READ_MEM_HW, addr, NULL, 0, symID);
-		}else{
-			reportSymHelper(SYM_BLD_READ_MEM_HW_1, SIZE_SYM_BLD_READ_MEM_HW_1, addr, NULL, 0, symID);
-		}
-
-		return true;
-	}
-	else if( length == 4 && countSymbols>0 ) // report address + value Word
-	{
-		bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
-		if(isSmallSymID){
-			reportSymHelper(SYM_BLD_READ_MEM_W, SIZE_SYM_BLD_READ_MEM_W, addr, NULL, 0, symID);
-		}else{
-			reportSymHelper(SYM_BLD_READ_MEM_W_1, SIZE_SYM_BLD_READ_MEM_W_1, addr, NULL, 0, symID);
-		}
-
-		return true;
-	}
+        return true;
+    }
+    else if( length == 4 && countSymbols>0 ) // report address + value Word
+    {
+        bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+        if(isSmallSymID){
+            reportSymHelper(SYM_BLD_READ_MEM_W, SIZE_SYM_BLD_READ_MEM_W, addr, NULL, 0, symID);
+        }else{
+            reportSymHelper(SYM_BLD_READ_MEM_W_1, SIZE_SYM_BLD_READ_MEM_W_1, addr, NULL, 0, symID);
+        }
+        return true;
+    }
 
 
-	return false;
+    return false;
 
 }
 
 void _sym_build_write_memory(char * addr, size_t length, bool input, bool little_endian, uint16_t symID )
 {
-	char *pChar=addr;
-	bool report;
-	report =false;
+    char *pChar=addr;
+    bool report;
+    report =false;
 
-	for(size_t i=0; i<length; i++)
-	{
-		if(!input)
-		{
-			if(checkSymbolicSetConcrete(pChar)) // if input is concrete and at least one byte is symbolic
-			{
-				report=true;
-			}
-		}
-		else
-		{
-			SetSymbolic(pChar);
-			report=true;
-		}
+    for(size_t i=0; i<length; i++)
+    {
+        if(!input)
+        {
+            if(checkSymbolicSetConcrete(pChar)) // if input is concrete and at least one byte is symbolic
+            {
+                report=true;
+            }
+        }
+        else
+        {
+            SetSymbolic(pChar);
+            report=true;
+        }
+        pChar++;
+    }
 
-		pChar++;
-	}
-
-	if(report)
-	{
-		bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
-		if(isSmallSymID){
-			reportSymHelper( SYM_BLD_WRITE_MEM, SIZE_SYM_BLD_WRITE_MEM ,addr,NULL,0, symID);
-		}else{
-			reportSymHelper( SYM_BLD_WRITE_MEM_1, SIZE_SYM_BLD_WRITE_MEM_1 ,addr,NULL,0, symID);
-		}
-	}
+    if(report)
+    {
+        bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
+        if(isSmallSymID){
+            reportSymHelper( SYM_BLD_WRITE_MEM, SIZE_SYM_BLD_WRITE_MEM ,addr,NULL,0, symID);
+        }else{
+            reportSymHelper( SYM_BLD_WRITE_MEM_1, SIZE_SYM_BLD_WRITE_MEM_1 ,addr,NULL,0, symID);
+        }
+    }
 }
 
 
 void _sym_symbolize_memory(char * addr, size_t length, bool DR)
 {
-	char *pChar=addr;
+    char *pChar=addr;
 
-	for(size_t i=0; i<length; i++)
-	{
-		SetSymbolic(pChar);
-		pChar++;
-	}
-	// send the addr value
-	int msgSize = 0;
-	uint8_t msgCode;
+    for(size_t i=0; i<length; i++)
+    {
+        SetSymbolic(pChar);
+        pChar++;
+    }
+    // send the addr value
+    int msgSize = 0;
+    uint8_t msgCode;
 
-	if(DR == true){
-		msgSize = SIZE_SYM_INIT_DR;
-		msgCode = SYM_INIT_DR;
-	}else{
-		msgSize = SIZE_SYM_INIT;
-		msgCode = SYM_INIT;
+    if(DR == true){
+        msgSize = SIZE_SYM_INIT_DR;
+        msgCode = SYM_INIT_DR;
+    }else{
+        msgSize = SIZE_SYM_INIT;
+        msgCode = SYM_INIT;
 
-	}
+    }
 
-	txCommandtoMonitorF;
-	txBuffer[txCur++] = msgCode;
-	*(uint64_t*)(txBuffer + txCur) = (uint64_t) addr;
-	txCur += 8;
+    txCommandtoMonitorF;
+    txBuffer[txCur++] = msgCode;
+    *(uint64_t*)(txBuffer + txCur) = (uint64_t) addr;
+    txCur += 8;
 }
 
 
@@ -1013,12 +1020,12 @@ void _sym_notify_basic_block_cc(uintptr_t site_id) {
     //fprintf(f,"%lx\n",site_id ^ prev_site_id);
     //fprintf(f,"%lx\n",site_id);
 
-	uintptr_t r = site_id ^ prev_site_id;
-	int msgSize = sizeof(uintptr_t) + 1;
-	txCommandtoMonitorF;
-	*(uintptr_t*)(txBuffer + txCur) = r;
-	txCur += sizeof(uintptr_t);
-	txBuffer[txCur++] = '\n';
+    uintptr_t r = site_id ^ prev_site_id;
+    int msgSize = sizeof(uintptr_t) + 1;
+    txCommandtoMonitorF;
+    *(uintptr_t*)(txBuffer + txCur) = r;
+    txCur += sizeof(uintptr_t);
+    txBuffer[txCur++] = '\n';
     prev_site_id = site_id >> 1;
 }
 
@@ -1026,64 +1033,64 @@ void _sym_notify_basic_block_cc(uintptr_t site_id) {
 void _spear_report1(uint32_t userID, char * arg1)
 {
 
-	txCommandtoMonitor(SIZE_SPEAR_RPT1);
-	txBuffer[txCur] = SPEAR_RPT1; //set the function in the buffer
-	if(AFLfuzzer.txTotalFunctions)
-	{
-		//write the index where the current function starts
-		txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
-	}
-	AFLfuzzer.txTotalFunctions++;
-	txCur++;
-	set_id(userID);
-	get_report( (uint8_t*) arg1);
+    txCommandtoMonitor(SIZE_SPEAR_RPT1);
+    txBuffer[txCur] = SPEAR_RPT1; //set the function in the buffer
+    if(AFLfuzzer.txTotalFunctions)
+    {
+        //write the index where the current function starts
+        txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
+    }
+    AFLfuzzer.txTotalFunctions++;
+    txCur++;
+    set_id(userID);
+    get_report( (uint8_t*) arg1);
 }
 
 
 void _spear_report2(uint32_t userID, char * arg1,char * arg2)
 {
-	txCommandtoMonitor(SIZE_SPEAR_RPT2);
-	txBuffer[txCur] = SPEAR_RPT2; //set the function in the buffer
-	if(AFLfuzzer.txTotalFunctions)
-	{
-		//write the index where the current function starts
-		txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
-	}
-	AFLfuzzer.txTotalFunctions++;
-	txCur++;
-	set_id(userID);
-	get_report( (uint8_t*) arg1);
-	get_report( (uint8_t*) arg2);
+    txCommandtoMonitor(SIZE_SPEAR_RPT2);
+    txBuffer[txCur] = SPEAR_RPT2; //set the function in the buffer
+    if(AFLfuzzer.txTotalFunctions)
+    {
+        //write the index where the current function starts
+        txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
+    }
+    AFLfuzzer.txTotalFunctions++;
+    txCur++;
+    set_id(userID);
+    get_report( (uint8_t*) arg1);
+    get_report( (uint8_t*) arg2);
 
 }
 
 
 void _spear_report3(uint32_t userID, char * arg1,char * arg2,char * arg3)
 {
-	txCommandtoMonitor(SIZE_SPEAR_RPT3);
-	txBuffer[txCur] = SPEAR_RPT3; //set the function in the buffer
-	if(AFLfuzzer.txTotalFunctions)
-	{
-		//write the index where the current function starts
-		txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
-	}
-	AFLfuzzer.txTotalFunctions++;
-	txCur++;
-	set_id(userID);
-	get_report( (uint8_t*) arg1);
-	get_report( (uint8_t*) arg2);
-	get_report( (uint8_t*) arg3);
+    txCommandtoMonitor(SIZE_SPEAR_RPT3);
+    txBuffer[txCur] = SPEAR_RPT3; //set the function in the buffer
+    if(AFLfuzzer.txTotalFunctions)
+    {
+        //write the index where the current function starts
+        txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
+    }
+    AFLfuzzer.txTotalFunctions++;
+    txCur++;
+    set_id(userID);
+    get_report( (uint8_t*) arg1);
+    get_report( (uint8_t*) arg2);
+    get_report( (uint8_t*) arg3);
 }
 
 
 void _spear_report4(uint32_t userID, char * arg1,char * arg2,char * arg3,char * arg4)
 {
-	txCommandtoMonitor(SIZE_SPEAR_RPT4);
+    txCommandtoMonitor(SIZE_SPEAR_RPT4);
     txBuffer[txCur] = SPEAR_RPT4; //set the function in the buffer
     if(AFLfuzzer.txTotalFunctions)
     {
-    	//write the index where the current function starts
-    	txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
+        //write the index where the current function starts
+        txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
     }
     AFLfuzzer.txTotalFunctions++;
     txCur++;
@@ -1096,61 +1103,61 @@ void _spear_report4(uint32_t userID, char * arg1,char * arg2,char * arg3,char * 
 
 void _spear_symbolize(char *address, uint32_t len)
 {
-	txCommandtoMonitor(SIZE_SPEAR_SYM);
-	txBuffer[txCur] = SPEAR_SYM; //set the function in the buffer
-	if(AFLfuzzer.txTotalFunctions)
-	{
-		//write the index where the current function starts
-		txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
-	}
-	AFLfuzzer.txTotalFunctions++;
-	txCur++;
-	set_id((uint32_t)address);
-	set_id((uint32_t)len);
+    txCommandtoMonitor(SIZE_SPEAR_SYM);
+    txBuffer[txCur] = SPEAR_SYM; //set the function in the buffer
+    if(AFLfuzzer.txTotalFunctions)
+    {
+        //write the index where the current function starts
+        txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
+    }
+    AFLfuzzer.txTotalFunctions++;
+    txCur++;
+    set_id((uint32_t)address);
+    set_id((uint32_t)len);
 
 }
 
 
 void _sym_notify_call(uint32_t id)
 {
-	txCommandtoMonitor(SIZE_SYM_N_CALL);
-	txBuffer[txCur] = SYM_N_CALL; //set the function in the buffer
-	if(AFLfuzzer.txTotalFunctions)
-	{
-		//write the index where the current function starts
-		txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
-	}
-	AFLfuzzer.txTotalFunctions++;
-	txCur++;
-	set_id(id);
+    txCommandtoMonitor(SIZE_SYM_N_CALL);
+    txBuffer[txCur] = SYM_N_CALL; //set the function in the buffer
+    if(AFLfuzzer.txTotalFunctions)
+    {
+        //write the index where the current function starts
+        txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
+    }
+    AFLfuzzer.txTotalFunctions++;
+    txCur++;
+    set_id(id);
 }
 
 void _sym_notify_ret(uint32_t id)
 {
-	txCommandtoMonitor(SIZE_SYM_N_RET);
-	txBuffer[txCur] = SYM_N_RET; //set the function in the buffer
-	if(AFLfuzzer.txTotalFunctions)
-	{
-		//write the index where the current function starts
-		txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
-	}
-	AFLfuzzer.txTotalFunctions++;
-	txCur++;
-	set_id(id);
+    txCommandtoMonitor(SIZE_SYM_N_RET);
+    txBuffer[txCur] = SYM_N_RET; //set the function in the buffer
+    if(AFLfuzzer.txTotalFunctions)
+    {
+        //write the index where the current function starts
+        txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
+    }
+    AFLfuzzer.txTotalFunctions++;
+    txCur++;
+    set_id(id);
 }
 
 void _sym_notify_basic_block(uint8_t id)
 {
-	txCommandtoMonitor(SIZE_SYM_N_BB);
-	txBuffer[txCur] = SYM_N_BB; //set the function in the buffer
-	if(AFLfuzzer.txTotalFunctions)
-	{
-		//write the index where the current function starts
-		txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
-	}
-	AFLfuzzer.txTotalFunctions++;
-	txCur++;
-	set_id(id);
+    txCommandtoMonitor(SIZE_SYM_N_BB);
+    txBuffer[txCur] = SYM_N_BB; //set the function in the buffer
+    if(AFLfuzzer.txTotalFunctions)
+    {
+        //write the index where the current function starts
+        txBuffer[AFLfuzzer.txTotalFunctions]=txCur;
+    }
+    AFLfuzzer.txTotalFunctions++;
+    txCur++;
+    set_id(id);
 }
 */
 
