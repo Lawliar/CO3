@@ -23,7 +23,6 @@ extern "C"{
 class MsgQueue {
 public:
     MsgQueue(CO3_SER* ser):ser(ser){
-
     }
     ~MsgQueue();
     bool RenderAndPush(char * buf, int size);

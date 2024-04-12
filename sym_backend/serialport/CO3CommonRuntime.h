@@ -21,6 +21,11 @@ enum {
  SYM_BLD_INT_2_1       ,
  SYM_BLD_INT_4         ,
  SYM_BLD_INT_4_1       ,
+#if defined(CO3_32BIT)
+#else
+ SYM_BLD_INT_8         ,
+ SYM_BLD_INT_8_1       ,
+#endif
  SYM_BLD_FLOAT         ,
  SYM_BLD_FLOAT_1       ,
  SYM_BLD_FLOAT_DBL     ,
@@ -83,6 +88,12 @@ enum {
 
 #define SIZE_SYM_BLD_INT_4          6      // | FCODE(1) | symID(1)         | val(4)      |
 #define SIZE_SYM_BLD_INT_4_1        7      // | FCODE(1) | symID(2)         | val(4)      |
+
+#if defined(CO3_32BIT)
+#else
+#define SIZE_SYM_BLD_INT_8          10     // | FCODE(1) | symID(1)         | val(8)      |
+#define SIZE_SYM_BLD_INT_8_1        11     // | FCODE(1) | symID(2)         | val(8)      |
+#endif
 
 #define SIZE_SYM_BLD_FLOAT          6      // | FCODE(1) | symID(1)         | val(4)      |
 #define SIZE_SYM_BLD_FLOAT_1        7      // | FCODE(1) | symID(2)         | val(4)      |

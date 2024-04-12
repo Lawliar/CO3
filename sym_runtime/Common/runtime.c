@@ -243,14 +243,14 @@ inline void get_report(uint8_t * arg)
 #define ONE_BYTE_SYMID_MAX 255
 #define ONE_BYTE_BBID_MAX 255
 
-bool _sym_build_integer(uint32_t int_val, uint8_t numBits, uint16_t symID)
+bool _sym_build_integer(uint32_t int_val, uint8_t numBytes, uint16_t symID)
 {
     int msgSize=0;
     uint8_t msgCode;
     uint8_t *byteval;
 
     bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
-    if(numBits==1)
+    if(numBytes==1)
     {
         if(isSmallSymID){
             msgSize = SIZE_SYM_BLD_INT_1;
@@ -261,7 +261,7 @@ bool _sym_build_integer(uint32_t int_val, uint8_t numBits, uint16_t symID)
         }
 
     }
-    else if(numBits==2)
+    else if(numBytes==2)
     {
         if(isSmallSymID){
             msgSize = SIZE_SYM_BLD_INT_2;
@@ -272,13 +272,8 @@ bool _sym_build_integer(uint32_t int_val, uint8_t numBits, uint16_t symID)
         }
 
     }
-    else
+    else if(numBytes == 4)
     {
-#if DEBUGPRINT ==1
-        if(numBits > 4){
-            printf("Error! Integer more than 4 bytes! %d\n",(int)numBits );
-        }
-#endif
         if(isSmallSymID){
             msgSize = SIZE_SYM_BLD_INT_4;
             msgCode = SYM_BLD_INT_4;
@@ -286,7 +281,18 @@ bool _sym_build_integer(uint32_t int_val, uint8_t numBits, uint16_t symID)
             msgSize = SIZE_SYM_BLD_INT_4_1;
             msgCode = SYM_BLD_INT_4_1;
         }
-
+    }else if(numBytes == 8){
+        if(isSmallSymID){
+            msgSize = SIZE_SYM_BLD_INT_8;
+            msgCode = SYM_BLD_INT_8;
+        }else{
+            msgSize = SIZE_SYM_BLD_INT_8_1;
+            msgCode = SYM_BLD_INT_8_1;
+        }
+    }
+    else{
+        fprintf(stderr,"Invalid number of bytes %d\n", numBytes);
+        exit(1);
     }
 
     txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
@@ -299,7 +305,7 @@ bool _sym_build_integer(uint32_t int_val, uint8_t numBits, uint16_t symID)
     }
     //set the val
     byteval = (uint8_t *)(&int_val);
-    for(int i=0;i<numBits;i++)
+    for(int i=0;i<numBytes;i++)
     {
         txBuffer[txCur++] = *byteval++; //set the function in the buffer
     }
@@ -314,7 +320,7 @@ bool _sym_build_float(double double_val, bool is_double, uint16_t symID)
     int msgSize=0;
     uint8_t msgCode;
     uint8_t *byteval;
-    int numBits;
+    int numBytes;
 
     bool isSmallSymID = symID <= ONE_BYTE_SYMID_MAX ? true : false;
 
@@ -328,7 +334,7 @@ bool _sym_build_float(double double_val, bool is_double, uint16_t symID)
             msgCode = SYM_BLD_FLOAT_DBL_1;
         }
 
-        numBits = 8;
+        numBytes = 8;
     }
     else
     {
@@ -339,7 +345,7 @@ bool _sym_build_float(double double_val, bool is_double, uint16_t symID)
             msgSize = SIZE_SYM_BLD_FLOAT_1;
             msgCode = SYM_BLD_FLOAT_1;
         }
-        numBits = 4;
+        numBytes = 4;
     }
 
     txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
@@ -352,7 +358,7 @@ bool _sym_build_float(double double_val, bool is_double, uint16_t symID)
     }
     //set the val
     byteval = (uint8_t *)(&double_val);
-    for(int i=0;i<numBits;i++)
+    for(int i=0;i<numBytes;i++)
     {
         txBuffer[txCur++]  = *byteval++; //set the function in the buffer
     }

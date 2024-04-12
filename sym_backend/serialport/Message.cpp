@@ -39,6 +39,16 @@ bool MsgQueue::RenderAndPush(char * buf, int size){
             uint32_t val = *(uint32_t *)(buf + cur + 3);
             Push(new BuildIntValueMessage(symid, 4, val ));
             cur += SIZE_SYM_BLD_INT_4_1;
+        }else if(buf[cur] == SYM_BLD_INT_8){
+            uint8_t symid = *(uint8_t*)(buf + cur + 1);
+            uint64_t val = *(uint64_t *)(buf + cur + 2);
+            Push(new BuildIntValueMessage(symid, 8, val ));
+            cur += SIZE_SYM_BLD_INT_8;
+        }else if(buf[cur] == SYM_BLD_INT_8_1){
+            uint16_t symid = *(uint16_t*)(buf + cur + 1);
+            uint64_t val = *(uint64_t *)(buf + cur + 3);
+            Push(new BuildIntValueMessage(symid, 8, val ));
+            cur += SIZE_SYM_BLD_INT_8_1;
         }else if(buf[cur] == SYM_BLD_FLOAT){
             uint8_t symid = *(uint8_t*)(buf + cur + 1);
             uint32_t val = *(uint32_t*)(buf + cur + 2);
