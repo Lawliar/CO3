@@ -364,9 +364,9 @@ SpecialNodeReturn Orchestrator::ExecuteSpecialNode(SymVal *symval, Val::ReadyTyp
     //auto tryAlternative = dynamic_cast<SymVal_sym_try_alternative*>(symval);
     auto truePhi = dynamic_cast<SymVal_sym_TruePhi*>(symval);
     auto symNull = dynamic_cast<SymVal_NULL*>(symval);
-    if(notifyCall != nullptr  || truePhi != nullptr || symNull != nullptr){
+    auto notifySelect = dynamic_cast<SymVal_sym_notify_select*>(symval);
+    if(notifyCall != nullptr  || truePhi != nullptr || symNull != nullptr || notifySelect != nullptr){
         // notifycall and true phi are handled else where
-        // tryAlternative are simply ignored(for now)
         return SpecialConstructed;
     }
 

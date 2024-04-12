@@ -48,8 +48,10 @@ int sockfd;
 int clientfd;
 
 uint8_t rxBuffer[RX_BUFFER_SIZE];
+uint32_t rxLen = 0;
 uint8_t  txBuffer[TX_BUFFER_SIZE];
 uint32_t txCur = 0; 
+
 
 void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t length, uint16_t symID);
 
@@ -72,27 +74,29 @@ uint64_t getTimeStamp() {
 void ReceiveSymbolize()
 {
     unsigned int read_timeout = 1000;
-    int result = read(clientfd, rxBuffer , sizeof(uint32_t));
+    int result = read(clientfd, rxBuffer , RX_BUFFER_STARTING_POINT);
     if (result != 4) {
         perror("read error");
         exit(1);
     }
-    unsigned u32Tocopy = *(uint32_t*)rxBuffer - sizeof(uint32_t);
+    rxLen = *(uint32_t*)rxBuffer - RX_BUFFER_STARTING_POINT;
+    memset(rxBuffer,'\0',RX_BUFFER_STARTING_POINT);
+    
     unsigned cur = 0;
     uint64_t start = getTimeStamp();
-    while(cur < u32Tocopy){
-        result = read(clientfd, rxBuffer + cur, u32Tocopy - cur);
+    while(cur < rxLen){
+        result = read(clientfd, rxBuffer + cur, rxLen - cur);
         if(result == -1){
             perror("read error");
             exit(1);
         }
         cur += result;
         if(getTimeStamp() - start > read_timeout){
-            fprintf(stderr,"reading %d bytes timed out", u32Tocopy);
+            fprintf(stderr,"reading %d bytes timed out", rxLen);
             abort();
         }
     }
-    _sym_symbolize_memory(rxBuffer + sizeof(uint32_t), u32Tocopy,false);
+    _sym_symbolize_memory((char *)rxBuffer, rxLen,false);
     return;
 }
 
@@ -105,10 +109,8 @@ void TransmitPack(void)
         perror("write error");
         exit(1);
     }
-    printf("transmitted %d bytes\n", txCur);
-    //reset
     txCur = TX_BUFFER_STARTING_POINT;
-    memset(txBuffer,0,TX_BUFFER_SIZE);
+    memset(txBuffer,'\0',TX_BUFFER_SIZE);
 }
 
 #if DEBUGPRINT ==1
@@ -294,7 +296,6 @@ bool _sym_build_integer(uint32_t int_val, uint8_t numBytes, uint16_t symID)
         fprintf(stderr,"Invalid number of bytes %d\n", numBytes);
         exit(1);
     }
-
     txCommandtoMonitorF;                              //check if we have space otherwise send the buffer
     txBuffer[txCur++] = msgCode; //set the function in the buffer
     //set the ID
@@ -532,8 +533,7 @@ void _sym_end(){
     msgCode = SYM_END;
     txCommandtoMonitorF;
     txBuffer[txCur++] = msgCode;
-    close(clientfd);
-    close(sockfd);
+    TransmitPack();
     return;
 }
 
@@ -775,9 +775,9 @@ void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t 
 
     if(msgCode == SYM_BLD_READ_MEM_HW || msgCode ==  SYM_BLD_READ_MEM_HW_1) // we need to send the concrete half  word
     {
-            byteval = (uint8_t*)(dest);
-            txBuffer[txCur++]= *byteval++;
-            txBuffer[txCur++]= *byteval;
+        byteval = (uint8_t*)(dest);
+        txBuffer[txCur++]= *byteval++;
+        txBuffer[txCur++]= *byteval;
     }
 
 }

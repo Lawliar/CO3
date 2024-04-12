@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15.3)
 
 # Optional: print out extra messages to see what is going on. Comment it to have less verbose messages
 set(CMAKE_VERBOSE_MAKEFILE ON)
-option(32Bit_Build "Build for 32-bit target" OFF)
+option(CO3_32BIT "Build for 32-bit target" OFF)
 # enable export of compiler commands to compile_commands.json
 #set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -26,7 +26,7 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 set(CMAKE_BUILD_TYPE Debug)
 
-if(${32Bit_Build})
+if(${CO3_32BIT})
   add_compile_definitions(CO3_32BIT)
 endif()
 
@@ -53,6 +53,7 @@ set_property(SOURCE ${SRC_INSTRUMENTATION_FILES} APPEND PROPERTY COMPILE_OPTIONS
 include_directories(
   ${CMAKE_SOURCE_DIR}/Inc
   ${CMAKE_SOURCE_DIR}/../Common
+  ${CMAKE_SOURCE_DIR}/../../sym_backend/serialport
 )
 
 # Build the executable based on the source files
@@ -64,7 +65,7 @@ target_compile_definitions(${EXECUTABLE} PUBLIC CO3_PROJECT_DIR=${CO3_OUTPUT_DIR
 ## flags
 set(CFLAGS
   -g
-  -O0
+  -Os
 )
 
 target_compile_options(

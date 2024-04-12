@@ -7,8 +7,8 @@
 #include "runtime.h"
 int main(void) {
 	sockRec();
-	
 	handle_menu();
+	_sym_end();
 	whole_free();
 	return 0;
 }

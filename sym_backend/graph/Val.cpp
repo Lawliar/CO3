@@ -8,10 +8,11 @@ extern WriteShadowIteratorDR * DR_INPUT;
 
 bool Val::isThisNodeReady(Val * nodeInQuestion, unsigned targetReady) {
     auto * nodeIsTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(nodeInQuestion);
+    auto* nodeIsNotifySelect = dynamic_cast<SymVal_sym_notify_select*>(nodeInQuestion);
     //auto * rootIsTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(this);
     //assert(rootIsTruePhi == nullptr);
-    if(nodeIsTruePhi != nullptr){
-        // we execute truePhi pro-actively
+    if(nodeIsTruePhi != nullptr || nodeIsNotifySelect != nullptr){
+        // we execute truePhi and notifySelect pro-actively
         return true;
     }
     if(nodeInQuestion == this){
