@@ -338,8 +338,8 @@ void SymVal_sym_build_integer::Construct(Val::ReadyType targetReady) {
     //check op1
     auto op1 = dynamic_cast<ConstantIntVal*>(In_edges.at(1));
     assert(op1 != nullptr);
-
-    assert(op1->Value % 8 != 0);// make sure it's byteLength, and then we convert it into bit length
+    // make sure it's byteLength, and then we convert it into bit length
+    assert(op1->Value == 1 || op1->Value == 2 || op1->Value == 4 || op1->Value == 8);
 
 
     // construct the symExpr
