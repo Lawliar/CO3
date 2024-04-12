@@ -21,8 +21,18 @@
 
 2. before using the docker file, submodule init are required, also llvm prebuilt should be decompressed to the specified folder. 
 
+3. CO3 features concolic executing the firmware on the MCU, so the physical MCUs are necessary. 
+
 ## tested platform
+
 - Native Ubuntu 22.04 (older version also should work)
+
+- MCUs:
+    1. STM32H743ZI
+    2. STM32L4R5ZI
+    3. STM32F429ZI
+    4. Microchip SAMD51
+    5. NXP K66F
 
 ## current llvm support:
 - Both instrumentation and symbolic backend are built on LLVM-14. 
