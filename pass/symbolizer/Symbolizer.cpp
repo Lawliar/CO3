@@ -50,8 +50,11 @@ g(true)
     constFalse = llvm::ConstantInt::getFalse(M.getContext());
 
     if(M.getDataLayout().isLegalInteger(64)){
+#if defined(CO3_MCUS)
         llvm_unreachable("64 bit integer should not be legal on MCUs");
-        //archIntType = llvm::Type::getInt64Ty(M.getContext());
+#else
+        archIntType = llvm::Type::getInt64Ty(M.getContext());
+#endif
     }else if(M.getDataLayout().isLegalInteger(32)){
         archIntType = llvm::Type::getInt32Ty(M.getContext());
     }else if(M.getDataLayout().isLegalInteger(16)){
@@ -75,6 +78,7 @@ g(true)
         //buf[len] = '\0';
         interpretedFunctionNames.insert(buf);
     }
+
 }
 
 Symbolizer::~Symbolizer(){
@@ -136,9 +140,10 @@ void Symbolizer::assignSymIDPhi(llvm::PHINode* symPhi, PhiStatus* phiStatus){
     }
     phiSymbolicIDs[symPhi] = phiStatus;
 }
+
 void Symbolizer::initializeFunctions(Function &F) {
 
-    IRBuilder<> IRB(F.getEntryBlock().getFirstNonPHI());
+    IRBuilder<> IRB(&*(F.getEntryBlock().getFirstInsertionPt()));
     if (F.getName() != "main"){
         // The main function doesn't receive symbolic arguments.
         for (auto &arg : F.args()) {
@@ -155,7 +160,6 @@ void Symbolizer::initializeFunctions(Function &F) {
             }
         }
     }
-
     // allocate some space for the BBs and PhiNodes
     unsigned numOfLoopBBs = 0;
     unsigned numOfTruePhis = 0;
@@ -173,6 +177,20 @@ void Symbolizer::initializeFunctions(Function &F) {
                 // NOT all of the selectInst needs to instrumented, (because some of them can be determined as concrete at compile-time)
                 // But there are so few of them, it's ok .
                 numOfSelectInsts += 1;
+                
+            }else if(isa<ReturnInst>(&eachInst)){
+                // it is a return inst
+                if(return_inst != nullptr){
+                    llvm_unreachable("multiple return insts");
+                }
+                return_inst = dyn_cast<ReturnInst>(&eachInst);
+                assert(return_inst != nullptr);
+                if(exit_bb == nullptr){
+                    exit_bb = &eachBB;
+                }
+                else{
+                    llvm_unreachable("multiple exit BBs");
+                }
             }
         }
     }
@@ -652,9 +670,11 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
         assert(intByteSize == 8);
         // TODO: even in MCU, this is still 32-bit, as, llvm assumes all functions pointers are 32-bit.
         // TODO: instead of assuming this is not symbolic, support this.
+#if defined(CO3_MCUS)
         llvm_unreachable("loading 8-byte data");
         symbolicExpressions[&I] = IRB.getFalse();
         return;
+#endif
     }
     Value* ptrOperand  = IRB.CreatePtrToInt(addr, intPtrType);;
 
@@ -1662,8 +1682,11 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                         if(calleeName.equals("_sym_build_read_memory") && arg_idx == 1){
                             auto byteLen = dyn_cast<ConstantInt>(arg)->getZExtValue();
                             if(!(byteLen == 1 || byteLen == 2 || byteLen == 4)){
+                                assert(byteLen == 8);
+#if defined (CO3_MCUS)
                                 errs()<< *callInst<<'\n';
                                 llvm_unreachable("loading value not 1, 2 or 4 bytes?");
+#endif
                             }
                         }
                         if(ConstantInt * cont_int = dyn_cast<ConstantInt>(arg)){
@@ -2018,6 +2041,17 @@ void Symbolizer::insertNotifyFunc(llvm::Function& F, std::string file_name){
     funcIDFileW.close();
 }
 
+#if defined(CO3_MCU)
+#else
+void Symbolizer::ProEpiLogue(llvm::Function & F){
+    assert(return_inst != nullptr);
+    IRBuilder<> IRB(&*(F.getEntryBlock().getFirstInsertionPt()));
+    IRB.CreateCall(runtime.symInit);
+    IRB.SetInsertPoint(return_inst);
+    IRB.CreateCall(runtime.symEnd);
+}
+#endif
+
 void Symbolizer::RecursivePrintEdges(std::map<BasicBlock*, unsigned long>& basicBlockMap, raw_fd_ostream & O, DomTreeNodeBase<BasicBlock> * root, unsigned level){
     unsigned cur_bbid = basicBlockMap.at(root->getBlock());
     bool isLoop = loopinfo.getLoopFor(root->getBlock()) != nullptr ? true : false;
@@ -2064,20 +2098,6 @@ void Symbolizer::OutputCFG(llvm::Function & F, DominatorTree& dTree, PostDominat
 
     //get entry bb
     BasicBlock * entry_bb = &F.getEntryBlock();
-    //get exit bb
-    BasicBlock * exit_bb = nullptr;
-    for (Function::iterator B_iter = F.begin(); B_iter != F.end(); ++B_iter){
-        BasicBlock* curBB = &*B_iter;
-        for(auto ins = curBB->begin(); ins != curBB->end(); ins ++){
-            if(isa<ReturnInst>(&*ins)){
-                if(exit_bb == nullptr){
-                    exit_bb = curBB;
-                }else{
-                    llvm_unreachable("multiple exit BB found\n");
-                }
-            }
-        }
-    }
 
     for (Function::iterator B_iter = F.begin(); B_iter != F.end(); ++B_iter){
         BasicBlock* curBB = &*B_iter;

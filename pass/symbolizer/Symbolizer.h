@@ -110,10 +110,14 @@ public:
     SymDepGraph::vertex_t addConstantIntVertice(llvm::ConstantInt*);
     SymDepGraph::vertex_t addConstantFloatVertice(llvm::ConstantFP*);
     SymDepGraph::vertex_t addRuntimeVertice(llvm::Value*, unsigned);
-  void createDFGAndReplace(llvm::Function&,std::string);
-  void insertNotifyBasicBlock(llvm::Function&);
+    void createDFGAndReplace(llvm::Function&,std::string);
+    void insertNotifyBasicBlock(llvm::Function&);
+#if defined(CO3_MCU)
+#else
+    void ProEpiLogue(llvm::Function&);
+#endif
     void RecursivePrintEdges(std::map<llvm::BasicBlock*, unsigned long>& basicBlockMap, llvm::raw_fd_ostream & O, llvm::DomTreeNodeBase<llvm::BasicBlock> * root, unsigned level);
-  void OutputCFG(llvm::Function&,llvm::DominatorTree&, llvm::PostDominatorTree&,std::string,std::string,std::string);
+    void OutputCFG(llvm::Function&,llvm::DominatorTree&, llvm::PostDominatorTree&,std::string,std::string,std::string);
   //
   // Implementation of InstVisitor
   //
@@ -613,6 +617,8 @@ public:
   void addTryAlternativeToTheGraph();
   const Runtime runtime;
   const llvm::LoopInfo& loopinfo;
+  llvm::BasicBlock* exit_bb = nullptr;
+  llvm::ReturnInst* return_inst = nullptr;
   /// The data layout of the currently processed module.
   const llvm::DataLayout &dataLayout;
   unsigned availableSymID;

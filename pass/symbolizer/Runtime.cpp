@@ -67,8 +67,11 @@ Runtime::Runtime(Module &M) {
     llvm::IntegerType * int_type = nullptr;
     llvm::IntegerType* intPtrType = M.getDataLayout().getIntPtrType(M.getContext());
     if(M.getDataLayout().isLegalInteger(64)){
-        //int_type = IRB.getInt64Ty();
+#if defined(CO3_MCUS)
         llvm_unreachable("MCU with 64-bit memory layout?");
+#else
+        int_type = IRB.getInt64Ty();
+#endif
     }else if(M.getDataLayout().isLegalInteger(32)){
         int_type = IRB.getInt32Ty();
     }else if(M.getDataLayout().isLegalInteger(16)){
@@ -82,6 +85,13 @@ Runtime::Runtime(Module &M) {
     Type *symIntT = IRB.getInt16Ty();
     Type *int16T = IRB.getInt16Ty();
     Type *isSymT = IRB.getInt1Ty();
+
+
+#if defined(CO3_MCU)
+#else
+    symInit = import(M, "_sym_initialize", voidT);
+    symEnd = import(M,"_sym_end",voidT);
+#endif
 
 #define OP_NAME "_sym_build_integer"
     // should always return true(when this function is called, it means another variable has been symbolized, and thus this variable needs to be symbolized)

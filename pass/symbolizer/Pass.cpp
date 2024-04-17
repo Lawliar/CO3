@@ -62,13 +62,19 @@ namespace {
                 auto newName = kInterceptedFunctionPrefix + name;
                 function.setName(newName);
             }
-
         }
 
         // Insert a constructor that initializes the runtime and any globals.
         Function *ctor;
         std::tie(ctor, std::ignore) = createSanitizerCtorAndInitFunctions(
-                M, kSymCtorName, "_sym_initialize", {}, {});
+                M, 
+                kSymCtorName, 
+#if defined(CO3_MCUS)
+                "_sym_initialize", 
+#else
+                "_sym_sanity_check", 
+#endif
+                {}, {});
         appendToGlobalCtors(M, ctor, 0);
 
         return true;
@@ -134,6 +140,13 @@ bool instrumentFunction(Function &F, LoopInfo &LI, PostDominatorTree& pdTree,Dom
 
     symbolizer.insertNotifyFunc(F, funcIDFile.string());
     symbolizer.insertNotifyBasicBlock(F);
+#if defined(CO3_MCU)
+#else
+    if(F.getName() == "main"){
+        symbolizer.ProEpiLogue(F);
+    }
+#endif
+
     if(verifyFunction(F, &errs())){
         errs()<<F<<'\n';
         llvm_unreachable("SymbolizePass produced invalid bitcode");

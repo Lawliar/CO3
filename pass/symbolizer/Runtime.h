@@ -87,6 +87,12 @@ struct Runtime {
     SymFnT notifyBasicBlock{};
     SymFnT tryAlternative{};
 
+#if defined(CO3_MCU)
+#else
+    SymFnT symInit{};
+    SymFnT symEnd{};
+#endif
+
     /// Mapping from icmp predicates to the functions that build the corresponding
     /// symbolic expressions.
     std::array<SymFnT, llvm::CmpInst::BAD_ICMP_PREDICATE>

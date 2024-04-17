@@ -684,3 +684,9 @@ end:
 	return;
 }
 
+int
+main(void)
+{
+	handle_menu();
+	return 0;
+}
