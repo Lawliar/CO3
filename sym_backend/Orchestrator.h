@@ -27,11 +27,12 @@ typedef enum _SpecialNodeReturn{
 class Orchestrator{
 public:
     Orchestrator(std::string inputDir, std::string sp_port, int);
+    ~Orchestrator();
+
     void SendInput();
     int Run();
+    void ClearCallStack();
     SymGraph* getCurFunc();
-
-    void InitializeInputBuffer(char * addr);
 
     SymGraph* GetNextFunc(unsigned);
     void UpdateCallStackHashBB(Val::BasicBlockIdType);
@@ -51,7 +52,6 @@ public:
     void ForwardExecution(Val*, SymGraph::RootTask*,unsigned);
     void BackwardExecution(SymVal*, Val::ReadyType);
     int ProcessMessage(Message*, int);
-    ~Orchestrator();
 
 
     ThreadPool pool;

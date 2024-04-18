@@ -103,8 +103,19 @@ Orchestrator::Orchestrator(std::string inputDir, std::string sp_port, int baud_r
                                         dfg_file.string());
     }
 }
+
+void Orchestrator::ClearCallStack() {
+    while(!callStack.empty()){
+        delete callStack.top();
+        callStack.pop();
+    }
+}
 Orchestrator::~Orchestrator() {
     releaseSer(ser);
+    
+    // delete every element from callStack
+    ClearCallStack();
+    // delete every element from recyclable
     for(auto eachFunc: recyclable){
         for(SymGraph* eachGraph : eachFunc.second){
             delete eachGraph;

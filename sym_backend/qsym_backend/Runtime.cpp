@@ -159,8 +159,6 @@ void _sym_initialize_mem(void * addr, bool for_dr) {
         std::generate(shadow.begin(), shadow.end(),
                       [&cursor]() { return _sym_get_input_byte(cursor++); });
     }
-
-
 }
 SymExpr _sym_build_integer(uint64_t value, uint8_t bits) {
   // Qsym's API takes uintptr_t, so we need to be careful when compiling for
