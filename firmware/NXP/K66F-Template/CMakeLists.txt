@@ -1,3 +1,18 @@
+# This file is part of CO3.
+#
+# CO3 is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# CO3 is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# CO3. If not, see <https://www.gnu.org/licenses/>.
+
+
 cmake_minimum_required(VERSION 3.15.3)
 
 # Optional: print out extra messages to see what is going on. Comment it to have less verbose messages
@@ -23,7 +38,7 @@ set(LINKER_FILE "frdmk66f_dev_cdc_vcom_freertos_Debug.ld")
 
 
 set(CO3_OUTPUT_DIR "${PROJECT_SOURCE_DIR}/intermediate_results")
-set(CO3_INSTRUMENTATION_LIB "/home/lcm/github/spear/spear-code/pass/symbolizer/cmake-build-debug/libSymbolize.so")
+set(CO3_INSTRUMENTATION_LIB "/home/lcm/github/spear/spear-code/pass/symbolizer/build_replace/libSymbolize.so")
 set(CO3_TARGET_INSTRUMENTED_LIB "${CMAKE_SOURCE_DIR}/Target/build/libEVKMIMXRT1176_Target_CMake.a")
 
 
