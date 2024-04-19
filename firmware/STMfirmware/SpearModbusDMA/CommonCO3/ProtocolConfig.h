@@ -20,9 +20,6 @@
  *      Author: alejandro
  */
 
-//a copy of this file must be renamed to ProtocolConfig.h  and added to the includes of this project,
-// do not use this file in the includes this is  just a template
-
 #ifndef PROTOCOLCONFIG_H_
 #define PROTOCOLCONFIG_H_
 
@@ -35,7 +32,7 @@
 
 // 1. if you want to use the MCU-side shadow memory or not
 
-#define CO3_NO_MCU_SIDE_SHADOW
+//#define CO3_NO_MCU_SIDE_SHADOW
 
 
 #if defined CO3_NO_MCU_SIDE_SHADOW
@@ -53,6 +50,7 @@
 #define SYM_PERIPHERAL_ADDR_START    0x40000000
 #define SYM_PERIPHERAL_SIZE          0x1FFFFFFF
 
+
 //2. which vendor is this board
 
 #define CO3_USE_STM32
@@ -65,11 +63,14 @@
 //#define CO3_USE_SERIAL
 
 // 4. which RTOS you use
-#define CO3_USE_FREERTOS
+#define CO3_USE_FREERTOS  // one thing to notice is that FreeRTOS does not provide any HAL
 //#define CO3_USE_CHIBIOS
 
+
+// 5. APP-specific MACRO
+#define CO3_TEST_MODBUSDMA
 //#define CO3_TEST_COMMANDLINE
-#define CO3_TEST_PLC
+//#define CO3_TEST_CGC
 
 
 #endif /* PROTOCOLCONFIG_H_ */

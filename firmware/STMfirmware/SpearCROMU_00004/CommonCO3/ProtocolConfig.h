@@ -12,14 +12,6 @@
 // You should have received a copy of the GNU General Public License along with
 // CO3. If not, see <https://www.gnu.org/licenses/>.
 
-
-/*
- * ProtocolConfig.h
- *
- *  Created on: May 2, 2022
- *      Author: alejandro
- */
-
 //a copy of this file must be renamed to ProtocolConfig.h  and added to the includes of this project,
 // do not use this file in the includes this is  just a template
 
@@ -53,23 +45,36 @@
 #define SYM_PERIPHERAL_ADDR_START    0x40000000
 #define SYM_PERIPHERAL_SIZE          0x1FFFFFFF
 
+
 //2. which vendor is this board
 
 #define CO3_USE_STM32
 //#define CO3_USE_NXP
+//#define CO3_USE_MICROCHIP
 
+// 3. board specifications
 #define CO3_USE_STM32_H743
+//#define CO3_USE_NXP_K66F
+//#define CO3_USE_MICROCHIP_SAMD51
 
-// 3. which communication channel you would like to use
+// 4. which communication channel you would like to use
 #define CO3_USE_USB
 //#define CO3_USE_SERIAL
 
-// 4. which RTOS you use
-#define CO3_USE_FREERTOS
+// 5. which RTOS you use
+#define CO3_USE_FREERTOS  // one thing to notice is that FreeRTOS does not provide any HAL
 //#define CO3_USE_CHIBIOS
 
+
+// 6. APP-specific MACRO
 //#define CO3_TEST_COMMANDLINE
-#define CO3_TEST_PLC
+#define CO3_TEST_CGC
+//#define CO3_TEST_MODBUSDMA
+//#define CO3_TEST_MIDIDMA
+//#define CO3_TEST_SHELLYDIMMER
+//#define CO3_TEST_ATPARSER
+
+
 
 
 #endif /* PROTOCOLCONFIG_H_ */
