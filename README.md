@@ -1,13 +1,12 @@
 ## Directory:
 ```
-- USBtest: helper script to send and receive messages through the serial port for debugging purpose. 
 - deps: projects that CO3 is dependent upon (except symcc). 
 - firmware: source code for the firmware images used in the paper.
 - fuzzer: fuzzing and CO3 coordinator script borrowed from SymCC.
 - pass: the LLVM instrumentation pass. 
 - sym_backend: the symbolic constraint builder and solver that are based on CO3's protocol.
 - sym_runtime: the runtime for workstation applications (to interact with the sym_backend). 
-- test: visualization code for the SVFG. 
+- utils: helper scripts to visualize the SVFG, communicate with the MCU. 
 ```
 ## before you start:
 1. many components rely on cmake, if you see `cmake build`, it means:
