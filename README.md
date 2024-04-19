@@ -39,6 +39,7 @@
 
 ### dependent packages
 - `sudo apt install autoconf automake libtool`
+- python3 with `pyserial`
 
 ## submodule initialization:
 - `git submodule init`
