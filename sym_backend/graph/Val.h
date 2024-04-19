@@ -1,6 +1,18 @@
+// This file is part of CO3.
 //
-// Created by charl on 6/14/2022.
+// CO3 is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software
+// Foundation, either version 3 of the License, or (at your option) any later
+// version.
 //
+// CO3 is distributed in the hope that it will be useful, but WITHOUT ANY
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+// A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// CO3. If not, see <https://www.gnu.org/licenses/>.
+
+
 
 #ifndef SYMBACKEND_VAL_H
 #define SYMBACKEND_VAL_H
@@ -20,7 +32,7 @@ public:
     typedef unsigned short      BasicBlockIdType;
     typedef unsigned short      SymIDType;
     typedef unsigned int        ReadyType;
-    typedef unsigned int        IntValType;
+    typedef unsigned long int        IntValType;
     typedef unsigned char       ByteWidthType;
     typedef enum _ValType{
         ConstantIntValTy,
@@ -166,7 +178,6 @@ public:
 
     // todo: remove the targetReady parameter
     virtual void Construct(Val::ReadyType targetReady) {};
-    bool directlyConstructable(Val::ReadyType targetReady);
     static SymExpr extractSymExprFromSymVal(SymVal*, ReadyType);
     string Str() {
         std::ostringstream ss;
@@ -260,7 +271,6 @@ public:
 
 
 DECLARE_SYMVAL_TYPE2(_sym_try_alternative)
-DECLARE_SYMVAL_TYPE3(_sym_notify_select)
 
 DECLARE_SYMVAL_TYPE0(_NULL) // NULL valued symval found from compile time
 
@@ -446,6 +456,22 @@ public:
     ~SymVal_sym_FalsePhiLeaf(){In_edges.clear();
         tmpIn_edges.clear(); UsedBy.clear();
         peerOriginals.clear();tmpPeerOriginals.clear();}
+};
+
+class SymVal_sym_notify_select : public SymVal{
+public:
+    void Construct(ReadyType) override;
+    static const unsigned numOps = 3;
+    Val::ReadyType getDepTargetReady(Val*);
+    vector<pair<Val::ArgIndexType, SymExpr> > historyValues;
+    SymVal_sym_notify_select(SymIDType symid,SymIDType symidr, BasicBlockIdType bid,
+                  ValVertexType dep1, ValVertexType dep2,
+                  ValVertexType dep3 ): SymVal(symid,symidr,"_sym_notify_select", bid){
+               tmpIn_edges[0] = dep1;
+               tmpIn_edges[1] = dep2;
+               tmpIn_edges[2] = dep3;}
+    SymVal_sym_notify_select(const SymVal_sym_notify_select & other): SymVal(other) {}
+    ~SymVal_sym_notify_select(){In_edges.clear();tmpIn_edges.clear(); UsedBy.clear();}
 };
 
 #endif //SYMBACKEND_VAL_H

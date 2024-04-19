@@ -1,1 +1,3 @@
 cmake_build/
+build_no_replace/
+build_workstation/

@@ -1,11 +1,24 @@
+// This file is part of CO3.
 //
-// Created by charl on 4/22/2022.
+// CO3 is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software
+// Foundation, either version 3 of the License, or (at your option) any later
+// version.
 //
+// CO3 is distributed in the hope that it will be useful, but WITHOUT ANY
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+// A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// CO3. If not, see <https://www.gnu.org/licenses/>.
+
 
 #include "Orchestrator.h"
 #include <iostream>
 #include <fstream>
+extern "C"{
 #include "getTimeStamp.h"
+}
 #include "Config.h"
 
 #pragma clang diagnostic push
@@ -19,17 +32,15 @@ int indent = 0;
 int indentNum = 4;
 #endif
 
-int msgCounter = 0;
 
 extern WriteShadowIteratorDR * DR_INPUT;
-
+extern bool co3_solver_checked;
 
 #if defined(CO3_SER2NET)
 Orchestrator::Orchestrator(std::string inputDir, std::string sp_port, int baud_rate):ser(initSer(sp_port.c_str())),pool(2),msgQueue(ser)
 #else
 Orchestrator::Orchestrator(std::string inputDir, std::string sp_port, int baud_rate):ser(initSer(sp_port.c_str(), baud_rate)),pool(2),msgQueue(ser)
 #endif
-
 {
     _sym_initialize_config(inputDir);
     boost::filesystem::path dir (inputDir);
@@ -98,19 +109,31 @@ Orchestrator::Orchestrator(std::string inputDir, std::string sp_port, int baud_r
         cout << "processing func:"<< cur_funcname<<'\n';
         cout.flush();
 #endif
-        SymGraph* cur_symgraph = new SymGraph(cur_funcname, cfg_file.string(),\
+        vanillaSymGraphs[cur_id] = new SymGraph(cur_id, cur_funcname, cfg_file.string(),\
                                         dom_file.string(),postDom_file.string(),\
                                         dfg_file.string());
-        symGraphs[cur_id] = cur_symgraph;
-        vanillaSymGraphs[cur_id] = new SymGraph(*cur_symgraph);
+    }
+}
+
+void Orchestrator::ClearCallStack() {
+    while(!callStack.empty()){
+        delete callStack.top();
+        callStack.pop();
     }
 }
 Orchestrator::~Orchestrator() {
     releaseSer(ser);
-    for(auto eachFunc :symGraphs){
-        delete eachFunc.second;
+    
+    // delete every element from callStack
+    ClearCallStack();
+    // delete every element from recyclable
+    for(auto eachFunc: recyclable){
+        for(SymGraph* eachGraph : eachFunc.second){
+            delete eachGraph;
+        }
+        eachFunc.second.clear();
     }
-    symGraphs.clear();
+    recyclable.clear();
     for(auto eachFunc :vanillaSymGraphs){
         delete eachFunc.second;
     }
@@ -133,6 +156,54 @@ void Orchestrator::UpdateCallStackHashCall(unsigned funcID) {
     _sym_notify_call(funcID);
 }
 
+SymGraph* Orchestrator::GetNextFunc(unsigned funcID) {
+    SymGraph * ret = nullptr;
+    if(recyclable.find(funcID) == recyclable.end() || (recyclable.find(funcID) != recyclable.end() && recyclable.at(funcID).size() == 0)  ){
+        ret = new SymGraph( * vanillaSymGraphs.at(funcID));
+    }else{
+        ret = recyclable.at(funcID).back();
+        recyclable.at(funcID).pop_back();
+    }
+    return ret;
+}
+
+void Orchestrator::SetRetAndRecycleGraph() {
+    auto cur_func = getCurFunc();
+    auto cur_func_name = getCurFunc()->funcname;// copy construct
+    auto setRetSym = cur_func->setRetSym;
+    bool hasSetRet;
+    if(setRetSym != nullptr){
+        Val::ReadyType targetReady = 0;
+        if(setRetSym->inLoop){
+            targetReady = (setRetSym->ready + 1);
+        }else{
+            targetReady = 1;
+        }
+        BackwardExecution(setRetSym,  targetReady);
+        assert(setRetSym->ready == targetReady);
+        hasSetRet = true;
+    }else{
+        hasSetRet = false;
+    }
+
+
+    unsigned funcId = cur_func->funcID;
+    if( hasSetRet == true || cur_func->changed == true){
+        // the returned func is dirty and needs to be discarded
+        delete cur_func;
+    }else{
+        // the cur_func is still freshly new, can be recycled
+        if(recyclable.find(funcId) == recyclable.end()){
+            recyclable[funcId] = vector<SymGraph*>{cur_func};
+        }else{
+            recyclable.at(funcId).push_back(cur_func);
+        }
+    }
+
+    //symGraphs[funcId] = new SymGraph(cur_func_name, funcFiles.at(cur_func_name).cfg_file,funcFiles.at(cur_func_name).dom_file,\
+    //                            funcFiles.at(cur_func_name).postDom_file, funcFiles.at(cur_func_name).dfg_file);
+}
+
 void Orchestrator::UpdateCallStackRet(unsigned funcID) {
     _sym_notify_ret(funcID);
 }
@@ -144,11 +215,7 @@ void Orchestrator::ExecuteBasicBlock(Val::BasicBlockIdType bbid) {
     cout << string(indent, ' ')<<"Executing BB:"<<bbid<<'\n';
     cout.flush();
 #endif
-#ifdef DEBUG_CHECKING
-    if(cur_func->funcname == "process_FC1" and bbid == 1){
-        __asm__("nop");
-    }
-#endif
+
     cur_func->RefreshBBTask(bbid, cur_func->bbTasks.at(bbid)->ready + 1);
     auto bbTask = cur_func->bbTasks.at(bbid);
 
@@ -194,7 +261,11 @@ bool Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot, Va
         auto leaf = dynamic_cast<SymVal*>(*falsePhiRoot->falsePhiLeaves.begin());
         assert( leaf != nullptr);
         // make sure the only one leaf is executed.
+#if defined(CO3_REPLACE)
         if(! falsePhiRoot->isThisNodeReady(leaf, targetReady )){
+#else
+        if(! ExecuteNode(leaf, targetReady )){
+#endif
             return false;
         }
         if(SymVal::extractSymExprFromSymVal(leaf, targetReady) ==  nullptr){
@@ -217,7 +288,11 @@ bool Orchestrator::ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot *falsePhiRoot, Va
         // and each leaf must be FalsePhiLeaf
         bool allConcrete = true;
         for(auto eachLeaf : falsePhiRoot->falsePhiLeaves){
+#if defined(CO3_REPLACE)
             if( ! falsePhiRoot->isThisNodeReady(eachLeaf, targetReady)){
+#else
+            if( ! ExecuteNode(eachLeaf, targetReady)){
+#endif
                 return false;
             }
             auto eachFalsePhiLeaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(eachLeaf);
@@ -251,7 +326,11 @@ bool Orchestrator::ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf * falsePhiLeaf, V
 
     SymExpr originalSymExpr = nullptr;
     bool allConcrete = true;
+#if defined(CO3_REPLACE)
     if(!falsePhiLeaf->isThisNodeReady(falsePhiLeafOriginalVal, targetReady)){
+#else
+    if(!ExecuteNode(falsePhiLeafOriginalVal, targetReady)){
+#endif
         return false;
     }else{
         originalSymExpr = SymVal::extractSymExprFromSymVal(falsePhiLeafOriginalVal, targetReady);
@@ -261,7 +340,11 @@ bool Orchestrator::ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf * falsePhiLeaf, V
         }
     }
     for(auto eachPeerOrig: falsePhiLeaf->peerOriginals){
+#if defined(CO3_REPLACE)
         if(!falsePhiLeaf->isThisNodeReady(eachPeerOrig, targetReady)){
+#else
+        if(!ExecuteNode(eachPeerOrig, targetReady)){
+#endif
             return false;
         }else{
             if(SymVal::extractSymExprFromSymVal(eachPeerOrig, targetReady) != nullptr){
@@ -303,9 +386,9 @@ SpecialNodeReturn Orchestrator::ExecuteSpecialNode(SymVal *symval, Val::ReadyTyp
     //auto tryAlternative = dynamic_cast<SymVal_sym_try_alternative*>(symval);
     auto truePhi = dynamic_cast<SymVal_sym_TruePhi*>(symval);
     auto symNull = dynamic_cast<SymVal_NULL*>(symval);
-    if(notifyCall != nullptr  || truePhi != nullptr || symNull != nullptr){
+    auto notifySelect = dynamic_cast<SymVal_sym_notify_select*>(symval);
+    if(notifyCall != nullptr  || truePhi != nullptr || symNull != nullptr || notifySelect != nullptr){
         // notifycall and true phi are handled else where
-        // tryAlternative are simply ignored(for now)
         return SpecialConstructed;
     }
 
@@ -327,6 +410,7 @@ SpecialNodeReturn Orchestrator::ExecuteSpecialNode(SymVal *symval, Val::ReadyTyp
             return SpecialNotReady;
         }
     }
+
     return NotSpecial;
 }
 
@@ -336,13 +420,28 @@ bool Orchestrator::ExecuteNode(Val* nodeToExecute, Val::ReadyType targetReady) {
     cout << string(indent, ' ') << "Trying to construct:"<<nodeToExecute->Str() <<"\n";
     std::cout.flush();
 #endif
+    if(nodeToExecute->ready == targetReady){
+#ifdef DEBUG_OUTPUT
+        cout << string(indent, ' ') <<nodeToExecute->Str() <<" already constructed\n";
+        std::cout.flush();
+        indent -= indentNum;
+#endif
+        return true;
+    }
     if(auto runtimeVal = dynamic_cast<RuntimeVal*>(nodeToExecute); runtimeVal != nullptr){
 #ifdef DEBUG_CHECKING
         assert(targetReady == (runtimeVal->ready + 1));
 #endif
         runtimeVal->Unassign();
 #ifdef DEBUG_OUTPUT
-        cout << string(indent, ' ') << "constructed:"<<nodeToExecute->Str() <<"\n";
+        cout << string(indent, ' ') << "unassign constructed:"<<nodeToExecute->Str() <<"\n";
+        std::cout.flush();
+        indent -= indentNum;
+#endif
+        return true;
+    }else if(auto constantVal = dynamic_cast<ConstantVal*>(nodeToExecute); constantVal != nullptr){
+#ifdef DEBUG_OUTPUT
+        cout << string(indent, ' ') << "constant already constructed "<<nodeToExecute->Str() <<"\n";
         std::cout.flush();
         indent -= indentNum;
 #endif
@@ -362,8 +461,18 @@ bool Orchestrator::ExecuteNode(Val* nodeToExecute, Val::ReadyType targetReady) {
             getCurFunc()->ReleaseOrRemoveRootTask(symVal);
             return true;
         }else if(isSpecial == NotSpecial){
-            if(symVal->directlyConstructable(targetReady)) {
-                // if we can construct right now, just do it
+            bool node_ready = true;
+            for(auto eachDep : symVal->realChildren()){
+#if defined(CO3_REPLACE)
+                if(!symVal->isThisNodeReady(eachDep, targetReady)){
+#else
+                if(!ExecuteNode(eachDep, targetReady)){
+#endif
+                    node_ready = false;
+                    break;
+                }
+            }
+            if(node_ready){
                 symVal->Construct(targetReady);
 #ifdef DEBUG_OUTPUT
                 cout << string(indent, ' ') << "constructed:"<<symVal->Str() <<"\n";
@@ -381,7 +490,6 @@ bool Orchestrator::ExecuteNode(Val* nodeToExecute, Val::ReadyType targetReady) {
 #endif
         return false;
     }
-
 }
 void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, unsigned targetReady) {
 #ifdef DEBUG_CHECKING
@@ -405,9 +513,10 @@ void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, uns
     assert(tmpConstant == nullptr);
 #endif
 
+
 #ifdef  DEBUG_CHECKING
     if(target != nullptr){
-        assert( ! target->root->isThisNodeReady(source, targetReady));
+        assert( !target->root->isThisNodeReady(source, targetReady));
     }
 #endif
     bool shouldMoveForward = false;
@@ -427,7 +536,7 @@ void Orchestrator::ForwardExecution(Val* source, SymGraph::RootTask* target, uns
             ExecuteBasicBlock(eachBBDep->BBID);
         }
         if(!rootTask->hasRuntimeDep()){
-            // if there is not, then, we can also construct this
+            // if there is not, then, we can also cons truct this
             for(auto eachInEdge : rootTask->inBBNonReadyLeafDeps){
                 ForwardExecution(eachInEdge, rootTask,targetReady);
             }
@@ -522,19 +631,9 @@ void Orchestrator::BackwardExecution(SymVal* sink, Val::ReadyType targetReady) {
 #endif
     //assuming all its dependents are ready
     SymGraph* cur_func = getCurFunc();
-#ifdef DEBUG_CHECKING
-    if(cur_func->funcname == "receive_cgc_until" && sink->symID == 22){
-        __asm__("nop");
-    }
-#endif
     if(sink->ready >= targetReady || ExecuteNode(sink, targetReady)){
         //already constructed or can be constructed right away
     }else{
-#ifdef DEBUG_CHECKING
-        if(cur_func->funcname == "calcCRC" && sink->symID == 28 && targetReady == 3){
-            __asm__("nop");
-        }
-#endif
         auto rootTask = cur_func->GetRootTask(sink);
         assert(rootTask != nullptr);
         for(auto eachBBDep : rootTask->depNonReadyNonLoopBB){
@@ -564,6 +663,7 @@ void Orchestrator::PreparingCalling(NotifyCallMessage* callMsg){
     auto* notifyCallVal = dynamic_cast<SymVal_sym_notify_call*>(cur_graph->callInsts.at(callMsg->id));
     assert(notifyCallVal != nullptr);
 
+    // the index 0  is the callInst ID
     for(unsigned index = 1; index < notifyCallVal->In_edges.size() ; index ++){
         auto setPara = dynamic_cast<SymVal_sym_set_parameter_expression*>(notifyCallVal->In_edges.at(index));
 #ifdef DEBUG_CHECKING
@@ -578,37 +678,7 @@ void Orchestrator::PreparingCalling(NotifyCallMessage* callMsg){
     notifyCallVal->ready ++;
 }
 
-void Orchestrator::SetRetAndRefreshGraph() {
-    auto cur_func = getCurFunc();
-    auto cur_func_name = getCurFunc()->funcname;// copy construct
-    auto setRetSym = cur_func->setRetSym;
-    bool ret_sym_is_concrete = true;
-    if(setRetSym != nullptr){
-        auto targetReady = (setRetSym->ready + 1);
-        BackwardExecution(setRetSym,  targetReady);
-        assert(setRetSym->ready == targetReady);
-        if(SymVal::extractSymExprFromSymVal(setRetSym,targetReady) != nullptr){
-            ret_sym_is_concrete = false;
-        }
-    }
 
-
-    unsigned funcId = UINT_MAX;
-    for(auto eachSymGraph : symGraphs){
-        if(eachSymGraph.second == cur_func){
-           funcId = eachSymGraph.first;
-           break;
-        }
-    }
-    assert(funcId != UINT_MAX);
-    if( ret_sym_is_concrete == false || cur_func->changed == true){
-        delete cur_func;
-        symGraphs[funcId] = new SymGraph(*vanillaSymGraphs.at(funcId));
-    }
-
-    //symGraphs[funcId] = new SymGraph(cur_func_name, funcFiles.at(cur_func_name).cfg_file,funcFiles.at(cur_func_name).dom_file,\
-    //                            funcFiles.at(cur_func_name).postDom_file, funcFiles.at(cur_func_name).dfg_file);
-}
 
 void Orchestrator::SendInput() {
     ifstream inputFile (symInputFile,ios::in | ios::binary);
@@ -636,7 +706,10 @@ void Orchestrator::SendInput() {
 }
 int Orchestrator::Run() {
     auto listen_job = pool.enqueue(&MsgQueue::Listen,&(this->msgQueue));
-
+    int msgCounter = 0;
+    uint64_t building_total_time = 0;
+    uint64_t start_time = 0;
+    uint64_t end_time = 0;
     // get the initialization msg so that we can initialize on our side:
     while(true){
 
@@ -656,20 +729,23 @@ int Orchestrator::Run() {
         cout<<init_msg->Str()<<'\n';
         cout.flush();
 #endif
+
         _sym_initialize_mem(init_msg->addr, init_msg->DR);
         if(init_msg->DR == true){
             // then the shadow mem is not set up in _sym_initialize_mem, we need to create a global iter for DR
             unsigned inputSize = boost::filesystem::file_size(g_config.inputFile);
             DR_INPUT = new WriteShadowIteratorDR(reinterpret_cast<uintptr_t>(init_msg->addr), inputSize);
         }
+
         //now we know the MCU is properly initialized
-        start_time = getTimeStamp();
+
 #ifdef DEBUG_OUTPUT
         cout<<"finish "<<init_msg->Str()<<"\n\n";
         cout.flush();
 #endif
         break;
     }
+    uint64_t batch_build_time = 0;
     while(true){
         Message* msg = msgQueue.Pop();
         if(msg == nullptr){
@@ -681,413 +757,29 @@ int Orchestrator::Run() {
         cout<<msgCounter<< "th msg,";
         cout.flush();
 #endif
-        if(auto cnt_msg = dynamic_cast<ControlMessgaes*>(msg); cnt_msg != nullptr){
-            if(auto bb_msg = dynamic_cast<NotifyBasicBlockMessage*>(cnt_msg) ; bb_msg != nullptr){
-                // now a BB has been finished on the MCU side, we try to do the same here
-#ifdef DEBUG_CHECKING
-                auto cur_func = getCurFunc();
-                assert(cur_func->bbTasks.at(bb_msg->id)->inLoop);
-#endif
-#ifdef DEBUG_OUTPUT
-                assert(indent == 0);
-                cout<<bb_msg->Str()<<'\n';
-                cout.flush();
-#endif
-                getCurFunc()->changed = true;
-                ExecuteBasicBlock(bb_msg->id);
-#ifdef DEBUG_OUTPUT
-                cout<<"finish "<<bb_msg->Str()<<"\n\n";
-                cout.flush();
-#endif
-            }
-            else if(auto func_msg = dynamic_cast<NotifyFuncMessage*>(cnt_msg); func_msg != nullptr){
-                auto nextFunc = symGraphs.at(func_msg->id);
-#ifdef DEBUG_OUTPUT
-                assert(indent == 0);
-                cout<<func_msg->Str()<< ':'<<nextFunc->funcname<<'\n';
-                cout.flush();
-#endif
-
-                UpdateCallStackHashCall(func_msg->id);
-                if(callStack.size() == 0){
-                    callStack.push(nextFunc);
-                }else{
-                    // assume a Func Notification is always immdediately preceded by a CallInst
-                    // except the first instrumented function (i.e., the entry point)
-                    assert(callStack.top() == nullptr);
-                    callStack.top() = nextFunc;
-                }
-#ifdef DEBUG_OUTPUT
-                cout<<"finish "<<func_msg->Str()<< ':'<<nextFunc->funcname<<"\n\n";
-                cout.flush();
-#endif
-            }else if(auto call_msg = dynamic_cast<NotifyCallMessage*>(cnt_msg) ; call_msg != nullptr){
-#ifdef DEBUG_OUTPUT
-                assert(indent == 0);
-                cout <<call_msg->Str()<<'\n';
-                cout.flush();
-#endif
-                PreparingCalling(call_msg);
-                // not sure if the called function is instrumented or not
-                // so we just set this to false and let the NotifyFunc decide.
-                callStack.push(nullptr);
-#ifdef DEBUG_OUTPUT
-                cout <<"finish "<<call_msg->Str()<<"\n\n";
-                cout.flush();
-#endif
-            }else if(auto ret_msg = dynamic_cast<NotifyRetMessage*>(cnt_msg) ; ret_msg != nullptr){
-#ifdef DEBUG_OUTPUT
-                assert(indent == 0);
-                cout  <<ret_msg->Str()<<'\n';
-                cout.flush();
-#endif
-                if(callStack.top() != nullptr){
-                    // now the instrumented callee function is executed, and we are still in the callee function
-#ifdef DEBUG_OUTPUT
-                    cout <<"back from:"<<callStack.top()->funcname<<'\n';
-                    cout.flush();
-#endif
-                    //get the funcID of the callee
-                    auto funcId = INT32_MAX;
-                    for(auto eachFunc = symGraphs.begin(); eachFunc != symGraphs.end(); eachFunc++){
-                        if(eachFunc->second == callStack.top()){
-                            funcId = eachFunc->first;
-                            break;
-                        }
-                    }
-                    assert(funcId != INT32_MAX);
-                    UpdateCallStackRet(funcId);
-                    SetRetAndRefreshGraph();
-                }else{
-#ifdef DEBUG_OUTPUT
-                    cout <<"back from: Uninstrumented\n";
-                    cout.flush();
-#endif
-                    _sym_set_return_expression(nullptr);
-                }
-                callStack.pop();
-#ifdef DEBUG_OUTPUT
-                cout <<"finish " <<ret_msg->Str()<<"\n\n";
-                cout.flush();
-#endif
-            }else if(auto phi_msg = dynamic_cast<PhiValueMessage*>(cnt_msg); phi_msg != nullptr){
-#ifdef DEBUG_OUTPUT
-                assert(indent == 0);
-                cout << phi_msg->Str()<<'\n';
-                cout.flush();
-#endif
-                auto cur_func = getCurFunc();
-                cur_func->changed = true;
-                auto truePhi =  dynamic_cast<SymVal_sym_TruePhi*>(cur_func->Nodes.at(cur_func->symID2offMap.at(phi_msg->symid)));
-                UpdateCallStackHashBB(truePhi->BBID);
-
-                // get the chosen Symval
-                auto val = dynamic_cast<SymVal*>(truePhi->In_edges.at(phi_msg->value));
-                auto desiredReady = truePhi->getDepTargetReady(val);
-                BackwardExecution(val,  desiredReady);
-                assert(truePhi->isThisNodeReady(val, desiredReady));
-
-                auto symExprToTake = SymVal::extractSymExprFromSymVal(val, desiredReady);
-                truePhi->historyValues.push_back(make_pair(phi_msg->value, symExprToTake));
-                truePhi->ready ++;
-
-#ifdef DEBUG_OUTPUT
-                cout<< "finish "<<phi_msg->Str()<<"\n\n";
-                cout.flush();
-#endif
-            }else if(auto select_msg = dynamic_cast<SelectMessage*>(cnt_msg); select_msg != nullptr){
-#ifdef DEBUG_OUTPUT
-                assert(indent == 0);
-                cout<<select_msg->Str()<<'\n';
-                cout.flush();
-#endif
-                auto cur_func = getCurFunc();
-                cur_func->changed = true;
-                auto* notifySelect = dynamic_cast<SymVal_sym_notify_select*>(cur_func->Nodes.at(cur_func->symID2offMap.at(select_msg->symid)));
-                assert(notifySelect != nullptr);
-
-                auto* cond_node = dynamic_cast<RuntimeIntVal*>(notifySelect->In_edges.at(0));
-                assert(cond_node != nullptr);
-                cond_node->Assign(select_msg->cond);
-
-                BackwardExecution(notifySelect, notifySelect->ready + 1);
-#ifdef DEBUG_OUTPUT
-                cout<<"finish "<<select_msg->Str()<<"\n\n";
-                cout.flush();
-#endif
-            }
-            else if(auto end_msg = dynamic_cast<EndMessage*>(cnt_msg); end_msg != nullptr ){
-                uint64_t end_message_receive_time = listen_job.get();
-                if(end_message_receive_time <= start_time){
-                    cout << "End message received before the symbolic backend starts building formulae\n";
-                }else{
-                    cout << "End message received time:"<< end_message_receive_time - start_time <<'\n';
-                }
-
-                cout << "End message processed:"<< getTimeStamp() - start_time <<'\n';
-                cout.flush();
-#ifdef DEBUG_OUTPUT
-                cout<< "finish "<<end_msg->Str()<<"\n\n";
-                cout.flush();
-#endif
-                break;
-            }
-            else{
-                std::cerr<<"seriously?";
-                assert(false);
-            }
-
-        }else if (auto sym_source_msg = dynamic_cast<SymSourceMessage*>(msg) ; sym_source_msg != nullptr){
-            SymGraph * cur_func = callStack.top();
-            Val * cur_val =  cur_func->Nodes.at(cur_func->symID2offMap.at(sym_source_msg->symid));
-            cur_func->changed = true;
-            if(auto sym_read_mem_msg = dynamic_cast<ReadMemMessage*>(msg) ; sym_read_mem_msg != nullptr){
-#ifdef DEBUG_OUTPUT
-                assert(indent == 0);
-                cout << sym_read_mem_msg->Str()<<'\n';
-                cout.flush();
-#endif
-                //sanity check
-                auto readMemSymVal = dynamic_cast<SymVal_sym_build_read_memory*>(cur_val);
-                assert(readMemSymVal != nullptr);
-                // at compilation, we already ensure, operand 1, 2 are constant, and operand 0 is runtime, so we just
-                // assign the Val from msg to the RuntimePtr's Val, and increase the ready value of that runtime operand by 1, and build this node
-                // and then move on to this parents
-                UpdateCallStackHashBB(readMemSymVal->BBID);
-
-                auto runtime_operand = dynamic_cast<RuntimeIntVal*>(readMemSymVal->In_edges.at(0));
-                assert(runtime_operand != nullptr);
-                runtime_operand->Assign(sym_read_mem_msg->ptr);
-                // allow this to cross BB, but not by force(i.e., halt when meeting other unknown runtime dependency)
-                ForwardExecution(readMemSymVal,nullptr, readMemSymVal->ready + 1);
-#ifdef DEBUG_OUTPUT
-                cout << "finish "<<sym_read_mem_msg->Str()<<"\n\n";
-                cout.flush();
-#endif
-            }else if (auto runtimeBoolMsg = dynamic_cast<BuildBoolValueMessage*>(msg); runtimeBoolMsg != nullptr){
-#ifdef DEBUG_OUTPUT
-                assert(indent == 0);
-                cout << runtimeBoolMsg->Str()<<'\n';
-                cout.flush();
-#endif
-                auto buildBoolSymVal = dynamic_cast<SymVal_sym_build_bool*>(cur_val);
-                assert(buildBoolSymVal != nullptr);
-                UpdateCallStackHashBB(buildBoolSymVal->BBID);
-                auto runtimeBoolVal = dynamic_cast<RuntimeIntVal*>(buildBoolSymVal->In_edges.at(0));
-                runtimeBoolVal->Assign(runtimeBoolMsg->value);
-                ForwardExecution(buildBoolSymVal,nullptr, buildBoolSymVal->ready + 1);
-#ifdef DEBUG_OUTPUT
-                cout << "finish "<<runtimeBoolMsg->Str()<<"\n\n";
-                cout.flush();
-#endif
-            }else if(auto runtimeIntMsg = dynamic_cast<BuildIntValueMessage*>(msg); runtimeIntMsg != nullptr){
-#ifdef DEBUG_OUTPUT
-                assert(indent == 0);
-                cout << runtimeIntMsg->Str()<<'\n';
-                cout.flush();
-#endif
-                auto buildIntSymVal = dynamic_cast<SymVal_sym_build_integer*>(cur_val);
-                assert(buildIntSymVal != nullptr);
-
-                UpdateCallStackHashBB(buildIntSymVal->BBID);
-
-                auto runtimeIntVal = dynamic_cast<RuntimeIntVal*>(buildIntSymVal->In_edges.at(0));
-                assert(runtimeIntVal != nullptr);
-                runtimeIntVal->Assign(runtimeIntMsg->value);
-                ForwardExecution(buildIntSymVal,nullptr, buildIntSymVal->ready + 1);
-#ifdef DEBUG_OUTPUT
-                cout << "finish "<<runtimeIntMsg->Str()<<"\n\n";
-                cout.flush();
-#endif
-            }else if(auto runtimeFloatMsg = dynamic_cast<BuildFloatValueMessage*>(msg); runtimeFloatMsg != nullptr){
-#ifdef DEBUG_OUTPUT
-                assert(indent == 0);
-                cout << runtimeFloatMsg->Str()<<'\n';
-                cout.flush();
-#endif
-                auto buildFloatSymVal = dynamic_cast<SymVal_sym_build_float*>(cur_val);
-                assert(buildFloatSymVal != nullptr);
-
-                UpdateCallStackHashBB(buildFloatSymVal->BBID);
-
-                auto runtimeFloatVal = dynamic_cast<RuntimeFloatVal*>(buildFloatSymVal->In_edges.at(0));
-                assert(runtimeFloatVal != nullptr);
-                runtimeFloatVal->Assign(runtimeFloatMsg->value);
-                ForwardExecution(buildFloatSymVal, nullptr, buildFloatSymVal->ready + 1);
-#ifdef DEBUG_OUTPUT
-                cout << "finish "<<runtimeFloatMsg->Str()<<"\n\n";
-                cout.flush();
-#endif
-            }else if(auto runtimeDoubleMsg = dynamic_cast<BuildDoubleValueMessage*>(msg);runtimeDoubleMsg != nullptr){
-#ifdef DEBUG_OUTPUT
-                assert(indent == 0);
-                cout << runtimeDoubleMsg->Str()<<'\n';
-                cout.flush();
-#endif
-                auto buildDoubleSymVar = dynamic_cast<SymVal_sym_build_float*>(cur_val);
-                assert(buildDoubleSymVar != nullptr);
-
-                UpdateCallStackHashBB(buildDoubleSymVar->BBID);
-
-                auto runtimeDoubleVar = dynamic_cast<RuntimeDoubleVal*>(buildDoubleSymVar->In_edges.at(0));
-                assert(runtimeDoubleVar != nullptr);
-                runtimeDoubleVar->Assign(runtimeDoubleMsg->value);
-                ForwardExecution(buildDoubleSymVar, nullptr,buildDoubleSymVar->ready + 1);
-#ifdef DEBUG_OUTPUT
-                cout << "finish "<<runtimeDoubleMsg->Str()<<"\n\n";
-                cout.flush();
-#endif
-            }
-        }else if (auto sym_sink_msg = dynamic_cast<SymSinkMessage*>(msg) ; sym_sink_msg != nullptr){
-            SymGraph * cur_func = callStack.top();
-            cur_func->changed = true;
-            Val * cur_val =  cur_func->Nodes.at(cur_func->symID2offMap.at(sym_sink_msg->symid));
-            if(auto sym_constraint_msg = dynamic_cast<PushConstraintMessage*>(sym_sink_msg); sym_constraint_msg != nullptr){
-#ifdef DEBUG_OUTPUT
-                assert(indent == 0);
-                cout <<  sym_constraint_msg->Str()<<'\n';
-                cout.flush();
-#endif
-                auto buildConstraintVal = dynamic_cast<SymVal_sym_build_path_constraint*>(cur_val);
-                assert(buildConstraintVal != nullptr);
-
-                UpdateCallStackHashBB(buildConstraintVal->BBID);
-
-                auto runtime_value = dynamic_cast<RuntimeIntVal*>(buildConstraintVal->In_edges.at(1));
-                assert(runtime_value != nullptr);
-                runtime_value->Assign(sym_constraint_msg->runtimeVal);
-                BackwardExecution(buildConstraintVal, (buildConstraintVal->ready + 1) );
-
-#ifdef DEBUG_CHECKING
-                SymVal * cond_var = dynamic_cast<SymVal*>(buildConstraintVal->In_edges.at(0));
-                assert(cond_var != nullptr);
-                SymExpr cond_symExpr = SymVal::extractSymExprFromSymVal(cond_var, cond_var->ready);
-#if not defined CO3_NO_MCU_SHADOW
-                assert(cond_symExpr != nullptr);
-#endif
-#endif
-#ifdef DEBUG_OUTPUT
-                cout << "finish "<< sym_constraint_msg->Str()<<"\n\n";
-                cout.flush();
-#endif
-            }else if(auto tryAltMsg = dynamic_cast<TryAltMessage*>(sym_sink_msg); tryAltMsg != nullptr){
-#ifdef DEBUG_OUTPUT
-                assert(false);// for now, this message should never be sent
-                assert(indent == 0);
-                cout << tryAltMsg->Str()<<'\n';
-                cout.flush();
-#endif
-                auto tryAltVal = dynamic_cast<SymVal_sym_try_alternative*>(cur_val);
-                assert(tryAltVal != nullptr);
-
-                UpdateCallStackHashBB(tryAltVal->BBID);
-                BackwardExecution(tryAltVal,tryAltVal->ready + 1 );
-#ifdef DEBUG_OUTPUT
-                cout << "finish "<<tryAltMsg->Str()<<"\n\n";
-                cout.flush();
-#endif
-            }
-            else if(auto memWriteMsg = dynamic_cast<WriteMemMessage*>(sym_sink_msg); memWriteMsg != nullptr){
-#ifdef DEBUG_OUTPUT
-                assert(indent == 0);
-                cout << memWriteMsg->Str()<<'\n';
-                cout.flush();
-#endif
-
-                auto memWriteVal = dynamic_cast<SymVal_sym_build_write_memory*>(cur_val);
-                assert(memWriteVal != nullptr);
-
-                UpdateCallStackHashBB(memWriteVal->BBID);
-
-                auto addrOperand = dynamic_cast<RuntimeIntVal*>(memWriteVal->In_edges.at(0));
-                assert(addrOperand != nullptr);
-                addrOperand->Assign(memWriteMsg->ptr);
-                BackwardExecution(memWriteVal,memWriteVal->ready + 1 );
-#ifdef DEBUG_CHECKING
-
-#endif
-#ifdef DEBUG_OUTPUT
-                cout << "finish "<<memWriteMsg->Str()<<"\n\n";
-                cout.flush();
-#endif
-            }else if(auto memcpyMsg = dynamic_cast<MemCpyMessage*>(sym_sink_msg); memcpyMsg != nullptr){
-#ifdef DEBUG_OUTPUT
-                assert(indent == 0);
-                cout << memcpyMsg->Str()<<'\n';
-                cout.flush();
-#endif
-                auto memcpyVal = dynamic_cast<SymVal_sym_build_memcpy*>(cur_val);
-                assert(memcpyVal != nullptr);
-
-                UpdateCallStackHashBB(memcpyVal->BBID);
-
-
-                auto destPtrVal = dynamic_cast<RuntimePtrVal*>(memcpyVal->In_edges.at(0));
-                assert(destPtrVal != nullptr);
-                destPtrVal->Assign(reinterpret_cast<void*>(memcpyMsg->dst_ptr));
-
-                auto srcPtrVal = dynamic_cast<RuntimePtrVal*>(memcpyVal->In_edges.at(1));
-                assert(srcPtrVal != nullptr);
-                srcPtrVal->Assign(reinterpret_cast<void*>(memcpyMsg->src_ptr));
-
-                auto lengthVal = dynamic_cast<RuntimeIntVal*>(memcpyVal->In_edges.at(2));
-                assert(lengthVal != nullptr);
-                lengthVal->Assign(memcpyMsg->length);
-
-                BackwardExecution(memcpyVal, memcpyVal->ready + 1);
-#ifdef DEBUG_OUTPUT
-                cout << "finish "<<memcpyMsg->Str()<<"\n\n";
-                cout.flush();
-#endif
-            }else if(auto memsetMsg = dynamic_cast<MemSetMessage*>(sym_sink_msg); memsetMsg != nullptr){
-#ifdef DEBUG_OUTPUT
-                assert(indent == 0);
-                cout << memsetMsg->Str()<<'\n';
-                cout.flush();
-#endif
-                auto memsetVal = dynamic_cast<SymVal_sym_build_memset*>(cur_val);
-                assert(memsetVal != nullptr);
-
-                UpdateCallStackHashBB(memsetVal->BBID);
-
-
-                auto ptrVal = dynamic_cast<RuntimePtrVal*>(memsetVal->In_edges.at(0));
-                assert(ptrVal != nullptr);
-                ptrVal->Assign(reinterpret_cast<void*>(memsetMsg->ptr));
-
-
-                auto lengthVal = dynamic_cast<RuntimeIntVal*>(memsetVal->In_edges.at(2));
-                assert(lengthVal != nullptr);
-                lengthVal->Assign(memsetMsg->length);
-
-                BackwardExecution(memsetVal, memsetVal->ready + 1);
-#ifdef DEBUG_OUTPUT
-                cout << "finish "<<memsetMsg->Str()<<"\n\n";
-                cout.flush();
-#endif
-            }else if(auto memmoveMsg = dynamic_cast<MemMoveMessage*>(sym_sink_msg); memmoveMsg != nullptr){
-#ifdef DEBUG_OUTPUT
-                assert(indent == 0);
-                cout << memmoveMsg->Str()<<'\n';
-                cout.flush();
-#endif
-                std::cerr<<"unsupported memmove\n";
-                std::cerr.flush();
-                abort();
-            }
-        }
-        else{
-            std::cerr<<"seriously?";
-            std::cerr.flush();
-            assert(false);
-        }
+        start_time = getTimeStamp();
+        int ret = ProcessMessage(msg,msgCounter);
         delete(msg);
+        end_time = getTimeStamp();
+        batch_build_time += (end_time - start_time);
+        if( ret == 0){
+            // end message is received.
+            listen_job.get();
+            cout << "Orchestrator processing time:"<< building_total_time <<'\n';
+            cout << "Bytes transmitted:" << ser->total_bytes<<'\n';
+            cout.flush();
+            break;
+        }
+        if(co3_solver_checked){
+            co3_solver_checked = false;
+            building_total_time += batch_build_time;
+            batch_build_time = 0;
+        }
     }
     if(DR_INPUT != nullptr){
         delete(DR_INPUT);
         DR_INPUT = nullptr;
     }
-
     return 0;
 }
 #pragma clang diagnostic pop

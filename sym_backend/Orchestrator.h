@@ -1,6 +1,18 @@
+// This file is part of CO3.
 //
-// Created by charl on 4/22/2022.
+// CO3 is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software
+// Foundation, either version 3 of the License, or (at your option) any later
+// version.
 //
+// CO3 is distributed in the hope that it will be useful, but WITHOUT ANY
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+// A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// CO3. If not, see <https://www.gnu.org/licenses/>.
+
+
 
 #ifndef SYMBACKEND_ORCHESTRATOR_H
 #define SYMBACKEND_ORCHESTRATOR_H
@@ -27,15 +39,19 @@ typedef enum _SpecialNodeReturn{
 class Orchestrator{
 public:
     Orchestrator(std::string inputDir, std::string sp_port, int);
+    ~Orchestrator();
+
     void SendInput();
     int Run();
+    void ClearCallStack();
     SymGraph* getCurFunc();
 
-    void InitializeInputBuffer(char * addr);
-
+    SymGraph* GetNextFunc(unsigned);
     void UpdateCallStackHashBB(Val::BasicBlockIdType);
     void UpdateCallStackHashCall(unsigned);
     void UpdateCallStackRet(unsigned);
+
+
     bool ExecuteFalsePhiRoot(SymVal_sym_FalsePhiRoot*, Val::ReadyType);
     bool ExecuteFalsePhiLeaf(SymVal_sym_FalsePhiLeaf*, Val::ReadyType);
 
@@ -44,26 +60,25 @@ public:
     bool ExecuteNode(Val*, Val::ReadyType);
     void ExecuteBasicBlock(Val::BasicBlockIdType);
     void PreparingCalling(NotifyCallMessage*);
-    void SetRetAndRefreshGraph();
+    void SetRetAndRecycleGraph();
     void ForwardExecution(Val*, SymGraph::RootTask*,unsigned);
     void BackwardExecution(SymVal*, Val::ReadyType);
-    ~Orchestrator();
+    int ProcessMessage(Message*, int);
 
 
     ThreadPool pool;
-    CO3_SER ser;
-    uint64_t start_time = 0;
+    CO3_SER * ser;
     MsgQueue msgQueue;
     std::string symInputFile;
-
-
 
 
     Val::BasicBlockIdType lastBBID = 0;
     std::stack<SymGraph*> callStack;
 
-    std::map<unsigned, SymGraph*> symGraphs;
+    std::map<unsigned, vector<SymGraph*> > recyclable;
     std::map<unsigned, SymGraph*> vanillaSymGraphs;
     //std::map<string, FuncFileNames> funcFiles;
 };
+
+
 #endif //SYMBACKEND_ORCHESTRATOR_H

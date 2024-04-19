@@ -13,3 +13,6 @@
 [submodule "deps/z3"]
 	path = deps/z3
 	url = git@github.com:Z3Prover/z3.git
+[submodule "deps/symcc_latest"]
+	path = deps/symcc_latest
+	url = git@github.com:eurecom-s3/symcc.git

@@ -1,11 +1,17 @@
-/*
- * monitor.c
- *
- *  Created on: May 2, 2022
- *      Author: alejandro
- */
-
-
+// This file is part of the CO3 runtime.
+//
+// The CO3 runtime is free software: you can redistribute it and/or modify it
+// under the terms of the GNU Lesser General Public License as published by the
+// Free Software Foundation, either version 3 of the License, or (at your
+// option) any later version.
+//
+// The CO3 runtime is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+// for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with CO3. If not, see <https://www.gnu.org/licenses/>.
 
 
 #include "protocol.h"
@@ -18,26 +24,26 @@
 
 
 #if (defined CO3_USE_STM32 && !defined CO3_USE_CHIBIOS) // ChibiOS has its own HAL
-	#include "main.h" // STM32 HAL header
+    #include "main.h" // STM32 HAL header
 #elif defined CO3_USE_NXP
-	#include "usb_device_config.h"
-	#include "usb.h"
-	#include "usb_device.h"
-	#include "virtual_com.h"
-	#include "usb_device_descriptor.h"
+    #include "usb_device_config.h"
+    #include "usb.h"
+    #include "usb_device.h"
+    #include "virtual_com.h"
+    #include "usb_device_descriptor.h"
 #elif defined CO3_USE_MICROCHIP
-	#include "usb_start.h"
+    #include "usb_start.h"
 #endif
 
 
 
 #if defined CO3_USE_FREERTOS
-	#include "FreeRTOS.h"
-	#include "task.h"
+    #include "FreeRTOS.h"
+    #include "task.h"
 
 #elif defined CO3_USE_CHIBIOS
-	#include "ch.h"
-	#include "hal.h"
+    #include "ch.h"
+    #include "hal.h"
 #endif
 
 
@@ -62,7 +68,7 @@
 
 
 
-static uint32_t start_time_val, stop_time_val;
+
 
 
 #ifdef CO3_USE_CHIBIOS
@@ -81,16 +87,16 @@ static void TargetTask( void * pvParameters );
 
 void app_main( void )
 {
-	/* Start the MPU demo. */
-	vStartMonitor();
+    /* Start the MPU demo. */
+    vStartMonitor();
 
 #if defined CO3_USE_FREERTOS
-	/* Start the scheduler. */
-	vTaskStartScheduler();
+    /* Start the scheduler. */
+    vTaskStartScheduler();
 #endif
 
-	/* Should not get here. */
-	for( ;; );
+    /* Should not get here. */
+    for( ;; );
 }
 
 
@@ -98,16 +104,16 @@ void app_main( void )
 void vStartMonitor( void )
 {
 #if defined CO3_USE_FREERTOS
-	xTaskCreate(MonitorTask,
-			    "Monitor",
-				configMINIMAL_STACK_SIZE,
-				NULL,
-				10,
-				&AFLfuzzer.xTaskMonitor);
+    xTaskCreate(MonitorTask,
+                "Monitor",
+                configMINIMAL_STACK_SIZE,
+                NULL,
+                10,
+                &AFLfuzzer.xTaskMonitor);
 #elif defined CO3_USE_CHIBIOS
 
-	CO3_TARGET_TIMEOUT  = chTimeMS2I(2000);
-	AFLfuzzer.xTaskMonitor = chThdCreateStatic(MonitorTaskStack, sizeof(MonitorTaskStack), NORMALPRIO+1, MonitorTask, NULL);
+    CO3_TARGET_TIMEOUT  = chTimeMS2I(2000);
+    AFLfuzzer.xTaskMonitor = chThdCreateStatic(MonitorTaskStack, sizeof(MonitorTaskStack), NORMALPRIO+1, MonitorTask, NULL);
 #endif
 
 }
@@ -125,20 +131,20 @@ void killTarget(){
 void spawnNewTarget( void )
 {
 #if defined CO3_USE_FREERTOS
-	xTaskCreate(TargetTask,
-				    "Target",
+    xTaskCreate(TargetTask,
+                    "Target",
 #if defined CO3_USE_STM32_H743
-					configMINIMAL_STACK_SIZE * 8,
+                    configMINIMAL_STACK_SIZE * 8,
 #elif defined CO3_USE_MICROCHIP_SAMD51
-					configMINIMAL_STACK_SIZE,
+                    configMINIMAL_STACK_SIZE * 2,
 #elif defined CO3_USE_NXP_K66F
-					configMINIMAL_STACK_SIZE,
+                    configMINIMAL_STACK_SIZE,
 #endif
-					NULL,
-					10,
-					&AFLfuzzer.xTaskTarget);
+                    NULL,
+                    10,
+                    &AFLfuzzer.xTaskTarget);
 #elif defined CO3_USE_CHIBIOS
-	AFLfuzzer.xTaskTarget = chThdCreateStatic(targetTaskStack, sizeof(targetTaskStack), NORMALPRIO+1, TargetTask, NULL);
+    AFLfuzzer.xTaskTarget = chThdCreateStatic(targetTaskStack, sizeof(targetTaskStack), NORMALPRIO+1, TargetTask, NULL);
 #endif
 }
 
@@ -146,7 +152,7 @@ void spawnNewTarget( void )
 static void MonitorTask( void * pvParameters )
 {
 #if defined CO3_USE_CHIBIOS
-	AFLfuzzer.xTaskMonitor = chThdGetSelfX();
+    AFLfuzzer.xTaskMonitor = chThdGetSelfX();
 #endif
 
 #if defined CO3_USE_NXP
@@ -175,7 +181,7 @@ static void MonitorTask( void * pvParameters )
 
     for(uint8_t j = 0; j<MAX_USB_FRAME; j++ )
     {
-    	AFLfuzzer.txbuffer[j]=0;
+        AFLfuzzer.txbuffer[j]=0;
     }
     _sym_initialize();
 
@@ -186,7 +192,7 @@ static void MonitorTask( void * pvParameters )
 #endif
 
     while(1)
-	{
+    {
 #if defined CO3_USE_SERIAL
         SerialReceiveInput();
 #elif defined CO3_USE_USB
@@ -220,70 +226,70 @@ static void MonitorTask( void * pvParameters )
         chEvtSignal(AFLfuzzer.xTaskTarget, events);
 #endif
 
-		// when we have around 64 bytes ready to transmit in the buffer
-		// the target task will send a notification to this
+        // when we have around 64 bytes ready to transmit in the buffer
+        // the target task will send a notification to this
 #if defined CO3_USE_FREERTOS
-		notificationvalue = ulTaskNotifyTakeIndexed(3,pdTRUE, TARGET_TIMEOUT);
-		while(notificationvalue)
-		{
-			notiTarget = NOTI_TARGET;
-			TransmitPack();
-			notificationvalue = ulTaskNotifyTakeIndexed(3,pdTRUE, TARGET_TIMEOUT);
-		}
+        notificationvalue = ulTaskNotifyTakeIndexed(3,pdTRUE, TARGET_TIMEOUT);
+        while(notificationvalue)
+        {
+            notiTarget = NOTI_TARGET;
+            TransmitPack();
+            notificationvalue = ulTaskNotifyTakeIndexed(3,pdTRUE, TARGET_TIMEOUT);
+        }
 #elif defined CO3_USE_CHIBIOS
-		eventmask_t evt = chEvtWaitAnyTimeout(ALL_EVENTS, CO3_TARGET_TIMEOUT );
-		while (evt == MORE_DATA_TO_COME){
-			notiTarget = NOTI_TARGET;
-			TransmitPack();
-			evt = chEvtWaitAnyTimeout(ALL_EVENTS, CO3_TARGET_TIMEOUT );
-		}
+        eventmask_t evt = chEvtWaitAnyTimeout(ALL_EVENTS, CO3_TARGET_TIMEOUT );
+        while (evt == MORE_DATA_TO_COME){
+            notiTarget = NOTI_TARGET;
+            TransmitPack();
+            evt = chEvtWaitAnyTimeout(ALL_EVENTS, CO3_TARGET_TIMEOUT );
+        }
 #endif
-		notiTarget = NOTI_MONITOR;
-		TransmitPack(); //transmit any remaining package in the buffer if any
+        notiTarget = NOTI_MONITOR;
+        TransmitPack(); //transmit any remaining package in the buffer if any
 #if defined CO3_USE_USB
-		ulTaskNotifyTakeIndexed(2,pdTRUE, TARGET_TIMEOUT); // wait for the USB to finish transmission
+        ulTaskNotifyTakeIndexed(2,pdTRUE, TARGET_TIMEOUT); // wait for the USB to finish transmission
 #endif
 
 #if defined CO3_USE_FREERTOS
-		//delete the target
-		vTaskDelete(AFLfuzzer.xTaskTarget);
-		// lets the kernel clean artifacts
-		taskYIELD();
+        //delete the target
+        vTaskDelete(AFLfuzzer.xTaskTarget);
+        // lets the kernel clean artifacts
+        taskYIELD();
 #elif defined CO3_USE_CHIBIOS
-		killTarget();
-		chThdWait(AFLfuzzer.xTaskTarget);
-		chThdYield();
+        killTarget();
+        chThdWait(AFLfuzzer.xTaskTarget);
+        chThdYield();
 #endif
-		spawnNewTarget();
+        spawnNewTarget();
 #if defined CO3_USE_FREERTOS
-		ulTaskNotifyTakeIndexed(0,pdTRUE, TARGET_TIMEOUT/2);
+        ulTaskNotifyTakeIndexed(0,pdTRUE, TARGET_TIMEOUT/2);
 #elif defined CO3_USE_CHIBIOS
-		evt = chEvtWaitAny(ALL_EVENTS);
-	    while(!(evt & FUZZER_TARGET_READY)){
-		    killTarget();
-		    chThdWait(AFLfuzzer.xTaskTarget); // wait for the target to finish
-		    spawnNewTarget();
-		    evt = chEvtWaitAny(ALL_EVENTS);
-		}
+        evt = chEvtWaitAny(ALL_EVENTS);
+        while(!(evt & FUZZER_TARGET_READY)){
+            killTarget();
+            chThdWait(AFLfuzzer.xTaskTarget); // wait for the target to finish
+            spawnNewTarget();
+            evt = chEvtWaitAny(ALL_EVENTS);
+        }
 #endif
-		_sym_initialize();
+        _sym_initialize();
 
 
-		//clean the buffers
-		AFLfuzzer.txTotalFunctions=0;
-		for(uint8_t i=1; i<8; i++)
-		{
-			AFLfuzzer.txbuffer[i]=0;
-		}
-		AFLfuzzer.txCurrentIndex=REPORTING_BUFFER_STARTING_POINT;
-		for(uint8_t j = 0; j<MAX_USB_FRAME; j++ )
-		{
-			AFLfuzzer.txbuffer[j]=0;
-		}
-		AFLfuzzer.bRXcomplete = false;
-		AFLfuzzer.inputLength = 0;
-		RingZeroes(&AFLfuzzer.inputAFL);
-	}
+        //clean the buffers
+        AFLfuzzer.txTotalFunctions=0;
+        for(uint8_t i=1; i<8; i++)
+        {
+            AFLfuzzer.txbuffer[i]=0;
+        }
+        AFLfuzzer.txCurrentIndex=REPORTING_BUFFER_STARTING_POINT;
+        for(uint8_t j = 0; j<MAX_USB_FRAME; j++ )
+        {
+            AFLfuzzer.txbuffer[j]=0;
+        }
+        AFLfuzzer.bRXcomplete = false;
+        AFLfuzzer.inputLength = 0;
+        RingZeroes(&AFLfuzzer.inputAFL);
+    }
 }
 
 
@@ -297,42 +303,42 @@ volatile int size_aux;
 extern uint8_t GPSHandleRegion[];
 static void TargetTask( void * pvParameters )
 {
-
+    uint32_t start_time_val, stop_time_val;
 #if (defined CO3_TEST_MODBUSDMA || defined CO3_TEST_MIDIDMA)
     SytemCall_1_code(); //ERROR we need this line to receive data from serial port and it has to be called before it notifies to the monitor
 #endif
 
 #if defined CO3_USE_FREERTOS
-	xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,1,eSetValueWithOverwrite); //notify the monitor task the target is ready
+    xTaskNotifyIndexed(AFLfuzzer.xTaskMonitor,0,1,eSetValueWithOverwrite); //notify the monitor task the target is ready
 #elif defined CO3_USE_CHIBIOS
-	AFLfuzzer.xTaskTarget = chThdGetSelfX();
-	eventmask_t events = 0;
-	events |= FUZZER_TARGET_READY;
-	chEvtSignal(AFLfuzzer.xTaskMonitor, events);
-	events = 0; // clears out the bits
+    AFLfuzzer.xTaskTarget = chThdGetSelfX();
+    eventmask_t events = 0;
+    events |= FUZZER_TARGET_READY;
+    chEvtSignal(AFLfuzzer.xTaskMonitor, events);
+    events = 0; // clears out the bits
 #endif
-	while(1){
+    while(1){
 #if defined CO3_USE_FREERTOS
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // wait for the notification coming from the Monitor task
 #elif defined CO3_USE_CHIBIOS
-		if(chThdShouldTerminateX()){
-		   break;
-		}
-		//ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // wait for the data coming from the fuzzer task
-		eventmask_t evt = chEvtWaitAny(ALL_EVENTS);
-		//check if the monitor tells me to exit
-		if(evt & TARGET_SHOULD_KILL_SELF){
-		    break;
-		}
-		// check if monitor tells me to continue
-		if(!(evt & TARGET_GO_AHEAD)){
-		    // something is wrong, but we cannot kill ourself
-		    // I'll just deadloop here, so that when attached to a debugger, everyone would know something is wrong
-		    while(1){}
-		}
+        if(chThdShouldTerminateX()){
+           break;
+        }
+        //ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // wait for the data coming from the fuzzer task
+        eventmask_t evt = chEvtWaitAny(ALL_EVENTS);
+        //check if the monitor tells me to exit
+        if(evt & TARGET_SHOULD_KILL_SELF){
+            break;
+        }
+        // check if monitor tells me to continue
+        if(!(evt & TARGET_GO_AHEAD)){
+            // something is wrong, but we cannot kill ourself
+            // I'll just deadloop here, so that when attached to a debugger, everyone would know something is wrong
+            while(1){}
+        }
 #endif
 
-#if defined STM32
+#if defined(CO3_USE_STM32)
         start_time_val = DWT->CYCCNT;
 #endif
 
@@ -340,7 +346,7 @@ static void TargetTask( void * pvParameters )
         input_cur = 0;
 #elif defined CO3_TEST_COMMANDLINE
         cli_init(9600);
-    	QUEUE_INIT(cli_rx_buff);
+        QUEUE_INIT(cli_rx_buff);
 #endif
 
         uint32_t input_len = AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT;
@@ -378,12 +384,14 @@ static void TargetTask( void * pvParameters )
 #elif defined CO3_TEST_MIDIDMA
         main_midi(input_len);
 #elif defined CO3_TEST_SHELLYDIMMER
-        size_aux = AFLfuzzer.inputAFL.u32availablenopad-4;
+        size_aux = AFLfuzzer.inputAFL.u32availablenopad-AFL_BUFFER_STARTING_POINT;
         main_shelly_test((char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT));
 #elif defined CO3_TEST_ATPARSER
-        mainparser(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4);
+        mainparser(&AFLfuzzer.inputAFL.uxBuffer[AFL_BUFFER_STARTING_POINT], AFLfuzzer.inputAFL.u32availablenopad-AFL_BUFFER_STARTING_POINT);
+#elif defined CO3_TEST_PLC
+        modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[AFL_BUFFER_STARTING_POINT], AFLfuzzer.inputAFL.u32availablenopad-AFL_BUFFER_STARTING_POINT );
 #else
-        //modbusparsing(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4 );
+        //
         test(&AFLfuzzer.inputAFL.uxBuffer[4], AFLfuzzer.inputAFL.u32availablenopad-4);
         //HAL_UART_Transmit_test(&huart2,  (unsigned char*)(AFLfuzzer.inputAFL.uxBuffer+AFL_BUFFER_STARTING_POINT), AFLfuzzer.inputAFL.u32available - AFL_BUFFER_STARTING_POINT,  HAL_MAX_DELAY);
         //gps_init((gps_t*)GPSHandleRegion);
@@ -395,9 +403,9 @@ static void TargetTask( void * pvParameters )
 
 #if defined CO3_USE_STM32
         stop_time_val = DWT->CYCCNT;
+    printf("time:%u\n",stop_time_val - start_time_val);
 #endif
-		printf("time:%d\n",stop_time_val - start_time_val);
-	}
+    }
 }
 
 

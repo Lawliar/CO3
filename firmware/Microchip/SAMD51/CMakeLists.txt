@@ -1,3 +1,19 @@
+# This file is part of CO3.
+#
+# CO3 is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# CO3 is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# CO3. If not, see <https://www.gnu.org/licenses/>.
+
+
+
 cmake_minimum_required(VERSION 3.15.3)
 
 # Optional: print out extra messages to see what is going on. Comment it to have less verbose messages
@@ -16,6 +32,7 @@ project(samd51j19a_CMake)
 set(EXECUTABLE ${PROJECT_NAME}.elf)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR})
 set(LINKER_FILE "${CMAKE_SOURCE_DIR}/samd51a/gcc/gcc/samd51j19a_flashMPU.ld")
+set(CO3_TARGET_INSTRUMENTED_LIB "${CMAKE_SOURCE_DIR}/Target/build/libsamd51j19a_Target_CMake.a")
 
 enable_language(C ASM)
 set(CMAKE_C_STANDARD 99)
@@ -41,6 +58,7 @@ set(SRC_FILES
 set(CommonDIR /home/lcm/github/spear/spear-code/firmware/Microchip/Common)
 
 set(ALL_NINE_YARDS_INCLUDE_DIRS
+  ${PROJECT_SOURCE_DIR}/CommonCO3
   ${PROJECT_SOURCE_DIR}/usb
   ${PROJECT_SOURCE_DIR}/usb/class/cdc
   ${PROJECT_SOURCE_DIR}/hpl/port
@@ -174,7 +192,6 @@ target_link_options(${EXECUTABLE} PRIVATE
 set(CommonDIR /home/lcm/github/spear/spear-code/firmware/Microchip/Common)
 
 add_subdirectory(./CommonCO3   build/CommonCO3)
-add_subdirectory(./Target      build/Target)
 add_subdirectory(./examples    build/examples)
 add_subdirectory(./hal         build/hal)
 add_subdirectory(./printf      build/printf)
@@ -187,7 +204,6 @@ add_subdirectory(./hpl         build/hpl)
 target_link_libraries(
   ${EXECUTABLE}
   CommonCO3
-  Target
   examples
   hal
   #hpl
@@ -196,6 +212,7 @@ target_link_libraries(
   stdio_redirect
   samd51a
   hpl
+  ${CO3_TARGET_INSTRUMENTED_LIB}
 )
 
 # Optional: Print executable size as part of the post build process

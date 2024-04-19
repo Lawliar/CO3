@@ -1,7 +1,22 @@
+# This file is part of CO3.
+#
+# CO3 is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# CO3 is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# CO3. If not, see <https://www.gnu.org/licenses/>.
+
+
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR ARM)
 
-set(ARM_TOOLCHAIN_BIN_DIR /home/lcm/ssd/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin)
+set(ARM_TOOLCHAIN_BIN_DIR /home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin)
 # point ARM_TOOLCHAIN_BIN_DIR to things like
 # "C:/Program Files (x86)/GNU Arm Embedded Toolchain/10 2020-q4-major/bin")
 # "C:/NXP/MCUXpressoIDE_11.7.0_9198/ide/tools/bin")

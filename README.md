@@ -1,15 +1,13 @@
 ## Directory:
 ```
-- USBtest: helper script to send and receive messages through the serial port for debugging purpose
-- code_coverage: script that we used to compare code coverage and speed.
-- deps: projects that CO3 is dependent upon
+- USBtest: helper script to send and receive messages through the serial port for debugging purpose. 
+- deps: projects that CO3 is dependent upon (except symcc). 
 - firmware: source code for the firmware images used in the paper.
 - fuzzer: fuzzing and CO3 coordinator script borrowed from SymCC.
-- pass: the LLVM instrumentation pass
-- sym_backend: the symbolizer running on the workstation.
-- symbion_concolic: scripts that we use to run symbion in a concolic execution way.
-- symcc_benchmark: benchmark we use to evaluate SymCC.
-- test: visualization code to generate control- data flow graph. 
+- pass: the LLVM instrumentation pass. 
+- sym_backend: the symbolic constraint builder and solver that are based on CO3's protocol.
+- sym_runtime: the runtime for workstation applications (to interact with the sym_backend). 
+- test: visualization code for the SVFG. 
 ```
 ## before you start:
 1. many components rely on cmake, if you see `cmake build`, it means:
@@ -20,8 +18,18 @@
 
 2. before using the docker file, submodule init are required, also llvm prebuilt should be decompressed to the specified folder. 
 
+3. CO3 features concolic executing the firmware on the MCU, so the physical MCUs are necessary. 
+
 ## tested platform
+
 - Native Ubuntu 22.04 (older version also should work)
+
+- MCUs:
+    1. STM32H743ZI
+    2. STM32L4R5ZI
+    3. STM32F429ZI
+    4. Microchip SAMD51
+    5. NXP K66F
 
 ## current llvm support:
 - Both instrumentation and symbolic backend are built on LLVM-14. 
@@ -103,3 +111,4 @@ steps in [submodule initialization](#submodule-initialization) and [llvm-prebuil
 ## fair warning:
 - Due to historical reasons, the whole codebase is filled with name referecens to `SPEAR`, which is the old name for `CO3`. If you see `SPEAR`, that means the same thing as `CO3`. 
 - This is a research prototype, not intended for production. In the meantime, I am open for all helpful PRs that can make CO3 better. 
+- If your research prototype is built on top of CO3, I encourage you to open source too.

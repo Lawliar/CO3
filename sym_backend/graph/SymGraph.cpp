@@ -1,6 +1,18 @@
+// This file is part of CO3.
 //
-// Created by charl on 5/25/2022.
+// CO3 is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software
+// Foundation, either version 3 of the License, or (at your option) any later
+// version.
 //
+// CO3 is distributed in the hope that it will be useful, but WITHOUT ANY
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+// A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// CO3. If not, see <https://www.gnu.org/licenses/>.
+
+
 
 #include "SymGraph.h"
 #include <stack>
@@ -36,8 +48,8 @@ set<string> leaves;
 set<string> nodesDepOnRuntime;
 #endif
 
-SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_filename, std::string pdt_filename, std::string dfg_filename) \
-:funcname(funcname),changed(false) {
+SymGraph::SymGraph(unsigned funcID, std::string funcname,std::string cfg_filename,std::string dt_filename, std::string pdt_filename, std::string dfg_filename) \
+:funcID(funcID),funcname(funcname),changed(false) {
     cfg = new RuntimeCFG(cfg_filename,dt_filename, pdt_filename);
     dfg = new RuntimeSymFlowGraph(dfg_filename);
     unsigned numNodes = boost::num_vertices(dfg->graph);
@@ -386,7 +398,7 @@ SymGraph::SymGraph(std::string funcname,std::string cfg_filename,std::string dt_
     else if(auto old_Val = dynamic_cast<SymVal##SYMOP*>(old_one); old_Val != nullptr){                          \
         new_one = new SymVal##SYMOP(*old_Val);  \
     }
-SymGraph::SymGraph(const SymGraph& other):funcname(other.funcname),symID2offMap(other.symID2offMap),changed(false),symIDReditectMap(other.symIDReditectMap){
+SymGraph::SymGraph(const SymGraph& other):funcID(other.funcID),funcname(other.funcname),symID2offMap(other.symID2offMap),changed(false),symIDReditectMap(other.symIDReditectMap){
     //we're not going to use these 2 anyway
     cfg = nullptr;
     dfg = nullptr;
@@ -789,11 +801,6 @@ SymGraph::RootTask* SymGraph::GetRootTask(SymVal * root) {
         old_rootTask->Refresh();
         return old_rootTask;
     }
-#ifdef DEBUG_CHECKING
-    if(funcname == "receive_cgc_until" && root->symID){
-        __asm__("nop");
-    }
-#endif
     SymGraph::BasicBlockTask* rootBBTask = bbTasks.at(root->BBID);
     RootTask* rootTask = new RootTask(root, rootBBTask);
     queue<Val*> work_queue;

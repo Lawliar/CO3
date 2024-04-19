@@ -27,23 +27,139 @@
 
 using namespace llvm;
 
+
+Symbolizer::Symbolizer(llvm::Module &M, llvm::LoopInfo& LI)
+: runtime(M), loopinfo(LI), dataLayout(M.getDataLayout()),
+ptrBits(M.getDataLayout().getPointerSizeInBits()),
+ptrBytes(M.getDataLayout().getPointerSize()),
+#if defined(CO3_REPLACE)
+maxNumSymVars((1 << (llvm::IntegerType::getInt16Ty(M.getContext())->getBitWidth()) ) - 1),
+#else
+        // we reserve the first 3 bit to represent the message type at the MCU side. this is because
+        // 1. 8192 should be already plenty 2. we don't want another 1 byte to tell the workstation how to parse messages.
+maxNumSymVars((1 << (llvm::IntegerType::getInt16Ty(M.getContext())->getBitWidth() - 3) ) - 1),
+
+#endif
+g(true)
+{
+    intPtrType = M.getDataLayout().getIntPtrType(M.getContext());
+    voidType = llvm::Type::getVoidTy(M.getContext());
+    int8Type = llvm::Type::getInt8Ty(M.getContext());
+    isSymType = llvm::Type::getInt1Ty(M.getContext());
+    symIntType = llvm::Type::getInt16Ty(M.getContext());
+    constFalse = llvm::ConstantInt::getFalse(M.getContext());
+
+    if(M.getDataLayout().isLegalInteger(64)){
+#if defined(CO3_MCUS)
+        llvm_unreachable("64 bit integer should not be legal on MCUs");
+#else
+        archIntType = llvm::Type::getInt64Ty(M.getContext());
+#endif
+    }else if(M.getDataLayout().isLegalInteger(32)){
+        archIntType = llvm::Type::getInt32Ty(M.getContext());
+    }else if(M.getDataLayout().isLegalInteger(16)){
+        archIntType = llvm::Type::getInt16Ty(M.getContext());
+    }else{
+        llvm_unreachable("integer width less than 16 bit?");
+    }
+
+#if defined(CO3_REPLACE)
+    availableSymID = 1;
+#else
+    availableSymID = 7; // first 6 are reserved for symbolize_memory, sym_end ,notifyCall, notifyFunc, notifyRet, notifyBasicBlock
+#endif
+    assert(ptrBytes <= 8 );
+    for(auto eachIntFunction : kInterceptedFunctions){
+        std::string newFuncName = kInterceptedFunctionPrefix.str() + eachIntFunction.str() ;
+        size_t len = newFuncName.size();
+        // I know, I know..
+        char * buf = (char *)malloc(len+ 1);
+        snprintf(buf, len + 1, "%s%s",kInterceptedFunctionPrefix.str().c_str(),eachIntFunction.str().c_str());
+        //buf[len] = '\0';
+        interpretedFunctionNames.insert(buf);
+    }
+
+}
+
+Symbolizer::~Symbolizer(){
+    symbolicExpressions.clear();
+    symbolicIDs.clear();
+    for(auto eachSymPhi: phiSymbolicIDs){
+        delete eachSymPhi.second;
+    }
+    symIdRedirect.clear();
+    phiSymbolicIDs.clear();
+    for(auto eachCallToSetPara: callToSetParaMap){
+        eachCallToSetPara.second.clear();
+    }
+    callToCallId.clear();
+    callToSetParaMap.clear();
+    phiNodes.clear();
+    splited2OriginalBB.clear();
+    originalBB2ID.clear();
+    stageSettingOperations.clear();
+    perBBConcretenessChecking.clear();
+
+    loopBB2Offset.clear();
+    truePhi2Offset.clear();
+    for(auto eachTryAltUnit : tryAlternatives){
+        delete eachTryAltUnit;
+    }
+    tryAlternatives.clear();
+}
+
+unsigned Symbolizer::numBits2NumBytes(unsigned numBits){
+    unsigned ret = numBits / 8;
+    if(numBits % 8 != 0){
+        ret += 1;
+    }
+    return ret;
+}
+
+void Symbolizer::deleteSymPhi(llvm::PHINode* symPhi){
+    bool found = false;
+    for(auto eachSymExpr: symbolicExpressions){
+        if(eachSymExpr.second == symPhi){
+            symbolicExpressions.erase(eachSymExpr.first);
+            found = true;
+            break;
+        }
+    }
+    assert(found);
+    auto it = phiSymbolicIDs.find(symPhi);
+    assert(it != phiSymbolicIDs.end());
+    delete it->second;
+    phiSymbolicIDs.erase(it);
+    return;
+}
+
+void Symbolizer::assignSymIDPhi(llvm::PHINode* symPhi, PhiStatus* phiStatus){
+    auto exprIt = phiSymbolicIDs.find(symPhi);
+    if(exprIt != phiSymbolicIDs.end()){
+        llvm_unreachable("assigning phi sym id to a already existing sym phi");
+    }
+    phiSymbolicIDs[symPhi] = phiStatus;
+}
+
 void Symbolizer::initializeFunctions(Function &F) {
 
-    IRBuilder<> IRB(F.getEntryBlock().getFirstNonPHI());
+    IRBuilder<> IRB(&*(F.getEntryBlock().getFirstInsertionPt()));
     if (F.getName() != "main"){
         // The main function doesn't receive symbolic arguments.
         for (auto &arg : F.args()) {
             if (!arg.user_empty()){
-                auto * symcall  = IRB.CreateCall(runtime.getParameterExpression,
-                                                                IRB.getInt8(arg.getArgNo()));
                 auto paraGetSymID = getNextID();
+#if defined(CO3_REPLACE)
+                auto * symcall  = IRB.CreateCall(runtime.getParameterExpression,IRB.getInt8(arg.getArgNo()));
+#else
+                auto * symcall  = IRB.CreateCall(runtime.getParameterExpression,{IRB.getInt8(arg.getArgNo()),ConstantHelper(symIntType,paraGetSymID)});
+#endif
                 symbolicExpressions[&arg] = symcall;
                 assignSymID(symcall,paraGetSymID);
                 stageSettingOperations.push_back(paraGetSymID);
             }
         }
     }
-
     // allocate some space for the BBs and PhiNodes
     unsigned numOfLoopBBs = 0;
     unsigned numOfTruePhis = 0;
@@ -61,6 +177,20 @@ void Symbolizer::initializeFunctions(Function &F) {
                 // NOT all of the selectInst needs to instrumented, (because some of them can be determined as concrete at compile-time)
                 // But there are so few of them, it's ok .
                 numOfSelectInsts += 1;
+                
+            }else if(isa<ReturnInst>(&eachInst)){
+                // it is a return inst
+                if(return_inst != nullptr){
+                    llvm_unreachable("multiple return insts");
+                }
+                return_inst = dyn_cast<ReturnInst>(&eachInst);
+                assert(return_inst != nullptr);
+                if(exit_bb == nullptr){
+                    exit_bb = &eachBB;
+                }
+                else{
+                    llvm_unreachable("multiple exit BBs");
+                }
             }
         }
     }
@@ -109,6 +239,20 @@ void Symbolizer::initializeFunctions(Function &F) {
 #endif
 }
 
+bool Symbolizer::isStaticallyConcrete(llvm::Value* input){
+    auto symExpr = getSymbolicExpression(input);
+    if(symExpr == constFalse){
+        return true;
+    }
+    if(PHINode * phiNode = dyn_cast<PHINode>(input)){
+        if (std::all_of(phiNode->op_begin(), phiNode->op_end(), [this](Value *input) {
+            return (getSymbolicExpression(input) == constFalse);
+        })) {
+            return true;
+        }
+    }
+    return false;
+}
 void Symbolizer::recordBasicBlockMapping(llvm::BasicBlock &B) {
     originalBB2ID[&B] = getNextBBID();
 }
@@ -119,16 +263,14 @@ void Symbolizer::finalizePHINodes() {
     for (auto *phi : phiNodes) {
         auto symPhi = getSymbolicExpression(phi);
         auto symbolicPHI = cast<PHINode>(symPhi);
-
         // A PHI node that receives only compile-time constants can be replaced by
         // a null expression.
         if (std::all_of(phi->op_begin(), phi->op_end(), [this](Value *input) {
-            return (tryGetSymExpr(input) == false);
+            return (isStaticallyConcrete(input) == true);
         })) {
             nodesToErase.insert(symbolicPHI);
             continue;
         }
-
         for (unsigned incoming = 0, totalIncoming = phi->getNumIncomingValues();incoming < totalIncoming; incoming++) {
             symbolicPHI->setIncomingValue(
                     incoming,
@@ -140,7 +282,8 @@ void Symbolizer::finalizePHINodes() {
     for (auto *symbolicPHI : nodesToErase) {
         // this code might fail because isa<KeySansPointerT>(...) assertation is not true
         //symbolicPHI->replaceAllUsesWith(ConstantInt::get( isSymType, 0 ));
-        replaceAllUseWith(symbolicPHI, ConstantInt::get( isSymType, 0 ));
+        deleteSymPhi(symbolicPHI);
+        replaceAllUseWith(symbolicPHI, constFalse);
         symbolicPHI->eraseFromParent();
     }
 }
@@ -326,9 +469,13 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
     SmallVector<CallInst*, 8> setParas;
     for (Use &arg : I.args()){
         auto argSymExpr = getSymbolicExpression(arg);
-        CallInst * call_to_set_para = IRB.CreateCall(runtime.setParameterExpression,
-                     {ConstantInt::get(IRB.getInt8Ty(), arg.getOperandNo()), argSymExpr});
-        assignSymID(call_to_set_para,getNextID());
+        auto argSymID = getNextID();
+#if defined(CO3_REPLACE)
+        CallInst * call_to_set_para = IRB.CreateCall(runtime.setParameterExpression,{ConstantInt::get(IRB.getInt8Ty(), arg.getOperandNo()), argSymExpr});
+#else
+        CallInst * call_to_set_para = IRB.CreateCall(runtime.setParameterExpression,{ConstantInt::get(IRB.getInt8Ty(), arg.getOperandNo()), argSymExpr,ConstantHelper(symIntType, argSymID)});
+#endif
+        assignSymID(call_to_set_para,argSymID);
         setParas.push_back(call_to_set_para);
     }
     auto callIdConstant = ConstantHelper(IRB.getInt8Ty(), callInstID);
@@ -348,12 +495,24 @@ void Symbolizer::handleFunctionCall(CallBase &I, Instruction *returnPoint) {
         // order to avoid accidentally using whatever is stored there from the
         // previous function call. (If the function is instrumented, it will just
         // override our null with the real expression.)
+
+#if defined(CO3_REPLACE)
+        auto setRetSymID = getNextID();
         auto callToSetReturn = IRB.CreateCall(runtime.setReturnExpression, IRB.getFalse());
-        assignSymID(callToSetReturn,getNextID());
+        assignSymID(callToSetReturn,setRetSymID);
+#else
+        // since we do this automatically on the workstation, we don't need to set ret on the MCU.
+        //auto callToSetReturn = IRB.CreateCall(runtime.setReturnExpression, {IRB.getFalse(), ConstantHelper(symIntType,setRetSymID)});
+#endif
         IRB.SetInsertPoint(returnPoint);
+        auto getRetSymID = getNextID();
+#if defined(CO3_REPLACE)
         auto getReturnCall = IRB.CreateCall(runtime.getReturnExpression);
+#else
+        auto getReturnCall = IRB.CreateCall(runtime.getReturnExpression, ConstantHelper(symIntType,getRetSymID ));
+#endif
         symbolicExpressions[&I] = getReturnCall;
-        assignSymID(getReturnCall,getNextID());
+        assignSymID(getReturnCall,getRetSymID);
     }
 }
 
@@ -440,9 +599,12 @@ void Symbolizer::visitReturnInst(ReturnInst &I) {
     // processing.
     IRBuilder<> IRB(&I);
     auto returnSymExpr = getSymbolicExpression(I.getReturnValue());
-
-    CallInst * set_return_inst = IRB.CreateCall(runtime.setReturnExpression,returnSymExpr);
     auto retSymID = getNextID();
+#if defined(CO3_REPLACE)
+    CallInst * set_return_inst = IRB.CreateCall(runtime.setReturnExpression,returnSymExpr);
+#else
+    CallInst * set_return_inst = IRB.CreateCall(runtime.setReturnExpression,{returnSymExpr, ConstantHelper(symIntType, retSymID)});
+#endif
     assignSymID(set_return_inst,retSymID);
     stageSettingOperations.push_back(retSymID);
 }
@@ -505,13 +667,16 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
         return;
     }
     if(!(intByteSize == 1 || intByteSize == 2 || intByteSize == 4)){
-        errs()<<I<<'\n';
-        llvm_unreachable("loading values not 1, or 2, or 4 bytes");
+        assert(intByteSize == 8);
+        // TODO: even in MCU, this is still 32-bit, as, llvm assumes all functions pointers are 32-bit.
+        // TODO: instead of assuming this is not symbolic, support this.
+#if defined(CO3_MCUS)
+        llvm_unreachable("loading 8-byte data");
+        symbolicExpressions[&I] = IRB.getFalse();
+        return;
+#endif
     }
     Value* ptrOperand  = IRB.CreatePtrToInt(addr, intPtrType);;
-    //if(isa<Constant>(addr)){
-    //    ptrOperand = CastInst::Create( llvm::AddrSpaceCastInst::PtrToInt ,addr, intPtrType, "", &I);
-    //}else{
 
     //}
     auto *data = IRB.CreateCall(
@@ -522,10 +687,14 @@ void Symbolizer::visitLoadInst(LoadInst &I) {
        ConstantHelper(symIntType,readMemSymID)});
     assignSymID(data,readMemSymID);
     if (dataType->isFloatingPointTy()) {
+        auto bitsToFloatSymID = getNextID();
+#if defined(CO3_REPLACE)
         data = IRB.CreateCall(runtime.buildBitsToFloat,{data, IRB.getInt1(dataType->isDoubleTy())});
-        assignSymID(data,getNextID());
+#else
+        data = IRB.CreateCall(runtime.buildBitsToFloat,{data, IRB.getInt1(dataType->isDoubleTy()), ConstantHelper(symIntType, bitsToFloatSymID)});
+#endif
+        assignSymID(data,bitsToFloatSymID);
     }
-
     symbolicExpressions[&I] = data;
 }
 //TODO
@@ -537,8 +706,13 @@ void Symbolizer::visitStoreInst(StoreInst &I) {
     Value * dataSymExpr = getSymbolicExpression(I.getValueOperand());
     auto *dataType = I.getValueOperand()->getType();
     if (dataType->isFloatingPointTy()) {
+        auto dataSymID = getNextID();
+#if defined(CO3_REPLACE)
         dataSymExpr = IRB.CreateCall(runtime.buildFloatToBits, {dataSymExpr});
-        assignSymID(cast<CallInst>(dataSymExpr), getNextID());
+#else
+        dataSymExpr = IRB.CreateCall(runtime.buildFloatToBits, {dataSymExpr, ConstantHelper(symIntType, dataSymID)});
+#endif
+        assignSymID(cast<CallInst>(dataSymExpr), dataSymID);
     }
     auto writeMemSymID = getNextID();
     auto writeMemCall = IRB.CreateCall(
@@ -558,9 +732,9 @@ void Symbolizer::visitGetElementPtrInst(GetElementPtrInst &I) {
     // computations at the symbolic level.
 
     // If everything is compile-time concrete, we don't need to emit code.
-    if (tryGetSymExpr(I.getPointerOperand()) == false &&
+    if (isStaticallyConcrete(I.getPointerOperand()) == true &&
         std::all_of(I.idx_begin(), I.idx_end(), [this](Value *index) {
-            return (tryGetSymExpr(index) == false);
+            return (isStaticallyConcrete(index) == true);
         })) {
         return;
     }
@@ -843,9 +1017,9 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
 
     IRBuilder<> IRB(&I);
     auto *condition = I.getCondition();
-    auto *conditionExpr = getSymbolicExpression(condition);
-    if (auto tmpExpr = dyn_cast<ConstantInt>(conditionExpr); tmpExpr != nullptr && tmpExpr->isZero())
+    if(isStaticallyConcrete(condition))
         return;
+    auto *conditionExpr = getSymbolicExpression(condition);
 
     auto conditionExprSymId = getSymIDFromSym(conditionExpr);
     assert(conditionExprSymId > 0);
@@ -868,12 +1042,17 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
     for (auto &caseHandle : I.cases()) {
         IRB.SetInsertPoint(constraintBlock);
 
+        auto caseConstraintSymID = getNextID();
+#if defined(CO3_REPLACE)
         auto *caseConstraint = IRB.CreateCall(
                 runtime.comparisonHandlers[CmpInst::ICMP_EQ],
                 {conditionExpr, createValueExpression(caseHandle.getCaseValue(), IRB)});
-        assignSymID(caseConstraint, getNextID());
-
-
+#else
+        auto *caseConstraint = IRB.CreateCall(
+                runtime.comparisonHandlers[CmpInst::ICMP_EQ],
+                {conditionExpr, createValueExpression(caseHandle.getCaseValue(), IRB), ConstantHelper(symIntType, caseConstraintSymID)});
+#endif
+        assignSymID(caseConstraint, caseConstraintSymID);
 
         if(first_concrete_comp == nullptr){
             IRB.SetInsertPoint(&I);
@@ -882,6 +1061,7 @@ void Symbolizer::visitSwitchInst(SwitchInst &I) {
         }
 
         auto *finalExpression = IRB.CreatePHI(isSymType, 2);
+
         auto falsePhiRoot = new FalsePhiRoot(getNextID(), {conditionExprSymId});
         assignSymIDPhi(finalExpression,falsePhiRoot);
 
@@ -933,8 +1113,13 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
     auto *valueType = V->getType();
     CallInst* ret = nullptr;
     if (isa<ConstantPointerNull>(V)) {
+        auto buildNullPtrSymID = getNextID();
+#if defined(CO3_REPLACE)
         ret = IRB.CreateCall(runtime.buildNullPointer, {});
-        assignSymID(ret,getNextID());
+#else
+        ret = IRB.CreateCall(runtime.buildNullPointer, {ConstantHelper(symIntType, buildNullPtrSymID)});
+#endif
+        assignSymID(ret,buildNullPtrSymID);
         return ret;
     }
 
@@ -1006,8 +1191,12 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
         // between different representations according to the type.
         if(isa<UndefValue>(V)){
             auto symid = getNextID();
-            ret = IRB.CreateCall(runtime.buildZeroBytes,{ConstantInt::get(intPtrType,
-                                                                          dataLayout.getTypeStoreSize(valueType))});
+#if defined(CO3_REPLACE)
+            ret = IRB.CreateCall(runtime.buildZeroBytes,{ConstantInt::get(intPtrType,dataLayout.getTypeStoreSize(valueType))});
+#else
+            ret = IRB.CreateCall(runtime.buildZeroBytes,{ConstantInt::get(intPtrType,dataLayout.getTypeStoreSize(valueType)),
+                                                         ConstantHelper(symIntType, symid)});
+#endif
             assignSymID(ret,symid);
             return ret;
         }else{
@@ -1030,8 +1219,13 @@ CallInst *Symbolizer::createValueExpression(Value *V, IRBuilder<> &IRB) {
 
     }
     if(isa<UndefValue>(V)){
+        auto undefValSymID = getNextID();
+#if defined(CO3_REPLACE)
         ret = IRB.CreateCall(runtime.buildNullPointer, {});
-        assignSymID(ret,getNextID());
+#else
+        ret = IRB.CreateCall(runtime.buildNullPointer, {ConstantHelper(symIntType, undefValSymID)});
+#endif
+        assignSymID(ret,undefValSymID);
         return ret;
         /*
         llvm_unreachable("Undef Value not support, not because itself is hard to support, but the composite value after it. \
@@ -1202,8 +1396,7 @@ void Symbolizer::shortCircuitExpressionUses() {
         std::set<FalsePhiLeaf*> falsePhiPeers;
 
 
-        for (unsigned argIndex = 0; argIndex < symbolicComputation.inputs.size();
-             argIndex++) {
+        for (unsigned argIndex = 0; argIndex < symbolicComputation.inputs.size();argIndex++) {
             auto &argument = symbolicComputation.inputs[argIndex];
             auto *originalArgExpression = argument.getSymbolicOperand();
 
@@ -1286,23 +1479,22 @@ void Symbolizer::shortCircuitExpressionUses() {
 
         if (dyn_cast<CallInst>(symbolicComputation.lastInstruction)->getCalledFunction()->getReturnType() != voidType ) {
             IRB.SetInsertPoint(&tail->front());
+            //errs()<<"before creating:"<<*tail<<'\n';
             auto *finalExpression = IRB.CreatePHI(isSymType, 2);
+            //errs()<<"after creating:"<<*tail<<'\n';
             if(falsePhiLeavesSymIDs.size() == 0){
                 //this simply means this is based on all constants, and this phiRootNode functionally equals false
                 assert(numUnknownConcreteness == 0);
             }
-
-            auto falsePhiRoot = new FalsePhiRoot(getNextID(), falsePhiLeavesSymIDs);
-            assignSymIDPhi(finalExpression,falsePhiRoot);
-
             //symbolicComputation.lastInstruction->replaceAllUsesWith(finalExpression);
             replaceAllUseWith(symbolicComputation.lastInstruction, finalExpression);
-
             finalExpression->addIncoming(IRB.getFalse(),
                                          head);
             finalExpression->addIncoming(
                     symbolicComputation.lastInstruction,
                     symbolicComputation.lastInstruction->getParent());
+            auto falsePhiRoot = new FalsePhiRoot(getNextID(), falsePhiLeavesSymIDs);
+            assignSymIDPhi(finalExpression,falsePhiRoot);
         }
 
     }
@@ -1490,8 +1682,11 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                         if(calleeName.equals("_sym_build_read_memory") && arg_idx == 1){
                             auto byteLen = dyn_cast<ConstantInt>(arg)->getZExtValue();
                             if(!(byteLen == 1 || byteLen == 2 || byteLen == 4)){
+                                assert(byteLen == 8);
+#if defined (CO3_MCUS)
                                 errs()<< *callInst<<'\n';
                                 llvm_unreachable("loading value not 1, 2 or 4 bytes?");
+#endif
                             }
                         }
                         if(ConstantInt * cont_int = dyn_cast<ConstantInt>(arg)){
@@ -1622,28 +1817,34 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
                     assert(falsePhiLeaf != nullptr);
                     assert(numIncomingValue == 2);
                     for(auto eachPeer : falsePhiLeaf->peersOriginal){
-
                         g.AddPhiEdge(eachPeer, userSymID, 2 , 0, 1);
                     }
                 }
+                std::map<BasicBlock*, unsigned> valuesToSet;
+                unsigned counter = 0;
                 for (unsigned incoming = 0, totalIncoming =numIncomingValue;incoming < totalIncoming; incoming++) {
                     BasicBlock *incomingBB = symPhi->getIncomingBlock(incoming);
                     unsigned incomingBBID = GetBBID(incomingBB);
                     Value *incomingValue = symPhi->getIncomingValue(incoming);
+                    if(valuesToSet.find(incomingBB) == valuesToSet.end()){
+                        valuesToSet[incomingBB] = counter++;
+                    }
+                    unsigned valueToSet = valuesToSet.at(incomingBB);
                     if(isa<TruePhi>(phi_status)){
                         reportingPhi->addIncoming(
-                                ConstantHelper(int8Type, incoming),
+                                ConstantHelper(int8Type, valueToSet),
                                 incomingBB);
                     }
 
                     unsigned incomingValueSymID = getSymIDFromSym(incomingValue);
                     //assert(incomingValueSymID != 0); // incoming symid could be zero
                     // add incoming BBID as edge property just to double check
-                    g.AddPhiEdge(incomingValueSymID, userSymID,incoming, incomingBBID, 0);
+                    g.AddPhiEdge(incomingValueSymID, userSymID,valueToSet, incomingBBID, 0);
                 }
             }
         }
     }
+#if defined(CO3_REPLACE)
     for(auto eachToBeRemoved: toReplaceToNone){
         eachToBeRemoved->eraseFromParent();
     }
@@ -1671,12 +1872,13 @@ void Symbolizer::createDFGAndReplace(llvm::Function& F, std::string filename){
         assert(isSymStatusType(0,eachToReplaceWithOr->getCalledFunction()->getName()));
         Value * input2 = eachToReplaceWithOr->getArgOperand(1);
         assert(isSymStatusType(1,eachToReplaceWithOr->getCalledFunction()->getName()));
-
         IRBuilder<> IRB(eachToReplaceWithOr);
         Value * orExpression = IRB.CreateOr(input1, input2);
         replaceAllUseWith(eachToReplaceWithOr, orExpression);
         eachToReplaceWithOr->eraseFromParent();
     }
+#endif
+
     g.writeToFile(filename);
     // Replacing all uses has fixed uses of the symbolic PHI nodes in existing
     // code, but the nodes may still be referenced via symbolicExpressions. We
@@ -1839,6 +2041,17 @@ void Symbolizer::insertNotifyFunc(llvm::Function& F, std::string file_name){
     funcIDFileW.close();
 }
 
+#if defined(CO3_MCU)
+#else
+void Symbolizer::ProEpiLogue(llvm::Function & F){
+    assert(return_inst != nullptr);
+    IRBuilder<> IRB(&*(F.getEntryBlock().getFirstInsertionPt()));
+    IRB.CreateCall(runtime.symInit);
+    IRB.SetInsertPoint(return_inst);
+    IRB.CreateCall(runtime.symEnd);
+}
+#endif
+
 void Symbolizer::RecursivePrintEdges(std::map<BasicBlock*, unsigned long>& basicBlockMap, raw_fd_ostream & O, DomTreeNodeBase<BasicBlock> * root, unsigned level){
     unsigned cur_bbid = basicBlockMap.at(root->getBlock());
     bool isLoop = loopinfo.getLoopFor(root->getBlock()) != nullptr ? true : false;
@@ -1885,20 +2098,6 @@ void Symbolizer::OutputCFG(llvm::Function & F, DominatorTree& dTree, PostDominat
 
     //get entry bb
     BasicBlock * entry_bb = &F.getEntryBlock();
-    //get exit bb
-    BasicBlock * exit_bb = nullptr;
-    for (Function::iterator B_iter = F.begin(); B_iter != F.end(); ++B_iter){
-        BasicBlock* curBB = &*B_iter;
-        for(auto ins = curBB->begin(); ins != curBB->end(); ins ++){
-            if(isa<ReturnInst>(&*ins)){
-                if(exit_bb == nullptr){
-                    exit_bb = curBB;
-                }else{
-                    llvm_unreachable("multiple exit BB found\n");
-                }
-            }
-        }
-    }
 
     for (Function::iterator B_iter = F.begin(); B_iter != F.end(); ++B_iter){
         BasicBlock* curBB = &*B_iter;

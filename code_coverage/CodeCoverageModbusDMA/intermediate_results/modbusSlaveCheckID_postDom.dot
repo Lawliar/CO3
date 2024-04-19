@@ -1,9 +1,0 @@
-digraph "post dom tree for'modbusSlaveCheckID' function" {
-	4 [shape=record, label="4",id=4,level=1];
-	4 -> 2;
-		2 [shape=record, label="2",id=2,level=2];
-	4 -> 1;
-		1 [shape=record, label="1",id=1,level=2];
-	4 -> 3;
-		3 [shape=record, label="3",id=3,level=2];
-}

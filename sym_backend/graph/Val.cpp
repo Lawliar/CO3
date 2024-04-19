@@ -1,6 +1,19 @@
+// This file is part of CO3.
 //
-// Created by charl on 6/14/2022.
+// CO3 is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software
+// Foundation, either version 3 of the License, or (at your option) any later
+// version.
 //
+// CO3 is distributed in the hope that it will be useful, but WITHOUT ANY
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+// A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// CO3. If not, see <https://www.gnu.org/licenses/>.
+
+
+
 #include "Val.h"
 #include "Shadow.h"
 
@@ -8,10 +21,11 @@ extern WriteShadowIteratorDR * DR_INPUT;
 
 bool Val::isThisNodeReady(Val * nodeInQuestion, unsigned targetReady) {
     auto * nodeIsTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(nodeInQuestion);
+    auto* nodeIsNotifySelect = dynamic_cast<SymVal_sym_notify_select*>(nodeInQuestion);
     //auto * rootIsTruePhi = dynamic_cast<SymVal_sym_TruePhi*>(this);
     //assert(rootIsTruePhi == nullptr);
-    if(nodeIsTruePhi != nullptr){
-        // we execute truePhi pro-actively
+    if(nodeIsTruePhi != nullptr || nodeIsNotifySelect != nullptr){
+        // we execute truePhi and notifySelect pro-actively
         return true;
     }
     if(nodeInQuestion == this){
@@ -111,11 +125,27 @@ Val::ReadyType SymVal_sym_TruePhi::getDepTargetReady(Val * nodeInQuestion) {
     }
 }
 
+Val::ReadyType SymVal_sym_notify_select::getDepTargetReady(Val * nodeInQuestion) {
+    Val::ReadyType current_ready = ready;
+    if(nodeInQuestion->BBID == BBID){
+        // if the select instruction and the selected instruction is inside the same BB
+        // the select instruction must come after the selected instruction (right?)
+        // otherwise the LLVM IR would be invalid
+        return nodeInQuestion->ready + 1;
+    }else {
+        if(nodeInQuestion->inLoop){
+            return nodeInQuestion->ready;
+        }else {
+            return 1;
+        }
+    }
+}
 
 vector<Val*> Val::realChildren() {
     vector<Val*> realChildren;
-    SymVal_sym_FalsePhiRoot * false_phi_root = dynamic_cast<SymVal_sym_FalsePhiRoot*>(this);
-    SymVal_sym_FalsePhiLeaf * false_phi_leaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(this);
+    auto false_phi_root = dynamic_cast<SymVal_sym_FalsePhiRoot*>(this);
+    auto false_phi_leaf = dynamic_cast<SymVal_sym_FalsePhiLeaf*>(this);
+
     if(false_phi_root != nullptr) {
         for (auto eachLeaf: false_phi_root->falsePhiLeaves) {
             realChildren.push_back(eachLeaf);
@@ -125,22 +155,18 @@ vector<Val*> Val::realChildren() {
         for(auto eachPeerOrig: false_phi_leaf->peerOriginals) {
             realChildren.push_back(eachPeerOrig);
         }
-    }else{
+    }
+    else{
         //normal nodes
         for(auto eachDep : In_edges){
             realChildren.push_back(eachDep.second);
         }
     }
+
+
     return realChildren;
 }
-bool SymVal::directlyConstructable(Val::ReadyType targetReady){
-    for(auto eachDep: realChildren()){
-        if( ! this->isThisNodeReady(eachDep, targetReady)){
-            return false;
-        }
-    }
-    return true;
-}
+
 
 void RuntimeIntVal::Assign(IntValType val) {
     Val=val;
@@ -175,7 +201,14 @@ SymExpr SymVal::extractSymExprFromSymVal(SymVal * op, ReadyType targetReady) {
         }else {
             ret = tmpTruePhi->historyValues.back().second;
         }
-    }else if(auto tmpNull = dynamic_cast<SymVal_NULL*>(op);tmpNull != nullptr) {
+    }else if(auto tmpSelect = dynamic_cast<SymVal_sym_notify_select*>(op);tmpSelect!= nullptr){
+        if(tmpSelect->historyValues.size() == 0){
+            ret = nullptr;
+        }else {
+            ret = tmpSelect->historyValues.back().second;
+        }
+    }
+    else if(auto tmpNull = dynamic_cast<SymVal_NULL*>(op);tmpNull != nullptr) {
         ret = nullptr;
     }
     else{
@@ -319,8 +352,8 @@ void SymVal_sym_build_integer::Construct(Val::ReadyType targetReady) {
     //check op1
     auto op1 = dynamic_cast<ConstantIntVal*>(In_edges.at(1));
     assert(op1 != nullptr);
-
-    assert(op1->Value % 8 != 0);// make sure it's byteLength, and then we convert it into bit length
+    // make sure it's byteLength, and then we convert it into bit length
+    assert(op1->Value == 1 || op1->Value == 2 || op1->Value == 4 || op1->Value == 8);
 
 
     // construct the symExpr
@@ -330,6 +363,9 @@ void SymVal_sym_build_integer::Construct(Val::ReadyType targetReady) {
     return;
 }
 void SymVal_sym_build_float::Construct(Val::ReadyType targetReady) {
+    symExpr = nullptr;
+    ready++;
+    return;
     assert(targetReady == (ready + 1));
     auto val_op = In_edges.at(0);
     double val;
@@ -422,6 +458,7 @@ void SymVal_sym_try_alternative::Construct(ReadyType targetReady) {
 }
 
 void SymVal_sym_notify_select::Construct(Val::ReadyType targetReady){
+    assert(false);
     assert(targetReady == (ready + 1));
 
     auto condOperand = dynamic_cast<RuntimeIntVal*>(In_edges.at(0));
@@ -665,12 +702,19 @@ void SymVal_sym_build_memset::Construct(ReadyType targetReady) {
     assert(symVal != nullptr);
 
     auto lengthOperand = dynamic_cast<RuntimeIntVal*>(In_edges.at(2));
-    assert(lengthOperand != nullptr);
+    auto constlengthOperand = dynamic_cast<ConstantIntVal*>(In_edges.at(2));
+    IntValType lengthVal = 0;
+    if(lengthOperand == nullptr){
+        assert(constlengthOperand != nullptr);
+        lengthVal = constlengthOperand->Value;
+    }else{
+        lengthVal = lengthOperand->Val;
+    }
 
-    if(memOperand->Unassigned || lengthOperand->Unassigned){
+    if(memOperand->Unassigned || (lengthOperand != nullptr && lengthOperand->Unassigned)){
         assert(symVal->symExpr == nullptr && memOperand->Unassigned && lengthOperand->Unassigned);
     }else{
-        _sym_build_memset(reinterpret_cast<uint8_t*>(memOperand->Val), extractSymExprFromSymVal(symVal, targetReady), lengthOperand->Val);
+        _sym_build_memset(reinterpret_cast<uint8_t*>(memOperand->Val), extractSymExprFromSymVal(symVal, targetReady), lengthVal );
     }
     ready++;
 }

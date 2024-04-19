@@ -62,13 +62,19 @@ namespace {
                 auto newName = kInterceptedFunctionPrefix + name;
                 function.setName(newName);
             }
-
         }
 
         // Insert a constructor that initializes the runtime and any globals.
         Function *ctor;
         std::tie(ctor, std::ignore) = createSanitizerCtorAndInitFunctions(
-                M, kSymCtorName, "_sym_initialize", {}, {});
+                M, 
+                kSymCtorName, 
+#if defined(CO3_MCUS)
+                "_sym_initialize", 
+#else
+                "_sym_sanity_check", 
+#endif
+                {}, {});
         appendToGlobalCtors(M, ctor, 0);
 
         return true;
@@ -84,8 +90,9 @@ bool instrumentFunction(Function &F, LoopInfo &LI, PostDominatorTree& pdTree,Dom
 
     boost::filesystem::path dir (outDir.getValue());
     if(! boost::filesystem::exists(dir)){
-        errs()<< outDir<<'\n';
-        llvm_unreachable("output dir does not exist");
+        boost::filesystem::create_directory(dir);
+        //errs()<< outDir<<'\n';
+        //llvm_unreachable("output dir does not exist");
     }
     boost::filesystem::path dfgFile = dir / (F.getName() + "_dfg.dot").str();
     boost::filesystem::path cfgFile = dir / (F.getName() + "_cfg.dot").str();
@@ -133,6 +140,13 @@ bool instrumentFunction(Function &F, LoopInfo &LI, PostDominatorTree& pdTree,Dom
 
     symbolizer.insertNotifyFunc(F, funcIDFile.string());
     symbolizer.insertNotifyBasicBlock(F);
+#if defined(CO3_MCU)
+#else
+    if(F.getName() == "main"){
+        symbolizer.ProEpiLogue(F);
+    }
+#endif
+
     if(verifyFunction(F, &errs())){
         errs()<<F<<'\n';
         llvm_unreachable("SymbolizePass produced invalid bitcode");

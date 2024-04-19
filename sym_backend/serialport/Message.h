@@ -1,12 +1,25 @@
+// This file is part of CO3.
 //
-// Created by charl on 4/29/2022.
+// CO3 is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software
+// Foundation, either version 3 of the License, or (at your option) any later
+// version.
 //
+// CO3 is distributed in the hope that it will be useful, but WITHOUT ANY
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+// A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// CO3. If not, see <https://www.gnu.org/licenses/>.
+
+
 
 #ifndef SYMBACKEND_MESSAGE_H
 #define SYMBACKEND_MESSAGE_H
 
-#include "stdint.h"
 #include <sstream>
+
+#include "CO3CommonRuntime.h"
 
 class Message {
 public:
@@ -124,9 +137,9 @@ public:
 
 class MemCpyMessage: public SymSinkMessage{
 public:
-    MemCpyMessage(uint16_t symID, uint32_t dst_ptr, uint32_t src_ptr, uint32_t length): SymSinkMessage(MemCpyRuntimeMsg, symID), dst_ptr(dst_ptr), src_ptr(src_ptr),length(length){};
-    uint32_t dst_ptr;
-    uint32_t src_ptr;
+    MemCpyMessage(uint16_t symID, void * dst_ptr, void * src_ptr, uint32_t length): SymSinkMessage(MemCpyRuntimeMsg, symID), dst_ptr(dst_ptr), src_ptr(src_ptr),length(length){};
+    void * dst_ptr;
+    void * src_ptr;
     uint32_t length;
     std::string Str(){
         std::ostringstream s;
@@ -137,8 +150,8 @@ public:
 
 class MemSetMessage: public SymSinkMessage{
 public:
-    MemSetMessage(uint16_t symID, uint32_t ptr, uint32_t length): SymSinkMessage(MemsetRuntimeMsg,symID), ptr(ptr),length(length){};
-    uint32_t ptr;
+    MemSetMessage(uint16_t symID, void * ptr, uint32_t length): SymSinkMessage(MemsetRuntimeMsg,symID), ptr(ptr),length(length){};
+    void * ptr;
     uint16_t length;
     std::string Str(){
         std::ostringstream s;
@@ -149,9 +162,9 @@ public:
 
 class MemMoveMessage: public SymSinkMessage{
 public:
-    MemMoveMessage(uint16_t symID, uint32_t dst_ptr, uint32_t src_ptr, uint32_t length): SymSinkMessage(MemmoveRuntimeMsg, symID), dst_ptr(dst_ptr), src_ptr(src_ptr),length(length){};
-    uint32_t dst_ptr;
-    uint32_t src_ptr;
+    MemMoveMessage(uint16_t symID, void * dst_ptr, void * src_ptr, uint32_t length): SymSinkMessage(MemmoveRuntimeMsg, symID), dst_ptr(dst_ptr), src_ptr(src_ptr),length(length){};
+    void * dst_ptr;
+    void * src_ptr;
     uint32_t length;
     std::string Str(){
         std::ostringstream s;
@@ -162,8 +175,8 @@ public:
 
 class ReadMemMessage: public SymSourceMessage{
 public:
-    ReadMemMessage(uint16_t symID, uint32_t ptr): SymSourceMessage(ReadMemRuntimeMsg, symID), ptr(ptr){}
-    uint32_t ptr;
+    ReadMemMessage(uint16_t symID, void * ptr): SymSourceMessage(ReadMemRuntimeMsg, symID), ptr(ptr){}
+    void * ptr;
     bool hasConcrete = false;
     uint32_t  concreteValue;
     std::string Str(){
@@ -181,8 +194,8 @@ public:
 
 class WriteMemMessage: public SymSinkMessage{
 public:
-    WriteMemMessage(uint16_t symID, uint32_t ptr): SymSinkMessage(WriteMemRuntimeMsg, symID), ptr(ptr){}
-    uint32_t ptr;
+    WriteMemMessage(uint16_t symID, void * ptr): SymSinkMessage(WriteMemRuntimeMsg, symID), ptr(ptr){}
+    void * ptr;
     std::string Str(){
         std::ostringstream s;
         s<<"WriteMemMsg:symid:"<<static_cast<unsigned>(symid)<<",mem:"<< std::hex <<ptr;
@@ -256,12 +269,12 @@ public:
 };
 class InitMessage : public ControlMessgaes{
 public:
-    char * addr = nullptr;
+    void * addr = nullptr;
     bool DR = false;
-    InitMessage(char* addr, bool is_dr): ControlMessgaes(InitMsg),addr(addr), DR(is_dr){};
+    InitMessage(void * addr, bool is_dr): ControlMessgaes(InitMsg),addr(addr), DR(is_dr){};
     std::string Str(){
         std::ostringstream s;
-        s << "SymInit: Addr:"<<reinterpret_cast<std::uintptr_t>(addr)<<",for DR:"<< DR;
+        s << "SymInit: Addr:"<<std::hex<<reinterpret_cast<std::uintptr_t>(addr)<<",for DR:"<< DR;
         return s.str();
     }
 };

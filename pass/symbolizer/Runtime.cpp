@@ -36,6 +36,30 @@ SymFnT import(llvm::Module &M, llvm::StringRef name, llvm::Type *ret,
 
 //#define SUPPORT_FLOAT
 
+#define ARG(...) { __VA_ARGS__ }
+
+#define CO3_SYMVAL_ARGS(ARGS) \
+    isSymArgNo[OP_NAME] = ARG ARGS;
+
+
+#define CO3_RUNTIME_ARGS(ARGS) \
+    runtimeArgNo[OP_NAME] = ARG ARGS;
+
+#define CO3_CONST_ARGS(ARGS) \
+    constArgNo[OP_NAME] = ARG ARGS;
+
+#define CO3_SYMID_ARGS(ARGS) \
+    symIdArgNo[OP_NAME] = ARG ARGS;
+
+#define CO3_SKIP_ARGS(ARGS) \
+    skipArgNo[OP_NAME] = ARG ARGS;
+
+
+#define CO3_TO_NONE  replaceToNone.push_back(OP_NAME);
+#define CO3_TO_FALSE replaceToFalse.push_back(OP_NAME);
+#define CO3_TO_TRUE  replaceToTrue.push_back(OP_NAME);
+#define CO3_TO_INPUT replaceToInput.push_back(OP_NAME);
+#define CO3_TO_OR    replaceToLogicOr.push_back(OP_NAME);
 
 Runtime::Runtime(Module &M) {
 
@@ -43,7 +67,11 @@ Runtime::Runtime(Module &M) {
     llvm::IntegerType * int_type = nullptr;
     llvm::IntegerType* intPtrType = M.getDataLayout().getIntPtrType(M.getContext());
     if(M.getDataLayout().isLegalInteger(64)){
+#if defined(CO3_MCUS)
+        llvm_unreachable("MCU with 64-bit memory layout?");
+#else
         int_type = IRB.getInt64Ty();
+#endif
     }else if(M.getDataLayout().isLegalInteger(32)){
         int_type = IRB.getInt32Ty();
     }else if(M.getDataLayout().isLegalInteger(16)){
@@ -58,12 +86,21 @@ Runtime::Runtime(Module &M) {
     Type *int16T = IRB.getInt16Ty();
     Type *isSymT = IRB.getInt1Ty();
 
+
+#if defined(CO3_MCU)
+#else
+    symInit = import(M, "_sym_initialize", voidT);
+    symEnd = import(M,"_sym_end",voidT);
+#endif
+
+#define OP_NAME "_sym_build_integer"
     // should always return true(when this function is called, it means another variable has been symbolized, and thus this variable needs to be symbolized)
-    buildInteger = import(M, "_sym_build_integer", isSymT, int_type, int8T, symIntT);
+    buildInteger = import(M, OP_NAME, isSymT, int_type, int8T, symIntT);
     SymOperators.push_back(&buildInteger);
-    runtimeArgNo["_sym_build_integer"] = {0};
-    constArgNo["_sym_build_integer"] = {1};
-    symIdArgNo["_sym_build_integer"] = {2};
+    CO3_RUNTIME_ARGS((0));
+    CO3_CONST_ARGS((1));
+    CO3_SYMID_ARGS((2));
+#undef OP_NAME
 
     /*
     buildInteger1 = import(M, "_sym_build_integer1", isSymT, int_type, int8T, symIntT);
@@ -73,18 +110,30 @@ Runtime::Runtime(Module &M) {
     replaceToTrue.push_back("_sym_build_integer1");
     */
     // sshould always return true(not used for embedded application)
-    buildInteger128 = import(M, "_sym_build_integer128", isSymT, IRB.getInt64Ty(), IRB.getInt64Ty());
-    SymOperators.push_back(&buildInteger128);
-
-    // should always return true
-    buildFloat = import(M, "_sym_build_float", isSymT, IRB.getDoubleTy(), IRB.getInt1Ty(), symIntT);
-    SymOperators.push_back(&buildFloat);
-    runtimeArgNo["_sym_build_float"] = {0};
-    constArgNo["_sym_build_float"] = {1};
-    symIdArgNo["_sym_build_float"] = {2};
-#ifndef SUPPORT_FLOAT
-    replaceToFalse.push_back("_sym_build_float");
+#define OP_NAME "_sym_build_integer128"
+#if defined(CO3_REPLACE)
+    buildInteger128 = import(M, OP_NAME , isSymT, IRB.getInt64Ty(), IRB.getInt64Ty());
+#else
+    buildInteger128 = import(M, OP_NAME, isSymT, IRB.getInt64Ty(), IRB.getInt64Ty(),symIntT);
+    CO3_SYMID_ARGS((3))
 #endif
+    SymOperators.push_back(&buildInteger128);
+#undef OP_NAME
+
+
+
+#define OP_NAME "_sym_build_float"
+    // should always return true
+    buildFloat = import(M, OP_NAME, isSymT, IRB.getDoubleTy(), IRB.getInt1Ty(), symIntT);
+    SymOperators.push_back(&buildFloat);
+    CO3_RUNTIME_ARGS((0))
+    CO3_CONST_ARGS((1))
+    CO3_SYMID_ARGS((2))
+#ifdef SUPPORT_FLOAT
+#else
+    CO3_TO_FALSE
+#endif
+#undef OP_NAME
     /*
     buildFloat1 = import(M, "_sym_build_float1", isSymT, IRB.getDoubleTy(), IRB.getInt1Ty(), symIntT);
     SymOperators.push_back(&buildFloat);
@@ -93,26 +142,51 @@ Runtime::Runtime(Module &M) {
     replaceToTrue.push_back("_sym_build_float1");
     */
 
-    // should always return true
-    buildNullPointer = import(M, "_sym_build_null_pointer",isSymT);
+
+#define OP_NAME "_sym_build_null_pointer"
+#if defined(CO3_REPLACE)
+    buildNullPointer = import(M,OP_NAME ,isSymT);
+    CO3_TO_TRUE
+#else
+    buildNullPointer = import(M, OP_NAME,isSymT, symIntT);
+    CO3_SYMID_ARGS((0));
+#endif
     SymOperators.push_back(&buildNullPointer);
-    replaceToTrue.push_back("_sym_build_null_pointer");
+#undef OP_NAME
 
-    // should always return true
-    buildTrue = import(M, "_sym_build_true", isSymT);
+
+
+#define OP_NAME "_sym_build_true"
+#if defined(CO3_REPLACE)
+    buildTrue = import(M,OP_NAME , isSymT);
+    CO3_TO_TRUE
+#else
+    buildTrue = import(M,OP_NAME , isSymT,symIntT);
+    CO3_SYMID_ARGS((0))
+#endif
     SymOperators.push_back(&buildTrue);
-    replaceToTrue.push_back("_sym_build_true");
+#undef OP_NAME
 
-    // should always return true
-    buildFalse = import(M, "_sym_build_false", isSymT);
+
+
+#define OP_NAME "_sym_build_false"
+#if defined(CO3_REPLACE)
+    buildFalse = import(M,OP_NAME , isSymT);
+    CO3_TO_TRUE
+#else
+    buildFalse = import(M, OP_NAME, isSymT, symIntT);
+    CO3_SYMID_ARGS((0))
+#endif
     SymOperators.push_back(&buildFalse);
-    replaceToTrue.push_back("_sym_build_false");
+#undef OP_NAME
 
-    // should always return true
-    buildBool = import(M, "_sym_build_bool", isSymT, IRB.getInt1Ty(), symIntT);
+
+#define OP_NAME "_sym_build_bool"
+    buildBool = import(M, OP_NAME, isSymT, IRB.getInt1Ty(), symIntT);
     SymOperators.push_back(&buildBool);
-    runtimeArgNo["_sym_build_bool"] = {0};
-    symIdArgNo["_sym_build_bool"] = {1};
+    CO3_RUNTIME_ARGS((0))
+    CO3_SYMID_ARGS((1))
+#undef OP_NAME
 
     /*
     buildBool1 = import(M, "_sym_build_bool1", isSymT, IRB.getInt1Ty(), symIntT);
@@ -125,260 +199,456 @@ Runtime::Runtime(Module &M) {
     // functions that need a sym id
     // should always be the same with the input
     // int8T should be constant
-    buildSExt = import(M, "_sym_build_sext", isSymT, isSymT, int8T);
+#define OP_NAME "_sym_build_sext"
+#if defined(CO3_REPLACE)
+    buildSExt = import(M, OP_NAME, isSymT, isSymT, int8T);
+    CO3_TO_INPUT
+#else
+    buildSExt = import(M, OP_NAME, isSymT, isSymT, int8T, symIntT);
+    CO3_SYMID_ARGS((2))
+#endif
     SymOperators.push_back(&buildSExt);
-    isSymArgNo["_sym_build_sext"] = {0};
-    constArgNo["_sym_build_sext"] = {1};
-    replaceToInput.push_back("_sym_build_sext");
+    CO3_SYMVAL_ARGS((0))
+    CO3_CONST_ARGS((1))
+#undef OP_NAME
+
 
     // should always be the same with the input
-    buildZExt = import(M, "_sym_build_zext", isSymT, isSymT, int8T);
+#define OP_NAME "_sym_build_zext"
+#if defined(CO3_REPLACE)
+    buildZExt = import(M, OP_NAME, isSymT, isSymT, int8T);
+    CO3_TO_INPUT
+#else
+    buildZExt = import(M, OP_NAME, isSymT, isSymT, int8T,symIntT);
+    CO3_SYMID_ARGS((2))
+#endif
     SymOperators.push_back(&buildZExt);
-    isSymArgNo["_sym_build_zext"] = {0};
-    constArgNo["_sym_build_zext"] = {1};
-    replaceToInput.push_back("_sym_build_zext");
+    CO3_SYMVAL_ARGS((0))
+    CO3_CONST_ARGS((1))
+#undef OP_NAME
 
-    // should always be the same with the input
-    buildTrunc = import(M, "_sym_build_trunc", isSymT, isSymT, int8T);
+
+#define OP_NAME "_sym_build_trunc"
+#if defined(CO3_REPLACE)
+    buildTrunc = import(M, OP_NAME, isSymT, isSymT, int8T);
+    CO3_TO_INPUT
+#else
+    buildTrunc = import(M, OP_NAME, isSymT, isSymT, int8T,symIntT);
+    CO3_SYMID_ARGS((2));
+#endif
     SymOperators.push_back(&buildTrunc);
-    isSymArgNo["_sym_build_trunc"] = {0};
-    constArgNo["_sym_build_trunc"] = {1};
-    replaceToInput.push_back("_sym_build_trunc");
+    CO3_SYMVAL_ARGS((0))
+    CO3_CONST_ARGS((1))
+#undef OP_NAME
 
-    // should always be the same with the input
-    buildBswap = import(M, "_sym_build_bswap", isSymT, isSymT);
+
+
+#define OP_NAME "_sym_build_bswap"
+#if defined(CO3_REPLACE)
+    buildBswap = import(M, OP_NAME, isSymT, isSymT);
+    CO3_TO_INPUT
+#else
+    buildBswap = import(M, OP_NAME, isSymT, isSymT,symIntT);
+    CO3_SYMID_ARGS((1))
+#endif
     SymOperators.push_back(&buildBswap);
-    isSymArgNo["_sym_build_bswap"] = {0};
-    replaceToInput.push_back("_sym_build_bswap");
+    CO3_SYMVAL_ARGS((0))
 
-    // should always be the same with the input
-    buildIntToFloat = import(M, "_sym_build_int_to_float", isSymT, isSymT, IRB.getInt1Ty(), IRB.getInt1Ty());
+#undef OP_NAME
+
+
+#define OP_NAME "_sym_build_int_to_float"
+#if defined(CO3_REPLACE)
+    buildIntToFloat = import(M,OP_NAME , isSymT, isSymT, IRB.getInt1Ty(), IRB.getInt1Ty());
+    #ifdef SUPPORT_FLOAT
+        CO3_TO_INPUI
+    #else
+        CO3_TO_FALSE
+    #endif
+#else
+    buildIntToFloat = import(M,OP_NAME , isSymT, isSymT, IRB.getInt1Ty(), IRB.getInt1Ty(), symIntT);
+    CO3_SYMID_ARGS((3))
+#endif
     SymOperators.push_back(&buildIntToFloat);
-    isSymArgNo["_sym_build_int_to_float"] = {0};
-    constArgNo["_sym_build_int_to_float"] = {1,2};
-#ifdef SUPPORT_FLOAT
-    replaceToInput.push_back("_sym_build_int_to_float");
+    CO3_SYMVAL_ARGS((0))
+    CO3_CONST_ARGS((1,2))
+#undef OP_NAME
+
+#define OP_NAME "_sym_build_float_to_float"
+#if defined(CO3_REPLACE)
+    buildFloatToFloat = import(M, OP_NAME, isSymT, isSymT, IRB.getInt1Ty());
+    #ifdef SUPPORT_FLOAT
+        CO3_TO_INPUT
+    #else
+        CO3_TO_FALSE
+    #endif
 #else
-    replaceToFalse.push_back("_sym_build_int_to_float");
+    buildFloatToFloat = import(M, OP_NAME, isSymT, isSymT, IRB.getInt1Ty(), symIntT);
+    CO3_SYMID_ARGS((2))
 #endif
-    // should always be the same with the input
-    buildFloatToFloat = import(M, "_sym_build_float_to_float", isSymT, isSymT, IRB.getInt1Ty());
     SymOperators.push_back(&buildFloatToFloat);
-    isSymArgNo["_sym_build_float_to_float"] = {0};
-    constArgNo["_sym_build_float_to_float"] = {1};
-#ifdef SUPPORT_FLOAT
-    replaceToInput.push_back("_sym_build_float_to_float");
+    CO3_SYMVAL_ARGS((0))
+    CO3_CONST_ARGS((1))
+#undef OP_NAME
+
+
+#define OP_NAME "_sym_build_bits_to_float"
+#if defined(CO3_REPLACE)
+    buildBitsToFloat = import(M, OP_NAME, isSymT, isSymT, IRB.getInt1Ty());
+    #ifdef SUPPORT_FLOAT
+        CO3_TO_INPUT
+    #else
+        CO3_TO_FALSE
+    #endif
 #else
-    replaceToFalse.push_back("_sym_build_float_to_float");
+    buildBitsToFloat = import(M, OP_NAME, isSymT, isSymT, IRB.getInt1Ty(), symIntT);
+    CO3_SYMID_ARGS((2))
 #endif
-    // should always be the same with the input
-    buildBitsToFloat = import(M, "_sym_build_bits_to_float", isSymT, isSymT, IRB.getInt1Ty());
     SymOperators.push_back(&buildBitsToFloat);
-    isSymArgNo["_sym_build_bits_to_float"] = {0};
-    constArgNo["_sym_build_bits_to_float"] = {1};
-#ifdef SUPPORT_FLOAT
-    replaceToInput.push_back("_sym_build_bits_to_float");
-#else
-    replaceToFalse.push_back("_sym_build_bits_to_float");
-#endif
+    CO3_SYMVAL_ARGS((0))
+    CO3_CONST_ARGS((1))
+#undef OP_NAME
 
-    // should always be the same with the input
-    buildFloatToBits = import(M, "_sym_build_float_to_bits", isSymT, isSymT);
+
+#define OP_NAME "_sym_build_float_to_bits"
+#if defined(CO3_REPLACE)
+    buildFloatToBits = import(M, OP_NAME, isSymT, isSymT);
+#else
+    buildFloatToBits = import(M, OP_NAME, isSymT, isSymT, symIntT);
+    CO3_SYMID_ARGS((1))
+#endif
     SymOperators.push_back(&buildFloatToBits);
-    isSymArgNo["_sym_build_float_to_bits"] = {0};
+    CO3_SYMVAL_ARGS((0))
 #ifdef SUPPORT_FLOAT
-    replaceToInput.push_back("_sym_build_float_to_bits");
+    CO3_TO_INPUT
 #else
-    replaceToFalse.push_back("_sym_build_float_to_bits");
+    CO3_TO_FALSE
 #endif
+#undef OP_NAME
 
 
-    // should always be the same with the input
-    buildFloatToSignedInt =
-            import(M, "_sym_build_float_to_signed_integer", isSymT, isSymT, int8T);
+
+#define OP_NAME "_sym_build_float_to_signed_integer"
+#if defined(CO3_REPLACE)
+    buildFloatToSignedInt = import(M,OP_NAME , isSymT, isSymT, int8T);
+    #ifdef SUPPORT_FLOAT
+        CO3_TO_INPUT
+    #else
+        CO3_TO_FALSE
+    #endif
+#else
+    buildFloatToSignedInt = import(M,OP_NAME , isSymT, isSymT, int8T, symIntT);
+    CO3_SYMID_ARGS((2))
+#endif
     SymOperators.push_back(&buildFloatToSignedInt);
-    isSymArgNo["_sym_build_float_to_signed_integer"] = {0};
-    constArgNo["_sym_build_float_to_signed_integer"] = {1};
-#ifdef SUPPORT_FLOAT
-    replaceToInput.push_back("_sym_build_float_to_signed_integer");
+    CO3_SYMVAL_ARGS((0))
+    CO3_CONST_ARGS((1))
+#undef OP_NAME
+
+
+
+#define OP_NAME "_sym_build_float_to_unsigned_integer"
+#if defined(CO3_REPLACE)
+    buildFloatToUnsignedInt = import(M,OP_NAME , isSymT, isSymT, int8T);
+    #ifdef SUPPORT_FLOAT
+        CO3_TO_INPUT
+    #else
+        CO3_TO_FALSE
+    #endif
 #else
-    replaceToFalse.push_back("_sym_build_float_to_signed_integer");
+    buildFloatToUnsignedInt = import(M,OP_NAME , isSymT, isSymT, int8T, symIntT);
+    CO3_SYMID_ARGS((2))
 #endif
-
-
-    // should always be the same with the input
-    buildFloatToUnsignedInt =
-      import(M, "_sym_build_float_to_unsigned_integer", isSymT, isSymT, int8T);
     SymOperators.push_back(&buildFloatToUnsignedInt);
-    isSymArgNo["_sym_build_float_to_unsigned_integer"] = {0};
-    constArgNo["_sym_build_float_to_unsigned_integer"] = {1};
-#ifdef SUPPORT_FLOAT
-    replaceToInput.push_back("_sym_build_float_to_unsigned_integer");
+    CO3_SYMVAL_ARGS((0))
+    CO3_CONST_ARGS((1))
+#undef OP_NAME
+
+
+#define OP_NAME "_sym_build_fp_abs"
+#if defined(CO3_REPLACE)
+    buildFloatAbs = import(M,OP_NAME , isSymT, isSymT);
+    #ifdef SUPPORT_FLOAT
+        CO3_TO_INPUT
+    #else
+        CO3_TO_FALSE
+    #endif
 #else
-    replaceToFalse.push_back("_sym_build_float_to_unsigned_integer");
+    buildFloatAbs = import(M,OP_NAME , isSymT, isSymT,symIntT);
+    CO3_SYMID_ARGS((1))
 #endif
-
-
-    // should always be the same with the input
-    buildFloatAbs = import(M, "_sym_build_fp_abs", isSymT, isSymT);
     SymOperators.push_back(&buildFloatAbs);
-    isSymArgNo["_sym_build_fp_abs"] = {0};
-#ifdef SUPPORT_FLOAT
-    replaceToInput.push_back("_sym_build_fp_abs");
+    CO3_SYMVAL_ARGS((0))
+
+#undef OP_NAME
+
+
+#define OP_NAME "_sym_build_bool_and"
+#if defined(CO3_REPLACE)
+    buildBoolAnd = import(M,OP_NAME , isSymT, isSymT, isSymT);
+    CO3_TO_OR
 #else
-    replaceToFalse.push_back("_sym_build_fp_abs");
+    buildBoolAnd = import(M,OP_NAME , isSymT, isSymT, isSymT, symIntT);
+    CO3_SYMID_ARGS((2))
 #endif
-    // logic OR
-    buildBoolAnd = import(M, "_sym_build_bool_and", isSymT, isSymT, isSymT);
     SymOperators.push_back(&buildBoolAnd);
-    isSymArgNo["_sym_build_bool_and"] = {0,1};
-    replaceToLogicOr.push_back("_sym_build_bool_and");
+    CO3_SYMVAL_ARGS((0,1))
+#undef OP_NAME
 
-    // logic OR
-    buildBoolOr = import(M, "_sym_build_bool_or", isSymT, isSymT, isSymT);
+
+#define OP_NAME "_sym_build_bool_or"
+#if defined(CO3_REPLACE)
+    buildBoolOr = import(M,OP_NAME , isSymT, isSymT, isSymT);
+    CO3_TO_OR
+#else
+    buildBoolOr = import(M,OP_NAME , isSymT, isSymT, isSymT, symIntT);
+    CO3_SYMID_ARGS((2))
+#endif
     SymOperators.push_back(&buildBoolOr);
-    isSymArgNo["_sym_build_bool_or"] = {0,1};
-    replaceToLogicOr.push_back("_sym_build_bool_or");
+    CO3_SYMVAL_ARGS((0,1))
+#undef OP_NAME
 
-    // logic OR
-    buildBoolXor = import(M, "_sym_build_bool_xor", isSymT, isSymT, isSymT);
+
+
+#define OP_NAME "_sym_build_bool_xor"
+#if defined(CO3_REPLACE)
+    buildBoolXor = import(M, OP_NAME, isSymT, isSymT, isSymT);
+    CO3_TO_OR
+#else
+    buildBoolXor = import(M, OP_NAME, isSymT, isSymT, isSymT, symIntT);
+    CO3_SYMID_ARGS((2))
+#endif
     SymOperators.push_back(&buildBoolXor);
-    isSymArgNo["_sym_build_bool_xor"] = {0,1};
-    replaceToLogicOr.push_back("_sym_build_bool_xor");
+    CO3_SYMVAL_ARGS((0,1))
+#undef OP_NAME
+
 
     // should always be the same with the input
-    buildBoolToBits = import(M, "_sym_build_bool_to_bits", isSymT, isSymT, int8T);
+#define OP_NAME "_sym_build_bool_to_bits"
+#if defined(CO3_REPLACE)
+    buildBoolToBits = import(M, OP_NAME, isSymT, isSymT, int8T);
+    CO3_TO_INPUT
+#else
+    buildBoolToBits = import(M, OP_NAME, isSymT, isSymT, int8T, symIntT);
+    CO3_SYMID_ARGS((2))
+#endif
     SymOperators.push_back(&buildBoolToBits);
-    isSymArgNo["_sym_build_bool_to_bits"] = {0};
-    constArgNo["_sym_build_bool_to_bits"] = {1};
-    replaceToInput.push_back("_sym_build_bool_to_bits");
+    CO3_SYMVAL_ARGS((0))
+    CO3_CONST_ARGS((1))
+#undef OP_NAME
 
-    // no ret
-    pushPathConstraint = import(M, "_sym_build_path_constraint", voidT, isSymT, IRB.getInt1Ty(), symIntT);
+
+#define OP_NAME "_sym_build_path_constraint"
+    pushPathConstraint = import(M, OP_NAME, voidT, isSymT, IRB.getInt1Ty(), symIntT);
     SymOperators.push_back(&pushPathConstraint);
-    isSymArgNo["_sym_build_path_constraint"] = {0};
-    runtimeArgNo["_sym_build_path_constraint"] = {1};
-    //constArgNo["_sym_build_path_constraint"] = {2};
-    symIdArgNo["_sym_build_path_constraint"] = {2};
+    CO3_SYMVAL_ARGS((0))
+    CO3_RUNTIME_ARGS((1))
+    CO3_SYMID_ARGS((2))
+#undef OP_NAME
 
 
-    // no ret
-    setParameterExpression = import(M, "_sym_set_parameter_expression", voidT, int8T, isSymT);
+#define OP_NAME "_sym_set_parameter_expression"
+#if defined(CO3_REPLACE)
+    setParameterExpression = import(M, OP_NAME, voidT, int8T, isSymT);
+#else
+    setParameterExpression = import(M, OP_NAME, voidT, int8T, isSymT, symIntT);
+    CO3_SYMID_ARGS((2))
+#endif
     SymOperators.push_back(&setParameterExpression);
-    constArgNo["_sym_set_parameter_expression"] = {0};
-    isSymArgNo["_sym_set_parameter_expression"] = {1};
+    CO3_CONST_ARGS((0))
+    CO3_SYMVAL_ARGS((1))
+#undef OP_NAME
 
+
+#define OP_NAME "_sym_get_parameter_expression"
     //see if the para is symbolic or not
-    getParameterExpression = import(M, "_sym_get_parameter_expression", isSymT, int8T);
+#if defined(CO3_REPLACE)
+    getParameterExpression = import(M, OP_NAME , isSymT, int8T);
+#else
+    getParameterExpression = import(M, OP_NAME , isSymT, int8T,symIntT);
+    CO3_SYMID_ARGS((1))
+#endif
     SymOperators.push_back(&getParameterExpression);
-    constArgNo["_sym_get_parameter_expression"] = {0};
+    CO3_CONST_ARGS((0))
+#undef OP_NAME
 
-    // not ret
-    setReturnExpression = import(M, "_sym_set_return_expression", voidT, isSymT);
+
+#define OP_NAME "_sym_set_return_expression"
+#if defined(CO3_REPLACE)
+    setReturnExpression = import(M, OP_NAME , voidT, isSymT);
+#else
+    setReturnExpression = import(M, OP_NAME , voidT, isSymT, symIntT);
+    CO3_SYMID_ARGS((1))
+#endif
     SymOperators.push_back(&setReturnExpression);
-    isSymArgNo["_sym_set_return_expression"] = {0};
+    CO3_SYMVAL_ARGS((0))
+#undef OP_NAME
 
-    //see if the return val is symbolic or not
-    getReturnExpression = import(M, "_sym_get_return_expression", isSymT);
+
+
+#define OP_NAME "_sym_get_return_expression"
+#if defined(CO3_REPLACE)
+    getReturnExpression = import(M, OP_NAME, isSymT);
+#else
+    getReturnExpression = import(M, OP_NAME, isSymT, symIntT);
+    CO3_SYMID_ARGS((0))
+#endif
     SymOperators.push_back(&getReturnExpression);
+#undef OP_NAME
 
 
-    // given the address, we need to check the src is symbolic or not inside this fuction
-    memcpy = import(M, "_sym_build_memcpy", voidT, ptrT, ptrT, intPtrType, symIntT);
+#define OP_NAME "_sym_build_memcpy"
+    memcpy = import(M, OP_NAME, voidT, ptrT, ptrT, intPtrType, symIntT);
     SymOperators.push_back(&memcpy);
-    runtimeArgNo["_sym_build_memcpy"] = {0,1,2};
-    //constArgNo["_sym_build_memcpy"] = {};
-    symIdArgNo["_sym_build_memcpy"] = {3};
+    CO3_RUNTIME_ARGS((0,1,2))
+    CO3_SYMID_ARGS((3))
+#undef OP_NAME
 
+
+
+#define OP_NAME "_sym_build_memset"
     // the 1st para is a physical address
     // the 2nd para is actually a sym var which needs to be assigned with an ID
-    memset = import(M, "_sym_build_memset", voidT, ptrT, isSymT, intPtrType, symIntT);
+    memset = import(M, OP_NAME, voidT, ptrT, isSymT, intPtrType, symIntT);
     SymOperators.push_back(&memset);
-    runtimeArgNo["_sym_build_memset"] = {0,2};
-    isSymArgNo["_sym_build_memset"] = {1};
-    constArgNo["_sym_build_memset"] = {};
-    symIdArgNo["_sym_build_memset"] = {3};
+    CO3_RUNTIME_ARGS((0,2))
+    CO3_SYMVAL_ARGS((1))
+    CO3_SYMID_ARGS((3))
+#undef OP_NAME
 
+
+
+#define OP_NAME "_sym_build_memmove"
     // the first 2 parameters are all physical address
-    memmove = import(M, "_sym_build_memmove", voidT, ptrT, ptrT, intPtrType, symIntT);
+    memmove = import(M,OP_NAME , voidT, ptrT, ptrT, intPtrType, symIntT);
     SymOperators.push_back(&memmove);
-    runtimeArgNo["_sym_build_memmove"] = {0,1};
-    constArgNo["_sym_build_memmove"] = {2};
-    symIdArgNo["_sym_build_memmove"] = {3};
+    CO3_RUNTIME_ARGS((0,1))
+    CO3_CONST_ARGS((2))
+    CO3_SYMID_ARGS((3))
+#undef OP_NAME
 
+
+#define OP_NAME "_sym_build_read_memory"
     // inside the function, it needs to check if the given memory area is symbolic or not
-    readMemory = import(M, "_sym_build_read_memory", isSymT, intPtrType, intPtrType, int8T, symIntT);
+    readMemory = import(M, OP_NAME, isSymT, intPtrType, intPtrType, int8T, symIntT);
     SymOperators.push_back(&readMemory);
-    runtimeArgNo["_sym_build_read_memory"] = {0};
-    constArgNo["_sym_build_read_memory"] = {1,2};
-    symIdArgNo["_sym_build_read_memory"] = {3};
+    CO3_RUNTIME_ARGS((0))
+    CO3_CONST_ARGS((1,2))
+    CO3_SYMID_ARGS((3))
+#undef OP_NAME
 
+
+#define OP_NAME "_sym_build_write_memory"
     // need to check if the given memory area as well as the written val is symbolic or not
-    writeMemory = import(M, "_sym_build_write_memory", voidT, intPtrType, intPtrType, isSymT, int8T, symIntT);
+    writeMemory = import(M, OP_NAME, voidT, intPtrType, intPtrType, isSymT, int8T, symIntT);
     SymOperators.push_back(&writeMemory);
-    runtimeArgNo["_sym_build_write_memory"] = {0};
-    constArgNo["_sym_build_write_memory"] = {1,3};
-    isSymArgNo["_sym_build_write_memory"] = {2};
-    symIdArgNo["_sym_build_write_memory"] = {4};
+    CO3_RUNTIME_ARGS((0))
+    CO3_CONST_ARGS((1,3))
+    CO3_SYMVAL_ARGS((2))
+    CO3_SYMID_ARGS((4))
+#undef OP_NAME
 
 
-    buildZeroBytes = import(M, "_sym_build_zero_bytes", isSymT, intPtrType);
+#define OP_NAME "_sym_build_zero_bytes"
+#if defined(CO3_REPLACE)
+    buildZeroBytes = import(M, OP_NAME , isSymT, intPtrType);
+    CO3_TO_TRUE
+#else
+    buildZeroBytes = import(M, OP_NAME , isSymT, intPtrType, symIntT);
+    CO3_SYMID_ARGS((1))
+#endif
     SymOperators.push_back(&buildZeroBytes);
-    constArgNo["_sym_build_zero_bytes"] = {0};
-    replaceToTrue.push_back("_sym_build_zero_bytes");
+    CO3_CONST_ARGS((0))
+#undef OP_NAME
 
-    notifySelect = import(M, "_sym_notify_select", isSymT, IRB.getInt1Ty(), isSymT, isSymT,ptrT,int8T,symIntT);
+
+#define OP_NAME "_sym_notify_select"
+    notifySelect = import(M, OP_NAME, isSymT, IRB.getInt1Ty(), isSymT, isSymT,ptrT,int8T,symIntT);
     SymOperators.push_back(&notifySelect);
-    runtimeArgNo["_sym_notify_select"] = {0};
-    isSymArgNo["_sym_notify_select"] = {1,2};
-    skipArgNo["_sym_notify_select"] = {3,4};
-    symIdArgNo["_sym_notify_select"] = {5};
+    CO3_RUNTIME_ARGS((0))
+    CO3_SYMVAL_ARGS((1,2))
+    CO3_SKIP_ARGS((3,4))
+    CO3_SYMID_ARGS((5))
+#undef OP_NAME
 
 
-    buildInsert = import(M, "_sym_build_insert", isSymT, isSymT, isSymT, int_type, int8T);
+#define OP_NAME "_sym_build_insert"
+#if defined(CO3_REPLACE)
+    buildInsert = import(M, OP_NAME, isSymT, isSymT, isSymT, int_type, int8T);
+    CO3_TO_OR
+#else
+    buildInsert = import(M, OP_NAME, isSymT, isSymT, isSymT, int_type, int8T, symIntT);
+    CO3_SYMID_ARGS((4))
+#endif
     SymOperators.push_back(&buildInsert);
-    isSymArgNo["_sym_build_insert"] = {0,1};
-    constArgNo["_sym_build_insert"] = {2,3};
-    replaceToLogicOr.push_back("_sym_build_insert");
+    CO3_SYMVAL_ARGS((0,1))
+    CO3_CONST_ARGS((2,3))
+#undef OP_NAME
 
-    // same with input
-    buildExtract = import(M, "_sym_build_extract", isSymT, isSymT, int_type, int_type, int8T);
+
+#define OP_NAME "_sym_build_extract"
+#if defined(CO3_REPLACE)
+    buildExtract = import(M, OP_NAME, isSymT, isSymT, int_type, int_type, int8T);
+    CO3_TO_INPUT
+#else
+    buildExtract = import(M, OP_NAME, isSymT, isSymT, int_type, int_type, int8T, symIntT);
+    CO3_SYMID_ARGS((4))
+#endif
     SymOperators.push_back(&buildExtract);
-    isSymArgNo["_sym_build_extract"] = {0};
-    constArgNo["_sym_build_extract"] = {1,2,3};
-    replaceToInput.push_back("_sym_build_extract");
+    CO3_SYMVAL_ARGS((0))
+    CO3_CONST_ARGS((1,2,3))
+#undef OP_NAME
 
-    // just a place-holder, will be removed before lowered to machine code
-    tryAlternative = import(M,"_sym_try_alternative",voidT, isSymT, isSymT,symIntT);
+
+#define OP_NAME "_sym_try_alternative"
+    tryAlternative = import(M, OP_NAME,voidT, isSymT, isSymT,symIntT);
     SymOperators.push_back(&tryAlternative);
-    isSymArgNo["_sym_try_alternative"] = {0,1};
-    symIdArgNo["_sym_try_alternative"] = {2};
-    //replaceToNone.push_back("_sym_try_alternative");
+    CO3_SYMVAL_ARGS((0,1))
+    CO3_SYMID_ARGS((2))
+#undef OP_NAME
 
-    // this notifyPhi is not gonna be passed to forceBuildRuntimeCall anyway
-    notifyPhi = import(M, "_sym_notify_phi", voidT, int8T, symIntT,isSymT,ptrT,int8T);
+
+
+#define OP_NAME "_sym_notify_phi"
+    notifyPhi = import(M, OP_NAME, voidT, int8T, symIntT,isSymT,ptrT,int8T);
     SymOperators.push_back(&notifyPhi);
-    runtimeArgNo["_sym_notify_phi"] = {0};
-    symIdArgNo["_sym_notify_phi"] = {1};
-    // control-flow related
+    CO3_RUNTIME_ARGS((0))
+    CO3_SYMID_ARGS((1))
+#undef OP_NAME
 
-
-    notifyCall = import(M, "_sym_notify_call", voidT, int8T);
+#define OP_NAME "_sym_notify_call"
+    notifyCall = import(M,OP_NAME , voidT, int8T);
     SymOperators.push_back(&notifyCall);
-    runtimeArgNo["_sym_notify_call"] = {0};
+    CO3_RUNTIME_ARGS((0))
+#undef OP_NAME
 
-    notifyFunc = import(M,"_sym_notify_func",voidT,int8T);
+
+#define OP_NAME "_sym_notify_func"
+    notifyFunc = import(M,OP_NAME,voidT,int8T);
+    SymOperators.push_back(&notifyFunc);
+    CO3_RUNTIME_ARGS((0))
+#undef OP_NAME
 
 
-    notifyRet = import(M, "_sym_notify_ret", voidT, int8T);
+#define OP_NAME "_sym_notify_ret"
+    notifyRet = import(M, OP_NAME, voidT, int8T);
     SymOperators.push_back(&notifyRet);
-    runtimeArgNo["_sym_notify_ret"] = {0};
+    CO3_RUNTIME_ARGS((0))
+#undef OP_NAME
 
-    notifyBasicBlock = import(M, "_sym_notify_basic_block", voidT, int16T, isSymT,ptrT,int8T );
+
+#define OP_NAME "_sym_notify_basic_block"
+    notifyBasicBlock = import(M, OP_NAME, voidT, int16T, isSymT,ptrT,int8T );
     SymOperators.push_back(&notifyBasicBlock);
-    runtimeArgNo["_sym_notify_basic_block"] = {0};
+    CO3_RUNTIME_ARGS((0))
+    CO3_SYMVAL_ARGS((1))
+#undef OP_NAME
 
 
+
+// OK, looks like we cannot have #define inside the #define macro
+
+#if defined(CO3_REPLACE)
 #define LOAD_BINARY_OPERATOR_HANDLER(constant, name)                           \
   binaryOperatorHandlers[Instruction::constant] =                              \
       import(M, "_sym_build_" #name, isSymT, isSymT, isSymT);                  \
@@ -390,6 +660,22 @@ Runtime::Runtime(Module &M) {
       import(M, "_sym_build_" #name, isSymT, isSymT, isSymT);                  \
       isSymArgNo["_sym_build_" #name] = {0,1};                                \
       replaceToFalse.push_back("_sym_build_" #name);
+#else
+#define LOAD_BINARY_OPERATOR_HANDLER(constant, name)                           \
+    binaryOperatorHandlers[Instruction::constant] =                              \
+      import(M, "_sym_build_" #name, isSymT, isSymT, isSymT, symIntT);                  \
+      isSymArgNo["_sym_build_" #name] = {0,1};                                 \
+      symIdArgNo["_sym_build_" #name] = {2};
+
+#define LOAD_BINARY_OPERATOR_HANDLER_Unsupported(constant, name)                           \
+  binaryOperatorHandlers[Instruction::constant] =                              \
+      import(M, "_sym_build_" #name, isSymT, isSymT, isSymT,symIntT);                      \
+      isSymArgNo["_sym_build_" #name] = {0,1};                                             \
+      symIdArgNo["_sym_build_" #name] = {2};
+#endif
+
+
+
 
   LOAD_BINARY_OPERATOR_HANDLER(Add, add)
   LOAD_BINARY_OPERATOR_HANDLER(Sub, sub)
@@ -421,6 +707,7 @@ Runtime::Runtime(Module &M) {
 #endif
 #undef LOAD_BINARY_OPERATOR_HANDLER
 
+#if defined(CO3_REPLACE)
 #define LOAD_COMPARISON_HANDLER(constant, name)                                \
   comparisonHandlers[CmpInst::constant] =                                      \
       import(M, "_sym_build_" #name, isSymT, isSymT, isSymT);                  \
@@ -432,6 +719,20 @@ Runtime::Runtime(Module &M) {
       import(M, "_sym_build_" #name, isSymT, isSymT, isSymT);                  \
       isSymArgNo["_sym_build_" #name] = {0,1};                                \
        replaceToFalse.push_back("_sym_build_" #name);
+#else
+#define LOAD_COMPARISON_HANDLER(constant, name)                                \
+  comparisonHandlers[CmpInst::constant] =                                      \
+      import(M, "_sym_build_" #name, isSymT, isSymT, isSymT,symIntT);           \
+      isSymArgNo["_sym_build_" #name] = {0,1};                                  \
+      symIdArgNo["_sym_build_" #name] = {2};
+
+#define LOAD_COMPARISON_HANDLER_Unsupported(constant, name)                                \
+  comparisonHandlers[CmpInst::constant] =                                      \
+      import(M, "_sym_build_" #name, isSymT, isSymT, isSymT,symIntT);                  \
+      isSymArgNo["_sym_build_" #name] = {0,1};                                             \
+      symIdArgNo["_sym_build_" #name] = {2};
+#endif
+
 
   LOAD_COMPARISON_HANDLER(ICMP_EQ, equal)
   LOAD_COMPARISON_HANDLER(ICMP_NE, not_equal)
@@ -478,10 +779,12 @@ Runtime::Runtime(Module &M) {
 #endif
 #undef LOAD_COMPARISON_HANDLER
 
+#if (false)
     spearReport1 = import(M, "_spear_report1", voidT,symIntT, ptrT);
     spearReport2 = import(M, "_spear_report2", voidT,symIntT, ptrT,ptrT);
     spearReport3 = import(M, "_spear_report3", voidT,symIntT, ptrT,ptrT,ptrT);
     spearReport4 = import(M, "_spear_report4", voidT,symIntT, ptrT,ptrT,ptrT,ptrT);
+#endif
 }
 
 

@@ -1,3 +1,19 @@
+# This file is part of CO3.
+#
+# CO3 is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# CO3 is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# CO3. If not, see <https://www.gnu.org/licenses/>.
+
+
+
 cmake_minimum_required(VERSION 3.15.3)
 
 # Optional: print out extra messages to see what is going on. Comment it to have less verbose messages
@@ -5,7 +21,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # enable export of compiler commands to compile_commands.json
 #set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
-option(LLVM_BUILD "USE LLVM instead of ARM to build" OFF)
+option(LLVM_BUILD "USE LLVM instead of ARM to build" ON)
 # Path to toolchain file. This one has to be before 'project()' below
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/../clang.cmake")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -113,14 +129,15 @@ set_property(SOURCE ${FILESTARGET} APPEND PROPERTY COMPILE_OPTIONS
 )
 
 
-add_library(${CMAKE_PROJECT_NAME} OBJECT ${FILESTARGET})
+add_library(${CMAKE_PROJECT_NAME} STATIC  ${FILESTARGET})
 
 
 
 set(CO3_OPTIMIZATION_FLAGS -Os)
 
 set(CO3_COMPILE_OPTIONS
-  -D__SAMD51J19A__ 
+        ${ARCH_CFLAGS}
+        -D__SAMD51J19A__
   -x c 
   -c
   -DXPRJ_Default=Default
@@ -128,7 +145,7 @@ set(CO3_COMPILE_OPTIONS
   -mlong-calls 
   -Wall
   ${CO3_OPTIMIZATION_FLAGS}
-  ${ARCH_CFLAGS} 
+
 )
 
 if(${LLVM_BUILD})
@@ -140,7 +157,8 @@ add_compile_options(
 )
 
 set(CO3_TARGET_COMPILE_OPTIONS
-  -D__SAMD51J19A__ 
+  ${ARCH_CFLAGS}
+  -D__SAMD51J19A__
   -x c 
   -c
   -DXPRJ_Default=Default
@@ -148,7 +166,6 @@ set(CO3_TARGET_COMPILE_OPTIONS
   -mlong-calls 
   -Wall
   ${CO3_OPTIMIZATION_FLAGS}
-  ${ARCH_CFLAGS} 
 )
 
 if(${LLVM_BUILD})

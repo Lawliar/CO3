@@ -31,68 +31,13 @@
 #include "dfg/DataFlowGraph.h"
 #include "Runtime.h"
 
+
 extern std::string functionName;
+
 class Symbolizer : public llvm::InstVisitor<Symbolizer> {
 public:
-  explicit Symbolizer(llvm::Module &M, llvm::LoopInfo& LI)
-      : runtime(M), loopinfo(LI), dataLayout(M.getDataLayout()),
-        ptrBits(M.getDataLayout().getPointerSizeInBits()),
-        ptrBytes(M.getDataLayout().getPointerSize()),
-        maxNumSymVars((1 << llvm::IntegerType::getInt16Ty(M.getContext())->getBitWidth()) - 1),
-        g(true)
-        {
-            intPtrType = M.getDataLayout().getIntPtrType(M.getContext());
-            voidType = llvm::Type::getVoidTy(M.getContext());
-            int8Type = llvm::Type::getInt8Ty(M.getContext());
-            isSymType = llvm::Type::getInt1Ty(M.getContext());
-            symIntType = llvm::Type::getInt16Ty(M.getContext());
-
-            if(M.getDataLayout().isLegalInteger(64)){
-                archIntType = llvm::Type::getInt64Ty(M.getContext());
-            }else if(M.getDataLayout().isLegalInteger(32)){
-                archIntType = llvm::Type::getInt32Ty(M.getContext());
-            }else if(M.getDataLayout().isLegalInteger(16)){
-                archIntType = llvm::Type::getInt16Ty(M.getContext());
-            }else{
-                llvm_unreachable("integer width less than 16 bit?");
-            }
-      assert(ptrBytes <= 8 );
-      for(auto eachIntFunction : kInterceptedFunctions){
-          std::string newFuncName = kInterceptedFunctionPrefix.str() + eachIntFunction.str() ;
-          size_t len = newFuncName.size();
-          // I know, I know..
-          char * buf = (char *)malloc(len+ 1);
-          snprintf(buf, len + 1, "%s%s",kInterceptedFunctionPrefix.str().c_str(),eachIntFunction.str().c_str());
-          //buf[len] = '\0';
-          interpretedFunctionNames.insert(buf);
-      }
-  };
-  ~Symbolizer(){
-      symbolicExpressions.clear();
-      symbolicIDs.clear();
-      for(auto eachSymPhi: phiSymbolicIDs){
-          delete eachSymPhi.second;
-      }
-      symIdRedirect.clear();
-      phiSymbolicIDs.clear();
-      for(auto eachCallToSetPara: callToSetParaMap){
-          eachCallToSetPara.second.clear();
-      }
-      callToCallId.clear();
-      callToSetParaMap.clear();
-      phiNodes.clear();
-      splited2OriginalBB.clear();
-      originalBB2ID.clear();
-      stageSettingOperations.clear();
-      perBBConcretenessChecking.clear();
-
-      loopBB2Offset.clear();
-      truePhi2Offset.clear();
-      for(auto eachTryAltUnit : tryAlternatives){
-          delete eachTryAltUnit;
-      }
-      tryAlternatives.clear();
-  }
+  explicit Symbolizer(llvm::Module &M, llvm::LoopInfo& LI);
+  ~Symbolizer();
 
   /// Insert code to obtain the symbolic expressions for the function arguments.
   void initializeFunctions(llvm::Function &F);
@@ -165,10 +110,14 @@ public:
     SymDepGraph::vertex_t addConstantIntVertice(llvm::ConstantInt*);
     SymDepGraph::vertex_t addConstantFloatVertice(llvm::ConstantFP*);
     SymDepGraph::vertex_t addRuntimeVertice(llvm::Value*, unsigned);
-  void createDFGAndReplace(llvm::Function&,std::string);
-  void insertNotifyBasicBlock(llvm::Function&);
+    void createDFGAndReplace(llvm::Function&,std::string);
+    void insertNotifyBasicBlock(llvm::Function&);
+#if defined(CO3_MCU)
+#else
+    void ProEpiLogue(llvm::Function&);
+#endif
     void RecursivePrintEdges(std::map<llvm::BasicBlock*, unsigned long>& basicBlockMap, llvm::raw_fd_ostream & O, llvm::DomTreeNodeBase<llvm::BasicBlock> * root, unsigned level);
-  void OutputCFG(llvm::Function&,llvm::DominatorTree&, llvm::PostDominatorTree&,std::string,std::string,std::string);
+    void OutputCFG(llvm::Function&,llvm::DominatorTree&, llvm::PostDominatorTree&,std::string,std::string,std::string);
   //
   // Implementation of InstVisitor
   //
@@ -391,7 +340,6 @@ public:
         }
         return false;
     }
-    unsigned availableSymID = 1;
 
     unsigned int getNextID(){
         unsigned id;
@@ -445,6 +393,7 @@ public:
             symID(symID), BBID(BBID), symExpr(symExpr), concreteExpr(concreteExpr){}
 
     };
+
     class PhiStatus{
     public:
         enum PhiStatusKind{
@@ -459,6 +408,23 @@ public:
         unsigned symid;
         PhiStatus(PhiStatusKind K, unsigned symid): Kind(K), symid(symid){}
         virtual ~PhiStatus() {}
+        friend llvm::raw_ostream & operator<<(llvm::raw_ostream &out, PhiStatus const& data) {
+            out << data.symid<<",";
+            switch (data.getKind()) {
+                case PhiStatus::PS_TruePhi:
+                    out << "TruePhi";
+                    break;
+                case PhiStatus::PS_FalsePhiRoot:
+                    out << "FalsePhiRoot";
+                    break;
+                case PhiStatus::PS_FalsePhiLeaf:
+                    out << "FalsePhiLeaf";
+                    break;
+                default:
+                    break;
+            }
+            return out;
+        }
     };
     class TruePhi: public PhiStatus{
     public:
@@ -489,24 +455,10 @@ public:
             }
         }
     };
-    void assignSymIDPhi(llvm::PHINode* symPhi, PhiStatus* phiStatus){
-        auto exprIt = phiSymbolicIDs.find(symPhi);
-        assert(exprIt == phiSymbolicIDs.end());
-        phiSymbolicIDs[symPhi] = phiStatus;
-    }
-    llvm::Value* getSymExprBySymId(unsigned symid){
-        for(auto eachSymExpr: symbolicIDs){
-            if(eachSymExpr->second == symid){
-                return eachSymExpr->first;
-            }
-        }
-        for(auto eachSymPhi : phiSymbolicIDs){
-            if(eachSymPhi->second->symid == symid){
-                return eachSymPhi->first;
-            }
-        }
-        return nullptr;
-    }
+
+    bool isStaticallyConcrete(llvm::Value*);
+    void assignSymIDPhi(llvm::PHINode* symPhi, PhiStatus* phiStatus);
+    void deleteSymPhi(llvm::PHINode* symPhi);
     void setCallInstId(llvm::CallInst* notifyCall, llvm::ConstantInt* con){
         assert(callToCallId.find(notifyCall) == callToCallId.end());
         callToCallId[notifyCall] = con;
@@ -519,17 +471,9 @@ public:
             callToSetParaMap[notifyCall].push_back(setPara);
         }
     }
-    bool tryGetSymExpr(llvm::Value * V){
-        auto expr = getSymbolicExpression(V);
-        if (auto symExpr = llvm::dyn_cast<llvm::ConstantInt>(expr); symExpr != nullptr && symExpr->isZero() ){
-            return false;
-        }else{
-            return true;
-        }
+    bool isLittleEndian(llvm::Type *type) {
+        return (!type->isAggregateType() && dataLayout.isLittleEndian());
     }
-  bool isLittleEndian(llvm::Type *type) {
-    return (!type->isAggregateType() && dataLayout.isLittleEndian());
-  }
     llvm::BasicBlock* findExistingBB(unsigned,std::set<llvm::BasicBlock*>&);
     void outputDebugCFG(llvm::Function*);
     unsigned GetBBID(llvm::BasicBlock* BB){
@@ -575,7 +519,7 @@ public:
                    llvm::ArrayRef<std::pair<llvm::Value *, bool>> args) {
     if (std::all_of(args.begin(), args.end(),
                     [this](std::pair<llvm::Value *, bool> arg) {
-                      return (getSymbolicExpression(arg.first) == nullptr);
+                      return (getSymbolicExpression(arg.first) == constFalse );
                     })) {
       return {};
     }
@@ -641,7 +585,7 @@ public:
           output<<eachSymOp->second<<"|"<<*eachSymOp->first<<'\n';
       }
       for(auto eachSymOp : phiSymbolicIDs) {
-          output << eachSymOp->second->symid << "|" << *eachSymOp->first << "|";
+          output << eachSymOp.second->symid << "|" << *eachSymOp.first << "|";
           if (llvm::isa<TruePhi>(eachSymOp.second)) {
               output << "true,";
           } else{
@@ -665,13 +609,7 @@ public:
           output<<"tryAlt:symid:"<<tryAltSymId<<",bbid:"<<tryAltBBid<<",symop:"<<*operandSym<<",op:"<<*operand<<'\n';
       }*/
   }
-  unsigned numBits2NumBytes(unsigned numBits){
-      unsigned ret = numBits / 8;
-      if(numBits % 8 != 0){
-          ret += 1;
-      }
-      return ret;
-  }
+    unsigned numBits2NumBytes(unsigned numBits);
 
   /// Compute the offset of a member in a (possibly nested) aggregate.
   uint64_t aggregateMemberOffset(llvm::Type *aggregateType,
@@ -679,9 +617,11 @@ public:
   void addTryAlternativeToTheGraph();
   const Runtime runtime;
   const llvm::LoopInfo& loopinfo;
+  llvm::BasicBlock* exit_bb = nullptr;
+  llvm::ReturnInst* return_inst = nullptr;
   /// The data layout of the currently processed module.
   const llvm::DataLayout &dataLayout;
-
+  unsigned availableSymID;
   /// The width in bits of pointers in the module.
   unsigned ptrBits;
   unsigned ptrBytes;
@@ -694,6 +634,7 @@ public:
   llvm::IntegerType * int8Type = nullptr;
   llvm::IntegerType * isSymType = nullptr;
   llvm::IntegerType * symIntType = nullptr;
+  llvm::ConstantInt * constFalse = nullptr;
   /// Mapping from SSA values to symbolic expressions.
   ///
   /// For pointer values, the stored value is an expression describing the value
@@ -706,10 +647,10 @@ public:
   llvm::ValueMap<llvm::Value *, llvm::Value *> symbolicExpressions;
   /// Maps symbolic value to its IDs
   llvm::ValueMap<llvm::CallInst *, unsigned int> symbolicIDs;
+  /// Maps phi nodes to its IDs
+  std::map<llvm::PHINode* , PhiStatus* > phiSymbolicIDs;
   // redirect the symID into a new one(as we are finer-grained by symcc(e.g, they didn't distinguish different branches for the SwitchInst, but we need to))
   std::map<unsigned int, unsigned int> symIdRedirect;
-  /// Maps phi nodes to its IDs
-  llvm::ValueMap<llvm::PHINode* , PhiStatus* > phiSymbolicIDs;
   //map call inst to its corresponding set paras
   std::map<llvm::CallInst*, llvm::ConstantInt* > callToCallId;
   std::map<llvm::CallInst*, llvm::SmallVector<llvm::CallInst*, 8> > callToSetParaMap;

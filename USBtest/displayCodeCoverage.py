@@ -1,3 +1,19 @@
+# This file is part of CO3.
+#
+# CO3 is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# CO3 is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# CO3. If not, see <https://www.gnu.org/licenses/>.
+
+
+
 from IPython import embed
 from enum import IntEnum
 import struct
@@ -62,6 +78,7 @@ indent = 0
 def parsePackage(package,parseStart = False):
     cur = 0
     result = []
+    ended = False
     if(parseStart):
         assert(package[cur] == MsgTypes.SYM_INIT)
         addr  = int.from_bytes(package[cur + 1: cur + 5],byteorder='little')
@@ -72,13 +89,14 @@ def parsePackage(package,parseStart = False):
             cur += 1
             #print("SymEnd")
             assert(indent == 0)
+            ended = True
         else:
             r = hex(int.from_bytes(package[cur:cur+4],byteorder='little'))
             #print("{}".format(r))
             assert(package[cur + 4] == 10) ## ascii for '\n
             cur += 5
             result.append(r)
-    return result
+    return result, ended
     
 
 def main(data):
@@ -92,7 +110,8 @@ def main(data):
         payload_len = package_len - 1
         package = data[cur + 1 : cur + 1 +  payload_len]
         try:
-            result += parsePackage(package,parseStart=parse_start)
+            bbs,ended = parsePackage(package,parseStart=parse_start)
+            result += bbs
         except:
             print("parsing wrong")
             embed()
