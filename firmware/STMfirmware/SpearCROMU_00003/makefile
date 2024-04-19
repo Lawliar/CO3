@@ -1,3 +1,18 @@
+
+# This file is part of CO3.
+#
+# CO3 is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# CO3 is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# CO3. If not, see <https://www.gnu.org/licenses/>.
+
 ROOT_DIR := $(abspath ..)
 PROJ_DIR := $(abspath .)
 PROJ_NAME := $(notdir $(PROJ_DIR))
@@ -15,14 +30,14 @@ CLI_LDFLAG_OVERRIDES ?=
 # our path by default but allow things to be easily overridden, i.e:
 #
 # COMPILER=<PATH_TO_OTHER_GCC_VERSION>/arm-none-eabi-gcc make
-LLVM_TOOLCHAIN := /home/lcm/github/toolchains/x86_64/clang+llvm-13.0.0-x86_64-linux-gnu-ubuntu-20.04
+LLVM_TOOLCHAIN := /home/lcm/github/toolchains/x86_64/clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04
 
 GCC_COMPILER        := arm-none-eabi-gcc
 CLANG_COMPILER      := $(LLVM_TOOLCHAIN)/bin/clang
 OPT                 := $(LLVM_TOOLCHAIN)/bin/opt
 LLC                 := $(LLVM_TOOLCHAIN)/bin/llc
 LLVM_CONFIG         := $(LLVM_TOOLCHAIN)/bin/llvm-config
-INSTRUMENTATION_LIB := /home/lcm/github/spear/spear-code/pass/symbolizer/cmake-build-debug/libSymbolize.so 
+INSTRUMENTATION_LIB := /home/lcm/github/spear/spear-code/pass/symbolizer/build_replace/libSymbolize.so 
 #COMPILER ?= arm-none-eabi-gcc
 CC := $(CLANG_COMPILER)
 
@@ -139,7 +154,8 @@ $(FREERTOS_DIR)/portable/MemMang/heap_4.c
 COREMARK_HAL_DIR := $(PROJ_DIR)/Target
 
 COREMARK_HAL_INCLUDE_DIR := \
--I$(COREMARK_HAL_DIR)/Inc
+-I$(COREMARK_HAL_DIR)/Inc \
+-I${PROJ_DIR}/CommonCO3
 
 COREMARK_HAL_SOURCES := \
 $(COREMARK_HAL_DIR)/Src/libcgc.c \

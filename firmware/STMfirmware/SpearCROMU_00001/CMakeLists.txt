@@ -1,3 +1,17 @@
+# This file is part of CO3.
+#
+# CO3 is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# CO3 is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# CO3. If not, see <https://www.gnu.org/licenses/>.
+
 cmake_minimum_required(VERSION 3.15.3)
 
 # Optional: print out extra messages to see what is going on. Comment it to have less verbose messages
@@ -8,6 +22,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # Path to toolchain file. This one has to be before 'project()' below
 
+set(CO3_INSTRUMENT ON)
 set(CO3_REPLACE OFF)
 
 
@@ -125,7 +140,6 @@ get_filename_component(
 set(CFLAGS
   -Os
   -std=gnu11
-  -g
   -ffunction-sections
   -fdata-sections
   -Wall
