@@ -1,9 +1,23 @@
+# This file is part of CO3.
+#
+# CO3 is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# CO3 is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# CO3. If not, see <https://www.gnu.org/licenses/>.
+
 import os,re,math,subprocess
 from IPython import embed
 
 benchmark =  "CROMU_00001"
 NO_SHADOW = False
-NO_REPLACE = False
+NO_REPLACE = True
 time_budget = 60 * 60 * 24 # in seconds
 serial_port = os.path.join("/","dev","ttyACM1")
 bb_serial_port = os.path.join("/","dev","ttyACM3")
@@ -59,6 +73,8 @@ def estimate_inputs_needed(num_execute, time_cost, time_budget):
 def get_total_time_out_err(input):
     splitted = input.split(b'\n')
     cur = len(splitted) - 1
+    if(cur == 0 and splitted[0] == b''):
+        return 0
     while True:
         try:
             s = splitted[cur].decode("ascii")
@@ -77,7 +93,7 @@ def process_co3_output(input):
     num_bytes = 0
     while True:
         if(cur < 0):
-            return -1, -1, -1
+            return building_time, receiving_time, num_bytes
         try:
             s = splitted[cur].decode("ascii")
         except IndexError as e :

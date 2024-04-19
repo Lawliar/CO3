@@ -1,12 +1,29 @@
+# This file is part of CO3.
+#
+# CO3 is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# CO3 is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# CO3. If not, see <https://www.gnu.org/licenses/>.
+
+
 from conf import time_budget, zfill_len,get_highest_id,convert_size,fw_coverage_worker,coverage_dir,estimate_inputs_needed
 
 
-benchmark = "PLC"
+benchmark = "ModbusDMA"
 import sys
 
 symbion_dir = "../symbion_concolic"
 sys.path.append(symbion_dir)
-import testPLC as test_mod
+
+#import testPLC as test_mod
+import testModbusDMA as test_mod
 
 import os,shutil,time
 from IPython import embed
@@ -85,7 +102,7 @@ def runSymbion(benchmark):
 
 
             tmp_output_id = get_highest_id(output_dir) + 1
-
+            new_edges = 0
             for each_symbion_output in os.listdir(tmp_output_dir):
                 src_file = os.path.join(tmp_output_dir, each_symbion_output)
                 found_new_edge = False
@@ -103,9 +120,9 @@ def runSymbion(benchmark):
                 dest_file_name = str(tmp_output_id).zfill(zfill_len)
                 tmp_output_id += 1
                 shutil.copyfile(src_file, os.path.join(output_dir, dest_file_name))
+            print("symbion generated {} inputs, {} new edge found\n".format(len(os.listdir(tmp_output_dir)), new_edges))
             shutil.rmtree(tmp_output_dir)
             os.mkdir(tmp_output_dir)
-        it += 1
         batch_input_id_start = batch_input_id_end
         batch_input_id_end = get_highest_id(output_dir) + 1
         if symbion_break:
