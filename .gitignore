@@ -43,3 +43,9 @@ benchmark/
 /firmware/Microchip/SAMD51/dist/
 build_replace/
 build_no_replace/
+*.code-workspace
+
+
+code_coverage/
+symbion_concolic/
+symcc_benchmark/

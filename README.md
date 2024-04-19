@@ -1,15 +1,12 @@
 ## Directory:
 ```
 - USBtest: helper script to send and receive messages through the serial port for debugging purpose. 
-- code_coverage: script that we used to compare code coverage and speed.
 - deps: projects that CO3 is dependent upon (except symcc). 
 - firmware: source code for the firmware images used in the paper.
 - fuzzer: fuzzing and CO3 coordinator script borrowed from SymCC.
 - pass: the LLVM instrumentation pass. 
 - sym_backend: the symbolic constraint builder and solver that are based on CO3's protocol.
 - sym_runtime: the runtime for workstation applications (to interact with the sym_backend). 
-- symbion_concolic: scripts that we use to run symbion in a concolic execution way.
-- symcc_benchmark: benchmark we use to evaluate SymCC.
 - test: visualization code for the SVFG. 
 ```
 ## before you start:
