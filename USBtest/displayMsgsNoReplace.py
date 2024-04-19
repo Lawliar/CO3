@@ -13,7 +13,6 @@
 # CO3. If not, see <https://www.gnu.org/licenses/>.
 
 
-
 from IPython import embed
 from enum import IntEnum
 import struct
@@ -72,54 +71,28 @@ class MsgTypes(IntEnum):
 
 indent = 0
 
+with open("data", "rb") as rfile:
+    data = rfile.read()
+msgs = []
 
 
-
-def parsePackage(package,parseStart = False):
+def parsePackage(package):
     cur = 0
-    result = []
-    ended = False
-    if(parseStart):
-        assert(package[cur] == MsgTypes.SYM_INIT)
-        addr  = int.from_bytes(package[cur + 1: cur + 5],byteorder='little')
-        cur += 5
-        #print("{}SymInit: addr:{}".format(indent * '\t',hex(addr)))
-    while cur < len(package): 
-        if(package[cur] == MsgTypes.SYM_END and cur >= len(package)-4):
-            cur += 1
-            #print("SymEnd")
-            assert(indent == 0)
-            ended = True
+    global indent
+    while cur < len(package):
+        if(package[cur] == MsgTypes.SYM_BLD_INT_1):
+        
         else:
-            r = hex(int.from_bytes(package[cur:cur+4],byteorder='little'))
-            #print("{}".format(r))
-            assert(package[cur + 4] == 10) ## ascii for '\n
-            cur += 5
-            result.append(r)
-    return result, ended
-    
-
-def main(data):
-    cur = 0
-    parse_start = True
-    size = len(data)
-    
-    result = []
-    while cur < size:
-        package_len = data[cur]
-        payload_len = package_len - 1
-        package = data[cur + 1 : cur + 1 +  payload_len]
-        try:
-            bbs,ended = parsePackage(package,parseStart=parse_start)
-            result += bbs
-        except:
-            print("parsing wrong")
             embed()
-        parse_start = False
-        cur =  cur +  package_len
-    return result
-if __name__ == '__main__':
-    with open("data", "rb") as rfile:
-        data = rfile.read()
-    for x in main(data):
-        print(x)
+            assert(False)
+cur = 0
+size = len(data)
+print("total len:{}".format(size))
+while cur < size:
+    package_len = data[cur]
+    payload_len = package_len - 1
+    package = data[cur + 1 : cur + 1 +  payload_len]
+
+    parsePackage(package)
+    cur =  cur +  package_len
+    #print("{}/{}".format(cur,size),end=' ')
