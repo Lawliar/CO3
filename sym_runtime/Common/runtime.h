@@ -1,13 +1,24 @@
-/*
- * runtime.h
- *
- *  Created on: Apr 29, 2022
- *      Author: alejandro
- */
+// This file is part of the CO3 runtime.
+//
+// The CO3 runtime is free software: you can redistribute it and/or modify it
+// under the terms of the GNU Lesser General Public License as published by the
+// Free Software Foundation, either version 3 of the License, or (at your
+// option) any later version.
+//
+// The CO3 runtime is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+// for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with CO3. If not, see <https://www.gnu.org/licenses/>.
+
+
 #ifndef RUNTIME_H_
 #define RUNTIME_H_
 
 #include "CO3CommonRuntime.h"
+#include "wrapped_malloc.h"
 
 #define NUMBER_SYM_PERI           10
 #define NUMBER_PARAMETER_EXP      64
@@ -58,9 +69,6 @@ void _sym_symbolize_memory(char * addr, size_t length, bool DR);
 void _sym_initialize();// allocate the shadow memory, and the space for the return values, parameters
 void _sym_end();
 
-
-
-void sockRec();
 /*
  *
  * https://github.com/RiS3-Lab/spear-writeup/blob/master/log.md?plain=1#L170

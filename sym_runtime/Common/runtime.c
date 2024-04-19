@@ -1,9 +1,19 @@
-/*
- * runtime.h
- *
- *  Created on: Apr 29, 2022
- *      Author: alejandro
- */
+// This file is part of the CO3 runtime.
+//
+// The CO3 runtime is free software: you can redistribute it and/or modify it
+// under the terms of the GNU Lesser General Public License as published by the
+// Free Software Foundation, either version 3 of the License, or (at your
+// option) any later version.
+//
+// The CO3 runtime is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+// for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with CO3. If not, see <https://www.gnu.org/licenses/>.
+
+
 
 #include "runtime.h"
 #include "ProtocolConfig.h"
@@ -51,6 +61,13 @@ uint8_t rxBuffer[RX_BUFFER_SIZE];
 uint32_t rxLen = 0;
 uint8_t  txBuffer[TX_BUFFER_SIZE];
 uint32_t txCur = 0; 
+
+#ifndef CO3_PROJECT_DIR
+    #error "CO3_PROJECT_DIR" not defined
+#else
+    #define xSTR(x) STR(x)
+    #define STR(x) #x
+#endif
 
 
 void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t length, uint16_t symID);
@@ -126,24 +143,47 @@ void txCommandtoMonitor(uint8_t size)
     }
 }
 
-void _sym_initialize()
+void _sym_sanity_check()
 {
+    char funcIDFile[108];
+    sprintf(funcIDFile, "%s%s", xSTR(CO3_PROJECT_DIR), "/spear_func_id.txt");
+    // read from funcID file line by line and see if there is a main
+    FILE *fp = fopen(funcIDFile, "r");
+    if (fp == NULL) {
+        perror("spear_func_id.txt error");
+        exit(1);
+    }
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t read;
+    bool found = false;
+    while ((read = getline(&line, &len, fp)) != -1) {
+        if (strstr(line, "main") != NULL) {
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        fprintf(stderr, "main function not found in spear_func_id.txt\n");
+        exit(1);
+    }
+    fclose(fp);
+    return;
+}
+
+void _sym_initialize(){
     int i;
 #if defined (CO3_NO_SHADOW)
 #else 
     shadowram = (uint32_t *)malloc(SYM_SHADOW_RAM_LENGTH);
     memset((void*)shadowram,0x00,SYM_SHADOW_RAM_LENGTH);
 #endif
-
-    // initialize socket
     for(i=0; i<NUMBER_PARAMETER_EXP; i++)
     {
         parameter_exp[i]=false;
     }
     return_exp = false;
-}
 
-void sockRec(){
     struct sockaddr_un addr;
     sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sockfd < -1) {
@@ -151,13 +191,7 @@ void sockRec(){
         exit(1);
     }
     addr.sun_family = AF_UNIX;
-#ifndef CO3_PROJECT_DIR
-    #error "CO3_PROJECT_DIR" not defined
-#else
-    #define xSTR(x) STR(x)
-    #define STR(x) #x
     sprintf(addr.sun_path, "%s%s", xSTR(CO3_PROJECT_DIR), "/CO3.sock");
-#endif
 
     // create a UNIX socket file and bind to it
     unlink(addr.sun_path);
@@ -527,6 +561,8 @@ void _sym_notify_func(uint8_t call_inst_id)
 }
 
 void _sym_end(){
+    whole_free();
+    
     int msgSize = 0;
     uint8_t msgCode;
     msgSize = SIZE_SYM_END;
