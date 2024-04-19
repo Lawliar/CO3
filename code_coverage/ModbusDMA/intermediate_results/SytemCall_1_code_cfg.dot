@@ -1,3 +1,0 @@
-digraph "CFG for'SytemCall_1_code' function" {
-	1 [shape=record, label="1",id=1,loop=0,entry=1,exit=1];
-}
