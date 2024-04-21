@@ -146,7 +146,7 @@ private:
     void dbgBBLeaves(Val::ValVertexType);
     void dbgBBRoot(Val::ValVertexType);
 #endif
-    void prepareBBTask();
+    void prepareBBTask(RuntimeCFG* cfg, RuntimeSymFlowGraph* dfg,map<RuntimeSymFlowGraph::vertex_t, Val::ValVertexType> & ver2offMap);
     bool sortNonLoopBB(BasicBlockTask*, BasicBlockTask*);
 public:
 
@@ -154,7 +154,6 @@ public:
     SymGraph(unsigned funcID, std::string funcname, std::string cfg, std::string dt, std::string pdt, std::string dfg );
     SymGraph(const SymGraph&);
     ~SymGraph(){
-        ver2offMap.clear();
         symID2offMap.clear();
         for(auto eachBBTask: bbTasks){
             delete eachBBTask.second;
@@ -174,11 +173,7 @@ public:
     // some basic information
     unsigned funcID;
     std::string funcname;
-    RuntimeCFG *cfg;
-    RuntimeSymFlowGraph *dfg;
-
-    // some mapping just to trade space for speed
-    map<RuntimeSymFlowGraph::vertex_t, Val::ValVertexType> ver2offMap;
+    
     map<Val::SymIDType , Val::ValVertexType> symID2offMap;
 
     bool changed = false;

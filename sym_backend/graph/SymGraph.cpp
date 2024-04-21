@@ -50,34 +50,35 @@ set<string> nodesDepOnRuntime;
 
 SymGraph::SymGraph(unsigned funcID, std::string funcname,std::string cfg_filename,std::string dt_filename, std::string pdt_filename, std::string dfg_filename) \
 :funcID(funcID),funcname(funcname),changed(false) {
-    cfg = new RuntimeCFG(cfg_filename,dt_filename, pdt_filename);
-    dfg = new RuntimeSymFlowGraph(dfg_filename);
-    unsigned numNodes = boost::num_vertices(dfg->graph);
+    RuntimeCFG cfg(cfg_filename,dt_filename, pdt_filename);
+    RuntimeSymFlowGraph dfg(dfg_filename);
+    map<RuntimeSymFlowGraph::vertex_t, Val::ValVertexType> ver2offMap;
+    unsigned numNodes = boost::num_vertices(dfg.graph);
     Nodes.assign(numNodes, nullptr);
     RuntimeSymFlowGraph::vertex_it dfg_vi, dfg_vi_end;
     unsigned cur = 0;// must start from 0
-    for (boost::tie(dfg_vi, dfg_vi_end) = boost::vertices(dfg->graph); dfg_vi != dfg_vi_end; ++dfg_vi){
+    for (boost::tie(dfg_vi, dfg_vi_end) = boost::vertices(dfg.graph); dfg_vi != dfg_vi_end; ++dfg_vi){
         // SINCE in vecS, Vertex_t is also unsigned int, so this part of code is just mapping N to N, but we do this just in case
         assert(ver2offMap.find(*dfg_vi) == ver2offMap.end());
         ver2offMap[*dfg_vi] = cur;
         cur ++;
     }
     unsigned NULL_sym =0; // just for sanity check
-    for (boost::tie(dfg_vi, dfg_vi_end) = boost::vertices(dfg->graph); dfg_vi != dfg_vi_end; ++dfg_vi){
+    for (boost::tie(dfg_vi, dfg_vi_end) = boost::vertices(dfg.graph); dfg_vi != dfg_vi_end; ++dfg_vi){
         RuntimeSymFlowGraph::vertex_t cur_ver = *dfg_vi;
         //unpack the info
-        std::string nodeType = dfg->graph[cur_ver].nodeType;
-        unsigned bbid = dfg->graph[cur_ver].BBID;
-        int symid = dfg->graph[cur_ver].symID;
-        unsigned width = dfg->graph[cur_ver].byteWidth;
-        unsigned long const_val = dfg->graph[cur_ver].const_value;
-        unsigned stageSetting = dfg->graph[cur_ver].stageSetting;
-        unsigned symidR = dfg->graph[cur_ver].symIDReditect;
-        std::string op = dfg->graph[cur_ver].op;
+        std::string nodeType = dfg.graph[cur_ver].nodeType;
+        unsigned bbid = dfg.graph[cur_ver].BBID;
+        int symid = dfg.graph[cur_ver].symID;
+        unsigned width = dfg.graph[cur_ver].byteWidth;
+        unsigned long const_val = dfg.graph[cur_ver].const_value;
+        unsigned stageSetting = dfg.graph[cur_ver].stageSetting;
+        unsigned symidR = dfg.graph[cur_ver].symIDReditect;
+        std::string op = dfg.graph[cur_ver].op;
         // check in-edges
         RuntimeSymFlowGraph::in_edge_it in_eit, in_eit_end;
-        boost::tie(in_eit, in_eit_end) = boost::in_edges(cur_ver, dfg->graph);
-        unsigned in_degree = boost::in_degree(cur_ver, dfg->graph);
+        boost::tie(in_eit, in_eit_end) = boost::in_edges(cur_ver, dfg.graph);
+        unsigned in_degree = boost::in_degree(cur_ver, dfg.graph);
 
         if(symidR != 0){
             symIDReditectMap.insert(make_pair(symid, symidR));
@@ -112,8 +113,8 @@ SymGraph::SymGraph(unsigned funcID, std::string funcname,std::string cfg_filenam
             assert(symid >= 0);
             map<unsigned, unsigned> in_paras;
             for(;in_eit != in_eit_end; in_eit++ ){
-                unsigned arg_index = dfg->graph[*in_eit].arg_no;
-                RuntimeSymFlowGraph::vertex_t source = boost::source(*in_eit,dfg->graph);
+                unsigned arg_index = dfg.graph[*in_eit].arg_no;
+                RuntimeSymFlowGraph::vertex_t source = boost::source(*in_eit,dfg.graph);
                 assert(in_paras.find(arg_index) == in_paras.end());
                 in_paras[arg_index] = ver2offMap.at(source);
             }
@@ -216,12 +217,12 @@ SymGraph::SymGraph(unsigned funcID, std::string funcname,std::string cfg_filenam
             map<unsigned short, unsigned short> in_paras;
             map<unsigned short, unsigned short> argNo2BBMap;
             for(;in_eit != in_eit_end; in_eit++ ){
-                unsigned arg_index = dfg->graph[*in_eit].arg_no;
-                RuntimeSymFlowGraph::vertex_t source = boost::source(*in_eit,dfg->graph);
+                unsigned arg_index = dfg.graph[*in_eit].arg_no;
+                RuntimeSymFlowGraph::vertex_t source = boost::source(*in_eit,dfg.graph);
                 assert(in_paras.find(arg_index) == in_paras.end());
                 in_paras[arg_index] = ver2offMap.at(source);
-                assert(dfg->graph[*in_eit].incomingBB > 0);
-                argNo2BBMap[arg_index] = dfg->graph[*in_eit].incomingBB;
+                assert(dfg.graph[*in_eit].incomingBB > 0);
+                argNo2BBMap[arg_index] = dfg.graph[*in_eit].incomingBB;
             }
             cur_node = new  SymVal_sym_TruePhi(symid,symidR, bbid, in_paras,argNo2BBMap);
 
@@ -229,12 +230,12 @@ SymGraph::SymGraph(unsigned funcID, std::string funcname,std::string cfg_filenam
             map<unsigned short, unsigned short> in_paras;
             set<Val::ValVertexType> leavesOrOriginal;// since both original to the falsePhiLeaf and falsePhiLeaf to root are all marked edged 2
             for(;in_eit != in_eit_end; in_eit++ ){
-                unsigned arg_index = dfg->graph[*in_eit].arg_no;
-                RuntimeSymFlowGraph::vertex_t source = boost::source(*in_eit,dfg->graph);
+                unsigned arg_index = dfg.graph[*in_eit].arg_no;
+                RuntimeSymFlowGraph::vertex_t source = boost::source(*in_eit,dfg.graph);
                 if(arg_index == 0 || arg_index == 1){
                     assert(in_paras.find(arg_index) == in_paras.end());
                     in_paras[arg_index] = ver2offMap.at(source);
-                    assert(dfg->graph[*in_eit].incomingBB > 0);
+                    assert(dfg.graph[*in_eit].incomingBB > 0);
                 }else{
                     assert(arg_index == 2);
                     leavesOrOriginal.insert(ver2offMap.at(source));
@@ -309,7 +310,7 @@ SymGraph::SymGraph(unsigned funcID, std::string funcname,std::string cfg_filenam
         if(cur_node->BBID == 0){
             cur_node->inLoop = false;
         }else{
-            cur_node->inLoop = cfg->bbid2loop.at(cur_node->BBID);
+            cur_node->inLoop = cfg.bbid2loop.at(cur_node->BBID);
         }
         for(auto each_in_edge : cur_node->In_edges){
             each_in_edge.second->UsedBy.insert(cur_node);
@@ -386,7 +387,8 @@ SymGraph::SymGraph(unsigned funcID, std::string funcname,std::string cfg_filenam
             callInsts[callInstId] = notifyCall;
         }
     }
-    prepareBBTask();
+    prepareBBTask(&cfg, &dfg, ver2offMap);
+
     //assert(setRetSym != nullptr);
 }
 
@@ -400,10 +402,6 @@ SymGraph::SymGraph(unsigned funcID, std::string funcname,std::string cfg_filenam
     }
 SymGraph::SymGraph(const SymGraph& other):funcID(other.funcID),funcname(other.funcname),symID2offMap(other.symID2offMap),changed(false),symIDReditectMap(other.symIDReditectMap){
     //we're not going to use these 2 anyway
-    cfg = nullptr;
-    dfg = nullptr;
-    // this also won't be used
-    assert(ver2offMap.size() == 0);
 
     Nodes.assign(other.Nodes.size(), nullptr);
     std::map<Val*, Val*> old2new;
@@ -877,7 +875,7 @@ SymGraph::RootTask* SymGraph::GetRootTask(SymVal * root) {
     rootTask->occupied = true;
     return rootTask;
 }
-void SymGraph::prepareBBTask() {
+void SymGraph::prepareBBTask(RuntimeCFG* cfg, RuntimeSymFlowGraph* dfg,map<RuntimeSymFlowGraph::vertex_t, Val::ValVertexType> & ver2offMap) {
     RuntimeCFG::vertex_it cfg_vi,cfg_vi_end;
 
     // dominance BBID 2 Vert Map
