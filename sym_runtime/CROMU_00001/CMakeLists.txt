@@ -19,6 +19,7 @@ cmake_minimum_required(VERSION 3.15.3)
 # Optional: print out extra messages to see what is going on. Comment it to have less verbose messages
 set(CMAKE_VERBOSE_MAKEFILE ON)
 option(CO3_32BIT "Build for 32-bit target" OFF)
+option(CO3_NO_SHADOW "Build without app-side shadow" ON)
 # enable export of compiler commands to compile_commands.json
 #set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -32,8 +33,12 @@ set(EXECUTABLE ${PROJECT_NAME}.elf)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
 
-set(CO3_INSTRUMENTATION_LIB "/home/lcm/github/spear/spear-code/pass/symbolizer/build_workstation/libSymbolize.so")
-set(CO3_OUTPUT_DIR "${PROJECT_SOURCE_DIR}/intermediate_results")
+set(CO3_INSTRUMENTATION_LIB "${CMAKE_SOURCE_DIR}/../../pass/symbolizer/build_workstation/libSymbolize.so")
+if(${CO3_NO_SHADOW})
+  set(CO3_OUTPUT_DIR "${PROJECT_SOURCE_DIR}/intermediate_results_no_shadow")
+else()
+  set(CO3_OUTPUT_DIR "${PROJECT_SOURCE_DIR}/intermediate_results_no_shadow")
+endif()
 
 enable_language(C)
 set(CMAKE_C_STANDARD 99)
@@ -55,7 +60,8 @@ FILE(GLOB SRC_UNINSTRUMENTATION_FILES
   ${CMAKE_SOURCE_DIR}/UninstrumentedSrc/*.c
 )
 FILE(GLOB RUNTIME_SRC 
-  ${CMAKE_SOURCE_DIR}/../Common/*.c
+  ${CMAKE_SOURCE_DIR}/../Common/runtime.c
+  ${CMAKE_SOURCE_DIR}/../Common/wrapped_malloc.c
 )
 set_property(SOURCE ${SRC_INSTRUMENTATION_FILES} APPEND PROPERTY COMPILE_OPTIONS
             #"-gdwarf-4" # to match with gcc
