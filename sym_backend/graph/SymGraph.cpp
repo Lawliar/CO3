@@ -652,49 +652,7 @@ bool SymGraph::sortNonLoopBB(BasicBlockTask* a, BasicBlockTask* b) {
 }
 
 
-#ifdef DEBUG_OUTPUT
-set<string> SinkOps;
-set<string> leaveOps;
 
-
-void SymGraph::dbgBBLeaves(Val::ValVertexType v) {
-    SymVal*         tmpSymVal = dynamic_cast<SymVal*>(Nodes.at(ver2offMap.at(ver2offMap.at(v))));
-    RuntimeVal* tmpRuntime =  dynamic_cast<RuntimeVal*>(Nodes.at(ver2offMap.at(ver2offMap.at(v))));
-    ConstantVal* tmpConst =  dynamic_cast<ConstantVal*>(Nodes.at(ver2offMap.at(ver2offMap.at(v))));
-    if(tmpSymVal != nullptr){
-        leaveOps.insert(tmpSymVal->Op);
-        if(tmpSymVal->Op == "_sym_FalsePhi"){
-            __asm__("nop");
-        }
-        if(tmpSymVal->Op == "_sym_TruePhi"){
-            __asm__("nop");
-        }
-    }else if (tmpRuntime != nullptr){
-        leaveOps.insert("Runtime");
-    }else if(tmpConst != nullptr){
-        leaveOps.insert("Const");
-    }else{
-        assert(false);
-    }
-}
-
-void SymGraph::dbgBBRoot(Val::ValVertexType v) {
-    SymVal* tmpSymVal = dynamic_cast<SymVal*>(Nodes.at(ver2offMap.at(v)));
-    if(tmpSymVal != nullptr){
-        SinkOps.insert(tmpSymVal->Op);
-        if(tmpSymVal->Op == "_sym_FalsePhi"){
-            __asm__("nop");
-        }
-        if(tmpSymVal->Op == "_sym_TruePhi"){
-            __asm__("nop");
-        }
-    }else{
-        RuntimeVal* tmpRuntime =  dynamic_cast<RuntimeVal*>(Nodes.at(ver2offMap.at(v)));
-        assert( tmpRuntime != nullptr);
-        SinkOps.insert("Runtime");
-    }
-}
-#endif
 /*
 Val* SymGraph::stripPhis(Val* nodeInQuestion, Val* root) {
     Val* prev_node = nullptr;
@@ -916,15 +874,9 @@ void SymGraph::prepareBBTask(RuntimeCFG* cfg, RuntimeSymFlowGraph* dfg,map<Runti
             auto from_node = Nodes.at(ver2offMap.at(from));
             if(dfg->graph[from].BBID == cur_bbid && dfg->graph[to].BBID != cur_bbid){
                 task->roots.insert(from_node);
-#ifdef DEBUG_OUTPUT
-                dbgBBRoot(ver2offMap.at(from));
-#endif
             }
             if(dfg->graph[from].BBID != cur_bbid && dfg->graph[to].BBID == cur_bbid){
                 task->leaves.insert(from_node);
-#ifdef DEBUG_OUTPUT
-                dbgBBLeaves(ver2offMap.at(from));
-#endif
             }
         }
         RuntimeSymFlowGraph::vertex_it  vi,vi_end;
@@ -942,18 +894,12 @@ void SymGraph::prepareBBTask(RuntimeCFG* cfg, RuntimeSymFlowGraph* dfg,map<Runti
 #ifdef DEBUG_CHECKING
                     assert(cur_node->In_edges.size() == 0);
 #endif
-#ifdef DEBUG_OUTPUT
-                    dbgBBLeaves(ver2offMap.at(*vi));
-#endif
 
                 }
                 if(boost::out_degree(*vi, dfg->graph) == 0){
                     task->roots.insert(cur_node);
 #ifdef DEBUG_CHECKING
                     assert(cur_node->UsedBy.size() == 0);
-#endif
-#ifdef DEBUG_OUTPUT
-                    dbgBBRoot(ver2offMap.at(*vi));
 #endif
                 }else{
                     // even if it has out degree, if the only out edges from this node is to TruePhi inside the same BB, it's still a root
