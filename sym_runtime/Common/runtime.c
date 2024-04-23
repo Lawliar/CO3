@@ -45,10 +45,6 @@
 #endif
 
 
-
-
-
-uint32_t *shadowram;
 bool parameter_exp[NUMBER_PARAMETER_EXP];
 bool return_exp;
 
@@ -200,11 +196,19 @@ void _sym_initialize(){
         exit(1);
     }
 
+    if (dup2(clientfd, STDIN_FILENO) == -1) {
+        perror("redict filed");
+        exit(EXIT_FAILURE);
+    }
+    clientfd = STDIN_FILENO;
+
     // initialize global variables
     txCur=TX_BUFFER_STARTING_POINT;
     memset(txBuffer,0,TX_BUFFER_SIZE);
     memset(rxBuffer,0,RX_BUFFER_SIZE);
     ReceiveSymbolize();
+
+
 }
 
 
@@ -555,6 +559,7 @@ void _sym_notify_func(uint8_t call_inst_id)
 }
 
 void _sym_end(){
+
     freeShadow();
     whole_free();
     
@@ -565,6 +570,10 @@ void _sym_end(){
     txCommandtoMonitorF;
     txBuffer[txCur++] = msgCode;
     TransmitPack();
+    
+    
+    close(clientfd);
+    close(sockfd);
     return;
 }
 
