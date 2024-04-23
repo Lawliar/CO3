@@ -14,9 +14,8 @@
 // along with CO3. If not, see <https://www.gnu.org/licenses/>.
 
 
-
-#include "runtime.h"
 #include "ProtocolConfig.h"
+#include "runtime.h"
 #include "stdlib.h"
 #include "string.h"
 #include "stdio.h"
@@ -72,10 +71,6 @@ uint32_t txCur = 0;
 
 void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t length, uint16_t symID);
 
-#if defined (CO3_NO_SHADOW)
-#else
-uint32_t AddressToShadow(char *addr);
-#endif
 
 //return true if byte is symbolic
 bool checkSymbolic(char *addr);
@@ -175,8 +170,7 @@ void _sym_initialize(){
     int i;
 #if defined (CO3_NO_SHADOW)
 #else 
-    shadowram = (uint32_t *)malloc(SYM_SHADOW_RAM_LENGTH);
-    memset((void*)shadowram,0x00,SYM_SHADOW_RAM_LENGTH);
+    initShadow();
 #endif
     for(i=0; i<NUMBER_PARAMETER_EXP; i++)
     {
@@ -561,6 +555,7 @@ void _sym_notify_func(uint8_t call_inst_id)
 }
 
 void _sym_end(){
+    freeShadow();
     whole_free();
     
     int msgSize = 0;
@@ -660,14 +655,6 @@ void _sym_notify_basic_block(uint16_t bbid, bool isSym, char * base_addr, uint8_
 
 
 
-#if defined(CO3_NO_SHADOW)
-#else 
-uint32_t AddressToShadow(char *addr)
-{
-    uint32_t adr32 = (uint32_t)addr;
-    return ((adr32>>3) + SYM_SHADOW_RAM_OFFSET);
-}
-#endif
 
 //return true if byte is symbolic
 bool checkSymbolic(char *addr)
@@ -676,9 +663,9 @@ bool checkSymbolic(char *addr)
     return true;
     
 #else
-    char *addrShadow = (char *)AddressToShadow(addr);
+    char *addrShadow = access_shadow(addr);
     char val = *addrShadow;
-    uint32_t bitnum = ((uint32_t)addr) & 0x07;
+    uintptr_t bitnum = ((uintptr_t)addr) & 0x07;
     return bitRead(val,bitnum);
 #endif
 }
@@ -688,9 +675,9 @@ bool checkSymbolic(char *addr)
 bool checkSymbolicSetConcrete(char *addr)
 {
 #ifndef CO3_NO_SHADOW
-    char *addrShadow = (char *)AddressToShadow(addr);
+    char *addrShadow = access_shadow(addr);
     char val = *addrShadow;
-    uint32_t bitnum = ((uint32_t)addr) & 0x07;
+    uintptr_t bitnum = ((uintptr_t)addr) & 0x07;
     bool symbolic  = bitRead(val,bitnum);
     if(symbolic) bitClear(*addrShadow,  bitnum);
     return symbolic;
@@ -699,24 +686,14 @@ bool checkSymbolicSetConcrete(char *addr)
 #endif
 }
 
-/*
-//return true if byte was symbolic and convert it to symbolic
-bool checkSymbolicSetSymbolic(char *addr)
-{
-   char *addrShadow =  (char *)AddressToShadow(addr);
-   char val = *addrShadow;
-   uint32_t bitnum = ((uint32_t)addr) & 0x07;
-   bool symbolic  = bitRead(val,bitnum);
-   if(!symbolic)bitSet(*addrShadow,  bitnum);
-   return symbolic;
-}*/
+
 
 
 void SetSymbolic(char *addr)
 {
 #ifndef CO3_NO_SHADOW
-    char *addrShadow =  (char *)AddressToShadow (addr);
-    uint32_t bitnum = ((uint32_t)addr) & 0x07;
+    char *addrShadow =  access_shadow (addr);
+    uintptr_t bitnum = ((uintptr_t)addr) & 0x07;
     bitSet(*addrShadow,  bitnum);
 #else 
     (void) addr;
@@ -724,13 +701,6 @@ void SetSymbolic(char *addr)
 #endif
 }
 
-/*
-void SetConcrete(char *addr)
-{
-   char *addrShadow =  (char *)AddressToShadow (addr);
-   uint32_t bitnum = ((uint32_t)addr) & 0x07;
-   bitClear(*addrShadow,  bitnum);
-}*/
 
 
 void  reportSymHelper(uint8_t msgCode, int size , char *dest, char *src, size_t length, uint16_t symID)

@@ -19,6 +19,7 @@
 
 #include "CO3CommonRuntime.h"
 #include "wrapped_malloc.h"
+#include "shadow.h"
 
 #define NUMBER_SYM_PERI           10
 #define NUMBER_PARAMETER_EXP      64

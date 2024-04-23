@@ -13,17 +13,14 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with CO3. If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef PROTOCOLCONFIG_H_
-#define PROTOCOLCONFIG_H_
 
-#define RX_BUFFER_STARTING_POINT 4
-#define TX_BUFFER_STARTING_POINT 1
+#ifndef CO3SHADOW_H
+#define CO3SHADOW_H
 
-#define RX_BUFFER_SIZE 1036
-#define TX_BUFFER_SIZE 256 
+#include "hashmap.h"
+#include <stdint.h>
+void initShadow();
+char * access_shadow(char*);
+void freeShadow();
 
-// 1. if you want to use the MCU-side shadow memory or not
-//#define CO3_NO_SHADOW
-
-
-#endif
+#endif //CO3SHADOW_H
