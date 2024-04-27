@@ -223,7 +223,7 @@ target_link_options(${EXECUTABLE} PRIVATE
 )
 
 
-set(CommonDIR /home/lcm/github/spear/spear-code/firmware/NXP/Common)
+set(CommonDIR ${CO3_COMMON_DIR})
 
 add_subdirectory(./CommonCO3   build/CommonCO3)
 #add_subdirectory(./Target      build/Target)

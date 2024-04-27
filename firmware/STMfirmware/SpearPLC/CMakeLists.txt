@@ -26,7 +26,7 @@ set(CO3_INSTRUMENT ON)
 set(CO3_REPLACE OFF)
 
 
-set(CMAKE_TOOLCHAIN_FILE clang.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/../Common/clang.cmake)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Setup project, output and linker file
@@ -38,10 +38,10 @@ set(LINKER_FILE "${PROJECT_SOURCE_DIR}/STM32H743ZITX_FLASH.ld")
 
 
 if(${CO3_REPLACE})
-  set(CO3_INSTRUMENTATION_LIB "/home/lcm/github/spear/spear-code/pass/symbolizer/build_replace/libSymbolize.so")
+  set(CO3_INSTRUMENTATION_LIB "${CO3_ROOT_DIR}/pass/symbolizer/build_replace/libSymbolize.so")
   set(CO3_OUTPUT_DIR "${PROJECT_SOURCE_DIR}/intermediate_results")
 else()
-  set(CO3_INSTRUMENTATION_LIB "/home/lcm/github/spear/spear-code/pass/symbolizer/build_no_replace/libSymbolize.so")
+  set(CO3_INSTRUMENTATION_LIB "${CO3_ROOT_DIR}/pass/symbolizer/build_no_replace/libSymbolize.so")
   set(CO3_OUTPUT_DIR "${PROJECT_SOURCE_DIR}/intermediate_results_no_replace")
 endif() 
 
@@ -60,7 +60,7 @@ set(ARCH_CFLAGS
 ) 
 
 
-set(CommonDIR /home/lcm/github/spear/spear-code/firmware/STMfirmware/Common)
+set(CommonDIR ${CO3_COMMON_DIR})
 
 set(SRC_C_FILES
   Core/Src/main.c 
@@ -189,7 +189,6 @@ target_compile_options(
 target_link_options(${EXECUTABLE} PRIVATE
   ${LDFLAGS}
 )
-set(CommonDIR /home/lcm/github/spear/spear-code/firmware/STMfirmware/Common)
 
 add_subdirectory(./CommonCO3        ${EXECUTABLE_OUTPUT_PATH}/CommonCO3)
 add_subdirectory(./Target           ${EXECUTABLE_OUTPUT_PATH}/Target)

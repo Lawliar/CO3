@@ -189,7 +189,7 @@ target_compile_options(
 target_link_options(${EXECUTABLE} PRIVATE
   ${LDFLAGS}
 )
-set(CommonDIR /home/lcm/github/spear/spear-code/firmware/STMfirmware/Common)
+
 
 add_subdirectory(./CommonCO3        ${EXECUTABLE_OUTPUT_PATH}/CommonCO3)
 add_subdirectory(./Target           ${EXECUTABLE_OUTPUT_PATH}/Target)

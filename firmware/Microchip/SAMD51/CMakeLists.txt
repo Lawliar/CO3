@@ -189,7 +189,6 @@ target_link_options(${EXECUTABLE} PRIVATE
   -Wl,--gc-sections 
   -T "${LINKER_FILE}"
 )
-set(CommonDIR /home/lcm/github/spear/spear-code/firmware/Microchip/Common)
 
 add_subdirectory(./CommonCO3   build/CommonCO3)
 add_subdirectory(./examples    build/examples)
