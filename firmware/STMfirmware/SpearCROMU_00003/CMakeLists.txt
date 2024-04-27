@@ -1,4 +1,3 @@
-
 # This file is part of CO3.
 #
 # CO3 is free software: you can redistribute it and/or modify it under the
@@ -22,13 +21,13 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 #set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Path to toolchain file. This one has to be before 'project()' below
+
 set(CO3_INSTRUMENT ON)
-set(CO3_REPLACE OFF)
+set(CO3_REPLACE ON)
 
 
-set(CMAKE_TOOLCHAIN_FILE clang.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/../Common/clang.cmake)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 # Setup project, output and linker file
 project(CO3CROMU_00003_CMake C ASM)
 set(EXECUTABLE ${PROJECT_NAME}.elf)
@@ -38,10 +37,10 @@ set(LINKER_FILE "${PROJECT_SOURCE_DIR}/STM32H743ZITX_FLASH.ld")
 
 
 if(${CO3_REPLACE})
-  set(CO3_INSTRUMENTATION_LIB "/home/lcm/github/spear/spear-code/pass/symbolizer/build_replace/libSymbolize.so")
+  set(CO3_INSTRUMENTATION_LIB "${CO3_ROOT_DIR}/pass/symbolizer/build_release/libSymbolize.so")
   set(CO3_OUTPUT_DIR "${PROJECT_SOURCE_DIR}/intermediate_results")
 else()
-  set(CO3_INSTRUMENTATION_LIB "/home/lcm/github/spear/spear-code/pass/symbolizer/build_no_replace/libSymbolize.so")
+  set(CO3_INSTRUMENTATION_LIB "${CO3_ROOT_DIR}/pass/symbolizer/build_no_replace/libSymbolize.so")
   set(CO3_OUTPUT_DIR "${PROJECT_SOURCE_DIR}/intermediate_results_no_replace")
 endif() 
 
@@ -60,7 +59,7 @@ set(ARCH_CFLAGS
 ) 
 
 
-set(CommonDIR /home/lcm/github/spear/spear-code/firmware/STMfirmware/Common)
+set(CommonDIR ${CO3_COMMON_DIR})
 
 set(SRC_C_FILES
   Core/Src/main.c 
@@ -137,10 +136,10 @@ get_filename_component(
   ${ARM_CORTEXM_BUILTINS_LIBGCC}
   DIRECTORY
 )
+
 set(CFLAGS
   -Os
   -std=gnu11
-  -g
   -ffunction-sections
   -fdata-sections
   -Wall

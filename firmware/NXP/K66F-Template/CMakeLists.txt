@@ -17,14 +17,9 @@ cmake_minimum_required(VERSION 3.15.3)
 
 # Optional: print out extra messages to see what is going on. Comment it to have less verbose messages
 set(CMAKE_VERBOSE_MAKEFILE ON)
-option(LLVM_BUILD "USE LLVM instead of ARM to build" OFF)
 
 # Path to toolchain file. This one has to be before 'project()' below
-if(${LLVM_BUILD})
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/clang.cmake)
-else()
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/arm.cmake)
-endif()
+set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/../../STMfirmware/Common/arm.cmake)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 
@@ -38,7 +33,7 @@ set(LINKER_FILE "frdmk66f_dev_cdc_vcom_freertos_Debug.ld")
 
 
 set(CO3_OUTPUT_DIR "${PROJECT_SOURCE_DIR}/intermediate_results")
-set(CO3_INSTRUMENTATION_LIB "/home/lcm/github/spear/spear-code/pass/symbolizer/build_replace/libSymbolize.so")
+set(CO3_INSTRUMENTATION_LIB "${CO3_ROOT_DIR}/pass/symbolizer/build_replace/libSymbolize.so")
 set(CO3_TARGET_INSTRUMENTED_LIB "${CMAKE_SOURCE_DIR}/Target/build/libEVKMIMXRT1176_Target_CMake.a")
 
 

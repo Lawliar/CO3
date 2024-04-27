@@ -12,14 +12,20 @@
 # You should have received a copy of the GNU General Public License along with
 # CO3. If not, see <https://www.gnu.org/licenses/>.
 
+# Call Cmake from the 'build' subfolder with the command below.
+# For using Make:
+# cmake -DCMAKE_MAKE_PROGRAM=make.exe -DCMAKE_TOOLCHAIN_FILE="arm-none-eabi-gcc.cmake" -G "Unix Makefiles" ..
+# followed by
+# 'make' or 'cmake --build .' to build it
 
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR ARM)
 
+set(CO3_ROOT_DIR   ${CMAKE_CURRENT_LIST_DIR}/../../..)
+set(CO3_COMMON_DIR ${CMAKE_CURRENT_LIST_DIR})
+set(CLANG_TOOLCHAIN_BIN_DIR ${CO3_ROOT_DIR}/deps/llvm/clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04/bin)
 
-set(CLANG_TOOLCHAIN_BIN_DIR ${CMAKE_SOURCE_DIR}/../../../deps/llvm/clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04/bin)
-
-set(ARM_TOOLCHAIN_BIN_DIR  ${CMAKE_SOURCE_DIR}/../../../deps/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin)
+set(ARM_TOOLCHAIN_BIN_DIR  ${CO3_ROOT_DIR}/deps/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin)
 
 
 

@@ -33,7 +33,7 @@ set(LINKER_FILE "${PROJECT_SOURCE_DIR}/STM32H743ZITX_FLASH.ld")
 set(ARM_GNU_CC "arm-none-eabi-gcc")
 
 set(CO3_OUTPUT_DIR "${PROJECT_SOURCE_DIR}/intermediate_results")
-set(CO3_INSTRUMENTATION_LIB "/home/lcm/github/spear/spear-code/pass/symbolizer/cmake-build-debug/libSymbolize.so") 
+set(CO3_INSTRUMENTATION_LIB "${PROJECT_SOURCE_DIR}/../../../pass/symbolizer/build/libSymbolize.so") 
 
 enable_language(C ASM)
 set(CMAKE_C_STANDARD 99)

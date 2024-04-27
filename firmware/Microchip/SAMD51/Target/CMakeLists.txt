@@ -23,17 +23,18 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 #set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(LLVM_BUILD "USE LLVM instead of ARM to build" ON)
 # Path to toolchain file. This one has to be before 'project()' below
-set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/../clang.cmake")
+set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/../../../STMfirmware/Common/clang.cmake)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-
-
-set(CO3_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/../intermediate_results")
-set(CO3_INSTRUMENTATION_LIB "${CMAKE_SOURCE_DIR}/../../../../pass/symbolizer/cmake-build-debug/libSymbolize.so")
-set(CommonDIR "${CMAKE_SOURCE_DIR}/../../Common")
 
 # Setup project, output and linker file
 project(samd51j19a_Target_CMake)
+
+
+set(CO3_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/../intermediate_results")
+set(CO3_INSTRUMENTATION_LIB "${CO3_ROOT_DIR}/pass/symbolizer/build_release/libSymbolize.so")
+set(CommonDIR ${CO3_COMMON_DIR})
+
+
 
 enable_language(C ASM)
 set(CMAKE_C_STANDARD 99)

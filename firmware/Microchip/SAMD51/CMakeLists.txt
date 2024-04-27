@@ -23,7 +23,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 #set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(LLVM_BUILD "USE LLVM instead of ARM to build" OFF)
 # Path to toolchain file. This one has to be before 'project()' below
-set(CMAKE_TOOLCHAIN_FILE arm.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/../../STMfirmware/Common/arm.cmake)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Setup project, output and linker file
@@ -55,7 +55,7 @@ set(SRC_FILES
   stdio_start.c
 )
 
-set(CommonDIR /home/lcm/github/spear/spear-code/firmware/Microchip/Common)
+set(CommonDIR ${CO3_COMMON_DIR})
 
 set(ALL_NINE_YARDS_INCLUDE_DIRS
   ${PROJECT_SOURCE_DIR}/CommonCO3

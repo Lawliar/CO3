@@ -15,7 +15,12 @@
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR ARM)
 
-set(ARM_TOOLCHAIN_BIN_DIR /home/lcm/ssd/toolchains/arm/gcc-linaro12.3.1-0x20020000/bin)
+set(CO3_ROOT_DIR   ${CMAKE_CURRENT_LIST_DIR}/../../..)
+set(CO3_COMMON_DIR ${CMAKE_CURRENT_LIST_DIR})
+set(CLANG_TOOLCHAIN_BIN_DIR ${CO3_ROOT_DIR}/deps/llvm/clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04/bin)
+
+set(ARM_TOOLCHAIN_BIN_DIR  ${CO3_ROOT_DIR}/deps/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin)
+
 # point ARM_TOOLCHAIN_BIN_DIR to things like
 # "C:/Program Files (x86)/GNU Arm Embedded Toolchain/10 2020-q4-major/bin")
 # "C:/NXP/MCUXpressoIDE_11.7.0_9198/ide/tools/bin")
