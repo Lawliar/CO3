@@ -25,7 +25,7 @@ set(CMAKE_SYSTEM_PROCESSOR ARM)
 
 set(CLANG_TOOLCHAIN_BIN_DIR ${CMAKE_SOURCE_DIR}/../../../deps/llvm/clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04/bin)
 
-set(ARM_TOOLCHAIN_BIN_DIR  /home/lcm/github/toolchains/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin)
+set(ARM_TOOLCHAIN_BIN_DIR  ${CMAKE_SOURCE_DIR}/../../../deps/arm/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi/bin)
 
 
 
