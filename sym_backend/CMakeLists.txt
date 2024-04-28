@@ -17,10 +17,10 @@ project(SymBackend)
 
 option(QSYM_BACKEND "Use the Qsym backend instead of our own" ON)
 option(Z3_TRUST_SYSTEM_VERSION "Use the system-provided Z3 without a version check" ON)
-option(RELEASE_BUILD "BUILD for performance" OFF)
+option(RELEASE_BUILD "BUILD for performance" ON)
 option(DEBUG_BUILD "BUILD for adding debug macros" OFF)
 option(PROFILING_BUILD "BUILD for profiling" OFF)
-option(CO3_NO_MCU_SHADOW "MCU does not have SHADOW, so disable some sanity checks that helps debugging" ON)
+option(CO3_NO_MCU_SHADOW "MCU does not have SHADOW, so disable some sanity checks that helps debugging" OFF)
 option(CO3_NATIVE_BUILD "use natively built z3 and llvm instead of the packages from ubuntu" ON)
 option(CO3_SER2NET "use serial2net instead of the usb serial device, if specified 0, Unix socket will be used" ON)
 option(CO3_REPLACE "Replace the majority of SymCC's operation with CO3's optimization(should be used in combination with symbolizer, MCU's runtime). This should be turned ON by default for better performance" ON)
@@ -33,6 +33,9 @@ set(LIBSERIALPORTS_LIB_DIR "${LIBSERIALPORTS_INCLUDE_DIR}/.libs")
 
 set(CO3_BOOST_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../deps/boost")
 set(CO3_BOOST_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../deps/boost/stage/lib")
+
+set(HIREDIS_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../deps/hiredis")
+set(HIREDIS_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../deps/hiredis/build")
 
 if(${CO3_32BIT})
   add_compile_definitions(CO3_32BIT)

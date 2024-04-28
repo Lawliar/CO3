@@ -62,6 +62,7 @@ COPY --from=builder /CO3_SOURCE/deps/libserialport       /CO3_SOURCE/deps/libser
 #COPY --from=builder /CO3_SOURCE/deps/z3/build/install    /CO3_SOURCE/deps/z3/build/install/
 COPY --from=builder /CO3_SOURCE/deps/boost               /CO3_SOURCE/deps/boost/
 COPY ./deps/llvm     /CO3_SOURCE/deps/llvm/
+COPY ./deps/arm      /CO3_SOURCE/deps/arm/
 COPY ./sym_backend   /CO3_SOURCE/sym_backend/
 COPY ./code_coverage /CO3_SOURCE/code_coverage/
 COPY ./USBtest       /CO3_SOURCE/USBtest

@@ -21,7 +21,8 @@
 
 ## tested platform
 
-- Native Ubuntu 22.04 (older version also should work)
+- Workstation:
+    1. Native Ubuntu 22.04 (older version also should work)
 
 - MCUs:
     1. STM32H743ZI
@@ -42,7 +43,7 @@
 
 ### arm cross compiler:
 - This is only needed to build the firmware image. Simply select that one fitting your situation from 
-[arm-gnu-toolchain](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads). Unzip it and make sure the CMakeLists.txt under the firmware source code points to it. The version that we use is **11.3.rel1**. 
+[arm-gnu-toolchain](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads). Unzip it to `deps/arm` and make sure the CMakeLists.txt under the firmware source code points to it. The version that we use is **11.3.rel1**. 
 
 ### dependent packages
 - `sudo apt install autoconf automake libtool`
