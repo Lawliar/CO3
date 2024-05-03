@@ -9,15 +9,14 @@
 - utils: helper scripts to visualize the SVFG, communicate with the MCU. 
 ```
 ## before you start:
-1. many components rely on cmake, if you see `cmake build`, it means:
-    1. create an empty build dir, 
-    2. cd to it, 
-    3. type `cmake ..` , 
-    4. type `make`.
+1. all components (including firmware) are built with cmake, if you see `cmake build`, it means: create an empty `build` dir, cd to it, type `cmake ..`, and type `make`.
 
-2. before using the docker file, submodule init are required, also llvm prebuilt should be decompressed to the specified folder. 
+2. before using the docker file, submodule init are required, also llvm prebuilt and arm toolchain should be decompressed to the specified folder. 
 
-3. CO3 features concolic executing the firmware on the MCU, so the physical MCUs are necessary. 
+3. CO3 features concolic executing the firmware on the MCU, for concolic executing, physical MCU is required. 
+
+4. We also have ports for desktop programs (i.e., see sym_runtime); however, this is currently under construction and only supports CGC programs. 
+
 
 ## tested platform
 
@@ -31,29 +30,37 @@
     4. Microchip SAMD51
     5. NXP K66F
 
-## current llvm support:
-- Both instrumentation and symbolic backend are built on LLVM-14. 
 
 ## Prerequisite 
 
 ### llvm prebuilt
+
+- Both llvm pass and orchestrator are built on `LLVM-14`.
+
+- This is also needed to build the firmware. 
+
 - Download llvm-14.0x pre-built and unzip to deps/llvm through `tar -xf <llvm-14>.tar.gz -C ./deps/llvm/`. 
     - If you are using docker to build orchestrator, you still need this step. 
     However, instead of the pre-built for you hosting OS, you can just use [llvm-prebuit-ubuntu](https://github.com/llvm/llvm-project/releases/download/llvmorg-14.0.0/clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz)
 
+
 ### arm cross compiler:
-- This is only needed to build the firmware image. Simply select that one fitting your situation from 
-[arm-gnu-toolchain](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads). Unzip it to `deps/arm` and make sure the CMakeLists.txt under the firmware source code points to it. The version that we use is **11.3.rel1**. 
+
+- Simply select that one fitting your situation from [arm-gnu-toolchain](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads). 
+- Unzip it to `deps/arm` and make sure the CMakeLists.txt under the firmware source code points to it. The version that we use is **11.3.rel1**. 
 
 ### dependent packages
+
 - `sudo apt install autoconf automake libtool`
-- python3 with `pyserial`
+- python3 install with `pyserial`
 
 ## submodule initialization:
+
 - `git submodule init`
 - `git submodule update`
 
 ### boost:
+
 - cd to deps/boost
 - `git submodule init`
 - `git submodule update`
