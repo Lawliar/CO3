@@ -91,7 +91,7 @@ int initSock(const char * port_str){
     if(portno == 0){
         sockfd = initUnixSocket();
     }else{
-        sockfd = initTCPSocket(port_str);
+        sockfd = initTCPSocket(portno);
     }
     
     return sockfd;
