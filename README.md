@@ -13,7 +13,7 @@
 
 2. before using the docker file, submodule init are required, also llvm prebuilt and arm toolchain should be decompressed to the specified folder. 
 
-3. CO3 features concolic executing the firmware on the MCU, for concolic executing, physical MCU is required. 
+3. CO3 features concolic executing the firmware on the MCU; for concolic executing the firmware, physical MCU is required. 
 
 4. We also have ports for desktop programs (i.e., see sym_runtime); however, this is currently under construction and only supports CGC programs. 
 
@@ -46,8 +46,8 @@
 
 ### arm cross compiler:
 
-- Simply select that one fitting your situation from [arm-gnu-toolchain](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads). 
-- Unzip it to `deps/arm` and make sure the CMakeLists.txt under the firmware source code points to it. The version that we use is **11.3.rel1**. 
+- Simply select that one fitting your situation from [arm-gnu-toolchain](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads). The version that we use is **11.3.rel1**. 
+- Unzip it to `deps/arm` and make sure the CMakeLists.txt under the firmware source code points to it. 
 
 ### dependent packages
 
