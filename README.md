@@ -92,11 +92,7 @@
 - cmake build 
 
 ### instrument prepare firmware
-- pick one firmware, e.g., "SpearCROMU_00001"
-- make sure the ProtocolConfig.h fits your need
-- make sure variables in clang.cmake and CMakeLists.txt point to the dependencies that you created before
-- cmake build 
-- flash the firmware
+- Please refer to [firmware building doc](docs/firmware_building.md). 
 
 ### build orchestrator
 - cd to sym_backend
