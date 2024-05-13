@@ -2,9 +2,9 @@
 - We use cmake for all the firmware building process (you are welcome), you can build the firmware image like a normal cmake executable, however a few things need attention. 
 
 - 1. Configure to the `CO3_INSTRUMENT` and `CO3_REPLACE` in CMakelist.txt in each firmware's root directory.
-    1.  `CO3_INSTRUMENT` denotes if you want to instrument the code or not (the monitor is still in place regardless). 
-    2. `CO3_REPLACE` denotes if you want to replace the symbolic operations to logic operations (e.g., logic disjunction) or not. This corresponds to `Report-All` mode which is not advised to use unless for debugging or other special purpose. Since the building process will generate the SVFG; `Report-All` and other modes generate different SVFGs, please use different folder names to store these SVFGs. 
-2. configure the ProtocolConfig.h.
+    - 1.  `CO3_INSTRUMENT` denotes if you want to instrument the code or not (the monitor is still in place regardless). 
+    - 2. `CO3_REPLACE` denotes if you want to replace the symbolic operations to logic operations (e.g., logic disjunction) or not. This corresponds to `Report-All` mode which is not advised to use unless for debugging or other special purpose. Since the building process will generate the SVFG; `Report-All` and other modes generate different SVFGs, please use different folder names to store these SVFGs. 
+- 2. configure the ProtocolConfig.h.
     - There is the working ProtocolConfig.h file for every project in place. So, if you have the same MCU that we have, you can just go ahead, compile and flash. 
     - If you want to port CO3 to other MCU, we provide ProtocolConfigTemplate.h which shows all the macros that are needed in order to configure CO3 (e.g., runtime and monitor). 
     - The process in ProtocolConfig.h is self-explainatory and follows this procedure:
@@ -14,9 +14,9 @@
 ## STM32 firmware
 - After the CMakelists.txt file and ProtocolConfig.h are properly configured, you can just cmake build the firmware like a normal cmake project. 
 
-## Non-STM32
+## Non-STM32 firmware
 - This is a little more complicated: 
-    - For the code that needs to be instrumented: we still use llvm-14. 
+    - For the code that needs to be instrumented: we still use LLVM. 
     - For the code that does not need instrumentation (e.g., drivers, startup assembly) we use GCC. 
     - We also use GCC's linker for the linking stage. 
     - This results in a two-stage building process. This is a compromise due to the current LLVM support for embedded projects. 
