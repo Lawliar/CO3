@@ -1,17 +1,17 @@
 ## Directory:
 ```
-- deps: projects that CO3 is dependent upon (except symcc). 
+- deps: projects that CO3 is dependent upon, except the SymCC folder which is there because that is the comparison target.  
 - firmware: source code for the firmware images used in the paper.
-- fuzzer: fuzzing and CO3 coordinator script borrowed from SymCC.
+- fuzzer: fuzzing (i.e., SHiFT) and CO3 coordinator script borrowed from SymCC. 
 - pass: the LLVM instrumentation pass. 
-- sym_backend: the symbolic constraint builder and solver that are based on CO3's protocol.
-- sym_runtime: the runtime for workstation applications (to interact with the sym_backend). 
+- sym_backend (aka the orchestrator): the symbolic constraint builder and solver that are based on CO3's protocol.
+- sym_runtime: the runtime for workstation applications (to interact with the orchestrator). 
 - utils: helper scripts to visualize the SVFG, communicate with the MCU. 
 ```
-## before you start:
+## Before you start:
 1. all components (including firmware) are built with cmake, if you see `cmake build`, it means: create an empty `build` dir, cd to it, type `cmake ..`, and type `make`.
 
-2. before using the docker file, submodule init are required, also llvm prebuilt and arm toolchain should be decompressed to the specified folder. 
+2. before using the docker file, submodule init are required, also llvm prebuilt and arm-gcc toolchain should be decompressed to the specified folder. 
 
 3. CO3 features concolic executing the firmware on the MCU; for concolic executing the firmware, physical MCU is required. 
 
@@ -47,7 +47,7 @@
 ### arm cross compiler:
 
 - Simply select that one fitting your situation from [arm-gnu-toolchain](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads). The version that we use is **11.3.rel1**. 
-- Unzip it to `deps/arm` and make sure the CMakeLists.txt under the firmware source code points to it. 
+- Unzip it to `deps/arm` and make sure the arm.cmake under the firmware source code (firmware/STMfirmware/Common) points to it. 
 
 ### dependent packages
 
@@ -86,6 +86,8 @@
 - make
 - make install 
 
+## Native build
+
 ### build symbolizer
 - cd to pass/symbolizer
 - [optional] double check `CO3_DEPS_DIR` `LLVM_HINTS` point to the right folder
@@ -99,17 +101,25 @@
 - double check the configurations fit your needs, there are three builds, debug, release, profiling
 - cmake build 
 
-## docker build
-### symbolizer
-- there is no dockerfile to build symbolizer, not because of the technical difficulty but because of the mixed of toolchain (e.g., cross-compiler from gcc) required to build a firmware image. 
-The symbolizer is just one part of the firmware building process. Simply building it is not useful. 
+## Native run
 
+1. Flash the firmware to the board and connect the USB port to the workstation. 
+2. run `orchestrator -i <SVFG dir> -p <serial port> -b <baud rate of the serial port>`
+    1. SVFG dir is the folder automatically generated in the firmware building process. 
+    2. serial port is the USB-CDC/physical serial port (e.g., /dev/ttyACM1). 
+        - This port also accepts number as parameters if the orchestrator is built with `SER2NET`. In this case, the serial port can be a TCP port where the SER2NET is carried through. Furthermore, if you specify `0`, the orchestrator will look for UNIX socket directly located in the `<SVFG dir>`. UNIX socket is used in workstation mode.  
+    3. baud rate is the baud rate for the serial port. This only matters when a physical serial port is used. For any other cases, specifying different number makes no difference. 
 
+## Docker build
+- In order to use this docker file, steps in [submodule initialization](#submodule-initialization) and [llvm-prebuilt](#llvm-prebuilt) are still required. 
+- After the docker image is up, the environment needed to build the firmware and the orchestrator is up.  
+- Then you can build the selected firmware and the orchestrator through simple cmake commands. 
 
-### orchestrator
-the dockerfile in this repo is for the orchestrator. In order to use this docker file, 
-steps in [submodule initialization](#submodule-initialization) and [llvm-prebuilt](#llvm-prebuilt) are still required. 
-
+## Docker run
+- Running CO3 requires the serial port to be exposed to the docker container. 
+- Docker Linux does not have issue with this. 
+- For MacOS, however, since it does not support serial port bypassing, running on MacOS even inside docker is difficult. 
+SER2NET directs serial port to a TCP port, however, we ran into issue even when we expose the TCP port to docker container on MacOS. For more on running dockerized CO3 on MacOS please refer to [#2](/../../issues/2). 
 
 ## fair warning:
 - Due to historical reasons, the whole codebase is filled with name referecens to `SPEAR`, which is the old name for `CO3`. If you see `SPEAR`, that means the same thing as `CO3`. 
