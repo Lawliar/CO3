@@ -111,8 +111,8 @@
     3. baud rate is the baud rate for the serial port. This only matters when a physical serial port is used. For any other cases, specifying different number makes no difference. 
 
 ## Docker build
-- In order to use this docker file, steps in [submodule initialization](#submodule-initialization) and [llvm-prebuilt](#llvm-prebuilt) are still required. 
-- After the docker image is up, the environment needed to build the firmware and the orchestrator is up.  
+- In order to use this docker file, steps in [submodule initialization](#submodule-initialization) and [arm cross compiler](#arm-cross-compiler) are still required. llvm-prebuilt will not be necessary, as we will use the one from apt. 
+- After the docker image is up, the environment needed to build the firmware and the orchestrator is prepared.  
 - Then you can build the selected firmware and the orchestrator through simple cmake commands. 
 
 ## Docker run
