@@ -9,7 +9,7 @@
 - utils: helper scripts to visualize the SVFG, communicate with the MCU. 
 ```
 ## Before you start:
-1. all components (including firmware) are built with cmake, if you see `cmake build`, it means: create an empty `build` dir, cd to it, type `cmake ..`, and type `make`.
+1. all artifacts and projects (including the firmware) are built with cmake, if you see `cmake build`, it means: create an empty `build` dir, cd to it, type `cmake ..`, and type `make`.
 
 2. before using the docker file, submodule init are required, also llvm prebuilt and arm-gcc toolchain should be decompressed to the specified folder. 
 
@@ -93,7 +93,7 @@
 - [optional] double check `CO3_DEPS_DIR` `LLVM_HINTS` point to the right folder
 - cmake build 
 
-### instrument prepare firmware
+### instrument the firmware
 - Please refer to [firmware building doc](docs/firmware_building.md). 
 
 ### build orchestrator
@@ -118,8 +118,7 @@
 ## Docker run
 - Running CO3 requires the serial port to be exposed to the docker container. 
 - Docker Linux does not have issue with this. 
-- For MacOS, however, since it does not support serial port bypassing, running on MacOS even inside docker is difficult. 
-SER2NET directs serial port to a TCP port, however, we ran into issue even when we expose the TCP port to docker container on MacOS. For more on running dockerized CO3 on MacOS please refer to [#2](/../../issues/2). 
+- For MacOS, however, since it does not support serial port bypassing, running on MacOS even inside docker is difficult. SER2NET directs serial port to a TCP port, however, we ran into issue even when we expose the TCP port to docker container on MacOS. For more on running dockerized CO3 on MacOS please refer to [#2](/../../issues/2). 
 
 ## fair warning:
 - Due to historical reasons, the whole codebase is filled with name referecens to `SPEAR`, which is the old name for `CO3`. If you see `SPEAR`, that means the same thing as `CO3`. 
