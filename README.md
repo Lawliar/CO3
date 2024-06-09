@@ -1,3 +1,8 @@
+## Intro
+
+This is the repo for *CO3: Concolic Co-execution for Firmware* where we instrument the firmware for a much faster (1000x) firmware concolic execution while utilizing the real MCU hardware. 
+This repo contains the instrumentation pass, working firmware source code, the orchestrator running the symbolic backend, and some helper scripts. 
+
 ## Directory:
 ```
 - deps: projects that CO3 is dependent upon, except the SymCC folder which is there because that is the comparison target.  
@@ -11,11 +16,11 @@
 ## Before you start:
 1. all artifacts and projects (including the firmware) are built with cmake, if you see `cmake build`, it means: create an empty `build` dir, cd to it, type `cmake ..`, and type `make`.
 
-2. before using the docker file, submodule init are required, also llvm prebuilt and arm-gcc toolchain should be decompressed to the specified folder. 
+2. before using the docker file, submodule init are still required, the arm-gcc toolchain should also be decompressed to the specified folder. 
 
 3. CO3 features concolic executing the firmware on the MCU; for concolic executing the firmware, physical MCU is required. 
 
-4. We also have ports for desktop programs (i.e., see sym_runtime); however, this is currently under construction and only supports CGC programs. 
+4. We also have ports for desktop programs (see sym_runtime); however, this is currently under construction and only supports CGC programs. 
 
 
 ## tested platform
