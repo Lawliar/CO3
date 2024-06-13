@@ -16,7 +16,7 @@ This repo contains the instrumentation pass, working firmware source code, the o
 ## Before you start:
 1. all artifacts and projects (including the firmware) are built with cmake, if you see `cmake build`, it means: create an empty `build` dir, cd to it, type `cmake ..`, and type `make`.
 
-2. before using the docker file, submodule init are still required, the arm-gcc toolchain should also be decompressed to the specified folder. 
+2. before using the docker file, the arm-gcc toolchain should also be decompressed to the specified folder if you want to build and flash the firmware. If you just want to try out the desktop program, you can just go ahead and use docker build. 
 
 3. CO3 features concolic executing the firmware on the MCU; for concolic executing the firmware, physical MCU is required. 
 
@@ -61,14 +61,7 @@ This repo contains the instrumentation pass, working firmware source code, the o
 
 ## submodule initialization:
 
-- `git submodule init`
-- `git submodule update`
-
-### boost:
-
-- cd to deps/boost
-- `git submodule init`
-- `git submodule update`
+- `git submodule update --init --recursive`
 
 
 ## Native build dependencies
@@ -116,9 +109,8 @@ This repo contains the instrumentation pass, working firmware source code, the o
     3. baud rate is the baud rate for the serial port. This only matters when a physical serial port is used. For any other cases, specifying different number makes no difference. 
 
 ## Docker build
-- In order to use this docker file, steps in [submodule initialization](#submodule-initialization) and [arm cross compiler](#arm-cross-compiler) are still required. llvm-prebuilt will not be necessary, as we will use the one from apt. 
-- After the docker image is up, the environment needed to build the firmware and the orchestrator is prepared.  
-- Then you can build the selected firmware and the orchestrator through simple cmake commands. 
+- In order to use this docker file, step in [arm cross compiler](#arm-cross-compiler) are still required. llvm-prebuilt will not be necessary, as we will use the one from apt. 
+- You can use the docker environment to build the firmware. Everything else is prepared. 
 
 ## Docker run
 - Running CO3 requires the serial port to be exposed to the docker container. 
