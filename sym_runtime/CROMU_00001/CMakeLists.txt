@@ -20,12 +20,24 @@ cmake_minimum_required(VERSION 3.15.3)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 option(CO3_32BIT "Build for 32-bit target" OFF)
 option(CO3_NO_SHADOW "Build without app-side shadow" OFF)
+option(CO3_DOCKER_BUILD "build with docker" OFF)
 # enable export of compiler commands to compile_commands.json
 #set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Path to toolchain file. This one has to be before 'project()' below
 
-set(CMAKE_TOOLCHAIN_FILE clang.cmake)
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_PROCESSOR ARM)
+if(${CO3_DOCKER_BUILD})
+  set(CMAKE_C_COMPILER "clang-14")
+  set(CMAKE_CXX_COMPILER "clang++-14")
+  set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER})
+else()
+  set(CLANG_TOOLCHAIN_BIN_DIR ${CMAKE_SOURCE_DIR}/../../deps/llvm/clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04/bin)
+  set(CMAKE_C_COMPILER "${CLANG_TOOLCHAIN_BIN_DIR}/clang")
+  set(CMAKE_CXX_COMPILER "${CLANG_TOOLCHAIN_BIN_DIR}/clang++")
+  set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER})
+endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(CO3CROMU_00001_Workstation C)

@@ -34,6 +34,9 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
 COPY ./deps /CO3_SOURCE/deps/
 COPY ./.git /CO3_SOURCE/.git
 
+WORKDIR /CO3_SOURCE
+RUN git submodule update --init --recursive
+
 WORKDIR /CO3_SOURCE/deps/libserialport
 RUN ./autogen.sh && ./configure && make
 
@@ -66,5 +69,22 @@ COPY ./sym_backend   /CO3_SOURCE/sym_backend/
 COPY ./utils         /CO3_SOURCE/utils/
 COPY ./pass          /CO3_SOURCE/pass/
 
+WORKDIR /CO3_SOURCE/pass/symbolizer/build_workstation
+RUN cmake -DCO3_MCUS=OFF \
+          -DCO3_REPLACE=ON \
+        .. && make
+WORKDIR /CO3_SOURCE/sym_runtime/CROMU_00001/build
+RUN cmake -DCO3_32BIT=OFF \
+        -DCO3_NO_SHADOW=OFF \
+        -DCO3_DOCKER_BUILD=ON \
+      .. && make
 WORKDIR /CO3_SOURCE/sym_backend/build
-RUN cmake .. && make
+RUN cmake  \
+        -DRELEASE_BUILD=ON\
+        -DDEBUG_BUILD=OFF \
+        -DPROFILING_BUILD=OFF\
+        -DCO3_NO_MCU_SHADOW=OFF\
+        -DCO3_SER2NET=ON \
+        -DCO3_REPLACE=ON\
+        -DCO3_32BIT=OFF\
+        .. && make
