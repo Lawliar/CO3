@@ -27,7 +27,6 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
         git \
         ninja-build \
         python2 \
-        python3-pip \
         zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -59,8 +58,10 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
         llvm-14-dev \
         llvm-14-tools \
         libz3-dev \
+        python3-pip \
         && rm -rf /var/lib/apt/lists/*
 
+RUN pip3 install ipython pyserial
 COPY --from=builder /CO3_SOURCE/deps/libserialport       /CO3_SOURCE/deps/libserialport/
 COPY --from=builder /CO3_SOURCE/deps/boost               /CO3_SOURCE/deps/boost/
 COPY ./deps/arm      /CO3_SOURCE/deps/arm/
@@ -78,7 +79,7 @@ RUN cmake -DCO3_32BIT=OFF \
         -DCO3_NO_SHADOW=OFF \
         -DCO3_DOCKER_BUILD=ON \
       .. && make
-WORKDIR /CO3_SOURCE/sym_backend/build
+WORKDIR /CO3_SOURCE/sym_backend/build_workstation_release
 RUN cmake  \
         -DRELEASE_BUILD=ON\
         -DDEBUG_BUILD=OFF \
