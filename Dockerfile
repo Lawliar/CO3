@@ -89,3 +89,6 @@ RUN cmake  \
         -DCO3_REPLACE=ON\
         -DCO3_32BIT=OFF\
         .. && make
+WORKDIR /CO3_SOURCE/sym_runtime/CROMU_00001
+COPY ./sym_runtime/CROMU_00001/pov/first1K.xml.bin2 /CO3_SOURCE/sym_runtime/CROMU_00001/intermediate_results 
+run touch /CO3_SOURCE/sym_runtime/CROMU_00001/intermediate_results/fileUSB.bin
