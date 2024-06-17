@@ -38,18 +38,13 @@ This repo contains the instrumentation pass, working firmware source code, the o
 
 ## Prerequisite 
 
-### llvm prebuilt
-
-- Both llvm pass and orchestrator are built on `LLVM-14`.
-
-- This is also needed to build the firmware. 
+### llvm prebuilt (not needed for docker build)
 
 - Download llvm-14.0x pre-built and unzip to deps/llvm through `tar -xf <llvm-14>.tar.gz -C ./deps/llvm/`. 
-    - If you are using docker to build orchestrator, you still need this step. 
-    However, instead of the pre-built for you hosting OS, you can just use [llvm-prebuit-ubuntu](https://github.com/llvm/llvm-project/releases/download/llvmorg-14.0.0/clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz)
 
 
-### arm cross compiler:
+
+### arm cross compiler (required for docker build too):
 
 - Simply select that one fitting your situation from [arm-gnu-toolchain](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads). The version that we use is **11.3.rel1**. 
 - Unzip it to `deps/arm` and make sure the arm.cmake under the firmware source code (firmware/STMfirmware/Common) points to it. 
