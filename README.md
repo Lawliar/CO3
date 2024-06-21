@@ -75,7 +75,7 @@ This repo contains the instrumentation pass, working firmware source code, the o
 ### z3
 - cd to deps/z3
 - mkdir build
-- cmake -DCMAKE_INSTALL_PREFIX=`pwd`/install ..
+- cmake -DCMAKE_INSTALL_PREFIX=\`pwd\`/install ..
 - make
 - make install 
 
@@ -83,7 +83,9 @@ This repo contains the instrumentation pass, working firmware source code, the o
 
 ### build symbolizer
 - cd to pass/symbolizer
-- [optional] double check `CO3_DEPS_DIR` `LLVM_HINTS` point to the right folder
+- Configure the pass to fit your needs:
+    1. `CO3_MCUS`: enable when instrumenting a MCU, disable when instrumenting a workstation application.
+    2. `CO3_REPLACE`: if this pass will replace the symbolic instructions to a or instruction. (this corresponds to the `Report All` mode in the paper)
 - cmake build 
 
 ### instrument the firmware
@@ -91,7 +93,15 @@ This repo contains the instrumentation pass, working firmware source code, the o
 
 ### build orchestrator
 - cd to sym_backend
-- double check the configurations fit your needs, there are three builds, debug, release, profiling
+- Configure the orchestrator to fit your needs:
+    1. Building Types:
+        1. Release Build. 
+        2. Debug Build: besides less compile-time optimization, there are more sanity checks, and log prints. 
+        3. Profile Build: with google profiler. 
+    2. `CO3_NO_MCU_SHADOW`: consistent with the MCU-side configuration. What it does internally is diabling a few sanity checks.
+    3. `CO3_REPLACE`: consistent with the MCU-side configuration. 
+    4. `CO3_SER2NET`: use TCP/UNIX socket instead of the serial port. 
+    5. `CO3_32BIT`: enabled when talking with a MCU. disabled when talking with a 64-bit workstation application.
 - cmake build 
 
 ## Native run
@@ -121,3 +131,13 @@ This repo contains the instrumentation pass, working firmware source code, the o
 - There is roadmap for future development, please see [#1](/../../issues/1).
     - Feel free to comment in that issue to share your ideas about what could be the next step. You ideas will be considered proactively. 
     - If you want to take on some of the tasks, feel free to let me know, I might have something done already. 
+
+## Cite this work:
+```
+@inproceedings{liu2024co3,
+  title={CO3: Concolic Co-execution for Firmware},
+  author={Liu, Changming and Mera, Alejandro and Kirda, Engin and Xu, Meng and Lu, Long},
+  booktitle={33rd USENIX Security Symposium (USENIX Security 24)},
+  year={2024}
+}
+```
