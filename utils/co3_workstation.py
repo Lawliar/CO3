@@ -36,16 +36,16 @@ def runCO3(args, debug = False, buggy_index = 98):
         spear_inter_dir    = os.path.join(CO3_DIR,"sym_runtime",benchmark,"intermediate_results")
     frontend_executable = os.path.join(spear_inter_dir,"..","build","CO3{}_Workstation.elf".format(benchmark))
 
-    fileUSB = os.path.join(spear_inter_dir,"usb")
+    fileUSB = os.path.join(spear_inter_dir,"fileUSB.bin")
     concrete_input           = "{}/concreteInputs.bin".format(spear_inter_dir)
     output_dir          = "{}/output".format(spear_inter_dir)
     tmp_output_dir      = "{}/tmp_out".format(output_dir)
-    if (os.path.exists(fileUSB)):
+    if (not os.path.exists(fileUSB)):
         with open(fileUSB,"a"):
             pass
-    if(debug == False):
+    if(debug == False and os.path.exists(output_dir)):
         shutil.rmtree(output_dir)
-        os.mkdir(output_dir)
+    os.mkdir(output_dir)
     if(os.path.exists(tmp_output_dir)):
         shutil.rmtree(tmp_output_dir)
     os.mkdir(tmp_output_dir)
