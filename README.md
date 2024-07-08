@@ -1,7 +1,6 @@
 ## Intro
 
-This is the repo for *CO3: Concolic Co-execution for Firmware* where we instrument the firmware for a much faster (1000x) firmware concolic execution while utilizing the real MCU hardware. 
-This repo contains the instrumentation pass, working firmware source code, the orchestrator running the symbolic backend, and some helper scripts. 
+This is the repo for *CO3: Concolic Co-execution for Firmware* from [NU Seclab](https://seclab.nu/). CO3 features in instrumenting the firmware for a much faster (1000x) firmware concolic execution while running directly on the MCU hardware. 
 
 ## Directory:
 ```
@@ -23,7 +22,7 @@ This repo contains the instrumentation pass, working firmware source code, the o
 4. We also have ports for desktop programs (see sym_runtime); however, this is currently under construction and only supports CGC programs. 
 
 
-## tested platform
+## Supported Platforms
 
 - Workstation:
     1. Native Ubuntu 22.04 (older version also should work)
@@ -79,19 +78,21 @@ This repo contains the instrumentation pass, working firmware source code, the o
 - make
 - make install 
 
-## Native build
+## Native Build and Run
 
-### build symbolizer
+### Native build
+
+#### build symbolizer
 - cd to pass/symbolizer
 - Configure the pass to fit your needs:
     1. `CO3_MCUS`: enable when instrumenting a MCU, disable when instrumenting a workstation application.
     2. `CO3_REPLACE`: if this pass will replace the symbolic instructions to a or instruction. (this corresponds to the `Report All` mode in the paper)
 - cmake build 
 
-### instrument the firmware
+#### instrument the firmware
 - Please refer to [firmware building doc](docs/firmware_building.md). 
 
-### build orchestrator
+#### build orchestrator
 - cd to sym_backend
 - Configure the orchestrator to fit your needs:
     1. Building Types:
@@ -104,30 +105,32 @@ This repo contains the instrumentation pass, working firmware source code, the o
     5. `CO3_32BIT`: enabled when talking with a MCU. disabled when talking with a 64-bit workstation application.
 - cmake build 
 
-## Native run
+### Native run
 
-1. Flash the firmware to the board and connect the USB port to the workstation. 
+1. Flash the firmware to the board and connect the USB/physical serial port to the workstation. 
 2. run `orchestrator -i <SVFG dir> -p <serial port> -b <baud rate of the serial port>`
     1. SVFG dir is the folder automatically generated in the firmware building process. 
     2. serial port is the USB-CDC/physical serial port (e.g., /dev/ttyACM1). 
         - This port also accepts number as parameters if the orchestrator is built with `SER2NET`. In this case, the serial port can be a TCP port where the SER2NET is carried through. Furthermore, if you specify `0`, the orchestrator will look for UNIX socket directly located in the `<SVFG dir>`. UNIX socket is used in workstation mode.  
     3. baud rate is the baud rate for the serial port. This only matters when a physical serial port is used. For any other cases, specifying different number makes no difference. 
 
-## Docker build
+## Docker build and run
+
+### Docker build
 - In order to use this docker file, step in [arm cross compiler](#arm-cross-compiler) are still required. llvm-prebuilt will not be necessary, as we will use the one from apt. 
 - You can use the docker environment to build the firmware. Everything else is prepared. 
 
-## Docker run
+### Docker run
 - Running CO3 requires the serial port to be exposed to the docker container. 
 - Docker Linux does not have issue with this. 
 - For MacOS, however, since it does not support serial port bypassing, running on MacOS even inside docker is difficult. SER2NET directs serial port to a TCP port, however, we ran into issue even when we expose the TCP port to docker container on MacOS. For more on running dockerized CO3 on MacOS please refer to [#2](/../../issues/2). 
 
-## fair warning:
+## Fair warning:
 - Due to historical reasons, the whole codebase is filled with name referecens to `SPEAR`, which is the old name for `CO3`. If you see `SPEAR`, that means the same thing as `CO3`. 
 - This is a research prototype, not intended for production. In the meantime, I am open for all helpful PRs that can make CO3 better. 
 - If your research prototype is built on top of CO3, I encourage you to open source too.
 
-## If you want to contribute:
+## Way to contribute:
 - There is roadmap for future development, please see [#1](/../../issues/1).
     - Feel free to comment in that issue to share your ideas about what could be the next step. You ideas will be considered proactively. 
     - If you want to take on some of the tasks, feel free to let me know, I might have something done already. 
