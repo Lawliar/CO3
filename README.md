@@ -1,6 +1,6 @@
 ## Intro
 
-This is the repo for *CO3: Concolic Co-execution for Firmware* from [NU Seclab](https://seclab.nu/). CO3 features in instrumenting the firmware for a much faster (1000x) firmware concolic execution while running directly on the MCU hardware. 
+This is the repo for *CO3: Concolic Co-execution for Firmware* from [NU Seclab](https://seclab.nu/). CO3 features in instrumenting the firmware for a much faster (1000x) workstation-level firmware concolic execution while running directly on the MCU hardware. 
 
 ## Directory:
 ```
