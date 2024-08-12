@@ -33,14 +33,15 @@ def runCO3(args, debug = False, buggy_index = 98):
         backend_executable = os.path.join(CO3_DIR,"sym_backend","build_release", "qsym_backend","orchestrator")
         spear_inter_dir    = os.path.join(CO3_DIR,"firmware","STMfirmware","Spear{}".format(benchmark),"intermediate_results")
     concrete_input = os.path.join(spear_inter_dir,"concreteInputs.bin")
-    fileUSB = os.path.join(spear_inter_dir,"usb")
+    fileUSB = os.path.join(spear_inter_dir,"fileUSB.bin")
     output_dir          = "{}/output".format(spear_inter_dir)
     tmp_output_dir      = "{}/tmp_out".format(output_dir)
-    if (os.path.exists(fileUSB)):
+    if (not os.path.exists(fileUSB)):
         with open(fileUSB,"a"):
             pass
     if(debug == False):
-        shutil.rmtree(output_dir)
+        if os.path.exists(output_dir):
+            shutil.rmtree(output_dir)
         os.mkdir(output_dir)
     if(os.path.exists(tmp_output_dir)):
         shutil.rmtree(tmp_output_dir)
@@ -54,6 +55,7 @@ def runCO3(args, debug = False, buggy_index = 98):
 
     spear_break = False
 
+    coverage = []
     total_time = 0
     total_runtime = 0
     total_building_time = 0
