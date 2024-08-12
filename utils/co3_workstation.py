@@ -64,7 +64,6 @@ def runCO3(args, debug = False, buggy_index = 98):
     total_receiving_time = 0
     total_num_bytes = 0
     it = 0
-    coverage = {}
     while (True):
         for cur_input_id in range(batch_input_id_start, batch_input_id_end):
             if debug == True and cur_input_id < buggy_index:
@@ -108,7 +107,7 @@ def runCO3(args, debug = False, buggy_index = 98):
             if building_time == 0 and receiving_time == 0 and total_num_bytes == 0:
                 print("program did not end well")
                 embed()
-            print("iter:{},cur at {} from {} to {}, edge size:{}, need {} inputs to finish".format(it, cur_input_id, batch_input_id_start , batch_input_id_end, len(coverage), estimate_inputs_needed(cur_input_id + 1, total_time, time_budget)))
+            print("iter:{},cur at {} from {} to {}, need {} inputs to finish".format(it, cur_input_id, batch_input_id_start , batch_input_id_end, estimate_inputs_needed(cur_input_id + 1, total_time, time_budget)))
             print("building time:{:.2f}, transmit {} costs:{:.2f}, total time:{:.2f} / {}".format( total_building_time, convert_size(total_num_bytes), total_receiving_time, total_time , time_budget))
             tmp_output_id = get_highest_id(output_dir) + 1
 
