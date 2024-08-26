@@ -15,11 +15,9 @@ This is the repo for *CO3: Concolic Co-execution for Firmware* from [NU Seclab](
 ## Before you start:
 1. all artifacts and projects (including the firmware) are built with cmake, if you see `cmake build`, it means: create an empty `build` dir, cd to it, type `cmake ..`, and type `make`.
 
-2. before using the docker file, the arm-gcc toolchain should also be decompressed to the specified folder if you want to build and flash the firmware. If you just want to try out the desktop program, you can just go ahead and use docker build. 
+2. If you want to instrument and build the firmware, the arm-gcc toolchain should be decompressed to the specific (i.e., `./deps/arm`) folder. In such a case, a physical MCU, and a USB/(usart-to-USB) cable should also be available. 
 
-3. CO3 features concolic executing the firmware on the MCU; for concolic executing the firmware, physical MCU is required. 
-
-4. We also have ports for desktop programs (see sym_runtime); however, this is currently under construction and only supports CGC programs. 
+3. We also have ports for desktop programs (see sym_runtime); however, this is currently under construction and only supports CGC programs. 
 
 
 ## Supported Platforms
@@ -40,7 +38,6 @@ This is the repo for *CO3: Concolic Co-execution for Firmware* from [NU Seclab](
 ### llvm prebuilt (not needed for docker build)
 
 - Download llvm-14.0x pre-built and unzip to deps/llvm through `tar -xf <llvm-14>.tar.gz -C ./deps/llvm/`. 
-
 
 
 ### arm cross compiler (required for docker build too):
