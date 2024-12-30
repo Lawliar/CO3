@@ -2,6 +2,8 @@
 
 This is the repo for *CO3: Concolic Co-execution for Firmware* from [NU Seclab](https://seclab.nu/). CO3 features in instrumenting the firmware for a much faster (1000x) workstation-level firmware concolic execution while running directly on the MCU hardware. 
 
+CO3 also features in being combined with a semi-hosted fuzzer, [*SHiFT*](https://github.com/RiS3-Lab/SHiFT) to build a semi-hosted hybrid fuzzer.
+
 ## Directory:
 ```
 - deps: projects that CO3 is dependent upon, except the SymCC folder which is there because that is the comparison target.  
